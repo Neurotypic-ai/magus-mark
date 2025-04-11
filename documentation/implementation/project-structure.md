@@ -27,7 +27,10 @@ obsidian-magic/
 │   │   │   ├── index.ts     # Entry point
 │   │   │   ├── commands/    # CLI command definitions
 │   │   │   └── utils/       # CLI utilities
-│   │   └── tests/           # CLI tests
+│   │   ├── tests/           # CLI tests
+│   │   └── .github/         # CLI-specific CI workflows
+│   │       └── workflows/
+│   │           └── ci.yml   # CLI CI workflow
 │   ├── obsidian-plugin/     # Obsidian plugin
 │   │   ├── package.json     # Plugin-specific dependencies
 │   │   ├── tsconfig.json    # Plugin TypeScript config
@@ -35,7 +38,10 @@ obsidian-magic/
 │   │   │   ├── main.ts      # Entry point
 │   │   │   ├── ui/          # UI components
 │   │   │   └── services/    # Plugin services
-│   │   └── tests/           # Plugin tests
+│   │   ├── tests/           # Plugin tests
+│   │   └── .github/         # Plugin-specific CI workflows
+│   │       └── workflows/
+│   │           └── ci.yml   # Plugin CI workflow
 │   └── vscode/              # VS Code extension
 │       ├── package.json     # Extension-specific dependencies
 │       ├── tsconfig.json    # Extension TypeScript config
@@ -43,7 +49,10 @@ obsidian-magic/
 │       │   ├── extension.ts # Entry point
 │       │   ├── views/       # View implementations
 │       │   └── cursor/      # Cursor-specific code
-│       └── tests/           # Extension tests
+│       ├── tests/           # Extension tests
+│       └── .github/         # Extension-specific CI workflows
+│           └── workflows/
+│               └── ci.yml   # Extension CI workflow
 ├── packages/                # Shared packages (publishable)
 │   ├── core/                # Core library package
 │   │   ├── package.json     # Core package configuration
@@ -134,6 +143,21 @@ TypeScript project references are used for efficient, targeted builds:
 - Root tsconfig.json includes references to all project configs
 - Incremental builds supported through project references
 
+## CI/CD Configuration
+
+The project implements a comprehensive CI/CD strategy:
+
+- **Repository-level workflows**: Located in `.github/workflows/`
+  - `ci.yml`: Main CI workflow that runs on all changes
+  - `release.yml`: Release workflow triggered by tag creation
+
+- **Component-specific workflows**: Located in `apps/<component>/.github/workflows/`
+  - Component-specific CI workflows that run when changes affect that component
+  - Custom test and build configurations for each component
+  - Specialized testing (e.g., accessibility, cross-platform)
+
+For detailed information about the CI/CD setup, refer to the [CI/CD Workflows](../implementation/ci-cd-workflows.md) documentation.
+
 ## Related Implementation Documentation
 
 For detailed information on specific implementation aspects, refer to these additional documents:
@@ -142,4 +166,5 @@ For detailed information on specific implementation aspects, refer to these addi
 - [Testing Strategy](../implementation/testing-strategy.md)
 - [Error Handling](../implementation/error-handling.md)
 - [Type Safety](../implementation/type-safety.md)
-- [Dependency Injection](../implementation/dependency-injection.md) 
+- [Dependency Injection](../implementation/dependency-injection.md)
+- [CI/CD Workflows](../implementation/ci-cd-workflows.md) 

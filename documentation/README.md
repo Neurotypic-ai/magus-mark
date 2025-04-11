@@ -37,6 +37,7 @@ Each component can be developed independently by different team members:
 | **Obsidian Plugin** | Obsidian integration and UI | `./obsidian-plugin/*.md` |  
 | **VS Code Extension** | VS Code and Cursor integration | `./vscode-integration/*.md` |
 | **Implementation** | Project structure, code organization | `./implementation/*.md` |
+| **CI/CD** | Continuous integration and deployment | `./implementation/ci-cd-workflows.md` |
 
 ## Getting Started
 
@@ -44,4 +45,5 @@ For developers joining the project, start by reviewing:
 
 1. First review the [Core Tagging Model](./core/tagging-model.md) to understand the tagging philosophy
 2. Then review the documentation for your assigned component
-3. Check the [Project Structure](./implementation/project-structure.md) to understand the codebase organization 
+3. Check the [Project Structure](./implementation/project-structure.md) to understand the codebase organization
+4. Review the [CI/CD Workflows](./implementation/ci-cd-workflows.md) for development and release processes 
