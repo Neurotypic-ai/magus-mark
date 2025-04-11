@@ -73,6 +73,122 @@ alwaysApply: true
   - Enforce consistent file naming patterns
   - Use custom ESLint rules like `no-barrel-files` to prevent creation of nested index.ts files
 
+## TypeScript ESLint Rules
+
+We use `@typescript-eslint` with strict rules. Here's how to properly follow the most common ones:
+
+### Type Safety Rules
+
+#### `no-explicit-any`
+- ❌ **Incorrect**: `function process(data: any) { return data.value; }`
+- ✅ **Correct**: `function process(data: unknown) { if (typeof data === 'object' && data && 'value' in data) return data.value; }`
+- **Why**: The `any` type circumvents TypeScript's type checking. Use `unknown` and proper type guards instead.
+
+#### `no-unsafe-assignment`
+- ❌ **Incorrect**: `const typedValue: string = JSON.parse(input);`
+- ✅ **Correct**: 
+  ```typescript
+  const data = JSON.parse(input);
+  if (typeof data === 'string') {
+    const typedValue: string = data;
+  }
+  ```
+- **Why**: Direct assignments from untyped sources bypass type checking. Always verify types before assignment.
+
+#### `no-unsafe-member-access`
+- ❌ **Incorrect**: `const value = unknownObject.property;`
+- ✅ **Correct**:
+  ```typescript
+  if (typeof unknownObject === 'object' && unknownObject && 'property' in unknownObject) {
+    const value = unknownObject.property;
+  }
+  ```
+- **Why**: Accessing properties on untyped objects can cause runtime errors. Always check structure first.
+
+#### `no-unsafe-call`
+- ❌ **Incorrect**: `unknownFunction();`
+- ✅ **Correct**:
+  ```typescript
+  if (typeof unknownFunction === 'function') {
+    unknownFunction();
+  }
+  ```
+- **Why**: Calling untyped functions can cause runtime errors. Verify callable first.
+
+#### `restrict-template-expressions`
+- ❌ **Incorrect**: `const message = `User: ${user.id} logged in`;`
+- ✅ **Correct**: `const message = `User: ${String(user.id)} logged in`;`
+- **Why**: Template expressions should handle potential undefined/null values. Use explicit conversion.
+
+### Nullish Handling
+
+#### `prefer-nullish-coalescing`
+- ❌ **Incorrect**: `const value = someValue || defaultValue;`
+- ✅ **Correct**: `const value = someValue ?? defaultValue;`
+- **Why**: The `||` operator treats empty strings and 0 as falsy. Use `??` to check only for null/undefined.
+
+#### `no-unnecessary-condition`
+- ❌ **Incorrect**: `if (someString) { ... }` (when `someString` is typed as string)
+- ✅ **Correct**: `if (someString !== '') { ... }`
+- **Why**: Checking non-nullable types for existence is redundant. Be explicit about what you're checking.
+
+### Async Code
+
+#### `require-await`
+- ❌ **Incorrect**: `async function noAsyncOperation() { return 'value'; }`
+- ✅ **Correct**: `function noAsyncOperation() { return 'value'; }` or `async function withAwait() { return await asyncOperation(); }`
+- **Why**: Async functions without await are usually a mistake. If no awaits are used, the function probably shouldn't be async.
+
+### Code Cleanliness
+
+#### `no-unused-vars`
+- ❌ **Incorrect**: `function process(unusedParam, usedParam) { return usedParam * 2; }`
+- ✅ **Correct**: 
+  ```typescript
+  function process(_unusedParam, usedParam) { return usedParam * 2; }
+  // Or even better:
+  function process(usedParam) { return usedParam * 2; }
+  ```
+- **Why**: Unused variables indicate potential bugs or leftover code. Prefix with underscore if intentional.
+
+### Type Assertion Best Practices
+
+#### Avoid Unsafe Type Assertions
+- ❌ **Incorrect**: `const value = data as ExpectedType;`
+- ✅ **Correct**:
+  ```typescript
+  if (isExpectedType(data)) {
+    const value: ExpectedType = data;
+  }
+  ```
+- **Why**: Type assertions bypass TypeScript's type checking. Create proper type guards instead.
+
+#### Use Type Guards
+- ❌ **Incorrect**: `(user as Admin).adminPermissions.doSomething();`
+- ✅ **Correct**:
+  ```typescript
+  function isAdmin(user: User): user is Admin {
+    return 'adminPermissions' in user;
+  }
+  
+  if (isAdmin(user)) {
+    user.adminPermissions.doSomething();
+  }
+  ```
+- **Why**: Type guards allow TypeScript to understand your runtime checks.
+
+### Working With Arrays and Objects
+
+#### Use Array/Object Types Explicitly
+- ❌ **Incorrect**: `const items = [];`
+- ✅ **Correct**: `const items: string[] = [];` or `const items = [] as string[];`
+- **Why**: Empty arrays/objects start as `any[]` or `{}`, causing type issues later.
+
+#### Use Record for Index Signatures
+- ❌ **Incorrect**: `interface Config { [key: string]: string; }`
+- ✅ **Correct**: `type Config = Record<string, string>;`
+- **Why**: Record is more concise and communicates intent better.
+
 ## Workspace Dependencies
 
 - Reference shared packages with workspace protocol (`workspace:*`)

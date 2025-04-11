@@ -1,69 +1,83 @@
-# Error Handling Strategies
+# CLI Error Handling
 
-The Obsidian Magic CLI implements a robust error handling system to ensure reliability, graceful failure recovery, and clear user feedback.
+The CLI implements a robust error handling approach by leveraging the unified error system from the core package while
+providing CLI-specific error handling.
 
-## Error Handling Architecture
+## Core Error System Integration
 
-The CLI utilizes a multi-layered error handling approach:
-
-### Error Categories
-
-Errors are categorized into several distinct types:
-
-1. **User Input Errors**: Invalid command-line arguments or configuration
-2. **System Errors**: File system, network, or resource issues
-3. **API Errors**: OpenAI API failures, rate limits, or authentication issues
-4. **Processing Errors**: File parsing, token counting, or tag application failures
-5. **Validation Errors**: Invalid data structures or unexpected response formats
-
-### Error Hierarchy
-
-The CLI implements a typed error hierarchy:
+The CLI imports all error classes and utilities from the core package:
 
 ```typescript
-// Base error class
-class CliError extends Error {
-  code: string;
-  recoverable: boolean;
-  
-  constructor(message: string, code: string, recoverable = false) {
-    super(message);
-    this.name = this.constructor.name;
-    this.code = code;
-    this.recoverable = recoverable;
-  }
-}
+import {
+  APIError,
+  AppError,
+  ConfigurationError,
+  CostLimitError,
+  ErrorCodes,
+  FileSystemError,
+  NetworkError,
+  Result,
+  ResultObject,
+  ValidationError,
+  failure,
+  success,
+  tryCatch,
+  withRetry,
+} from '@obsidian-magic/core/src/errors';
 
-// Specific error types
-class UserInputError extends CliError {
-  constructor(message: string, code = 'INVALID_INPUT') {
-    super(message, code, true);
-  }
-}
-
-class ApiError extends CliError {
-  statusCode?: number;
-  retryAfter?: number;
-  
-  constructor(message: string, code = 'API_ERROR', statusCode?: number, retryAfter?: number) {
-    super(message, code, statusCode ? statusCode < 500 : false);
-    this.statusCode = statusCode;
-    this.retryAfter = retryAfter;
-  }
-}
-
-// Additional error types...
+import type { ErrorCode } from '@obsidian-magic/core';
 ```
 
-## Command-Line Validation
+## CLI-specific Error Handling
 
-The CLI performs validation at multiple levels:
+The CLI extends the core error handling with CLI-specific patterns:
 
-### Argument Validation
+### Error Visualization
 
-Yargs provides the first level of validation:
+The CLI provides rich error visualization with colorized output:
 
 ```typescript
+import chalk from 'chalk';
+
+// CLI-specific error handler
+function handleCliError(error: unknown): never {
+  const appError = toAppError(error);
+
+  // Format message based on error type
+  if (appError instanceof ValidationError) {
+    console.error(chalk.red('Error:'), appError.message);
+    console.error(chalk.yellow('Tip:'), 'Use --help to see valid options');
+  } else if (appError instanceof APIError) {
+    console.error(chalk.red('API Error:'), appError.message);
+    if (appError.statusCode === 401) {
+      console.error(chalk.yellow('Tip:'), 'Check your API key');
+    } else if (appError.statusCode === 429) {
+      console.error(chalk.yellow('Tip:'), 'Rate limited. Try again later or reduce concurrency');
+    }
+  } else if (appError instanceof CostLimitError) {
+    console.error(chalk.red('Cost Limit Exceeded:'), appError.message);
+    if (appError.context && 'cost' in appError.context && 'limit' in appError.context) {
+      console.error(chalk.yellow('Info:'), `Cost: ${appError.context.cost}, Limit: ${appError.context.limit}`);
+    }
+  } else {
+    console.error(chalk.red(`${appError.name}:`), appError.message);
+    if (process.env.DEBUG) {
+      console.error(appError.format());
+    }
+  }
+
+  process.exit(1);
+}
+```
+
+### Command-Line Validation
+
+The CLI integrates error handling with Yargs for command validation:
+
+```typescript
+import { ValidationError } from '@obsidian-magic/core';
+import yargs from 'yargs';
+
 yargs
   .option('concurrency', {
     type: 'number',
@@ -71,199 +85,137 @@ yargs
     default: 3,
     check: (value) => {
       if (value < 1) {
-        throw new UserInputError('Concurrency must be at least 1');
+        throw new ValidationError('Concurrency must be at least 1', {
+          field: 'concurrency',
+        });
       }
       return true;
-    }
+    },
   })
   .option('max-cost', {
     type: 'number',
     describe: 'Maximum budget for this run',
     check: (value) => {
       if (value <= 0) {
-        throw new UserInputError('Max cost must be greater than 0');
+        throw new ValidationError('Max cost must be greater than 0', {
+          field: 'max-cost',
+        });
       }
       return true;
+    },
+  })
+  .fail((msg, err) => {
+    if (err) {
+      handleCliError(err);
+    } else {
+      handleCliError(new ValidationError(msg));
     }
   });
 ```
 
-### Command Middleware Validation
-
-Additional validation occurs in command middleware:
-
-```typescript
-const validateApiCredentials = (argv: Arguments) => {
-  const apiKey = argv.apiKey || process.env.OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    throw new UserInputError(
-      'OpenAI API key is required. Provide it via --api-key option or OPENAI_API_KEY environment variable',
-      'MISSING_API_KEY'
-    );
-  }
-  
-  return argv;
-};
-```
-
-## API Error Handling
-
-The CLI implements sophisticated API error handling:
-
-### Rate Limiting
-
-```typescript
-const apiCallWithRetry = async <T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> => {
-  const {
-    maxRetries = 3,
-    initialDelay = 1000,
-    maxDelay = 60000,
-    factor = 2,
-  } = options;
-  
-  let attempt = 0;
-  
-  while (true) {
-    try {
-      return await fn();
-    } catch (error) {
-      attempt++;
-      
-      if (attempt > maxRetries) {
-        throw error;
-      }
-      
-      if (error instanceof ApiError && error.statusCode === 429) {
-        // Use retryAfter from API if available, otherwise use exponential backoff
-        const delay = error.retryAfter
-          ? error.retryAfter * 1000
-          : Math.min(initialDelay * Math.pow(factor, attempt - 1), maxDelay);
-        
-        logWarning(`Rate limited. Retrying in ${delay / 1000} seconds...`);
-        await sleep(delay);
-      } else if (isTransientError(error)) {
-        // Handle other transient errors
-        const delay = Math.min(initialDelay * Math.pow(factor, attempt - 1), maxDelay);
-        logWarning(`Transient error. Retrying in ${delay / 1000} seconds...`);
-        await sleep(delay);
-      } else {
-        // Non-recoverable error
-        throw error;
-      }
-    }
-  }
-};
-```
-
-### Error Classification
-
-The CLI classifies API errors for appropriate handling:
-
-```typescript
-const isTransientError = (error: any): boolean => {
-  if (error instanceof ApiError) {
-    // 5xx errors, network timeouts
-    return (
-      error.statusCode >= 500 ||
-      error.code === 'ETIMEDOUT' ||
-      error.code === 'ECONNRESET'
-    );
-  }
-  
-  // Network-related errors
-  return (
-    error.code === 'ENOTFOUND' ||
-    error.code === 'EAI_AGAIN' ||
-    error.message.includes('ECONNREFUSED')
-  );
-};
-```
-
-## File Processing Errors
-
-The CLI handles file processing errors robustly:
-
 ### Safe File Operations
 
+The CLI implements safe file operations with proper error handling:
+
 ```typescript
-const safelyProcessFile = async (
-  filePath: string,
-  options: ProcessOptions
-): Promise<ProcessResult> => {
-  try {
-    // Verify file exists
-    if (!fs.existsSync(filePath)) {
-      throw new FileSystemError(`File not found: ${filePath}`, 'FILE_NOT_FOUND');
-    }
-    
-    // Check permissions
-    try {
-      await fs.access(filePath, fs.constants.R_OK | fs.constants.W_OK);
-    } catch (e) {
-      throw new FileSystemError(
-        `Insufficient permissions for file: ${filePath}`,
-        'INSUFFICIENT_PERMISSIONS'
-      );
-    }
-    
-    // Backup file before processing if requested
-    if (options.backup) {
+import { FileSystemError, Result, tryCatch } from '@obsidian-magic/core';
+import fs from 'fs-extra';
+
+async function safelyProcessFile(filePath: string, options: ProcessOptions): Promise<Result<ProcessResult>> {
+  // Verify file exists
+  const fileExists = await tryCatch(async () => {
+    return await fs.pathExists(filePath);
+  });
+
+  if (fileExists.isOk() && !fileExists.getValue()) {
+    return Result.fail(
+      new FileSystemError(`File not found: ${filePath}`, {
+        code: ErrorCodes.FILE_NOT_FOUND,
+        path: filePath,
+      })
+    );
+  }
+
+  // Check permissions
+  const fileAccess = await tryCatch(async () => {
+    await fs.access(filePath, fs.constants.R_OK | fs.constants.W_OK);
+    return true;
+  });
+
+  if (fileAccess.isFail()) {
+    return Result.fail(
+      new FileSystemError(`Insufficient permissions for file: ${filePath}`, {
+        code: ErrorCodes.INSUFFICIENT_PERMISSIONS,
+        path: filePath,
+        cause: fileAccess.getError(),
+      })
+    );
+  }
+
+  // Backup file before processing if requested
+  if (options.backup) {
+    const backupResult = await tryCatch(async () => {
       const backupPath = `${filePath}.backup`;
       await fs.copyFile(filePath, backupPath);
-    }
-    
-    // Process file with structured error handling
-    return await processFile(filePath, options);
-  } catch (error) {
-    // Transform and enhance error
-    if (error instanceof CliError) {
-      // Add context to existing error
-      error.message = `Error processing ${filePath}: ${error.message}`;
-      throw error;
-    } else {
-      // Convert unknown error to FileProcessingError
-      throw new FileProcessingError(
-        `Error processing ${filePath}: ${error.message || 'Unknown error'}`,
-        'FILE_PROCESSING_ERROR'
+      return backupPath;
+    });
+
+    if (backupResult.isFail()) {
+      return Result.fail(
+        new FileSystemError(`Failed to create backup: ${filePath}`, {
+          cause: backupResult.getError(),
+          path: filePath,
+        })
       );
     }
   }
-};
+
+  // Process file
+  return await tryCatch(async () => {
+    return await processFile(filePath, options);
+  });
+}
 ```
 
-### Batch Processing Error Handling
+### Batch Processing
 
-The CLI gracefully handles errors during batch processing:
+The CLI handles errors during batch processing:
 
 ```typescript
-const processBatch = async (
-  files: string[],
-  options: ProcessOptions
-): Promise<BatchResult> => {
+import { AppError, Result } from '@obsidian-magic/core';
+
+type BatchResult = {
+  results: ProcessResult[];
+  errors: Array<{ file: string; error: AppError }>;
+  success: number;
+  failed: number;
+  total: number;
+};
+
+async function processBatch(files: string[], options: ProcessOptions): Promise<BatchResult> {
   const results: ProcessResult[] = [];
-  const errors: ProcessError[] = [];
-  
+  const errors: Array<{ file: string; error: AppError }> = [];
+
   for (const file of files) {
-    try {
-      const result = await safelyProcessFile(file, options);
-      results.push(result);
-    } catch (error) {
-      // Record error and continue with other files
+    const result = await safelyProcessFile(file, options);
+
+    if (result.isOk()) {
+      results.push(result.getValue());
+    } else {
       errors.push({
         file,
-        error: error instanceof CliError ? error : new CliError(error.message, 'UNKNOWN_ERROR'),
+        error:
+          result.getError() instanceof AppError
+            ? (result.getError() as AppError)
+            : new AppError(result.getError().message),
       });
-      
+
       if (options.failFast) {
         break;
       }
     }
   }
-  
+
   return {
     results,
     errors,
@@ -271,398 +223,139 @@ const processBatch = async (
     failed: errors.length,
     total: files.length,
   };
-};
+}
 ```
 
-## Error Reporting
+### Cost Management
 
-The CLI provides comprehensive error reporting:
-
-### User-Friendly Output
+The CLI implements cost management with dedicated error handling:
 
 ```typescript
-const handleError = (error: unknown): never => {
-  if (error instanceof UserInputError) {
-    // Format user input errors clearly
-    console.error(chalk.red('Error:'), error.message);
-    console.error(chalk.yellow('Tip:'), 'Use --help to see valid options and usage');
-  } else if (error instanceof ApiError) {
-    // Format API errors with relevant details
-    console.error(chalk.red('API Error:'), error.message);
-    if (error.statusCode === 401) {
-      console.error(chalk.yellow('Tip:'), 'Check your API key and authentication settings');
-    } else if (error.statusCode === 429) {
-      console.error(chalk.yellow('Tip:'), 'You\'ve hit rate limits. Try again later or reduce concurrency');
-    }
-  } else if (error instanceof CliError) {
-    // Format known CLI errors
-    console.error(chalk.red(`${error.name}:`), error.message);
-    if (error.recoverable) {
-      console.error(chalk.yellow('Tip:'), 'This error may be recoverable. See error details above');
-    }
-  } else {
-    // Format unknown errors
-    console.error(chalk.red('Unexpected Error:'), error instanceof Error ? error.message : String(error));
+import { CostLimitError } from '@obsidian-magic/core';
+
+class CostManager {
+  private totalCost = 0;
+  private readonly budget?: number;
+
+  constructor(options: { budget?: number }) {
+    this.budget = options.budget;
   }
-  
-  // Exit with appropriate code
-  process.exit(1);
-};
-```
 
-### Detailed Logging
-
-```typescript
-const logError = (error: Error | string, context?: Record<string, any>): void => {
-  const errorObj = error instanceof Error ? error : new Error(error);
-  
-  if (logger) {
-    logger.error({
-      msg: errorObj.message,
-      error: {
-        name: errorObj.name,
-        stack: errorObj.stack,
-        ...(errorObj instanceof CliError ? { code: errorObj.code } : {}),
-      },
-      context,
-    });
-  } else {
-    // Fallback if logger not initialized
-    console.error('[ERROR]', errorObj.message);
-    if (context) {
-      console.error('Context:', context);
-    }
-  }
-};
-```
-
-## Graceful Degradation
-
-The CLI implements graceful degradation for better reliability:
-
-### Fallback Mechanisms
-
-```typescript
-const getClassificationTags = async (
-  content: string,
-  options: ClassificationOptions
-): Promise<ClassificationResult> => {
-  try {
-    // Try primary model first
-    return await classifyWithModel(content, options.model, options);
-  } catch (error) {
-    if (error instanceof ApiError && options.fallbackModel) {
-      // Log the fallback
-      logWarning(
-        `Failed to classify with ${options.model}, falling back to ${options.fallbackModel}`
-      );
-      
-      // Try fallback model
-      return await classifyWithModel(content, options.fallbackModel, options);
-    }
-    
-    // Re-throw if no fallback or not an API error
-    throw error;
-  }
-};
-```
-
-### Partial Results
-
-The CLI gracefully handles partial results:
-
-```typescript
-const summarizeBatchResults = (
-  batchResult: BatchResult,
-  options: ProcessOptions
-): void => {
-  console.log(chalk.bold('\nProcessing Summary:'));
-  console.log(`✅ Successfully processed: ${batchResult.success} files`);
-  
-  if (batchResult.failed > 0) {
-    console.log(`❌ Failed to process: ${batchResult.failed} files`);
-    
-    if (options.verbose) {
-      // List failed files with reasons
-      console.log(chalk.bold('\nFailed Files:'));
-      batchResult.errors.forEach(({ file, error }) => {
-        console.log(`- ${file}: ${error.message}`);
+  async trackCost<T>(operation: () => Promise<T>, estimatedCost: number): Promise<T> {
+    // Check if operation would exceed budget
+    if (this.budget !== undefined && this.totalCost + estimatedCost > this.budget) {
+      throw new CostLimitError(`Operation would exceed budget (${this.totalCost + estimatedCost} > ${this.budget})`, {
+        cost: this.totalCost + estimatedCost,
+        limit: this.budget,
       });
     }
-    
-    // Offer retry option if appropriate
-    if (options.interactive && batchResult.failed > 0) {
-      inquirer
-        .prompt([
-          {
-            type: 'confirm',
-            name: 'retry',
-            message: 'Would you like to retry failed files?',
-            default: false,
-          },
-        ])
-        .then(async ({ retry }) => {
-          if (retry) {
-            const filesToRetry = batchResult.errors.map((e) => e.file);
-            console.log(`Retrying ${filesToRetry.length} files...`);
-            await processBatch(filesToRetry, options);
-          }
-        });
-    }
+
+    const result = await operation();
+    this.totalCost += estimatedCost;
+    return result;
   }
-};
+}
 ```
 
-## Error Prevention
+### Session Recovery
 
-The CLI implements strategies to prevent errors:
-
-### Preflight Checks
+The CLI provides session recovery for interrupted operations:
 
 ```typescript
-const runPreflightChecks = async (
-  options: ProcessOptions
-): Promise<PreflightResult> => {
-  const checks: PreflightCheck[] = [];
-  
-  // Check API credentials
-  checks.push({
-    name: 'API Credentials',
-    run: async () => {
-      const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-      if (!apiKey) {
-        return {
-          success: false,
-          message: 'OpenAI API key is missing',
-        };
-      }
-      
-      try {
-        // Verify API key with a minimal API call
-        await verifyApiKey(apiKey);
-        return { success: true };
-      } catch (error) {
-        return {
-          success: false,
-          message: `API key verification failed: ${error.message}`,
-        };
-      }
-    },
+import os from 'os';
+import path from 'path';
+
+import { Result, ValidationError, tryCatch } from '@obsidian-magic/core';
+import fs from 'fs-extra';
+
+interface SessionState {
+  id: string;
+  queue: Array<{
+    file: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    error?: string;
+  }>;
+  startedAt: string;
+  lastUpdated: string;
+}
+
+async function saveSessionState(sessionId: string, state: SessionState): Promise<Result<void>> {
+  return await tryCatch(async () => {
+    const sessionDir = path.join(os.homedir(), '.tag-conversations', 'sessions');
+    await fs.mkdir(sessionDir, { recursive: true });
+
+    const sessionFile = path.join(sessionDir, `${sessionId}.json`);
+    await fs.writeFile(sessionFile, JSON.stringify(state, null, 2));
   });
-  
-  // Check file access
-  if (options.paths.length > 0) {
-    checks.push({
-      name: 'File Access',
-      run: async () => {
-        const inaccessibleFiles = [];
-        
-        for (const path of options.paths) {
-          try {
-            const stats = await fs.stat(path);
-            if (stats.isDirectory()) {
-              // Check if directory is readable
-              await fs.access(path, fs.constants.R_OK);
-            } else {
-              // Check if file is readable and writable
-              await fs.access(path, fs.constants.R_OK | fs.constants.W_OK);
-            }
-          } catch (error) {
-            inaccessibleFiles.push(`${path} (${error.code})`);
-          }
-        }
-        
-        if (inaccessibleFiles.length > 0) {
-          return {
-            success: false,
-            message: `Cannot access some files: ${inaccessibleFiles.join(', ')}`,
-          };
-        }
-        
-        return { success: true };
-      },
-    });
-  }
-  
-  // Execute checks
-  const results = await Promise.all(checks.map(async (check) => {
+}
+
+async function loadSessionState(sessionId: string): Promise<Result<SessionState | null>> {
+  return await tryCatch(async () => {
+    const sessionFile = path.join(os.homedir(), '.tag-conversations', 'sessions', `${sessionId}.json`);
+
     try {
-      const result = await check.run();
-      return { ...check, ...result };
-    } catch (error) {
-      return {
-        ...check,
-        success: false,
-        message: `Check failed: ${error.message}`,
-      };
+      const data = await fs.readFile(sessionFile, 'utf8');
+      return JSON.parse(data) as SessionState;
+    } catch (error: unknown) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        return null; // Session doesn't exist
+      }
+      throw error;
     }
-  }));
-  
-  const allPassed = results.every((r) => r.success);
-  
-  return {
-    passed: allPassed,
-    checks: results,
-  };
-};
-```
+  });
+}
 
-## Debugging Support
+async function resumeSession(sessionId: string, options: ProcessOptions): Promise<Result<void>> {
+  const stateResult = await loadSessionState(sessionId);
 
-The CLI includes rich debugging support:
-
-### Debug Mode
-
-```typescript
-const enableDebugMode = (argv: Arguments): void => {
-  if (argv.debug) {
-    // Set environment variable
-    process.env.DEBUG = 'tag-conversations:*';
-    
-    // Configure detailed error stack traces
-    Error.stackTraceLimit = Infinity;
-    
-    // Setup debug logging
-    configureLogger('debug', true);
-    
-    logDebug('Debug mode enabled');
-    logDebug('Command arguments:', argv);
+  if (stateResult.isFail()) {
+    return Result.fail(stateResult.getError());
   }
-};
-```
 
-### State Dumps
-
-```typescript
-const dumpStateForDebugging = (
-  state: ProcessingState,
-  error: Error
-): void => {
-  if (!process.env.DEBUG) return;
-  
-  const timestamp = new Date().toISOString().replace(/:/g, '-');
-  const debugDir = path.join(os.tmpdir(), 'tag-conversations-debug');
-  
-  try {
-    fs.mkdirSync(debugDir, { recursive: true });
-    
-    const debugFile = path.join(debugDir, `error-state-${timestamp}.json`);
-    
-    // Sanitize state to remove sensitive information
-    const sanitizedState = sanitizeStateForDump(state);
-    
-    // Add error details
-    const debugData = {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...(error instanceof CliError ? { code: error.code } : {}),
-      },
-      state: sanitizedState,
-      environment: {
-        nodeVersion: process.version,
-        platform: process.platform,
-        arch: process.arch,
-      },
-    };
-    
-    fs.writeFileSync(debugFile, JSON.stringify(debugData, null, 2));
-    logDebug(`Debug state dumped to ${debugFile}`);
-  } catch (e) {
-    logError('Failed to dump debug state', { error: e });
-  }
-};
-```
-
-## Error Recovery
-
-The CLI implements recovery mechanisms for interrupted operations:
-
-### Session Persistence
-
-```typescript
-const saveSessionState = async (
-  sessionId: string,
-  state: SessionState
-): Promise<void> => {
-  const sessionDir = path.join(os.homedir(), '.tag-conversations', 'sessions');
-  await fs.mkdir(sessionDir, { recursive: true });
-  
-  const sessionFile = path.join(sessionDir, `${sessionId}.json`);
-  await fs.writeFile(sessionFile, JSON.stringify(state, null, 2));
-};
-
-const loadSessionState = async (
-  sessionId: string
-): Promise<SessionState | null> => {
-  const sessionFile = path.join(
-    os.homedir(),
-    '.tag-conversations',
-    'sessions',
-    `${sessionId}.json`
-  );
-  
-  try {
-    const data = await fs.readFile(sessionFile, 'utf8');
-    return JSON.parse(data) as SessionState;
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return null; // Session doesn't exist
-    }
-    throw error;
-  }
-};
-
-const resumeSession = async (
-  sessionId: string,
-  options: ProcessOptions
-): Promise<void> => {
-  const state = await loadSessionState(sessionId);
-  
+  const state = stateResult.getValue();
   if (!state) {
-    throw new UserInputError(`Session not found: ${sessionId}`);
+    return Result.fail(new ValidationError(`Session not found: ${sessionId}`));
   }
-  
+
   // Restore queue state
-  const remainingFiles = state.queue.filter(
-    (item) => item.status === 'pending' || item.status === 'failed'
-  );
-  
+  const remainingFiles = state.queue
+    .filter((item) => item.status === 'pending' || item.status === 'failed')
+    .map((item) => item.file);
+
   if (remainingFiles.length === 0) {
     console.log('No remaining files to process in this session.');
-    return;
+    return Result.ok(undefined);
   }
-  
+
   console.log(`Resuming session with ${remainingFiles.length} remaining files...`);
-  
+
   // Process remaining files
-  await processBatch(
-    remainingFiles.map((item) => item.file),
-    {
-      ...options,
-      sessionId,
-    }
-  );
-};
+  const result = await processBatch(remainingFiles, {
+    ...options,
+    sessionId,
+  });
+
+  console.log(`Processed ${result.success} files successfully, ${result.failed} failed.`);
+  return Result.ok(undefined);
+}
 ```
 
 ## Exit Handling
 
-The CLI implements clean shutdown handling:
+The CLI implements clean shutdown with proper exit handlers:
 
 ```typescript
-const setupExitHandlers = (cleanup: () => Promise<void>): void => {
+function setupExitHandlers(cleanup: () => Promise<void>): void {
   let shuttingDown = false;
-  
+
   const handleExit = async (signal: string): Promise<never> => {
     if (shuttingDown) {
       process.exit(1);
     }
-    
+
     shuttingDown = true;
     console.log(`\n${signal} received. Cleaning up...`);
-    
+
     try {
       await cleanup();
       console.log('Cleanup completed.');
@@ -672,36 +365,57 @@ const setupExitHandlers = (cleanup: () => Promise<void>): void => {
       process.exit(1);
     }
   };
-  
+
   // Handle termination signals
   process.on('SIGINT', () => handleExit('SIGINT'));
   process.on('SIGTERM', () => handleExit('SIGTERM'));
-  
+
   // Handle uncaught exceptions
   process.on('uncaughtException', (error) => {
-    console.error('Uncaught exception:', error);
+    console.error('Uncaught exception:', error instanceof AppError ? error.format() : error);
     handleExit('UNCAUGHT EXCEPTION');
   });
-  
+
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason) => {
     console.error('Unhandled promise rejection:', reason);
     handleExit('UNHANDLED REJECTION');
   });
-};
+}
 ```
 
-## Best Practices
+## Error Logging
 
-The CLI follows these error handling best practices:
+The CLI provides structured error logging:
 
-1. **Categorize Errors**: Group errors into meaningful categories
-2. **Specific Error Types**: Create specific error subclasses for different scenarios
-3. **Contextual Information**: Include context in error messages
-4. **User-Friendly Messages**: Present clear, actionable error messages
-5. **Recovery Options**: Provide recovery mechanisms when possible
-6. **Graceful Degradation**: Implement fallbacks for key functionality
-7. **Detailed Logging**: Log comprehensive error information for debugging
-8. **Clean Exit**: Handle exit signals properly and clean up resources
-9. **Preflight Checks**: Verify conditions before processing to prevent errors
-10. **Consistent Error Handling**: Apply consistent error handling patterns throughout the code 
+```typescript
+import { AppError } from '@obsidian-magic/core';
+import pino from 'pino';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+    },
+  },
+});
+
+function logError(error: unknown, context?: Record<string, unknown>): void {
+  const appError =
+    error instanceof AppError ? error : new AppError(error instanceof Error ? error.message : String(error));
+
+  logger.error({
+    err: {
+      message: appError.message,
+      name: appError.name,
+      code: appError.code,
+      stack: appError.stack,
+      recoverable: appError.recoverable,
+      context: appError.context,
+    },
+    ...context,
+  });
+}
+```
