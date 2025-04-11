@@ -32,6 +32,30 @@
       {
         "command": "obsidian-magic.cursorRegisterVSCodeParticipant",
         "title": "Obsidian Magic: Register @vscode Participant"
+      },
+      {
+        "command": "obsidian-magic.addTag",
+        "title": "Obsidian Magic: Add New Tag"
+      },
+      {
+        "command": "obsidian-magic.deleteTag",
+        "title": "Obsidian Magic: Delete Tag"
+      },
+      {
+        "command": "obsidian-magic.manageVaults",
+        "title": "Obsidian Magic: Manage Vaults"
+      },
+      {
+        "command": "obsidian-magic.addVault",
+        "title": "Obsidian Magic: Add Vault"
+      },
+      {
+        "command": "obsidian-magic.removeVault",
+        "title": "Obsidian Magic: Remove Vault"
+      },
+      {
+        "command": "obsidian-magic.syncVault",
+        "title": "Obsidian Magic: Sync Vaults"
       }
     ],
     "views": {
@@ -39,6 +63,22 @@
         {
           "id": "obsidianMagicTagExplorer",
           "name": "Obsidian Magic Tags"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "obsidian-magic.addTag",
+          "when": "view == obsidianMagicTagExplorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "obsidian-magic.deleteTag",
+          "when": "view == obsidianMagicTagExplorer && viewItem == tag",
+          "group": "inline"
         }
       ]
     },
@@ -54,6 +94,16 @@
           "type": "number",
           "default": 9876,
           "description": "Port for the Model Context Protocol server"
+        },
+        "obsidianMagic.vault.autoSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync with Obsidian vaults on startup"
+        },
+        "obsidianMagic.vault.autoDetect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect Obsidian vaults in workspace"
         }
       }
     }

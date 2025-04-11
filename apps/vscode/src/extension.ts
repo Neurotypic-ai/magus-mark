@@ -1,14 +1,22 @@
 import * as vscode from 'vscode';
 import { MCPServer } from './cursor/mcp-server';
+import { registerTagExplorer } from './views/tag-explorer';
+import { VaultIntegrationService } from './services/vault-integration';
 
 // Store the MCP server instance for access from commands
 let mcpServer: MCPServer | undefined;
+// Store the vault integration service instance
+let vaultService: VaultIntegrationService | undefined;
 
 /**
  * Extension activation - called when the extension is first loaded
  */
 export function activate(context: vscode.ExtensionContext): void {
   console.log('Activating Obsidian Magic VS Code Extension');
+
+  // Initialize the vault integration service
+  vaultService = new VaultIntegrationService(context);
+  context.subscriptions.push(vaultService);
 
   // Check if running in Cursor
   const isCursorEnvironment = vscode.env.appName.includes('Cursor');
@@ -31,6 +39,33 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Initialize extension features
   initializeExtension(context);
+  
+  // Show vault status in status bar
+  createVaultStatusBar(context);
+}
+
+/**
+ * Create a status bar item for vault status
+ */
+function createVaultStatusBar(context: vscode.ExtensionContext): void {
+  // Create status bar item
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusBarItem.text = '$(database) Obsidian Vault';
+  statusBarItem.tooltip = 'Manage Obsidian Vaults';
+  statusBarItem.command = 'obsidian-magic.manageVaults';
+  statusBarItem.show();
+  
+  context.subscriptions.push(statusBarItem);
+  
+  // Update status bar when vaults change
+  if (vaultService) {
+    vaultService.onVaultChanged(() => {
+      const vaults = vaultService?.getVaults() || [];
+      statusBarItem.text = vaults.length > 0 
+        ? `$(database) Obsidian Vaults (${vaults.length})` 
+        : '$(database) Obsidian Vault';
+    });
+  }
 }
 
 /**
@@ -123,11 +158,28 @@ function registerCommands(context: vscode.ExtensionContext): void {
   
   // Register explorer view command
   const explorerCommand = vscode.commands.registerCommand('obsidian-magic.openTagExplorer', async () => {
-    // Handle opening the tag explorer
-    vscode.window.showInformationMessage('Opening Tag Explorer');
+    // Focus the tag explorer view
+    await vscode.commands.executeCommand('obsidianMagicTagExplorer.focus');
+    vscode.window.showInformationMessage('Tag Explorer opened');
   });
   
-  context.subscriptions.push(tagCommand, explorerCommand);
+  // Register vault management command
+  const manageVaultsCommand = vscode.commands.registerCommand('obsidian-magic.manageVaults', async () => {
+    const options = ['Add Vault', 'Remove Vault', 'Sync Vaults'];
+    const choice = await vscode.window.showQuickPick(options, {
+      placeHolder: 'Select Vault Action'
+    });
+    
+    if (choice === 'Add Vault') {
+      await vscode.commands.executeCommand('obsidian-magic.addVault');
+    } else if (choice === 'Remove Vault') {
+      await vscode.commands.executeCommand('obsidian-magic.removeVault');
+    } else if (choice === 'Sync Vaults') {
+      await vscode.commands.executeCommand('obsidian-magic.syncVault');
+    }
+  });
+  
+  context.subscriptions.push(tagCommand, explorerCommand, manageVaultsCommand);
 }
 
 /**
@@ -135,7 +187,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
  */
 function initializeExtension(context: vscode.ExtensionContext): void {
   // Initialize tag explorer view
-  // This would normally create and register a TreeDataProvider for the view
+  const tagExplorerView = registerTagExplorer(context);
+  context.subscriptions.push(tagExplorerView);
   
   // Set up any event listeners
   
@@ -149,4 +202,5 @@ export function deactivate(): void {
   console.log('Deactivating Obsidian Magic VS Code Extension');
   // Resources disposed automatically via context.subscriptions
   mcpServer = undefined;
+  vaultService = undefined;
 }
