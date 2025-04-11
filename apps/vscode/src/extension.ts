@@ -2,11 +2,65 @@ import * as vscode from 'vscode';
 import { MCPServer } from './cursor/mcp-server';
 import { registerTagExplorer } from './views/tag-explorer';
 import { VaultIntegrationService } from './services/vault-integration';
+import { LanguageModelAPI } from './cursor/language-model-api';
 
-// Store the MCP server instance for access from commands
+// Store service instances for access from commands
 let mcpServer: MCPServer | undefined;
-// Store the vault integration service instance
 let vaultService: VaultIntegrationService | undefined;
+let languageModelAPI: LanguageModelAPI | undefined;
+
+/**
+ * Generate HTML for the response webview
+ * @param query The query being responded to
+ * @returns HTML string for the webview
+ */
+function generateResponseWebviewHtml(query: string): string {
+  return `
+    <html>
+      <head>
+        <style>
+          body { font-family: var(--vscode-font-family); padding: 10px; }
+          .response { white-space: pre-wrap; }
+          button { background-color: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 8px 12px; cursor: pointer; margin: 8px 0; }
+          .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 50%; border-top-color: var(--vscode-progressBar-background); animation: spin 1s ease-in-out infinite; }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
+      </head>
+      <body>
+        <h2>@vscode response</h2>
+        <div class="query">Query: ${query}</div>
+        <div class="response">
+          <div class="loading"></div> Generating response...
+        </div>
+        <div id="buttons" style="display: none;">
+          <button id="copyBtn">Copy to Clipboard</button>
+          <button id="executeBtn">Execute Command</button>
+        </div>
+        <script>
+          const vscode = acquireVsCodeApi();
+          
+          window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.type === 'update') {
+              document.querySelector('.response').innerHTML = message.content;
+              if (message.isComplete) {
+                document.getElementById('buttons').style.display = 'block';
+              }
+            }
+          });
+          
+          document.getElementById('copyBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'copy' });
+          });
+          
+          document.getElementById('executeBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'execute' });
+          });
+        </script>
+      </body>
+    </html>
+  `;
+}
 
 /**
  * Extension activation - called when the extension is first loaded
@@ -17,6 +71,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // Initialize the vault integration service
   vaultService = new VaultIntegrationService(context);
   context.subscriptions.push(vaultService);
+
+  // Initialize Language Model API (works in both VS Code and Cursor)
+  languageModelAPI = new LanguageModelAPI(context);
+  context.subscriptions.push(languageModelAPI);
+  
+  // Register Language Model Provider if API is available
+  languageModelAPI.registerLanguageModelProvider();
 
   // Check if running in Cursor
   const isCursorEnvironment = vscode.env.appName.includes('Cursor');
@@ -73,7 +134,7 @@ function createVaultStatusBar(context: vscode.ExtensionContext): void {
  */
 function activateCursorFeatures(context: vscode.ExtensionContext): void {
   // Initialize the MCP server for Cursor integration
-  mcpServer = new MCPServer();
+  mcpServer = new MCPServer(context);
   
   // Store the server instance in the context for disposal on deactivation
   context.subscriptions.push(mcpServer);
@@ -111,9 +172,83 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
       return;
     }
     
-    // In a real implementation, this would use the MCP server to call an AI model
-    // For now, just show an information message
-    vscode.window.showInformationMessage('Tagging current file with Cursor AI assistance');
+    // Get document content
+    const text = editor.document.getText();
+    const fileName = editor.document.fileName;
+    
+    // Use Language Model API to analyze content and suggest tags
+    const lmAPI = languageModelAPI;
+    if (!lmAPI) {
+      // Fallback to basic information message if Language Model API is not available
+      vscode.window.showInformationMessage('Tagging current file with Cursor AI assistance');
+      return;
+    }
+    
+    // Show progress notification
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Analyzing document content...",
+      cancellable: true
+    }, async (progress, token) => {
+      progress.report({ message: "Generating tag suggestions" });
+      
+      try {
+        // Check if language model API is available
+        if (!languageModelAPI) {
+          vscode.window.showErrorMessage('Language model API not available');
+          return Promise.resolve();
+        }
+        
+        // Store a local reference
+        const lmAPI = languageModelAPI;
+        
+        // Generate tag suggestions
+        const prompt = `Analyze this document and suggest relevant tags for it:
+Filename: ${fileName}
+Content: ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}
+
+Provide a JSON array of suggested tags, with each tag having a name and description.`;
+        
+        const response = await lmAPI.generateCompletion(prompt, {
+          systemPrompt: "You are a helpful tagging assistant. Generate concise, relevant tags based on document content."
+        });
+        
+        // Show suggestions in a quick pick
+        vscode.window.showInformationMessage('Tag suggestions generated', 'View Suggestions')
+          .then(selection => {
+            if (selection === 'View Suggestions') {
+              // In a real implementation, we would parse the JSON and show a proper UI
+              // For now, just show the raw response
+              const panel = vscode.window.createWebviewPanel(
+                'tagSuggestions',
+                'Tag Suggestions',
+                vscode.ViewColumn.Beside,
+                {}
+              );
+              
+              panel.webview.html = `
+                <html>
+                  <head>
+                    <style>
+                      body { font-family: var(--vscode-font-family); padding: 10px; }
+                      pre { background-color: var(--vscode-editor-background); padding: 10px; }
+                    </style>
+                  </head>
+                  <body>
+                    <h2>Tag Suggestions</h2>
+                    <pre>${response}</pre>
+                  </body>
+                </html>
+              `;
+            }
+          });
+        
+      } catch (error) {
+        vscode.window.showErrorMessage(`Error generating tag suggestions: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      return Promise.resolve();
+    });
   });
   
   // Command to manually register @vscode participant
@@ -126,7 +261,7 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
       );
       
       if (response === 'Yes') {
-        mcpServer = new MCPServer();
+        mcpServer = new MCPServer(context);
         context.subscriptions.push(mcpServer);
         vscode.window.showInformationMessage('@vscode participant initialized successfully');
       }
@@ -136,7 +271,105 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
     vscode.window.showInformationMessage('@vscode participant is already registered');
   });
   
-  context.subscriptions.push(cursorTagCommand, registerVSCodeParticipantCommand);
+  // Command to query the @vscode participant directly
+  const queryVSCodeCommand = vscode.commands.registerCommand('obsidian-magic.queryVSCode', async () => {
+    const lmAPI = languageModelAPI;
+    if (!lmAPI) {
+      vscode.window.showErrorMessage('Language Model API not initialized');
+      return;
+    }
+    
+    // Prompt for query
+    const query = await vscode.window.showInputBox({
+      prompt: 'Ask a question about VS Code',
+      placeHolder: 'How do I enable autosave?'
+    });
+    
+    if (!query) return;
+    
+    // Show progress indicator
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: `@vscode: ${query}`,
+      cancellable: true
+    }, async (progress, token) => {
+      // Create output channel for response
+      const outputChannel = vscode.window.createOutputChannel('@vscode Participant');
+      outputChannel.show();
+      outputChannel.appendLine(`Query: ${query}\n`);
+      outputChannel.appendLine('Generating response...\n');
+      
+      // Create webview panel for formatted response
+      const panel = vscode.window.createWebviewPanel(
+        'vscodeResponse',
+        `@vscode: ${query.substring(0, 30)}${query.length > 30 ? '...' : ''}`,
+        vscode.ViewColumn.Beside,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true
+        }
+      );
+      
+      // Load initial HTML with skeleton for response
+      panel.webview.html = generateResponseWebviewHtml(query);
+      
+      try {
+        let fullResponse = '';
+        
+        await lmAPI.generateStreamingCompletion(query, (response) => {
+          // Update both output channel and webview
+          fullResponse = response.content;
+          
+          if (!response.isComplete) {
+            outputChannel.clear();
+            outputChannel.appendLine(`Query: ${query}\n`);
+            outputChannel.appendLine(response.content);
+          } else {
+            outputChannel.clear();
+            outputChannel.appendLine(`Query: ${query}\n`);
+            outputChannel.appendLine(response.content);
+            outputChannel.appendLine('\n\nResponse complete.');
+          }
+          
+          // Update webview with markdown-formatted content
+          panel.webview.postMessage({ 
+            type: 'update', 
+            content: response.content,
+            isComplete: response.isComplete
+          });
+          
+        }, {
+          systemPrompt: `You are the @vscode participant in Cursor/VS Code. 
+You have expert knowledge about VS Code, its features, settings, and extensions.
+Provide helpful, accurate, and concise responses to questions about VS Code.
+If applicable, provide specific commands, keyboard shortcuts, or settings that can help the user.`
+        });
+        
+        // Add event listener for webview messages
+        panel.webview.onDidReceiveMessage(message => {
+          if (message.type === 'copy') {
+            vscode.env.clipboard.writeText(fullResponse);
+            vscode.window.showInformationMessage('Response copied to clipboard');
+          } else if (message.type === 'execute') {
+            // In a real implementation, we would parse the response for commands
+            vscode.window.showInformationMessage('Command execution not implemented yet');
+          }
+        });
+        
+      } catch (error) {
+        outputChannel.appendLine(`\nError: ${error instanceof Error ? error.message : String(error)}`);
+        panel.webview.postMessage({ 
+          type: 'update', 
+          content: `Error generating response: ${error instanceof Error ? error.message : String(error)}`,
+          isComplete: true
+        });
+      }
+      
+      return Promise.resolve();
+    });
+  });
+  
+  context.subscriptions.push(cursorTagCommand, registerVSCodeParticipantCommand, queryVSCodeCommand);
 }
 
 /**
@@ -152,8 +385,96 @@ function registerCommands(context: vscode.ExtensionContext): void {
       return;
     }
     
-    // Handle standard tagging functionality
-    vscode.window.showInformationMessage('Tagging current file');
+    // Get document content
+    const text = editor.document.getText();
+    const fileName = editor.document.fileName;
+    
+    // Check if Language Model API is available
+    const lmAPI = languageModelAPI;
+    if (!lmAPI) {
+      vscode.window.showErrorMessage('Language Model API is not available');
+      return;
+    }
+    
+    // Show progress notification
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Analyzing document content...",
+      cancellable: true
+    }, async (progress, token) => {
+      progress.report({ message: "Generating tag suggestions" });
+      
+      try {
+        // Generate tag suggestions
+        const prompt = `Analyze this document and suggest relevant tags for it:
+Filename: ${fileName}
+Content: ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
+
+Provide a JSON array of suggested tags, with each tag having a 'name' and 'description' properties.`;
+        
+        const response = await lmAPI.generateCompletion(prompt, {
+          systemPrompt: "You are a helpful tagging assistant. Generate concise, relevant tags based on document content. Return only valid JSON."
+        });
+        
+        // Try to parse the response as JSON
+        try {
+          // In case the AI wrapped the JSON in ```json or other markdown formatting
+          const jsonMatch = (/```(?:json)?\s*(\[[\s\S]*?\])\s*```/.exec(response)) || 
+                           (/(\[[\s\S]*?\])/.exec(response)) || 
+                           null;
+                           
+          let tags: { name: string; description: string }[] = [];
+                           
+          if (jsonMatch?.[1]) {
+            tags = JSON.parse(jsonMatch[1]);
+          } else {
+            // If we can't parse as JSON, show the raw response
+            vscode.window.showWarningMessage('Could not parse tag suggestions as JSON');
+            tags = [{ name: 'parsing-error', description: 'Could not parse AI response' }];
+          }
+          
+          // Show tags in a quick pick for selection
+          const tagOptions = tags.map(tag => ({
+            label: tag.name,
+            description: tag.description,
+            picked: true
+          }));
+          
+          const selectedTags = await vscode.window.showQuickPick(tagOptions, {
+            canPickMany: true,
+            placeHolder: 'Select tags to apply to document'
+          });
+          
+          if (selectedTags && selectedTags.length > 0) {
+            // Process selected tags
+            const tagNames = selectedTags.map(tag => tag.label);
+            
+            // If we have a vault service, try to save the tags information
+            if (vaultService) {
+              try {
+                // Use the vault service to apply tags to document
+                const success = await vaultService.applyTagsToDocument(fileName, tagNames);
+                if (success) {
+                  vscode.window.showInformationMessage(`Applied tags: ${tagNames.join(', ')}`);
+                } else {
+                  vscode.window.showWarningMessage('Could not apply tags - document may not be in an Obsidian vault');
+                }
+              } catch (error) {
+                vscode.window.showErrorMessage(`Error applying tags: ${error instanceof Error ? error.message : String(error)}`);
+              }
+            } else {
+              vscode.window.showInformationMessage(`Selected tags: ${tagNames.join(', ')}`);
+            }
+          }
+        } catch (error) {
+          vscode.window.showErrorMessage(`Error processing tags: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Error generating tag suggestions: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      return Promise.resolve();
+    });
   });
   
   // Register explorer view command
@@ -171,15 +492,151 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
     
     if (choice === 'Add Vault') {
+      // Just execute the command that's already registered in VaultIntegrationService
       await vscode.commands.executeCommand('obsidian-magic.addVault');
     } else if (choice === 'Remove Vault') {
+      // Just execute the command that's already registered in VaultIntegrationService
       await vscode.commands.executeCommand('obsidian-magic.removeVault');
     } else if (choice === 'Sync Vaults') {
+      // Just execute the command that's already registered in VaultIntegrationService
       await vscode.commands.executeCommand('obsidian-magic.syncVault');
     }
   });
   
-  context.subscriptions.push(tagCommand, explorerCommand, manageVaultsCommand);
+  // Add Vault command
+  const addVaultCommand = vscode.commands.registerCommand('obsidian-magic.addVault', async () => {
+    // Prompt user to select a directory for the vault
+    const options: vscode.OpenDialogOptions = {
+      canSelectMany: false,
+      canSelectFiles: false,
+      canSelectFolders: true,
+      openLabel: 'Select Obsidian Vault'
+    };
+    
+    const fileUri = await vscode.window.showOpenDialog(options);
+    if (fileUri && fileUri.length > 0 && fileUri[0]) {
+      try {
+        if (!vaultService) {
+          vscode.window.showErrorMessage('Vault service not initialized');
+          return;
+        }
+        
+        const path = require('path');
+        const fsPath = fileUri[0].fsPath;
+        const addedVault = await vaultService.addVault(fsPath);
+        if (addedVault) {
+          vscode.window.showInformationMessage(`Vault added: ${path.basename(fsPath)}`);
+        } else {
+          vscode.window.showWarningMessage('Could not add vault. It may already be registered.');
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Error adding vault: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  });
+  
+  // Remove Vault command
+  const removeVaultCommand = vscode.commands.registerCommand('obsidian-magic.removeVault', async () => {
+    if (!vaultService) {
+      vscode.window.showErrorMessage('Vault service not initialized');
+      return;
+    }
+    
+    const vaults = vaultService.getVaults();
+    if (vaults.length === 0) {
+      vscode.window.showInformationMessage('No vaults registered');
+      return;
+    }
+    
+    // Prompt user to select a vault to remove
+    const path = require('path');
+    const vaultOptions = vaults.map(vault => ({
+      label: vault.name || path.basename(vault.path),
+      description: vault.path
+    }));
+    
+    const selectedVault = await vscode.window.showQuickPick(vaultOptions, {
+      placeHolder: 'Select vault to remove'
+    });
+    
+    if (selectedVault) {
+      try {
+        const removed = await vaultService.removeVault(selectedVault.description);
+        if (removed) {
+          vscode.window.showInformationMessage(`Vault removed: ${selectedVault.label}`);
+        } else {
+          vscode.window.showWarningMessage('Could not remove vault');
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Error removing vault: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  });
+  
+  // Sync Vault command
+  const syncVaultCommand = vscode.commands.registerCommand('obsidian-magic.syncVault', async () => {
+    if (!vaultService) {
+      vscode.window.showErrorMessage('Vault service not initialized');
+      return;
+    }
+    
+    const vaults = vaultService.getVaults();
+    if (vaults.length === 0) {
+      vscode.window.showInformationMessage('No vaults registered');
+      return;
+    }
+    
+    // Prompt user to select a vault to sync
+    const path = require('path');
+    const vaultOptions = vaults.map(vault => ({
+      label: vault.name || path.basename(vault.path),
+      description: vault.path
+    }));
+    
+    // Add option to sync all vaults
+    vaultOptions.unshift({
+      label: 'All Vaults',
+      description: 'Sync all registered vaults'
+    });
+    
+    const selectedVault = await vscode.window.showQuickPick(vaultOptions, {
+      placeHolder: 'Select vault to synchronize'
+    });
+    
+    if (selectedVault) {
+      // Show progress notification
+      vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Synchronizing ${selectedVault.label === 'All Vaults' ? 'all vaults' : selectedVault.label}...`,
+        cancellable: true
+      }, async (progress, token) => {
+        try {
+          if (selectedVault.label === 'All Vaults') {
+            if (!vaultService) {
+              vscode.window.showErrorMessage('Vault service not initialized');
+              return Promise.resolve();
+            }
+            await vaultService.syncAllVaults(token);
+            vscode.window.showInformationMessage('All vaults synchronized');
+          } else {
+            if (!vaultService) {
+              vscode.window.showErrorMessage('Vault service not initialized');
+              return Promise.resolve();
+            }
+            await vaultService.syncVault(selectedVault.description, token);
+            vscode.window.showInformationMessage(`Vault synchronized: ${selectedVault.label}`);
+          }
+        } catch (error) {
+          vscode.window.showErrorMessage(`Error synchronizing vault: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        return Promise.resolve();
+      });
+    }
+  });
+  
+  context.subscriptions.push(tagCommand, explorerCommand, manageVaultsCommand, 
+                              addVaultCommand, removeVaultCommand, syncVaultCommand);
 }
 
 /**
@@ -203,4 +660,5 @@ export function deactivate(): void {
   // Resources disposed automatically via context.subscriptions
   mcpServer = undefined;
   vaultService = undefined;
+  languageModelAPI = undefined;
 }

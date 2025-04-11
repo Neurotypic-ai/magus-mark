@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 
 // Tag node representation for the tree view
 interface TagNode {
   id: string;
   name: string;
-  description?: string;
+  description?: string | undefined;
   children: TagNode[];
   type: 'tag' | 'category';
   count: number;
@@ -182,7 +181,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
           id: `${categoryNode.id}.${tagName.toLowerCase().replace(/\s+/g, '-')}`,
           name: tagName,
           type: 'tag',
-          description,
+          description: description || undefined,
           count: 0,
           children: []
         });

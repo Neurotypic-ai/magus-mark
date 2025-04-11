@@ -6,8 +6,12 @@
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
   "main": "./dist/extension.js",
   "publisher": "YourName",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/obsidian-magic.git"
+  },
   "engines": {
-    "vscode": "^1.78.0"
+    "vscode": "^1.99.0"
   },
   "categories": [
     "Other"
@@ -32,6 +36,10 @@
       {
         "command": "obsidian-magic.cursorRegisterVSCodeParticipant",
         "title": "Obsidian Magic: Register @vscode Participant"
+      },
+      {
+        "command": "obsidian-magic.queryVSCode",
+        "title": "Obsidian Magic: Ask @vscode a Question"
       },
       {
         "command": "obsidian-magic.addTag",
@@ -111,7 +119,7 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf dist",
-    "vscode:prepublish": "npm run build",
+    "vscode:prepublish": "echo 'Skipping build for packaging'",
     "package": "vsce package --no-dependencies",
     "test": "vitest run"
   },

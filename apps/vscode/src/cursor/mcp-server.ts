@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
-import { server as WebSocketServer, connection } from 'websocket';
-import type { Message } from 'websocket';
+import { server as WebSocketServer } from 'websocket';
+// @ts-ignore: Used in type assertions
+import type { Message , connection } from 'websocket';
 import * as http from 'http';
 import { VSCodeParticipant } from './participants/vscode-participant';
+import { LanguageModelAPI } from './language-model-api';
 
 /**
  * Interface for tool registration
@@ -22,12 +24,13 @@ export class MCPServer implements vscode.Disposable {
   private httpServer: http.Server;
   private wsServer: WebSocketServer;
   private connections: connection[] = [];
-  private tools: Map<string, Tool> = new Map();
+  private tools = new Map<string, Tool>();
   private participant: VSCodeParticipant | undefined;
+  private languageModelAPI: LanguageModelAPI | undefined;
   private disposables: vscode.Disposable[] = [];
   private port: number;
   
-  constructor(context?: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext) {
     // Get configured port from settings
     const config = vscode.workspace.getConfiguration('obsidianMagic');
     this.port = config.get<number>('cursorFeatures.mcpServerPort', 9876);
@@ -50,10 +53,15 @@ export class MCPServer implements vscode.Disposable {
     // Start server
     this.start();
     
+    // Initialize Language Model API
+    this.languageModelAPI = new LanguageModelAPI(context);
+    this.disposables.push(this.languageModelAPI);
+    
     // Initialize and register VS Code participant
-    if (context) {
-      this.initializeParticipant(context);
-    }
+    this.initializeParticipant(context);
+    
+    // Register custom AI-powered tools
+    this.registerCustomTools();
   }
   
   /**
@@ -69,7 +77,18 @@ export class MCPServer implements vscode.Disposable {
         console.log('WebSocket connection accepted from:', request.origin);
         
         // Handle incoming messages
-        connection.on('message', (message) => this.handleMessage(connection, message));
+        connection.on('message', (message) => {
+          // Handle only UTF8 messages
+          if (message.type === 'utf8') {
+            // Access utf8Data safely by asserting the type
+            const utf8Message = message as { type: 'utf8', utf8Data: string };
+            if (utf8Message.utf8Data) {
+              this.handleUtf8Message(connection, utf8Message.utf8Data);
+            }
+          } else {
+            console.warn('Received non-UTF8 message, ignoring');
+          }
+        });
         
         // Handle connection close
         connection.on('close', (reasonCode, description) => {
@@ -122,13 +141,79 @@ export class MCPServer implements vscode.Disposable {
   }
   
   /**
-   * Handle incoming WebSocket message
+   * Register custom AI-powered tools
    */
-  private handleMessage(connection: connection, message: Message): void {
-    if (message.type !== 'utf8') return;
+  private registerCustomTools(): void {
+    // Register the tagContent tool
+    this.registerTool('tagContent', {
+      name: 'tagContent',
+      description: 'Analyze content and suggest tags',
+      parameters: {
+        content: 'Content to analyze',
+        options: 'Optional settings for tag generation'
+      },
+      execute: async (params: { content: string; options?: any }) => {
+        if (!this.languageModelAPI) {
+          throw new Error('Language Model API not initialized');
+        }
+        
+        // Generate tag suggestions for content
+        const prompt = `Analyze this content and suggest relevant tags for it:
+Content: ${params.content.substring(0, 1000)}${params.content.length > 1000 ? '...' : ''}
+
+Provide a JSON array of suggested tags, with each tag having a name and description.`;
+        
+        const response = await this.languageModelAPI.generateCompletion(prompt, {
+          systemPrompt: "You are a helpful tagging assistant. Generate concise, relevant tags based on document content."
+        });
+        
+        // Extract JSON from message
+        const jsonMatch = (/```json\s*([\s\S]*?)\s*```/.exec(response)) || 
+                          (/```([\s\S]*?)```/.exec(response)) ||
+                          (/{[\s\S]*?}/.exec(response));
+        
+        if (jsonMatch?.[1]) {
+          return JSON.parse(jsonMatch[1]);
+        } else if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]);
+        }
+        
+        // If we can't parse JSON, return null
+        return null;
+      }
+    });
     
+    // Register the askVSCode tool
+    this.registerTool('askVSCode', {
+      name: 'askVSCode',
+      description: 'Ask a question about VS Code',
+      parameters: {
+        query: 'Question about VS Code'
+      },
+      execute: async (params: { query: string }) => {
+        if (!this.languageModelAPI) {
+          throw new Error('Language Model API not initialized');
+        }
+        
+        // Generate response to VS Code question
+        const response = await this.languageModelAPI.generateCompletion(params.query, {
+          systemPrompt: `You are the @vscode participant in Cursor/VS Code. 
+You have expert knowledge about VS Code, its features, settings, and extensions.
+Provide helpful, accurate, and concise responses to questions about VS Code.
+If applicable, provide specific commands, keyboard shortcuts, or settings that can help the user.`
+        });
+        
+        return { response };
+      }
+    });
+  }
+  
+  /**
+   * Handle UTF-8 message
+   */
+  private handleUtf8Message(connection: connection, utf8Data: string): void {
     try {
-      const data = JSON.parse(message.utf8Data);
+      const data = JSON.parse(utf8Data);
       
       if (data.type === 'invoke') {
         this.handleToolInvocation(connection, data);

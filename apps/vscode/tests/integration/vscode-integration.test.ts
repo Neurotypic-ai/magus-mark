@@ -113,7 +113,7 @@ describe('VS Code Integration', () => {
   it('should detect and handle Cursor environment', () => {
     (vscode.env as any).appName = 'Cursor';
     activate(context);
-    expect(vscode.window.createStatusBarItem).toHaveBeenCalledTimes(2);
+    expect(vscode.window.createStatusBarItem).toHaveBeenCalledTimes(3);
     // Reset environment
     (vscode.env as any).appName = 'Visual Studio Code';
   });
