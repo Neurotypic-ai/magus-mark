@@ -162,7 +162,8 @@ export class TagExplorerProvider implements vscode.TreeDataProvider<TagTreeItem>
       '#4287f5', '#42b0f5', '#42f5a7', '#f542b0', 
       '#f5b042', '#f55442', '#a142f5', '#f54242'
     ];
-    return colors[Math.floor(Math.random() * colors.length)];
+    const index = Math.floor(Math.random() * colors.length);
+    return colors[index] || '#4287f5'; // Provide default color in case of undefined
   }
 }
 

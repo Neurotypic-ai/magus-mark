@@ -73,7 +73,7 @@ function createVaultStatusBar(context: vscode.ExtensionContext): void {
  */
 function activateCursorFeatures(context: vscode.ExtensionContext): void {
   // Initialize the MCP server for Cursor integration
-  mcpServer = new MCPServer(context);
+  mcpServer = new MCPServer();
   
   // Store the server instance in the context for disposal on deactivation
   context.subscriptions.push(mcpServer);
@@ -126,7 +126,7 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
       );
       
       if (response === 'Yes') {
-        mcpServer = new MCPServer(context);
+        mcpServer = new MCPServer();
         context.subscriptions.push(mcpServer);
         vscode.window.showInformationMessage('@vscode participant initialized successfully');
       }

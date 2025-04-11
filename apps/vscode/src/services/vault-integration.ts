@@ -196,7 +196,7 @@ export class VaultIntegrationService {
         openLabel: 'Select Obsidian Vault'
       });
       
-      if (folders && folders.length > 0) {
+      if (folders && folders.length > 0 && folders[0]) {
         const folderPath = folders[0].fsPath;
         await this.addVault(folderPath);
       }

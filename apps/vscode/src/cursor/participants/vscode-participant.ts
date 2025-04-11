@@ -81,11 +81,9 @@ export class VSCodeParticipant {
   private tools: VSCodeTool[] = [];
   private readonly settingsCache: Map<string, any> = new Map();
   private readonly commandsCache: Map<string, ExtendedCommand> = new Map();
-  private readonly context: vscode.ExtensionContext;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(context: vscode.ExtensionContext) {
-    this.context = context;
+  constructor() {
     this.initializeTools();
     this.cacheSettings();
     this.cacheCommands();

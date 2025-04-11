@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { VSCodeParticipant } from './participants/vscode-participant';
-import type { CursorCommand, MCPContext } from '@obsidian-magic/types';
 
 /**
  * Interface for tool registration
@@ -18,12 +17,9 @@ interface Tool {
  */
 export class MCPServer {
   private tools: Map<string, Tool> = new Map();
-  private readonly context: vscode.ExtensionContext;
   private readonly participants: any[] = [];
-  private mcpContext?: MCPContext;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.context = context;
+  constructor() { 
     this.initializeServer();
   }
 
@@ -45,7 +41,7 @@ export class MCPServer {
    */
   private initializeParticipants(): void {
     // Initialize the @vscode participant
-    const vscodeParticipant = new VSCodeParticipant(this.context);
+    const vscodeParticipant = new VSCodeParticipant();
     this.participants.push(vscodeParticipant);
     
     // Register participant's tools
