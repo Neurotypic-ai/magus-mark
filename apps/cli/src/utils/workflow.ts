@@ -48,9 +48,9 @@ export interface WorkflowEvents<T> {
  * Workflow processor for managing concurrent task execution
  */
 export class Workflow<T> extends EventEmitter {
-  private tasks: Map<string, Task<T>> = new Map();
+  private tasks = new Map<string, Task<T>>();
   private queue: string[] = [];
-  private processing: Set<string> = new Set();
+  private processing = new Set<string>();
   private results: Record<string, T> = {};
   private errors: Record<string, Error> = {};
   private paused = false;

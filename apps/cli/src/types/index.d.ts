@@ -1,3 +1,9 @@
+declare module '@obsidian-magic/types' {
+  export type TagSet = string[];
+  export type TagBehavior = 'append' | 'replace' | 'merge';
+  export type AIModel = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o';
+}
+
 declare module '@obsidian-magic/utils' {
   export function fileExists(path: string): Promise<boolean>;
   export function findFiles(dir: string, pattern: string): Promise<string[]>;
@@ -5,6 +11,13 @@ declare module '@obsidian-magic/utils' {
   export function writeFile(path: string, content: string): Promise<void>;
   export function deleteFile(path: string): Promise<void>;
   export function ensureDir(path: string): Promise<void>;
+  export function formatCurrency(amount: number): string;
+  export function formatDuration(ms: number): string;
+  export function calculateTokens(text: string): number;
+  export function getFileSize(filePath: string): string;
+  export function formatPath(filePath: string): string;
+  export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T;
+  export function executeCommand(command: string): Promise<{ stdout: string; stderr: string }>;
 }
 
 declare module '@obsidian-magic/core' {
@@ -26,7 +39,7 @@ declare module '@obsidian-magic/core' {
     id: string;
     path: string;
     content: string;
-    existingTags?: TagSet;
+    existingTags?: string[];
     metadata: Record<string, unknown>;
   }
 
@@ -41,7 +54,7 @@ declare module '@obsidian-magic/core' {
     constructor(client: OpenAIClient, options: TaggingServiceOptions);
     tagDocument(document: Document): Promise<{
       success: boolean;
-      tags?: TagSet;
+      tags?: string[];
       confidence?: number;
       error?: {
         message: string;
@@ -71,7 +84,7 @@ declare module '@obsidian-magic/core' {
       results: {
         documentId: string;
         success: boolean;
-        tags?: TagSet;
+        tags?: string[];
         error?: any;
       }[];
       stats: {
@@ -83,10 +96,4 @@ declare module '@obsidian-magic/core' {
       };
     }>;
   };
-}
-
-declare module '@obsidian-magic/types' {
-  export type TagSet = string[];
-  export type TagBehavior = 'append' | 'replace' | 'merge';
-  export type AIModel = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o';
 } 

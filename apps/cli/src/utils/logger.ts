@@ -4,33 +4,52 @@ import boxen, { type Options as BoxenOptions } from 'boxen';
 import type { LogLevel } from '../types/commands';
 
 /**
- * Logger utility for consistent CLI output
+ * Logger configuration
+ */
+interface LoggerConfig {
+  logLevel: LogLevel;
+  outputFormat: 'pretty' | 'json' | 'silent';
+}
+
+/**
+ * Default logger configuration
+ */
+const DEFAULT_CONFIG: LoggerConfig = {
+  logLevel: 'info',
+  outputFormat: 'pretty'
+};
+
+/**
+ * Logger utility
  */
 class Logger {
-  private logLevel: LogLevel = 'info';
-  private outputFormat: 'pretty' | 'json' | 'silent' = 'pretty';
-  private spinners: Map<string, Ora> = new Map();
+  private static instance: Logger;
+  private config: LoggerConfig = DEFAULT_CONFIG;
+  private spinners = new Map<string, Ora>();
+  
+  private constructor() {}
+  
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
+    }
+    return Logger.instance;
+  }
   
   /**
    * Configure the logger
    */
-  configure(options: { 
-    logLevel?: LogLevel; 
-    outputFormat?: 'pretty' | 'json' | 'silent';
-  }) {
-    if (options.logLevel) {
-      this.logLevel = options.logLevel;
-    }
-    
-    if (options.outputFormat) {
-      this.outputFormat = options.outputFormat;
-    }
+  public configure(config: Partial<LoggerConfig>): void {
+    this.config = { ...this.config, ...config };
   }
   
   /**
    * Log an info message
    */
-  info(message: string) {
+  public info(message: string): void {
     if (this.shouldLog('info')) {
       this.log('info', message);
     }
@@ -39,7 +58,7 @@ class Logger {
   /**
    * Log a warning message
    */
-  warn(message: string) {
+  public warn(message: string): void {
     if (this.shouldLog('warn')) {
       this.log('warn', message);
     }
@@ -48,7 +67,7 @@ class Logger {
   /**
    * Log an error message
    */
-  error(message: string) {
+  public error(message: string): void {
     if (this.shouldLog('error')) {
       this.log('error', message);
     }
@@ -57,7 +76,7 @@ class Logger {
   /**
    * Log a debug message
    */
-  debug(message: string) {
+  public debug(message: string): void {
     if (this.shouldLog('debug')) {
       this.log('debug', message);
     }
@@ -66,7 +85,7 @@ class Logger {
   /**
    * Log a success message
    */
-  success(message: string) {
+  public success(message: string): void {
     if (this.shouldLog('info')) {
       this.log('success', message);
     }
@@ -75,10 +94,10 @@ class Logger {
   /**
    * Display content in a box
    */
-  box(content: string, title?: string) {
-    if (this.outputFormat === 'silent') return;
+  public box(content: string, title?: string): void {
+    if (this.config.outputFormat === 'silent') return;
     
-    if (this.outputFormat === 'json') {
+    if (this.config.outputFormat === 'json') {
       console.log(JSON.stringify({ type: 'box', content, title }));
       return;
     }
@@ -98,10 +117,10 @@ class Logger {
   /**
    * Display a table
    */
-  table(data: Record<string, any>[], columns?: string[]) {
-    if (this.outputFormat === 'silent') return;
+  public table(data: Record<string, any>[], columns?: string[]): void {
+    if (this.config.outputFormat === 'silent') return;
     
-    if (this.outputFormat === 'json') {
+    if (this.config.outputFormat === 'json') {
       console.log(JSON.stringify({ type: 'table', data }));
       return;
     }
@@ -112,29 +131,68 @@ class Logger {
   /**
    * Format a cost value as currency
    */
-  formatCost(value: number): string {
+  public formatCost(value: number): string {
     return `$${value.toFixed(4)}`;
   }
   
   /**
    * Format tokens count with comma separators
    */
-  formatTokens(tokens: number): string {
+  public formatTokens(tokens: number): string {
     return tokens.toLocaleString();
   }
   
-  private shouldLog(level: LogLevel): boolean {
-    if (this.outputFormat === 'silent') return false;
+  /**
+   * Create a spinner
+   */
+  public spinner(text: string, id = 'default'): Ora {
+    if (this.config.outputFormat === 'silent') {
+      // Return a dummy spinner if in silent mode
+      const dummySpinner = ora({ text, isSilent: true });
+      this.spinners.set(id, dummySpinner);
+      return dummySpinner;
+    }
     
-    const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
-    const currentLevelIndex = levels.indexOf(this.logLevel);
-    const messageLevelIndex = levels.indexOf(level);
+    if (this.spinners.has(id)) {
+      const existingSpinner = this.spinners.get(id);
+      if (existingSpinner) {
+        existingSpinner.text = text;
+        return existingSpinner;
+      }
+    }
     
-    return messageLevelIndex <= currentLevelIndex;
+    const spinner = ora({ text }).start();
+    this.spinners.set(id, spinner);
+    return spinner;
   }
   
-  private log(level: LogLevel | 'success', message: string) {
-    if (this.outputFormat === 'json') {
+  /**
+   * Stop a spinner with success
+   */
+  public succeed(text: string, id = 'default'): void {
+    const spinner = this.spinners.get(id);
+    if (spinner) {
+      spinner.succeed(text);
+      this.spinners.delete(id);
+    }
+  }
+  
+  /**
+   * Stop a spinner with failure
+   */
+  public fail(text: string, id = 'default'): void {
+    const spinner = this.spinners.get(id);
+    if (spinner) {
+      spinner.fail(text);
+      this.spinners.delete(id);
+    }
+  }
+  
+  /**
+   * Log a message
+   */
+  private log(level: LogLevel | 'success', message: string): void {
+    if (this.config.outputFormat === 'json') {
       console.log(JSON.stringify({ level, message }));
       return;
     }
@@ -161,50 +219,18 @@ class Logger {
   }
   
   /**
-   * Create or update a spinner
+   * Check if a log level should be logged
    */
-  spinner(text: string, id: string = 'default'): Ora {
-    if (this.outputFormat === 'silent') {
-      // Return a dummy spinner if in silent mode
-      const dummySpinner = ora({ text, isSilent: true });
-      this.spinners.set(id, dummySpinner);
-      return dummySpinner;
-    }
+  private shouldLog(level: LogLevel): boolean {
+    if (this.config.outputFormat === 'silent') return false;
     
-    if (this.spinners.has(id)) {
-      const existingSpinner = this.spinners.get(id);
-      if (existingSpinner) {
-        existingSpinner.text = text;
-        return existingSpinner;
-      }
-    }
+    const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
+    const currentLevelIndex = levels.indexOf(this.config.logLevel);
+    const messageLevelIndex = levels.indexOf(level);
     
-    const spinner = ora({ text }).start();
-    this.spinners.set(id, spinner);
-    return spinner;
-  }
-  
-  /**
-   * Stop a spinner with success
-   */
-  public succeed(text: string, id: string = 'default'): void {
-    const spinner = this.spinners.get(id);
-    if (spinner) {
-      spinner.succeed(text);
-      this.spinners.delete(id);
-    }
-  }
-  
-  /**
-   * Stop a spinner with failure
-   */
-  public fail(text: string, id: string = 'default'): void {
-    const spinner = this.spinners.get(id);
-    if (spinner) {
-      spinner.fail(text);
-      this.spinners.delete(id);
-    }
+    return messageLevelIndex <= currentLevelIndex;
   }
 }
 
-export const logger = new Logger(); 
+// Export singleton instance
+export const logger = Logger.getInstance(); 

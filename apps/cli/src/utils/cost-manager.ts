@@ -1,5 +1,7 @@
-import { logger } from './logger';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import { config } from './config';
+import { logger } from './logger';
 import { CostLimitError } from './errors';
 import type { AIModel } from '@obsidian-magic/types';
 
@@ -26,12 +28,32 @@ const DEFAULT_TOKENS_PER_WORD = 1.3;
 const DEFAULT_TOKENS_PER_CHARACTER = 0.25;
 
 /**
- * Token usage data
+ * Usage record interface
+ */
+interface UsageRecord {
+  timestamp: number;
+  model: AIModel;
+  tokens: number;
+  cost: number;
+  operation: string;
+}
+
+/**
+ * Cost limits and thresholds
+ */
+interface CostLimits {
+  warningThreshold: number;
+  hardLimit: number;
+  onLimitReached: 'warn' | 'pause' | 'stop';
+}
+
+/**
+ * Token usage data by model
  */
 interface TokenUsage {
-  input: number;
-  output: number;
-  total: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
 }
 
 /**
@@ -52,41 +74,56 @@ interface CostManagerOptions {
 }
 
 /**
- * Cost manager for tracking API usage and costs
+ * Cost manager class
  */
-export class CostManager {
+class CostManager {
   private static instance: CostManager;
-  private tokenUsage: Record<string, TokenUsage> = {
-    'gpt-3.5-turbo': { input: 0, output: 0, total: 0 },
-    'gpt-4o': { input: 0, output: 0, total: 0 }
+  private usageData: UsageRecord[] = [];
+  private session: {
+    startTime: number;
+    totalCost: number;
+    totalTokens: number;
+    models: Record<AIModel, TokenUsage>;
   };
-  
-  private costs: Record<string, CostData> = {
-    'gpt-3.5-turbo': { input: 0, output: 0, total: 0 },
-    'gpt-4o': { input: 0, output: 0, total: 0 }
-  };
-  
-  private options: CostManagerOptions = {
-    maxCost: undefined,
-    onLimit: 'warn'
-  };
-  
-  private constructor() {
-    // Load options from config
-    const configMaxCost = config.get('costLimit');
-    const configOnLimit = config.get('costLimitAction');
-    
-    if (configMaxCost !== undefined) {
-      this.options.maxCost = configMaxCost;
-    }
-    
-    if (configOnLimit !== undefined) {
-      this.options.onLimit = configOnLimit as 'pause' | 'warn' | 'stop';
-    }
-  }
-  
+  private dataFile: string;
+  private limits: CostLimits;
+  private paused = false;
+
   /**
-   * Get the singleton instance
+   * Private constructor (singleton)
+   */
+  private constructor() {
+    this.session = {
+      startTime: Date.now(),
+      totalCost: 0,
+      totalTokens: 0,
+      models: {
+        'gpt-3.5-turbo': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        'gpt-4': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        'gpt-4o': { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+      }
+    };
+
+    // Set default limits
+    this.limits = {
+      warningThreshold: config.get('costLimit') ?? 5,
+      hardLimit: config.get('costLimit') ?? 10,
+      onLimitReached: config.get('onLimitReached') ?? 'warn'
+    };
+
+    // Set data file path
+    const dataDir = path.join(
+      process.env['HOME'] || process.env['USERPROFILE'] || '.',
+      '.obsidian-magic'
+    );
+    this.dataFile = path.join(dataDir, 'usage-data.json');
+
+    // Load existing data
+    this.loadUsageData();
+  }
+
+  /**
+   * Get singleton instance
    */
   public static getInstance(): CostManager {
     if (!CostManager.instance) {
@@ -94,291 +131,222 @@ export class CostManager {
     }
     return CostManager.instance;
   }
-  
+
   /**
-   * Configure the cost manager
+   * Set cost limits
    */
-  public configure(options: CostManagerOptions): void {
-    if (options.maxCost !== undefined) {
-      this.options.maxCost = options.maxCost;
-    }
-    
-    if (options.onLimit !== undefined) {
-      this.options.onLimit = options.onLimit;
-    }
+  public setLimits(limits: Partial<CostLimits>): void {
+    this.limits = { ...this.limits, ...limits };
   }
-  
+
   /**
-   * Track token usage
+   * Track API usage
    */
-  public trackTokens(
-    model: AIModel, 
-    tokens: { input: number; output: number }
-  ): void {
-    // Initialize if model doesn't exist
-    if (!this.tokenUsage[model]) {
-      this.tokenUsage[model] = { input: 0, output: 0, total: 0 };
+  public trackUsage(
+    model: AIModel,
+    tokens: { input: number; output: number },
+    operation: string
+  ): number {
+    const { input, output } = tokens;
+    const totalTokens = input + output;
+    
+    // Calculate cost based on model pricing
+    const cost = this.calculateCost(model, input, output);
+    
+    // Update session data
+    this.session.totalCost += cost;
+    this.session.totalTokens += totalTokens;
+    
+    // Update model-specific usage
+    if (this.session.models[model]) {
+      this.session.models[model].inputTokens += input;
+      this.session.models[model].outputTokens += output;
+      this.session.models[model].totalTokens += totalTokens;
+    } else {
+      this.session.models[model] = {
+        inputTokens: input,
+        outputTokens: output,
+        totalTokens
+      };
     }
-    if (!this.costs[model]) {
-      this.costs[model] = { input: 0, output: 0, total: 0 };
-    }
     
-    // Update token counts
-    this.tokenUsage[model].input += tokens.input;
-    this.tokenUsage[model].output += tokens.output;
-    this.tokenUsage[model].total += tokens.input + tokens.output;
+    // Record usage
+    const record: UsageRecord = {
+      timestamp: Date.now(),
+      model,
+      tokens: totalTokens,
+      cost,
+      operation
+    };
     
-    // Calculate costs
-    const modelPricing = MODEL_PRICING[model] || DEFAULT_PRICING;
-    const inputCost = (tokens.input / 1000) * modelPricing.input;
-    const outputCost = (tokens.output / 1000) * modelPricing.output;
-    const totalCost = inputCost + outputCost;
+    this.usageData.push(record);
     
-    this.costs[model].input += inputCost;
-    this.costs[model].output += outputCost;
-    this.costs[model].total += totalCost;
-    
-    // Check against limits
+    // Check limits
     this.checkLimits();
+    
+    return cost;
   }
   
   /**
-   * Estimate tokens for text
-   */
-  public estimateTokens(text: string): number {
-    // Basic estimation algorithm
-    const wordCount = text.split(/\s+/).length;
-    const charCount = text.length;
-    
-    // Combine word-based and char-based estimates
-    const wordBasedEstimate = wordCount * DEFAULT_TOKENS_PER_WORD;
-    const charBasedEstimate = charCount * DEFAULT_TOKENS_PER_CHARACTER;
-    
-    // Average the two approaches
-    return Math.ceil((wordBasedEstimate + charBasedEstimate) / 2);
-  }
-  
-  /**
-   * Estimate cost for token usage
+   * Calculate estimated cost for a given number of tokens
    */
   public estimateCost(
-    model: AIModel, 
+    model: AIModel,
     tokens: { input: number; output: number }
-  ): CostData {
-    const modelPricing = MODEL_PRICING[model] || DEFAULT_PRICING;
-    const inputCost = (tokens.input / 1000) * modelPricing.input;
-    const outputCost = (tokens.output / 1000) * modelPricing.output;
+  ): number {
+    return this.calculateCost(model, tokens.input, tokens.output);
+  }
+  
+  /**
+   * Get current session stats
+   */
+  public getSessionStats(): {
+    duration: number;
+    totalCost: number;
+    totalTokens: number;
+    modelBreakdown: Record<string, {
+      cost: number;
+      tokens: TokenUsage;
+    }>;
+  } {
+    const modelBreakdown: Record<string, { cost: number; tokens: TokenUsage }> = {};
+    
+    // Calculate costs per model
+    for (const [model, usage] of Object.entries(this.session.models)) {
+      if (usage.totalTokens > 0) {
+        modelBreakdown[model] = {
+          tokens: { ...usage },
+          cost: this.calculateCost(model as AIModel, usage.inputTokens, usage.outputTokens)
+        };
+      }
+    }
     
     return {
-      input: inputCost,
-      output: outputCost,
-      total: inputCost + outputCost
+      duration: Date.now() - this.session.startTime,
+      totalCost: this.session.totalCost,
+      totalTokens: this.session.totalTokens,
+      modelBreakdown
     };
   }
   
   /**
-   * Check if operation is under budget
+   * Get usage history for a time period
    */
-  public isUnderBudget(cost: number): boolean {
-    if (this.options.maxCost === undefined) {
-      return true;
+  public getUsageHistory(
+    period: 'day' | 'week' | 'month' | 'all' = 'all'
+  ): UsageRecord[] {
+    const now = Date.now();
+    let cutoff = 0;
+    
+    switch (period) {
+      case 'day':
+        cutoff = now - 24 * 60 * 60 * 1000;
+        break;
+      case 'week':
+        cutoff = now - 7 * 24 * 60 * 60 * 1000;
+        break;
+      case 'month':
+        cutoff = now - 30 * 24 * 60 * 60 * 1000;
+        break;
+      default:
+        cutoff = 0;
     }
     
-    const totalCost = this.getTotalCost();
-    return totalCost + cost <= this.options.maxCost;
+    return this.usageData.filter(record => record.timestamp >= cutoff);
   }
   
   /**
-   * Get current token usage
-   */
-  public getTokenUsage(): Record<string, TokenUsage> {
-    return this.tokenUsage;
-  }
-  
-  /**
-   * Get current costs
-   */
-  public getCosts(): Record<string, CostData> {
-    return this.costs;
-  }
-  
-  /**
-   * Get total cost across all models
-   */
-  public getTotalCost(): number {
-    return Object.values(this.costs).reduce(
-      (total, modelCost) => total + modelCost.total, 
-      0
-    );
-  }
-  
-  /**
-   * Reset usage tracking
-   */
-  public reset(): void {
-    for (const model of Object.keys(this.tokenUsage)) {
-      this.tokenUsage[model] = { input: 0, output: 0, total: 0 };
-      this.costs[model] = { input: 0, output: 0, total: 0 };
-    }
-  }
-  
-  /**
-   * Save usage data to config
+   * Save usage data to file
    */
   public saveUsageData(): void {
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-    
-    // Store usage history in memory
-    const usageHistory: Record<string, any> = {};
-    
-    // Create the data structure if it doesn't exist
-    usageHistory[currentMonth] = {
-      tokens: {},
-      costs: {}
-    };
-    
-    // Update with current data
-    for (const model of Object.keys(this.tokenUsage)) {
-      if (this.tokenUsage[model] && this.costs[model]) {
-        // Ensure the objects exist
-        usageHistory[currentMonth].tokens[model] = {
-          input: this.tokenUsage[model].input,
-          output: this.tokenUsage[model].output,
-          total: this.tokenUsage[model].total
-        };
-        
-        usageHistory[currentMonth].costs[model] = {
-          input: this.costs[model].input,
-          output: this.costs[model].output,
-          total: this.costs[model].total
-        };
-      }
-    }
-    
-    // Store the usage history using profiles which is supported
-    const profiles = config.get('profiles') || {};
-    if (typeof profiles === 'object') {
-      profiles['usageHistory'] = usageHistory;
-      config.set('profiles', profiles);
+    try {
+      const dir = path.dirname(this.dataFile);
+      fs.ensureDirSync(dir);
+      fs.writeJSONSync(this.dataFile, this.usageData);
+      logger.debug(`Usage data saved to ${this.dataFile}`);
+    } catch (error) {
+      logger.warn(`Failed to save usage data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   
   /**
-   * Select best model for a task based on content complexity and cost constraints
+   * Load usage data from file
    */
-  public selectBestModel(
-    text: string, 
-    options: { 
-      preferredModel?: AIModel;
-      requirePrecision?: boolean;
-      maxCost?: number;
-    } = {}
-  ): AIModel {
-    const estimatedTokens = this.estimateTokens(text);
-    const expectedOutputTokens = Math.ceil(estimatedTokens * 0.5); // Estimate output as 50% of input
-    
-    // If a preferred model is specified and it's under budget, use it
-    if (options.preferredModel) {
-      const costEstimate = this.estimateCost(
-        options.preferredModel, 
-        { input: estimatedTokens, output: expectedOutputTokens }
-      ).total;
-      
-      if (options.maxCost === undefined || costEstimate <= options.maxCost) {
-        return options.preferredModel;
+  private loadUsageData(): void {
+    try {
+      if (fs.existsSync(this.dataFile)) {
+        this.usageData = fs.readJSONSync(this.dataFile);
+        logger.debug(`Loaded usage data from ${this.dataFile}`);
+      } else {
+        this.usageData = [];
+        logger.debug('No existing usage data found');
       }
+    } catch (error) {
+      logger.warn(`Failed to load usage data: ${error instanceof Error ? error.message : String(error)}`);
+      this.usageData = [];
     }
-    
-    // Determine based on content complexity
-    const complexityScore = this.assessComplexity(text);
-    
-    // High precision requirements
-    if (options.requirePrecision === true || complexityScore > 0.7) {
-      const gpt4oCost = this.estimateCost(
-        'gpt-4o', 
-        { input: estimatedTokens, output: expectedOutputTokens }
-      ).total;
-      
-      // Check against max cost
-      if (options.maxCost !== undefined) {
-        if (gpt4oCost <= options.maxCost) {
-          return 'gpt-4o';
-        } else {
-          return 'gpt-3.5-turbo'; // Fallback to cheapest option
-        }
-      }
-      
-      // No cost limit, prefer the most accurate
-      return 'gpt-4o';
-    }
-    
-    // Medium complexity
-    if (complexityScore > 0.4) {
-      const gpt4oCost = this.estimateCost(
-        'gpt-4o', 
-        { input: estimatedTokens, output: expectedOutputTokens }
-      ).total;
-      
-      // Check against max cost
-      if (options.maxCost !== undefined && gpt4oCost > options.maxCost) {
-        return 'gpt-3.5-turbo'; // Fallback to cheapest option
-      }
-      
-      return 'gpt-4o';
-    }
-    
-    // Low complexity, use cheapest option
-    return 'gpt-3.5-turbo';
   }
   
   /**
-   * Check against cost limits
+   * Calculate cost based on model and tokens
+   */
+  private calculateCost(model: AIModel, inputTokens: number, outputTokens: number): number {
+    // Official OpenAI pricing as of April 2024
+    switch (model) {
+      case 'gpt-4':
+        return (inputTokens / 1000) * 0.03 + (outputTokens / 1000) * 0.06;
+      case 'gpt-4o':
+        return (inputTokens / 1000) * 0.01 + (outputTokens / 1000) * 0.03;
+      case 'gpt-3.5-turbo':
+      default:
+        return (inputTokens / 1000) * 0.0005 + (outputTokens / 1000) * 0.0015;
+    }
+  }
+  
+  /**
+   * Check if limits have been exceeded
    */
   private checkLimits(): void {
-    if (this.options.maxCost === undefined) {
-      return;
+    const { warningThreshold, hardLimit, onLimitReached } = this.limits;
+    const currentCost = this.session.totalCost;
+    
+    // Warning threshold
+    if (currentCost >= warningThreshold && currentCost < hardLimit) {
+      logger.warn(`Cost warning: $${currentCost.toFixed(4)} spent so far (threshold: $${warningThreshold.toFixed(2)})`);
     }
     
-    const totalCost = this.getTotalCost();
-    
-    if (totalCost >= this.options.maxCost) {
-      logger.warn(`Cost limit reached: $${totalCost.toFixed(4)} of $${this.options.maxCost.toFixed(4)}`);
+    // Hard limit
+    if (currentCost >= hardLimit) {
+      logger.error(`Cost limit reached: $${currentCost.toFixed(4)} (limit: $${hardLimit.toFixed(2)})`);
       
-      if (this.options.onLimit === 'stop') {
+      if (onLimitReached === 'stop') {
         throw new CostLimitError(
-          'Cost limit reached. Stopping operation.', 
-          { cost: totalCost, limit: this.options.maxCost }
+          `Cost limit of $${hardLimit.toFixed(2)} exceeded. Current cost: $${currentCost.toFixed(4)}`,
+          { cost: currentCost, limit: hardLimit }
         );
       }
-    } else if (totalCost >= this.options.maxCost * 0.9) {
-      // Warn when approaching limit (90%)
-      logger.warn(`Approaching cost limit: $${totalCost.toFixed(4)} of $${this.options.maxCost.toFixed(4)}`);
+      
+      if (onLimitReached === 'pause' && !this.paused) {
+        this.paused = true;
+        logger.warn('Processing paused due to cost limit. Use --force to continue.');
+      }
     }
   }
   
   /**
-   * Assess text complexity (simplified algorithm)
+   * Check if processing is paused
    */
-  private assessComplexity(text: string): number {
-    // This is a simplified complexity assessment 
-    // Real implementation would consider multiple factors
-    
-    // Length factor
-    const lengthScore = Math.min(text.length / 10000, 1) * 0.3;
-    
-    // Vocabulary complexity
-    const uniqueWords = new Set(text.toLowerCase().match(/\b\w+\b/g) || []).size;
-    const totalWords = (text.match(/\b\w+\b/g) || []).length || 1;
-    const vocabularyScore = Math.min(uniqueWords / totalWords * 3, 1) * 0.3;
-    
-    // Technical content indicators
-    const codeBlocks = (text.match(/```[\s\S]*?```/g) || []).length;
-    const technicalTerms = (text.match(/\b(function|class|interface|component|algorithm|method|api|database|query|server|client|framework|library)\b/gi) || []).length;
-    const technicalScore = Math.min((codeBlocks * 0.2) + (technicalTerms / 20), 1) * 0.4;
-    
-    return lengthScore + vocabularyScore + technicalScore;
+  public isPaused(): boolean {
+    return this.paused;
+  }
+  
+  /**
+   * Reset pause state
+   */
+  public resetPause(): void {
+    this.paused = false;
   }
 }
 
+// Export singleton instance
 export const costManager = CostManager.getInstance(); 

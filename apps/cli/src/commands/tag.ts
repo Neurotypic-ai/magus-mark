@@ -182,7 +182,7 @@ export const tagCommand: CommandModule = {
         
         if (verbose) {
           logger.info('Files to process:');
-          filesToProcess.forEach(file => logger.info(`- ${file}`));
+          filesToProcess.forEach(file => { logger.info(`- ${file}`); });
         }
         
         // Calculate rough cost estimate
@@ -209,13 +209,13 @@ Cost Estimate:
       // Initialize OpenAI client and tagging service
       const openAIClient = new OpenAIClient({
         apiKey,
-        model: model as AIModel || 'gpt-4o',
+        model: model! || 'gpt-4o',
       });
       
       const taggingService = new TaggingService(
         openAIClient,
         {
-          model: model as AIModel || 'gpt-4o',
+          model: model! || 'gpt-4o',
           behavior: tagMode || 'merge',
           minConfidence: minConfidence || 0.65,
           reviewThreshold: reviewThreshold || 0.85

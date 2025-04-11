@@ -71,7 +71,7 @@ export const configCommand: CommandModule = {
             }
             
             // Set the value
-            config.set(key as any, parsedValue);
+            config.set(key, parsedValue);
             
             logger.info(`Set ${key} = ${JSON.stringify(parsedValue)}`);
           } catch (error) {

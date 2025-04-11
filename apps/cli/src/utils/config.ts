@@ -8,46 +8,31 @@ import { readFile, writeFile, fileExists } from '@obsidian-magic/utils';
 import type { AIModel, TagBehavior } from '@obsidian-magic/types';
 import os from 'os';
 import pathModule from 'path';
-
-/**
- * Configuration type
- */
-export type Config = {
-  apiKey: string;
-  defaultModel: AIModel;
-  defaultTagBehavior: TagBehavior;
-  minConfidence: number;
-  reviewThreshold: number;
-  concurrency: number;
-  vaultPath?: string;
-  outputPath?: string;
-  costLimit: number;
-  costLimitAction: 'warn' | 'pause' | 'stop';
-  enableAnalytics: boolean;
-  profiles?: Record<string, any>;
-  logging: {
-    level: 'error' | 'warn' | 'info' | 'debug';
-    format: 'pretty' | 'json' | 'silent';
-  };
-};
+import fs from 'fs-extra';
+import path from 'path';
+import { deepMerge } from '../mocks/utils';
+import type { Config, ConfigStorage } from '../types/config';
+import type { LogLevel } from '../types/commands';
 
 /**
  * Default configuration
  */
-export const DEFAULT_CONFIG: Config = {
-  apiKey: '',
+const DEFAULT_CONFIG: Config = {
+  apiKey: undefined,
   defaultModel: 'gpt-3.5-turbo',
-  defaultTagBehavior: 'merge',
+  tagMode: 'merge',
   minConfidence: 0.7,
   reviewThreshold: 0.5,
   concurrency: 3,
+  outputFormat: 'pretty',
+  logLevel: 'info',
   costLimit: 10,
-  costLimitAction: 'warn',
+  onLimitReached: 'warn',
   enableAnalytics: true,
-  logging: {
-    level: 'info',
-    format: 'pretty'
-  }
+  profiles: {},
+  activeProfile: undefined,
+  outputDir: undefined,
+  vaultPath: undefined
 };
 
 /**
@@ -60,6 +45,13 @@ export type ConfigType = Config;
  */
 function getDefaultConfigPath(): string {
   return pathModule.join(os.homedir(), '.config', 'obsidian-magic', 'config.json');
+}
+
+/**
+ * Get configuration path
+ */
+function getConfigPath(): string {
+  return getDefaultConfigPath();
 }
 
 /**
@@ -92,132 +84,171 @@ export async function saveConfig(config: Config, configPath = getDefaultConfigPa
 }
 
 /**
- * Configuration manager class that provides a singleton interface to the config utilities
+ * Configuration storage implementation
  */
-export class ConfigManager {
-  private static instance: ConfigManager;
-  private currentConfig: Config = DEFAULT_CONFIG;
-
+class ConfigImpl implements ConfigStorage {
+  private static instance: ConfigImpl;
+  private data: Config = { ...DEFAULT_CONFIG };
+  private configPath: string;
+  
   private constructor() {
-    // Load configuration immediately
-    this.loadConfig().catch((err: Error) => {
-      console.error('Error loading configuration:', err);
-    });
-    
-    // Handle environment variables
-    if (process.env['OPENAI_API_KEY']) {
-      this.currentConfig.apiKey = process.env['OPENAI_API_KEY'];
-    }
+    this.configPath = getConfigPath();
+    this.reload().catch(console.error);
   }
-
+  
   /**
    * Get singleton instance
    */
-  public static getInstance(): ConfigManager {
-    if (!ConfigManager.instance) {
-      ConfigManager.instance = new ConfigManager();
+  public static getInstance(): ConfigImpl {
+    if (!ConfigImpl.instance) {
+      ConfigImpl.instance = new ConfigImpl();
     }
-    return ConfigManager.instance;
+    return ConfigImpl.instance;
   }
-
-  /**
-   * Load configuration
-   */
-  private async loadConfig(path?: string): Promise<void> {
-    this.currentConfig = await loadConfig(path);
-  }
-
+  
   /**
    * Get a configuration value
    */
   public get<K extends keyof Config>(key: K): Config[K] {
-    return this.currentConfig[key];
+    // Check environment variable first
+    if (key === 'apiKey' && process.env['OPENAI_API_KEY']) {
+      return process.env['OPENAI_API_KEY'] as unknown as Config[K];
+    }
+    
+    // Check active profile
+    if (this.data.activeProfile && this.data.profiles) {
+      const profile = this.data.profiles[this.data.activeProfile];
+      if (profile && key in profile) {
+        return profile[key] as Config[K];
+      }
+    }
+    
+    // Return from config data or default
+    return this.data[key] !== undefined 
+      ? this.data[key] 
+      : DEFAULT_CONFIG[key] as Config[K];
   }
-
+  
   /**
    * Set a configuration value
    */
   public set<K extends keyof Config>(key: K, value: Config[K]): void {
-    this.currentConfig[key] = value;
-    saveConfig(this.currentConfig).catch((err: Error) => {
-      console.error('Error saving configuration:', err);
-    });
+    this.data[key] = value;
+    this.save().catch(console.error);
   }
-
+  
   /**
-   * Get all configuration values
+   * Check if a configuration key exists
+   */
+  public has(key: string): boolean {
+    return key in this.data;
+  }
+  
+  /**
+   * Delete a configuration key
+   */
+  public delete(key: string): void {
+    if (key in this.data) {
+      delete this.data[key as keyof Config];
+      this.save().catch(console.error);
+    }
+  }
+  
+  /**
+   * Clear all configuration
+   */
+  public clear(): void {
+    this.data = { ...DEFAULT_CONFIG };
+    this.save().catch(console.error);
+  }
+  
+  /**
+   * Get all configuration
    */
   public getAll(): Config {
-    return this.currentConfig;
+    return { ...this.data };
   }
-
+  
   /**
-   * Load configuration from a file
+   * Save configuration to file
    */
-  public async loadConfigFile(path: string): Promise<void> {
-    await this.loadConfig(path);
+  public async save(): Promise<void> {
+    try {
+      await fs.ensureDir(path.dirname(this.configPath));
+      await fs.writeJson(this.configPath, this.data, { spaces: 2 });
+    } catch (error) {
+      console.error(`Failed to save config: ${error}`);
+    }
   }
-
+  
   /**
-   * Reset configuration to defaults
+   * Reload configuration from file
    */
-  public reset(): void {
-    this.currentConfig = DEFAULT_CONFIG;
-    saveConfig(this.currentConfig).catch((err: Error) => {
-      console.error('Error saving configuration:', err);
-    });
+  public async reload(): Promise<void> {
+    try {
+      if (await fs.pathExists(this.configPath)) {
+        const fileData = await fs.readJson(this.configPath);
+        this.data = deepMerge(DEFAULT_CONFIG, fileData);
+      } else {
+        this.data = { ...DEFAULT_CONFIG };
+        await this.save();
+      }
+    } catch (error) {
+      console.error(`Failed to load config: ${error}`);
+      this.data = { ...DEFAULT_CONFIG };
+    }
   }
 }
 
-export const config = ConfigManager.getInstance();
+// Export singleton instance
+export const config = ConfigImpl.getInstance();
 
 // Define the schema for configuration validation
 export const configSchema = z.object({
   // Core settings
   apiKey: z.string().optional(),
-  defaultModel: z.enum(['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'] as const),
-  defaultTagBehavior: z.enum(['append', 'replace', 'merge'] as const),
+  defaultModel: z.enum(['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'] as const).optional(),
   
   // Processing parameters
-  minConfidence: z.number().min(0).max(1),
-  reviewThreshold: z.number().min(0).max(1),
-  concurrency: z.number().int().min(1).max(10),
+  minConfidence: z.number().min(0).max(1).optional(),
+  reviewThreshold: z.number().min(0).max(1).optional(),
+  concurrency: z.number().int().min(1).max(10).optional(),
   
   // Paths
   vaultPath: z.string().optional(),
-  outputPath: z.string().optional(),
+  outputDir: z.string().optional(),
   
   // Cost management
-  costLimit: z.number().min(0),
-  costLimitAction: z.enum(['warn', 'pause', 'stop'] as const),
+  costLimit: z.number().min(0).optional(),
+  onLimitReached: z.enum(['warn', 'pause', 'stop'] as const).optional(),
   
   // Analytics
-  enableAnalytics: z.boolean(),
+  enableAnalytics: z.boolean().optional(),
   
   // Named profiles
   profiles: z.record(z.string(), z.any()).optional(),
   
-  // Logging
-  logging: z.object({
-    level: z.enum(['error', 'warn', 'info', 'debug'] as const),
-    format: z.enum(['pretty', 'json', 'silent'] as const),
-  })
+  // Output settings
+  outputFormat: z.enum(['pretty', 'json', 'silent'] as const).optional(),
+  logLevel: z.enum(['error', 'warn', 'info', 'debug'] as const).optional(),
+  
+  // Additional settings
+  tagMode: z.enum(['append', 'replace', 'merge'] as const).optional(),
+  activeProfile: z.string().optional()
 });
 
 // Default configuration for Conf
 const defaultConfig = {
   defaultModel: 'gpt-3.5-turbo' as AIModel,
-  defaultTagBehavior: 'merge' as TagBehavior,
+  tagMode: 'merge' as TagBehavior,
   minConfidence: 0.7,
   reviewThreshold: 0.5,
   concurrency: 3,
   costLimit: 10,
-  costLimitAction: 'warn' as const,
+  onLimitReached: 'warn' as const,
   enableAnalytics: true,
-  logging: {
-    level: 'info' as const,
-    format: 'pretty' as const
-  }
+  outputFormat: 'pretty' as const,
+  logLevel: 'info' as LogLevel
 };
 
 // Load environment-specific configuration (dev, prod, test)

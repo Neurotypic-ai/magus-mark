@@ -1,40 +1,32 @@
 #!/usr/bin/env node
-
+/**
+ * Obsidian Magic CLI
+ * A command-line tool for analyzing and tagging AI conversations
+ */
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { config as dotenvConfig } from 'dotenv';
 import chalk from 'chalk';
-import fs from 'fs-extra';
-import path from 'path';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import { logger } from './utils/logger';
+import { config } from './utils/config';
+import { AppError } from './utils/errors';
+import { costManager } from './utils/cost-manager';
+import { getAllCommands } from './commands';
+import pkg from '../package.json';
+
+// Import update-notifier dynamically to avoid linter errors
+let updateNotifier: any;
+try {
+  updateNotifier = require('update-notifier');
+  updateNotifier({ pkg }).notify();
+} catch (error) {
+  logger.debug('Update notifier not available');
+}
 
 // Load environment variables from .env file
 dotenvConfig();
-
-// Import command modules
-import { tagCommand } from './commands/tag';
-import { testCommand } from './commands/test';
-import { configCommand } from './commands/config';
-import { configInteractiveCommand } from './commands/config-interactive';
-import { statsCommand } from './commands/stats';
-import { taxonomyCommand } from './commands/taxonomy';
-import { logger } from './utils/logger';
-import { AppError } from './utils/errors';
-import { costManager } from './utils/cost-manager';
-
-// Get version from package.json
-const packageJsonPath = path.resolve(__dirname, '../package.json');
-let version = '0.1.0';
-
-try {
-  if (fs.existsSync(packageJsonPath)) {
-    const packageJson = fs.readJsonSync(packageJsonPath);
-    version = packageJson.version;
-    logger.debug(`Obsidian Magic CLI version ${version}`);
-  }
-} catch (error) {
-  // Fallback to hardcoded version if package.json can't be read
-  logger.debug(`Could not read package.json: ${error instanceof Error ? error.message : String(error)}`);
-}
 
 /**
  * Handle uncaught exceptions
@@ -85,53 +77,78 @@ process.on('unhandledRejection', (reason) => {
  */
 async function main() {
   try {
-    await yargs(hideBin(process.argv))
-      .scriptName('tag-conversations')
+    // Set up command line arguments
+    const cli = yargs(hideBin(process.argv))
+      .scriptName('obsidian-magic')
       .usage('$0 <command> [options]')
-      .version(version)
-      .middleware([(argv) => {
-        // Configure logger based on global options
-        const verbose = argv['verbose'] as boolean;
-        const outputFormat = argv['output-format'] as 'pretty' | 'json' | 'silent' | undefined;
-        
-        logger.configure({
-          logLevel: verbose ? 'debug' : 'info',
-          outputFormat: outputFormat || 'pretty'
-        });
-        
-        // Don't return anything
-      }])
-      .option('config', {
-        describe: 'Path to configuration file',
-        type: 'string'
-      })
-      .option('verbose', {
-        describe: 'Enable verbose output',
-        alias: 'v',
-        type: 'boolean',
-        default: false
-      })
-      .option('output-format', {
-        describe: 'Output format',
-        choices: ['pretty', 'json', 'silent'],
-        default: 'pretty'
-      })
-      .command(tagCommand)
-      .command(testCommand)
-      .command(configCommand)
-      .command(configInteractiveCommand)
-      .command(statsCommand)
-      .command(taxonomyCommand)
       .demandCommand(1, 'You must specify a command')
       .strict()
-      .help()
-      .epilogue(
-        `For more information, see the documentation at:\n  ${chalk.cyan(
-          'https://github.com/yourusername/obsidian-magic'
-        )}`
-      )
-      .wrap(null)
-      .parse();
+      .alias('h', 'help')
+      .alias('v', 'version')
+      .wrap(120)
+      .fail((msg: string, err: Error) => {
+        if (err) {
+          // Handle custom errors
+          if (err instanceof AppError) {
+            logger.error(err.format());
+            if (err.recoverable) {
+              logger.info('Try running with --verbose for more details');
+            }
+          } else {
+            logger.error(msg || err.message);
+          }
+        } else {
+          logger.error(msg);
+        }
+        process.exit(1);
+      });
+
+    // Register all commands
+    for (const command of getAllCommands()) {
+      cli.command(command);
+    }
+
+    // Add global options
+    cli.options({
+      'config': {
+        describe: 'Path to configuration file',
+        type: 'string'
+      },
+      'verbose': {
+        describe: 'Show detailed output',
+        type: 'boolean',
+        alias: 'V'
+      },
+      'output': {
+        describe: 'Output file path',
+        type: 'string',
+        alias: 'o'
+      },
+      'output-format': {
+        describe: 'Output format',
+        choices: ['pretty', 'json', 'silent'],
+        default: config.get('outputFormat')
+      }
+    });
+
+    // Add version information
+    cli.version(`v${pkg.version}`);
+
+    // Add banner and help text
+    const banner = chalk.bold.green(`Obsidian Magic CLI v${pkg.version}`);
+    cli.epilogue(`For more information, see https://github.com/khallmark/obsidian-magic`);
+
+    // Display banner before executing commands
+    cli.middleware([(argv) => {
+      if (!argv['help'] && !argv['version']) {
+        console.log(banner);
+        console.log();
+      }
+      return Promise.resolve();
+    }]);
+
+    // Parse the arguments
+    await cli.parse();
       
     // Save any usage data before exiting successfully
     costManager.saveUsageData();

@@ -1,24 +1,32 @@
 {
   "name": "@obsidian-magic/cli",
   "version": "0.1.0",
-  "private": true,
-  "type": "module",
+  "description": "CLI tool for Obsidian Magic",
   "main": "dist/index.js",
   "bin": {
-    "tag-conversations": "./bin/tag-conversations.js"
+    "obsidian-magic": "dist/index.js"
   },
+  "type": "module",
   "scripts": {
-    "prebuild": "node scripts/build.js",
-    "build": "tsc -b",
-    "clean": "rimraf dist",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "dev": "tsc -b -w",
-    "lint": "eslint src --ext .ts",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "start": "node dist/index.js",
-    "prepublishOnly": "npm run clean && npm run build"
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "obsidian",
+    "markdown",
+    "tagging",
+    "cli"
+  ],
+  "author": "Kevin Hallmark",
+  "license": "MIT",
   "dependencies": {
     "@obsidian-magic/core": "workspace:*",
     "@obsidian-magic/types": "workspace:*",
@@ -32,16 +40,22 @@
     "fs-extra": "^11.3.0",
     "inquirer": "^12.5.2",
     "ora": "^8.2.0",
+    "update-notifier": "^7.3.1",
     "yargs": "^17.7.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
-    "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.14.0",
+    "@types/update-notifier": "^6.0.8",
     "@types/yargs": "^17.0.33",
-    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

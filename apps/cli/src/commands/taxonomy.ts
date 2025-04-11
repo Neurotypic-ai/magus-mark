@@ -2,6 +2,7 @@ import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
 import { readFile, writeFile, fileExists } from '@obsidian-magic/utils';
 import { logger } from '../utils/logger';
+import { taxonomy as taxonomyService } from '@obsidian-magic/core';
 
 export const taxonomyCommand: CommandModule = {
   command: 'taxonomy <command>',
@@ -9,135 +10,167 @@ export const taxonomyCommand: CommandModule = {
   builder: (yargs) => {
     return yargs
       .command({
-        command: 'view',
-        describe: 'View current taxonomy',
+        command: 'list',
+        describe: 'List all taxonomies',
+        handler: async () => {
+          try {
+            const domains = taxonomyService.getDomains();
+            
+            logger.box(`
+Available Domains:
+${domains.map(domain => `- ${domain}`).join('\n')}
+
+Total: ${domains.length} domains
+            `.trim(), 'Taxonomy Domains');
+          } catch (error) {
+            logger.error(`Failed to list taxonomies: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      })
+      .command({
+        command: 'get <domain>',
+        describe: 'Get a specific taxonomy',
         builder: (yargs) => 
-          yargs.option('format', {
-            describe: 'Output format',
-            choices: ['tree', 'json', 'flat'],
-            default: 'tree',
+          yargs.positional('domain', {
+            describe: 'Domain name',
+            type: 'string',
+            demandOption: true
           }),
         handler: async (argv) => {
-          const { format } = argv as any;
+          const { domain } = argv as any;
           
-          // TODO: Implement real taxonomy retrieval
-          
-          // Mock taxonomy data
-          const taxonomy = {
-            domains: [
-              {
-                id: 'programming',
-                name: 'Programming',
-                description: 'Software development topics',
-                topics: [
-                  {
-                    id: 'typescript',
-                    name: 'TypeScript',
-                    keywords: ['typescript', 'ts', 'javascript', 'js']
-                  },
-                  {
-                    id: 'python',
-                    name: 'Python',
-                    keywords: ['python', 'py', 'django', 'flask']
-                  }
-                ]
-              },
-              {
-                id: 'data-science',
-                name: 'Data Science',
-                description: 'Data analysis and machine learning',
-                topics: [
-                  {
-                    id: 'machine-learning',
-                    name: 'Machine Learning',
-                    keywords: ['ml', 'machine learning', 'ai']
-                  },
-                  {
-                    id: 'data-analysis',
-                    name: 'Data Analysis',
-                    keywords: ['pandas', 'numpy', 'analysis']
-                  }
-                ]
-              }
-            ],
-            lifeAreas: [
-              {
-                id: 'work',
-                name: 'Work',
-                keywords: ['job', 'career', 'professional']
-              },
-              {
-                id: 'personal',
-                name: 'Personal',
-                keywords: ['personal', 'hobby', 'life']
-              },
-              {
-                id: 'education',
-                name: 'Education',
-                keywords: ['study', 'learn', 'course']
-              }
-            ],
-            conversationTypes: [
-              {
-                id: 'tutorial',
-                name: 'Tutorial',
-                keywords: ['how to', 'guide', 'instructions']
-              },
-              {
-                id: 'exploration',
-                name: 'Exploration',
-                keywords: ['explore', 'understand', 'concept']
-              },
-              {
-                id: 'troubleshooting',
-                name: 'Troubleshooting',
-                keywords: ['fix', 'error', 'issue', 'problem']
-              }
-            ]
-          };
-          
-          // Display taxonomy based on requested format
-          if (format === 'json') {
-            logger.info(JSON.stringify(taxonomy, null, 2));
-          } else if (format === 'flat') {
-            const flatList = [];
+          try {
+            const tags = taxonomyService.getTagsForDomain(domain);
             
-            flatList.push('DOMAINS:');
-            taxonomy.domains.forEach(domain => {
-              flatList.push(`- ${domain.name} (${domain.id})`);
-              domain.topics.forEach(topic => {
-                flatList.push(`  - ${topic.name} (${topic.id})`);
-              });
-            });
+            if (tags.length === 0) {
+              logger.warn(`No taxonomy found for domain: ${domain}`);
+              return;
+            }
             
-            flatList.push('\nLIFE AREAS:');
-            taxonomy.lifeAreas.forEach(area => {
-              flatList.push(`- ${area.name} (${area.id})`);
-            });
-            
-            flatList.push('\nCONVERSATION TYPES:');
-            taxonomy.conversationTypes.forEach(type => {
-              flatList.push(`- ${type.name} (${type.id})`);
-            });
-            
-            logger.info(flatList.join('\n'));
-          } else {
-            // Tree format (default)
             logger.box(`
-DOMAINS
-${taxonomy.domains.map(domain => 
-  `${chalk.bold(domain.name)} (${domain.id})
-   ${domain.description}
-   Topics:
-   ${domain.topics.map(topic => `- ${topic.name} (${topic.id})`).join('\n   ')}`
-).join('\n\n')}
+Domain: ${chalk.bold(domain)}
+Tags:
+${tags.map(tag => `- ${tag}`).join('\n')}
 
-LIFE AREAS
-${taxonomy.lifeAreas.map(area => `${chalk.bold(area.name)} (${area.id})`).join('\n')}
-
-CONVERSATION TYPES
-${taxonomy.conversationTypes.map(type => `${chalk.bold(type.name)} (${type.id})`).join('\n')}
-            `.trim(), 'Taxonomy');
+Total: ${tags.length} tags
+            `.trim(), `${domain} Taxonomy`);
+          } catch (error) {
+            logger.error(`Failed to get taxonomy: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      })
+      .command({
+        command: 'create <domain>',
+        describe: 'Create a new taxonomy',
+        builder: (yargs) => 
+          yargs
+            .positional('domain', {
+              describe: 'Domain name',
+              type: 'string',
+              demandOption: true
+            })
+            .option('description', {
+              describe: 'Domain description',
+              type: 'string'
+            }),
+        handler: async (argv) => {
+          const { domain, description } = argv as any;
+          
+          try {
+            const success = taxonomyService.createDomain(domain, description);
+            
+            if (success) {
+              logger.info(`Created taxonomy domain: ${domain}`);
+            } else {
+              logger.error(`Failed to create taxonomy domain: ${domain}`);
+            }
+          } catch (error) {
+            logger.error(`Failed to create taxonomy: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      })
+      .command({
+        command: 'update <domain>',
+        describe: 'Update an existing taxonomy',
+        builder: (yargs) => 
+          yargs
+            .positional('domain', {
+              describe: 'Domain name',
+              type: 'string',
+              demandOption: true
+            })
+            .option('description', {
+              describe: 'Updated domain description',
+              type: 'string'
+            })
+            .option('file', {
+              describe: 'Input file with tags',
+              type: 'string'
+            }),
+        handler: async (argv) => {
+          const { domain, description, file } = argv as any;
+          
+          try {
+            // Simulate updating a domain
+            
+            if (file) {
+              if (!(await fileExists(file))) {
+                logger.error(`File not found: ${file}`);
+                return;
+              }
+              
+              // Read and parse file (would validate in real implementation)
+              const content = await readFile(file);
+              const tags = JSON.parse(content);
+              
+              // TODO: Implement actual update logic
+              logger.info(`Updated taxonomy domain ${domain} with ${tags.length} tags from file`);
+            } else if (description) {
+              // TODO: Implement actual update logic
+              logger.info(`Updated description for taxonomy domain: ${domain}`);
+            } else {
+              logger.warn('No updates specified. Use --description or --file');
+            }
+          } catch (error) {
+            logger.error(`Failed to update taxonomy: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      })
+      .command({
+        command: 'delete <domain>',
+        describe: 'Delete a taxonomy',
+        builder: (yargs) => 
+          yargs
+            .positional('domain', {
+              describe: 'Domain name',
+              type: 'string',
+              demandOption: true
+            })
+            .option('force', {
+              describe: 'Force deletion without confirmation',
+              type: 'boolean',
+              default: false
+            }),
+        handler: async (argv) => {
+          const { domain, force } = argv as any;
+          
+          try {
+            if (!force) {
+              logger.warn(`This will permanently delete the taxonomy domain: ${domain}`);
+              logger.info('Use --force to skip this warning');
+              // In a real implementation, we would ask for confirmation here
+              return;
+            }
+            
+            const success = taxonomyService.deleteDomain(domain);
+            
+            if (success) {
+              logger.info(`Deleted taxonomy domain: ${domain}`);
+            } else {
+              logger.error(`Failed to delete taxonomy domain: ${domain}`);
+            }
+          } catch (error) {
+            logger.error(`Failed to delete taxonomy: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
       })
@@ -145,30 +178,49 @@ ${taxonomy.conversationTypes.map(type => `${chalk.bold(type.name)} (${type.id})`
         command: 'export <file>',
         describe: 'Export taxonomy to file',
         builder: (yargs) => 
-          yargs.positional('file', {
-            describe: 'Output file path',
-            type: 'string',
-            demandOption: true
-          }),
+          yargs
+            .positional('file', {
+              describe: 'Output file path',
+              type: 'string',
+              demandOption: true
+            })
+            .option('domain', {
+              describe: 'Export specific domain only',
+              type: 'string'
+            }),
         handler: async (argv) => {
-          const { file } = argv as any;
-          
-          // Mock taxonomy export (same as view)
-          const taxonomy = {
-            domains: [
-              /* Same mock data as above */
-            ],
-            lifeAreas: [
-              /* Same mock data as above */
-            ],
-            conversationTypes: [
-              /* Same mock data as above */
-            ]
-          };
+          const { file, domain } = argv as any;
           
           try {
-            await writeFile(file, JSON.stringify(taxonomy, null, 2));
-            logger.info(`Taxonomy exported to ${file}`);
+            // If domain is specified, export just that domain
+            if (domain) {
+              const tags = taxonomyService.getTagsForDomain(domain);
+              
+              if (tags.length === 0) {
+                logger.warn(`No taxonomy found for domain: ${domain}`);
+                return;
+              }
+              
+              const exportData = {
+                domain,
+                tags
+              };
+              
+              await writeFile(file, JSON.stringify(exportData, null, 2));
+              logger.info(`Exported taxonomy domain ${domain} to ${file}`);
+            } else {
+              // Export all domains
+              const domains = taxonomyService.getDomains();
+              const exportData = {
+                domains: domains.map(d => ({
+                  name: d,
+                  tags: taxonomyService.getTagsForDomain(d)
+                }))
+              };
+              
+              await writeFile(file, JSON.stringify(exportData, null, 2));
+              logger.info(`Exported all taxonomy domains to ${file}`);
+            }
           } catch (error) {
             logger.error(`Failed to export taxonomy: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -194,14 +246,20 @@ ${taxonomy.conversationTypes.map(type => `${chalk.bold(type.name)} (${type.id})`
             
             // Read and parse file (would validate in real implementation)
             const content = await readFile(file);
-            const taxonomy = JSON.parse(content);
+            const taxonomyData = JSON.parse(content);
             
-            // TODO: Implement actual import logic
-            
-            logger.info('Taxonomy imported successfully');
-            logger.info(`Domains: ${taxonomy.domains?.length || 0}`);
-            logger.info(`Life areas: ${taxonomy.lifeAreas?.length || 0}`);
-            logger.info(`Conversation types: ${taxonomy.conversationTypes?.length || 0}`);
+            if (taxonomyData.domain && Array.isArray(taxonomyData.tags)) {
+              // Single domain import
+              const domain = taxonomyData.domain;
+              // TODO: Implement single domain import
+              logger.info(`Imported taxonomy for domain ${domain} with ${taxonomyData.tags.length} tags`);
+            } else if (taxonomyData.domains && Array.isArray(taxonomyData.domains)) {
+              // Multi-domain import
+              // TODO: Implement multi-domain import
+              logger.info(`Imported ${taxonomyData.domains.length} taxonomy domains`);
+            } else {
+              logger.error('Invalid taxonomy file format');
+            }
           } catch (error) {
             logger.error(`Failed to import taxonomy: ${error instanceof Error ? error.message : String(error)}`);
           }

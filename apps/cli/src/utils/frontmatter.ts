@@ -10,9 +10,9 @@ const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
  * Extract frontmatter from markdown content into a simple object
  */
 export function extractFrontmatter(content: string): { frontmatter: Record<string, any> | null; content: string } {
-  const match = content.match(FRONTMATTER_REGEX);
+  const match = FRONTMATTER_REGEX.exec(content);
   
-  if (!match || !match[1]) {
+  if (!match?.[1]) {
     return { frontmatter: null, content };
   }
   
@@ -41,7 +41,7 @@ function simplifyFrontmatter(text: string): string {
   const result: Record<string, any> = {};
   
   let currentObj = result;
-  const stack: Array<[Record<string, any>, string]> = [];
+  const stack: [Record<string, any>, string][] = [];
   let lastIndent = 0;
   
   for (const line of lines) {
@@ -115,7 +115,7 @@ export function addFrontmatter(content: string, data: Record<string, any>): stri
 /**
  * Very simple object to YAML converter
  */
-function convertToYaml(obj: Record<string, any>, level: number = 0): string {
+function convertToYaml(obj: Record<string, any>, level = 0): string {
   const indent = ' '.repeat(level);
   const lines: string[] = [];
   
@@ -177,8 +177,8 @@ export function extractTagsFromFrontmatter(content: string): TagSet | undefined 
   
   try {
     const tags = frontmatter['tags'];
-    if (tags && typeof tags === 'object' && tags['obsidianMagic']) {
-      return tags['obsidianMagic'] as TagSet;
+    if (tags && typeof tags === 'object' && tags.obsidianMagic) {
+      return tags.obsidianMagic as TagSet;
     }
   } catch (error) {
     console.warn('Failed to extract tags from frontmatter:', error);
@@ -194,7 +194,7 @@ export function updateTagsInFrontmatter(content: string, tags: TagSet): string {
   const { frontmatter, content: contentWithoutFrontmatter } = extractFrontmatter(content);
   
   // Get existing tags, if any
-  const existingTags = frontmatter && frontmatter['tags'] && typeof frontmatter['tags'] === 'object' 
+  const existingTags = frontmatter?.['tags'] && typeof frontmatter['tags'] === 'object' 
     ? frontmatter['tags'] 
     : {};
   
