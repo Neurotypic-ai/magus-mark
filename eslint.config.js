@@ -52,8 +52,8 @@ const jsConfig = {
   },
   rules: {
     ...js.configs.recommended.rules,
-    ...reactPlugin.configs.flat?.['recommended']?.rules || {},
-    ...reactPlugin.configs.flat?.['jsx-runtime']?.rules || {},
+    ...(reactPlugin.configs.flat?.['recommended']?.rules || {}),
+    ...(reactPlugin.configs.flat?.['jsx-runtime']?.rules || {}),
     ...reactHooksPlugin.configs.recommended.rules,
     ...jsxA11yPlugin.flatConfigs.recommended.rules,
     'react/jsx-no-leaked-render': ['warn', { validStrategies: ['ternary'] }],
@@ -107,14 +107,14 @@ const tsConfig = {
     ...importXPlugin.configs.typescript.rules,
 
     // React and JSX rules
-    ...reactPlugin.configs.flat?.['recommended']?.rules || {},
-    ...reactPlugin.configs.flat?.['jsx-runtime']?.rules || {},
+    ...(reactPlugin.configs.flat?.['recommended']?.rules || {}),
+    ...(reactPlugin.configs.flat?.['jsx-runtime']?.rules || {}),
     ...reactHooksPlugin.configs.recommended.rules,
     ...jsxA11yPlugin.flatConfigs.recommended.rules,
 
-    ...tsBase?.rules || {},
-    ...tsRecommendedTypeChecked?.rules || {},
-    ...tsStylisticTypeChecked?.rules || {},
+    ...(tsBase?.rules || {}),
+    ...(tsRecommendedTypeChecked?.rules || {}),
+    ...(tsStylisticTypeChecked?.rules || {}),
 
     'import-x/order': 'off',
 
@@ -203,17 +203,9 @@ const ignoresConfig = {
     '**/node_modules/*',
     '**/build/*',
     '**/public/build/*',
-    '**/postgres-data/*',
-    '**/documentation/*',
-    '**/old_server.ts',
     '**/dist/*',
     '**/dist-server/*',
     '**/coverage/*',
-    '**/.react-router/*',
-    '**/generated/*',
-    '**/patch/*',
-    '**/epic-reference/*',
-    '**/context/*',
     '.specstory/*',
   ],
 };

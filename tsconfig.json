@@ -5,9 +5,6 @@
     "rootDir": ".",
     "outDir": "./dist",
     "declarationDir": "./dist/types",
-    "checkJs": true,
-    "allowJs": true,
-    "isolatedDeclarations": false,
     "tsBuildInfoFile": "./dist/main.tsbuildinfo"
   },
   "exclude": [
@@ -19,10 +16,7 @@
     "**/.cursor/**",
     "*.md"
   ],
-  "files": [
-    "./eslint.config.js",
-    "./prettier.config.js"
-  ],
+  "files": ["./eslint.config.js", "./prettier.config.js"],
   "references": [
     { "path": "packages/types" },
     { "path": "packages/utils" },
