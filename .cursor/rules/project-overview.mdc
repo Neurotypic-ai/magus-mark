@@ -54,8 +54,9 @@ The project implements a modular workspace architecture with the following compo
 - **VS Code Extension App**: VS Code-specific implementation
   - Extension activation and registration
   - VS Code UI components and views
-  - Cursor-specific integration
-  - Workspace file handling
+  - Cursor-specific integration with MCP server
+  - Bidirectional vault synchronization
+  - AI-assisted tagging and knowledge retrieval
 
 ## Implementation Guides
 
@@ -67,6 +68,7 @@ For more detailed implementation information, refer to these specialized guides:
 - [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc)
 - [API Integration](mdc:.cursor/rules/api-integration.mdc)
 - [Accessibility & UX](mdc:.cursor/rules/accessibility-ux.mdc)
+- [VS Code Integration](mdc:.cursor/rules/vscode-integration.mdc)
 
 ## Documentation Links
 
@@ -75,3 +77,4 @@ For more detailed implementation information, refer to these specialized guides:
 - [OpenAI Integration](mdc:documentation/core/openai-integration.md)
 - [CLI Overview](mdc:documentation/cli/cli-overview.md)
 - [Obsidian Plugin](mdc:documentation/obsidian-plugin/plugin-overview.md)
+- [VS Code Integration](mdc:documentation/vscode-integration/vscode-overview.md)

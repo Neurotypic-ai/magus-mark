@@ -1,0 +1,137 @@
+---
+description: VS Code and Cursor integration guidelines and best practices
+globs: **/vscode/**/*.ts,**/vscode/**/*.tsx,**/cursor/**/*.ts,**/cursor/**/*.tsx
+alwaysApply: false
+---
+
+# VS Code & Cursor Integration Guidelines
+
+## Architecture Overview
+
+The VS Code extension component provides bidirectional integration between Obsidian vaults and development environments:
+
+```
+┌────────────────┐       ┌────────────────┐       ┌────────────────┐
+│                │       │                │       │                │
+│  Cursor Editor │◄─────►│   MCP Server   │◄─────►│  Tag System    │
+│                │       │                │       │                │
+└────────────────┘       └────────┬───────┘       └────────────────┘
+                                  │                        ▲
+                                  ▼                        │
+                         ┌────────────────┐       ┌────────────────┐
+                         │                │       │                │
+                         │  AI Functions  │──────►│ Notes Database │
+                         │                │       │                │
+                         └────────────────┘       └────────────────┘
+```
+
+## Integration Principles
+
+1. **Bidirectional Synchronization**:
+   - Implement real-time file system watchers
+   - Use optimized diffing for change detection
+   - Preserve metadata across environments
+   - Handle conflicts gracefully with clear resolution strategies
+
+2. **Environment Detection**:
+   - Dynamically detect Cursor vs standard VS Code environment
+   - Activate features based on available capabilities
+   - Degrade gracefully when specific features aren't available
+   - Support VS Code Web and Desktop environments
+
+3. **Extension API Usage**:
+   - Follow VS Code extension API best practices
+   - Use proper activation events for performance
+   - Implement tree views with correct data providers
+   - Register commands with descriptive labels and icons
+
+4. **User Experience Considerations**:
+   - Maintain consistency with VS Code design patterns
+   - Provide clear visual indicators for synchronization status
+   - Use notifications judiciously for important events
+   - Implement progressive disclosure for advanced features
+
+## Cursor-Specific Integration
+
+1. **MCP Server Implementation**:
+   - Implement the Model Context Protocol standard
+   - Register custom tools for tag management
+   - Provide appropriate context windowing
+   - Use type-safe function calling interfaces
+   - Optimize for token efficiency
+
+2. **AI Model Integration**:
+   - Support Claude 3.5 and other Cursor-provided models
+   - Implement context-aware tagging suggestions
+   - Use appropriate prompting strategies
+   - Provide relevant knowledge base context
+   - Cache responses for improved performance
+
+3. **Custom Instructions**:
+   - Develop tag-aware custom instructions
+   - Create instruction templates for common operations
+   - Support dynamic context modification
+   - Implement sharing mechanisms for instructions
+
+4. **Cursor UI Integration**:
+   - Integrate with Cursor's chat interface
+   - Implement sidebar extensions
+   - Match Cursor's design language
+   - Add custom keyboard shortcuts
+   - Provide AI processing status indicators
+
+## VS Code Extension Development
+
+1. **Extension Structure**:
+   - Use modular architecture with clear separation of concerns
+   - Implement the activation pattern correctly
+   - Register commands, views, and providers appropriately
+   - Follow VS Code extension packaging guidelines
+
+2. **Performance Considerations**:
+   - Use lazy loading for non-essential components
+   - Implement background processing for heavy operations
+   - Cache results to prevent redundant operations
+   - Monitor resource usage carefully
+   - Implement cancellation for long-running tasks
+
+3. **Error Handling**:
+   - Provide meaningful error messages
+   - Implement retry logic for network operations
+   - Log errors appropriately for debugging
+   - Handle graceful degradation for missing features
+   - Offer troubleshooting suggestions to users
+
+4. **Security Best Practices**:
+   - Respect workspace trust model
+   - Validate all inputs thoroughly
+   - Handle sensitive data securely
+   - Implement appropriate authentication
+   - Follow least privilege principle
+
+## Testing Approach
+
+1. **Extension Testing**:
+   - Use VS Code's extension testing framework
+   - Implement unit tests for core components
+   - Create integration tests for full workflows
+   - Test across operating systems
+   - Verify proper activation/deactivation
+
+2. **MCP Server Testing**:
+   - Test tool registration process
+   - Validate function calling interfaces
+   - Simulate AI model interactions
+   - Test error handling scenarios
+   - Verify performance under load
+
+## Documentation
+
+For detailed implementation information, refer to:
+
+- [VS Code-Specific Features](mdc:documentation/vscode-integration/vscode-features.md)
+- [Cursor Integration](mdc:documentation/vscode-integration/cursor-integration.md)
+- [MCP Server Implementation](mdc:documentation/vscode-integration/mcp-server.md)
+- [Obsidian Vault Integration](mdc:documentation/vscode-integration/vault-integration.md)
+- [Developer Experience](mdc:documentation/vscode-integration/developer-experience.md)
+- [Troubleshooting](mdc:documentation/vscode-integration/troubleshooting.md) 

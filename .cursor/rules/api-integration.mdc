@@ -1,6 +1,6 @@
 ---
 description: API integration best practices for OpenAI and other external services
-globs: **/api/**/*.ts,**/openai/**/*.ts,**/services/**/*.ts
+globs: **/api/**/*.ts,**/openai/**/*.ts,**/services/**/*.ts,**/mcp/**/*.ts
 alwaysApply: false
 ---
 
@@ -49,6 +49,43 @@ The project uses OpenAI's API for content analysis and tagging:
    - Provide meaningful error messages to users
    - Log API errors for debugging and analysis
 
+## Model Context Protocol (MCP) Integration
+
+1. **MCP Server Implementation**:
+   - Follow the MCP specification for standardized tool interfaces
+   - Implement efficient WebSocket communication
+   - Use typed interfaces for all tool definitions
+   - Structure tool documentation for clear model understanding
+   - Optimize context window usage with proper message formatting
+
+2. **Tool Registration**:
+   - Define clear, purpose-specific tools with descriptive names
+   - Document parameter schemas thoroughly
+   - Include informative descriptions for each tool and parameter
+   - Specify return types for better response handling
+   - Use consistent naming conventions across tools
+
+3. **Function Execution**:
+   - Implement non-blocking async execution patterns
+   - Handle all error cases gracefully
+   - Structure responses for consistent parsing
+   - Consider caching for expensive operations
+   - Implement proper timeouts and cancellation
+
+4. **Context Management**:
+   - Prioritize most relevant information in context windows
+   - Use chunking strategies for large content
+   - Implement context refreshing when appropriate
+   - Maintain session state across interactions
+   - Consider token budgeting for different operations
+
+5. **Security Considerations**:
+   - Implement secure authentication for MCP connections
+   - Validate all inputs thoroughly
+   - Apply rate limiting to prevent abuse
+   - Log operations for audit purposes
+   - Restrict tool capabilities based on user permissions
+
 ## API Security & Safety Best Practices
 
 1. **Authentication & Authorization**:
@@ -89,3 +126,4 @@ The project uses OpenAI's API for content analysis and tagging:
 - [OpenAI Integration](mdc:documentation/core/openai-integration.md)
 - [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering)
 - [OpenAI Safety Best Practices](https://platform.openai.com/docs/guides/safety-best-practices)
+- [MCP Server Implementation](mdc:documentation/vscode-integration/mcp-server.md)

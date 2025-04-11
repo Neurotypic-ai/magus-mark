@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
- ---
 description: Core tagging model and classification strategy for Obsidian Magic
 globs: **/tag*.ts,**/classification*.ts,**/taxonomy*.ts,**/model*.ts
 alwaysApply: false

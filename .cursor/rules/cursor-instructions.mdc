@@ -19,7 +19,7 @@ When working with this codebase, prioritize rules in this order:
 When starting work on a new task:
 
 1. Begin by reviewing [Project Overview](mdc:documentation/README.md) to understand the system architecture
-2. Identify which component(s) the task involves (CLI, Plugin, Core Engine)
+2. Identify which component(s) the task involves (CLI, Plugin, Core Engine, VS Code Extension)
 3. Review the relevant component documentation before starting development
 
 ## Code Generation Guidelines
@@ -51,12 +51,23 @@ When working with OpenAI API code:
 3. Follow established prompt engineering patterns
 4. Always respect cost management and budget constraints
 
+## MCP Server Guidelines
+
+When working with Model Context Protocol servers:
+
+1. Follow type-safe function calling patterns
+2. Optimize context window usage for token efficiency
+3. Implement proper tool registration and documentation
+4. Handle errors gracefully with appropriate recovery mechanisms
+5. Consider security implications for all operations
+
 ## Import the following rules based on context:
 
 - [Project Overview](mdc:.cursor/rules/project-overview.mdc)
 - [Tagging Model](mdc:.cursor/rules/tagging-model.mdc)
 - [CLI Tool](mdc:.cursor/rules/cli-tool.mdc)
 - [Obsidian Plugin](mdc:.cursor/rules/obsidian-plugin.mdc)
+- [VS Code Integration](mdc:.cursor/rules/vscode-integration.mdc)
 - [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc)
 - [API Integration](mdc:.cursor/rules/api-integration.mdc)
 - [Accessibility & UX](mdc:.cursor/rules/accessibility-ux.mdc)

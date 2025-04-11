@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
- ---
 description: Obsidian plugin architecture and integration for Obsidian Magic
 globs: **/obsidian/**/*.ts,**/plugin/**/*.ts,**/obsidian-plugin/**/*.ts
 alwaysApply: false
