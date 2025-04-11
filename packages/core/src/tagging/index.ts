@@ -255,94 +255,163 @@ export class TaggingService {
       return result;
     }
     
-    // Default fallback
+    // Default to just returning new tags
     return newTags;
   }
   
   /**
-   * Get the default taxonomy for tagging
+   * Get the default taxonomy for classification
    */
   private getDefaultTaxonomy(): Record<string, unknown> {
     return {
-      years: ["2020", "2021", "2022", "2023", "2024"],
+      year_tags: [
+        "2020", "2021", "2022", "2023", "2024"
+      ],
       life_areas: [
-        "career",
-        "relationships",
-        "health",
-        "learning",
-        "projects",
-        "personal-growth",
-        "finance",
-        "hobby"
+        "career", "relationships", "health", "learning", 
+        "projects", "personal-growth", "finance", "hobby"
       ],
       domains: {
-        "software-development": [
-          "frontend",
-          "backend",
-          "devops",
-          "mobile",
-          "data",
-          "security",
-          "architecture"
-        ],
-        "philosophy": [
-          "ethics",
-          "metaphysics",
-          "epistemology",
-          "logic",
-          "aesthetics"
-        ],
-        "design": [
-          "ux",
-          "ui",
-          "graphic",
-          "industrial",
-          "interaction"
-        ],
-        "psychology": [
-          "cognitive",
-          "clinical",
-          "developmental",
-          "social",
-          "behavioral"
-        ],
-        // Abbreviated for clarity - a real implementation would include all domains
+        "software-development": {
+          description: "Topics related to programming, software engineering, and development practices",
+          subdomains: [
+            "frontend", "backend", "devops", "mobile", "desktop", 
+            "web", "api", "database", "security", "architecture",
+            "performance", "testing", "debugging", "game-dev"
+          ]
+        },
+        "ai": {
+          description: "Artificial intelligence, machine learning, and related topics",
+          subdomains: [
+            "machine-learning", "deep-learning", "nlp", "computer-vision",
+            "reinforcement-learning", "prompt-engineering", "data-science",
+            "neural-networks", "generative-ai", "llms"
+          ]
+        },
+        "philosophy": {
+          description: "Philosophical discussions and concepts",
+          subdomains: [
+            "ethics", "metaphysics", "epistemology", "logic", 
+            "existentialism", "phenomenology", "political-philosophy",
+            "philosophy-of-mind", "philosophy-of-science"
+          ]
+        },
+        "design": {
+          description: "Visual, interaction, and user experience design",
+          subdomains: [
+            "ui", "ux", "graphic-design", "typography", "visual-design",
+            "animation", "illustration", "branding", "information-architecture",
+            "interaction-design", "product-design"
+          ]
+        },
+        "psychology": {
+          description: "Human behavior, cognition, and mental processes",
+          subdomains: [
+            "cognitive", "behavioral", "clinical", "developmental",
+            "social", "positive-psychology", "neuroscience",
+            "personality", "motivation", "emotion"
+          ]
+        },
+        "productivity": {
+          description: "Methods and systems for improving efficiency and output",
+          subdomains: [
+            "time-management", "task-management", "note-taking",
+            "knowledge-management", "systems", "workflow",
+            "organization", "habits", "focus", "tools"
+          ]
+        },
+        "business": {
+          description: "Topics related to commerce, startups, and organizations",
+          subdomains: [
+            "strategy", "marketing", "finance", "management",
+            "entrepreneurship", "startups", "operations",
+            "sales", "product-management", "leadership"
+          ]
+        },
+        "writing": {
+          description: "The craft of writing and content creation",
+          subdomains: [
+            "fiction", "non-fiction", "technical-writing", "blogging",
+            "copywriting", "storytelling", "editing", "publishing",
+            "journalism", "creative-writing", "documentation"
+          ]
+        },
+        "education": {
+          description: "Learning, teaching, and educational systems",
+          subdomains: [
+            "pedagogy", "learning-theory", "curriculum", "e-learning",
+            "self-directed-learning", "teaching", "educational-technology",
+            "literacy", "higher-education", "lifelong-learning"
+          ]
+        }
       },
-      conversation_types: [
-        "theory",
-        "practical",
-        "meta",
-        "casual",
-        "adhd-thought",
-        "deep-dive",
-        "exploration",
-        "experimental",
-        "reflection",
-        "planning",
-        "question",
-        "analysis"
-      ],
       contextual_tags: [
-        "beginner",
-        "advanced",
-        "comparison",
-        "tutorial",
-        "critique",
-        "review",
-        "history",
-        "future",
-        "trends",
-        "innovation",
-        "ethics",
-        "impact",
-        "tools",
-        "techniques",
-        "resources",
-        "case-study",
-        "problem-solving",
-        "decision-making",
-        "productivity",
-        "communication"
+        // Cross-domain concepts
+        "strategy", "planning", "implementation", "theory", "practice",
+        "innovation", "creativity", "problem-solving", "optimization",
+        "reflection", "analysis", "synthesis", "communication", "collaboration",
+        
+        // Technical concepts
+        "automation", "tooling", "infrastructure", "api", "algorithms",
+        "data-structures", "patterns", "frameworks", "libraries",
+        
+        // Learning and growth
+        "tutorial", "guide", "learning", "expertise", "skill-development",
+        "mastery", "knowledge", "research", "experimentation",
+        
+        // Process and methodology
+        "process", "methodology", "workflow", "system", "framework",
+        "approach", "technique", "best-practice", "convention", "standard"
+      ],
+      conversation_types: [
+        {
+          "tag": "theory",
+          "description": "Abstract or conceptual discussions"
+        },
+        {
+          "tag": "practical",
+          "description": "Implementation-focused or action-oriented"
+        },
+        {
+          "tag": "meta",
+          "description": "Self-referential or about the process itself"
+        },
+        {
+          "tag": "casual",
+          "description": "Informal, exploratory conversations"
+        },
+        {
+          "tag": "adhd-thought",
+          "description": "Non-linear, associative thinking patterns"
+        },
+        {
+          "tag": "deep-dive",
+          "description": "Comprehensive exploration of a topic"
+        },
+        {
+          "tag": "exploration",
+          "description": "Initial investigation of new concepts"
+        },
+        {
+          "tag": "experimental",
+          "description": "Testing ideas or hypotheses"
+        },
+        {
+          "tag": "reflection",
+          "description": "Contemplative assessment"
+        },
+        {
+          "tag": "planning",
+          "description": "Forward-looking organization"
+        },
+        {
+          "tag": "question",
+          "description": "Inquiry-driven exchange"
+        },
+        {
+          "tag": "analysis",
+          "description": "Detailed examination of specifics"
+        }
       ]
     };
   }

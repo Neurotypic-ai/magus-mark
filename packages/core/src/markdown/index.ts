@@ -1,7 +1,17 @@
 /**
  * Markdown processing module for handling files and frontmatter
  */
-import type { TagSet, Document, DomainTag } from '@obsidian-magic/types';
+import type { 
+  TagSet, 
+  Document, 
+  DomainTag, 
+  TopicalTag, 
+  YearTag, 
+  LifeAreaTag, 
+  ConversationTypeTag,
+  SubdomainTag
+} from '@obsidian-magic/types';
+import { MarkdownError } from '../errors';
 
 /**
  * Options for frontmatter processing
@@ -83,7 +93,11 @@ export class FrontmatterProcessor {
       return frontmatter;
     } catch (error) {
       console.error('Error parsing frontmatter:', error);
-      return {};
+      throw new MarkdownError(
+        'Failed to parse frontmatter',
+        'FRONTMATTER_PARSE_ERROR',
+        true
+      );
     }
   }
   
@@ -222,7 +236,11 @@ export class FrontmatterProcessor {
       return content.replace(frontmatterRegex, formattedFrontmatter);
     } catch (error) {
       console.error('Error updating frontmatter:', error);
-      return content;
+      throw new MarkdownError(
+        'Failed to update frontmatter',
+        'FRONTMATTER_UPDATE_ERROR',
+        true
+      );
     }
   }
   
@@ -254,7 +272,7 @@ export class FrontmatterProcessor {
 }
 
 /**
- * Document processor for working with markdown documents
+ * Process markdown documents with frontmatter
  */
 export class DocumentProcessor {
   private frontmatterProcessor: FrontmatterProcessor;
@@ -264,31 +282,194 @@ export class DocumentProcessor {
   }
   
   /**
-   * Parse a markdown document into a Document object
+   * Parse a markdown document from content
    */
   parseDocument(id: string, path: string, content: string): Document {
-    const frontmatter = this.frontmatterProcessor.extractFrontmatter(content);
+    const metadata = this.frontmatterProcessor.extractFrontmatter(content);
+    const extractedContent = this.extractContent(content);
+    
+    // Try to extract existing tags
+    const existingTags = this.tryExtractTagsFromFrontmatter(metadata);
     
     return {
       id,
       path,
-      content,
-      metadata: frontmatter
+      content: extractedContent,
+      metadata,
+      existingTags
     };
   }
   
   /**
-   * Update a document with new tags
+   * Update document with new tags
    */
   updateDocument(document: Document, tags: TagSet): string {
+    // Apply tags to document content via frontmatter
     return this.frontmatterProcessor.updateFrontmatter(document.content, tags);
   }
   
   /**
-   * Extract content from a document (removing frontmatter)
+   * Extract the main content from a markdown document (excluding frontmatter)
    */
   extractContent(content: string): string {
-    const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+    const frontmatterRegex = /^---\n[\s\S]*?\n---\n?/;
     return content.replace(frontmatterRegex, '').trim();
+  }
+  
+  /**
+   * Try to extract tag metadata from frontmatter
+   */
+  private tryExtractTagsFromFrontmatter(frontmatter: Record<string, unknown>): TagSet | undefined {
+    // Check if we have nested tag keys that match our expected structure
+    const hasNestedTags = 
+      frontmatter['year'] !== undefined ||
+      frontmatter['life_area'] !== undefined ||
+      frontmatter['topical_tags'] !== undefined ||
+      frontmatter['conversation_type'] !== undefined;
+    
+    if (hasNestedTags) {
+      try {
+        // Extract structured tags from nested keys
+        const yearRaw = frontmatter['year'] as string;
+        // Convert year to YearTag (must be a valid 4-digit year)
+        if (!yearRaw || !/^\d{4}$/.test(yearRaw)) {
+          return undefined;
+        }
+        const year = yearRaw as YearTag;
+        
+        const lifeArea = frontmatter['life_area'] as LifeAreaTag | undefined;
+        const topicalTagsRaw = frontmatter['topical_tags'] as Array<Record<string, unknown>> || [];
+        const conversationType = frontmatter['conversation_type'] as ConversationTypeTag;
+        
+        // Only return if we have at least year and conversation_type
+        if (year && conversationType) {
+          // Convert raw topical tags to properly typed TopicalTag array
+          const topicalTags: TopicalTag[] = [];
+          
+          for (const tag of topicalTagsRaw) {
+            const domain = tag['domain'] as DomainTag;
+            if (!domain) continue;
+            
+            const topicalTag: TopicalTag = { domain };
+            
+            // Add subdomain if exists
+            if (tag['subdomain']) {
+              topicalTag.subdomain = tag['subdomain'] as SubdomainTag;
+            }
+            
+            // Add contextual if exists
+            if (tag['contextual']) {
+              topicalTag.contextual = tag['contextual'] as string;
+            }
+            
+            topicalTags.push(topicalTag);
+          }
+          
+          return {
+            year,
+            life_area: lifeArea,
+            topical_tags: topicalTags,
+            conversation_type: conversationType,
+            confidence: {
+              // Default to high confidence since these are explicit tags
+              overall: 1.0,
+              year: 1.0,
+              life_area: lifeArea ? 1.0 : 0,
+              domain: 1.0,
+              subdomain: 1.0,
+              contextual: 1.0,
+              conversation_type: 1.0
+            }
+          };
+        }
+      } catch (error) {
+        // If anything goes wrong, fall back to undefined
+        console.error('Error extracting structured tags:', error);
+        return undefined;
+      }
+    }
+    
+    // No structured tags found, try to parse from flat tag list
+    const tags = this.frontmatterProcessor.extractTags(frontmatter);
+    
+    if (tags.length === 0) {
+      return undefined;
+    }
+    
+    try {
+      // Try to parse flat tags into structured format
+      const yearTag = tags.find(t => t.startsWith('#year/'));
+      const typeTag = tags.find(t => t.startsWith('#type/'));
+      
+      if (!yearTag || !typeTag) {
+        return undefined;
+      }
+      
+      const lifeAreaTags = tags.filter(t => 
+        t.startsWith('#') && 
+        !t.includes('/') && 
+        !t.startsWith('#year/') && 
+        !t.startsWith('#type/')
+      );
+      
+      const domainTags = tags.filter(t => 
+        t.includes('/') && 
+        !t.startsWith('#year/') && 
+        !t.startsWith('#type/')
+      );
+      
+      const rawYear = yearTag.replace('#year/', '');
+      // Convert to YearTag format (must be a valid 4-digit year)
+      if (!rawYear || !/^\d{4}$/.test(rawYear)) {
+        return undefined;
+      }
+      const year = rawYear as YearTag;
+      
+      const conversationType = typeTag.replace('#type/', '') as ConversationTypeTag;
+      const lifeArea = lifeAreaTags.length > 0 
+        ? lifeAreaTags[0].replace('#', '') as LifeAreaTag 
+        : undefined;
+      
+      const topicalTags: TopicalTag[] = [];
+      
+      for (const tag of domainTags) {
+        // Remove leading # and split by /
+        const parts = tag.substring(1).split('/');
+        if (parts.length === 0) continue;
+        
+        const domain = parts[0] as DomainTag;
+        const topicalTag: TopicalTag = { domain };
+        
+        if (parts.length >= 2) {
+          topicalTag.subdomain = parts[1] as SubdomainTag;
+        }
+        
+        if (parts.length >= 3) {
+          topicalTag.contextual = parts[2];
+        }
+        
+        topicalTags.push(topicalTag);
+      }
+      
+      return {
+        year,
+        life_area: lifeArea,
+        topical_tags: topicalTags,
+        conversation_type: conversationType,
+        confidence: {
+          // Default to high confidence since these are explicit tags
+          overall: 1.0,
+          year: 1.0,
+          life_area: lifeArea ? 1.0 : 0,
+          domain: 1.0,
+          subdomain: 1.0,
+          contextual: 1.0,
+          conversation_type: 1.0
+        }
+      };
+    } catch (error) {
+      console.error('Error parsing flat tags:', error);
+      return undefined;
+    }
   }
 } 
