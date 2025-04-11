@@ -103,6 +103,88 @@
   margin-right: 0.5rem;
 }
 
+/* Tag Visualization View */
+.visualization-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.control-container {
+  display: flex;
+  align-items: center;
+}
+
+.visualization-container {
+  width: 100%;
+  height: 60vh;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.visualization-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Tag Widget Styles */
+.obsidian-magic-tag-widget {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  margin: 0 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.obsidian-magic-tag-widget:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Settings Tab Styles */
+.settings-info {
+  padding: 1rem;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.settings-links {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-links a {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.settings-links a:hover {
+  background-color: var(--background-secondary-alt);
+}
+
+/* Folder Tag Modal */
+.modal-container {
+  width: 100%;
+  max-width: 500px;
+}
+
 /* Accessibility Improvements */
 button, input {
   transition: all 0.2s ease;
@@ -117,6 +199,16 @@ input::placeholder {
   opacity: 0.7;
 }
 
+/* Dark Mode Specific Adjustments */
+.theme-dark .obsidian-magic-tag-widget {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Light Mode Specific Adjustments */
+.theme-light .obsidian-magic-tag-widget {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* High Contrast Mode Support */
 @media (prefers-contrast: more) {
   .tag-item {
@@ -125,5 +217,13 @@ input::placeholder {
   
   button {
     border: 1px solid currentColor;
+  }
+  
+  .obsidian-magic-tag-widget {
+    border: 1px solid currentColor;
+  }
+  
+  .visualization-container {
+    border: 2px solid var(--text-normal);
   }
 } 

@@ -1,11 +1,16 @@
-import { App, ItemView, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from 'obsidian';
+import { App, ItemView, Plugin, PluginSettingTab, Setting, TFile, TFolder, WorkspaceLeaf, Notice } from 'obsidian';
 import { TagManagementView, TAG_MANAGEMENT_VIEW_TYPE } from './ui/TagManagementView';
+import { TagVisualizationView, TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
 import { TaggingService } from './services/TaggingService';
+import { DocumentTagService } from './services/DocumentTagService';
+import { KeyManager } from './services/KeyManager';
+import { FolderTagModal } from './ui/FolderTagModal';
 import type { AIModel, TagBehavior } from '@obsidian-magic/types';
 
 interface ObsidianMagicSettings {
   apiKey: string;
   apiKeyStorage: 'local' | 'system';
+  apiKeyKeychainId: string;
   defaultTagBehavior: TagBehavior;
   enableAutoSync: boolean;
   modelPreference: AIModel;
@@ -16,6 +21,7 @@ interface ObsidianMagicSettings {
 const DEFAULT_SETTINGS: ObsidianMagicSettings = {
   apiKey: '',
   apiKeyStorage: 'local',
+  apiKeyKeychainId: '',
   defaultTagBehavior: 'merge',
   enableAutoSync: false,
   modelPreference: 'gpt-4o',
@@ -27,6 +33,8 @@ export default class ObsidianMagicPlugin extends Plugin {
   settings: ObsidianMagicSettings = DEFAULT_SETTINGS;
   statusBarElement: HTMLElement | null = null;
   taggingService!: TaggingService;
+  documentTagService!: DocumentTagService;
+  keyManager!: KeyManager;
 
   override async onload() {
     console.log('Loading Obsidian Magic plugin');
@@ -34,17 +42,26 @@ export default class ObsidianMagicPlugin extends Plugin {
     // Load settings
     await this.loadSettings();
     
-    // Initialize tagging service
+    // Initialize key manager
+    this.keyManager = new KeyManager(this);
+    
+    // Retrieve API key from secure storage
+    const apiKey = await this.keyManager.loadKey();
+    
+    // Initialize tagging service with the retrieved key
     this.taggingService = new TaggingService(this);
+    if (apiKey) {
+      this.taggingService.updateApiKey(apiKey);
+    }
+    
+    // Initialize document tag service
+    this.documentTagService = new DocumentTagService(this);
     
     // Register settings tab
     this.addSettingTab(new ObsidianMagicSettingTab(this.app, this));
     
-    // Register tag management view
-    this.registerView(
-      TAG_MANAGEMENT_VIEW_TYPE,
-      (leaf) => new TagManagementView(leaf, this)
-    );
+    // Register views
+    this.registerViews();
     
     // Register ribbon icon if enabled
     if (this.settings.showRibbonIcon) {
@@ -71,6 +88,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     console.log('Unloading Obsidian Magic plugin');
     // Clean up views
     this.app.workspace.detachLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE);
+    this.app.workspace.detachLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE);
   }
   
   async loadSettings() {
@@ -80,6 +98,20 @@ export default class ObsidianMagicPlugin extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
+
+  private registerViews() {
+    // Register tag management view
+    this.registerView(
+      TAG_MANAGEMENT_VIEW_TYPE,
+      (leaf) => new TagManagementView(leaf, this)
+    );
+    
+    // Register tag visualization view
+    this.registerView(
+      TAG_VISUALIZATION_VIEW_TYPE,
+      (leaf) => new TagVisualizationView(leaf, this)
+    );
+  }
   
   private addCommands() {
     // Add tag management command
@@ -88,6 +120,15 @@ export default class ObsidianMagicPlugin extends Plugin {
       name: 'Open Tag Management',
       callback: async () => {
         await this.activateTagManagementView();
+      }
+    });
+    
+    // Add tag visualization command
+    this.addCommand({
+      id: 'open-tag-visualization',
+      name: 'Open Tag Visualization',
+      callback: async () => {
+        await this.activateTagVisualizationView();
       }
     });
     
@@ -112,15 +153,53 @@ export default class ObsidianMagicPlugin extends Plugin {
       id: 'tag-folder',
       name: 'Tag Folder',
       callback: () => {
-        // Will implement folder selection modal later
-        this.tagFolder();
+        this.openFolderTagModal();
       }
     });
   }
   
   private registerContextMenu() {
-    // Will implement context menu registration
-    // This requires additional setup for file explorer context menu items
+    // Add file explorer context menu items
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        if (file instanceof TFile && file.extension === 'md') {
+          menu.addItem((item) => {
+            item
+              .setTitle('Tag with Obsidian Magic')
+              .setIcon('tag')
+              .onClick(() => {
+                this.taggingService.processFile(file);
+              });
+          });
+        } else if (file instanceof TFolder) {
+          menu.addItem((item) => {
+            item
+              .setTitle('Tag folder with Obsidian Magic')
+              .setIcon('tag')
+              .onClick(() => {
+                this.tagFolder(file);
+              });
+          });
+        }
+      })
+    );
+    
+    // Add editor context menu item
+    this.registerEvent(
+      this.app.workspace.on('editor-menu', (menu, editor, view) => {
+        menu.addItem((item) => {
+          item
+            .setTitle('Tag with Obsidian Magic')
+            .setIcon('tag')
+            .onClick(() => {
+              const file = view.file;
+              if (file) {
+                this.taggingService.processFile(file);
+              }
+            });
+        });
+      })
+    );
   }
   
   async activateTagManagementView() {
@@ -148,6 +227,31 @@ export default class ObsidianMagicPlugin extends Plugin {
     }
   }
   
+  async activateTagVisualizationView() {
+    const { workspace } = this.app;
+    
+    // Check if view is already open
+    const existingView = workspace.getLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE)[0];
+    if (existingView) {
+      workspace.revealLeaf(existingView);
+      return;
+    }
+    
+    // Open view in right sidebar by default
+    const leaf = workspace.getRightLeaf(false);
+    if (!leaf) return;
+    
+    await leaf.setViewState({
+      type: TAG_VISUALIZATION_VIEW_TYPE,
+      active: true,
+    });
+    
+    const newLeaf = workspace.getLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE)[0];
+    if (newLeaf) {
+      workspace.revealLeaf(newLeaf);
+    }
+  }
+  
   async tagCurrentFile() {
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) return;
@@ -156,9 +260,55 @@ export default class ObsidianMagicPlugin extends Plugin {
     await this.taggingService.processFile(activeFile);
   }
   
-  async tagFolder() {
-    // Will implement folder tagging logic
-    console.log('Tag folder functionality to be implemented');
+  openFolderTagModal() {
+    const modal = new FolderTagModal(this, (folder, includeSubfolders) => {
+      this.tagFolder(folder, includeSubfolders);
+    });
+    modal.open();
+  }
+  
+  async tagFolder(folder: TFolder, includeSubfolders: boolean = true) {
+    if (!folder) return;
+    
+    // Update status
+    if (this.statusBarElement) {
+      this.statusBarElement.setText('Magic: Collecting files...');
+    }
+    
+    // Collect files to process
+    const filesToProcess: TFile[] = [];
+    
+    // Helper function to collect files recursively
+    const collectFiles = (currentFolder: TFolder) => {
+      currentFolder.children.forEach(child => {
+        if (child instanceof TFile && child.extension === 'md') {
+          filesToProcess.push(child);
+        } else if (includeSubfolders && child instanceof TFolder) {
+          collectFiles(child);
+        }
+      });
+    };
+    
+    // Start collecting files
+    collectFiles(folder);
+    
+    // Process files
+    if (filesToProcess.length > 0) {
+      if (this.statusBarElement) {
+        this.statusBarElement.setText(`Magic: Processing ${filesToProcess.length} files...`);
+      }
+      
+      await this.taggingService.processFiles(filesToProcess);
+    } else {
+      if (this.statusBarElement) {
+        this.statusBarElement.setText('Magic: No markdown files found');
+        setTimeout(() => {
+          if (this.statusBarElement) {
+            this.statusBarElement.setText('Magic: Ready');
+          }
+        }, 3000);
+      }
+    }
   }
 }
 
@@ -180,13 +330,53 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('OpenAI API Key')
       .setDesc('Your OpenAI API key for powering the tagging functionality')
-      .addText(text => text
-        .setPlaceholder('sk-...')
-        .setValue(this.plugin.settings.apiKey)
-        .onChange(async (value) => {
-          this.plugin.settings.apiKey = value;
-          await this.plugin.saveSettings();
-        }));
+      .addText(text => {
+        text.setPlaceholder('sk-...')
+          .setValue(this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            // Only validate and save if the key format is valid
+            if (value && !this.plugin.keyManager.isValidKeyFormat(value)) {
+              new Notice('Invalid API key format. OpenAI keys typically start with "sk-"');
+              return;
+            }
+            
+            // Save the key using the key manager
+            await this.plugin.keyManager.saveKey(value);
+            
+            // Update the tagging service with the new key
+            this.plugin.taggingService.updateApiKey(value);
+          });
+          
+        // Add test button
+        text.inputEl.after(
+          createEl('button', {
+            text: 'Test',
+            cls: 'mod-cta',
+            attr: {
+              style: 'margin-left: 8px;'
+            }
+          }, (btn) => {
+            btn.addEventListener('click', async () => {
+              const key = await this.plugin.keyManager.loadKey();
+              
+              if (!key) {
+                new Notice('Please enter an API key first');
+                return;
+              }
+              
+              new Notice('Testing API key...');
+              
+              const isValid = await this.plugin.keyManager.verifyKey(key);
+              
+              if (isValid) {
+                new Notice('API key is valid!');
+              } else {
+                new Notice('API key is invalid or could not connect to OpenAI');
+              }
+            });
+          })
+        );
+      });
     
     // API Key storage location
     new Setting(containerEl)
@@ -197,8 +387,26 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
         .addOption('system', 'Store in system keychain')
         .setValue(this.plugin.settings.apiKeyStorage)
         .onChange(async (value) => {
-          this.plugin.settings.apiKeyStorage = value as 'local' | 'system';
-          await this.plugin.saveSettings();
+          const oldStorage = this.plugin.settings.apiKeyStorage;
+          const newStorage = value as 'local' | 'system';
+          
+          if (oldStorage !== newStorage) {
+            // Get the current key
+            const currentKey = await this.plugin.keyManager.loadKey();
+            
+            // Update the storage setting
+            this.plugin.settings.apiKeyStorage = newStorage;
+            await this.plugin.saveSettings();
+            
+            // Update the key manager's storage strategy
+            this.plugin.keyManager.updateStorageStrategy();
+            
+            // If we have a key, migrate it to the new storage
+            if (currentKey) {
+              await this.plugin.keyManager.saveKey(currentKey);
+              new Notice(`API key migrated to ${newStorage === 'system' ? 'system keychain' : 'local storage'}`);
+            }
+          }
         }));
     
     // Model preference
@@ -211,6 +419,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.modelPreference)
         .onChange(async (value) => {
           this.plugin.settings.modelPreference = value as AIModel;
+          this.plugin.taggingService.updateModel(value as AIModel);
           await this.plugin.saveSettings();
         }));
     
@@ -249,32 +458,34 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           this.plugin.settings.showRibbonIcon = value;
           await this.plugin.saveSettings();
           
-          // Force reload required to update ribbon
+          // Require reload
           new Setting(containerEl)
-            .setName('Plugin reload required')
-            .setDesc('Toggle changes to the ribbon icon require a plugin reload')
+            .setName('Reload Required')
+            .setDesc('Plugin reload required to apply this change')
             .addButton(button => button
-              .setButtonText('Reload plugin')
-              .onClick(async () => {
-                await this.plugin.onunload();
-                await this.plugin.onload();
+              .setButtonText('Reload Plugin')
+              .setCta()
+              .onClick(() => {
+                // Reload the plugin - require user to manually reload
+                new Notice('Please reload Obsidian to apply changes', 10000);
+                // Obsidian will handle plugin reloading on app restart
               }));
         }));
     
     // Status bar display
     new Setting(containerEl)
       .setName('Status Bar Display')
-      .setDesc('Control when the status indicator appears in the bottom bar')
+      .setDesc('Control when the status bar element is shown')
       .addDropdown(dropdown => dropdown
         .addOption('always', 'Always show')
-        .addOption('processing', 'Only when processing')
+        .addOption('processing', 'Show only when processing')
         .addOption('never', 'Never show')
         .setValue(this.plugin.settings.statusBarDisplay)
         .onChange(async (value) => {
           this.plugin.settings.statusBarDisplay = value as 'always' | 'processing' | 'never';
           await this.plugin.saveSettings();
           
-          // Update status bar immediately
+          // Update status bar visibility
           if (value === 'never' && this.plugin.statusBarElement) {
             this.plugin.statusBarElement.remove();
             this.plugin.statusBarElement = null;
@@ -284,5 +495,30 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
             this.plugin.statusBarElement.addClass('obsidian-magic-status');
           }
         }));
+    
+    // Add advanced settings section
+    containerEl.createEl('h3', { text: 'Advanced Settings' });
+    
+    // Add links to documentation
+    containerEl.createEl('p', { 
+      text: 'For more advanced options and documentation, visit the Obsidian Magic website.',
+      cls: 'settings-info' 
+    });
+    
+    const linksContainer = containerEl.createDiv('settings-links');
+    
+    // Add documentation link
+    const docsLink = linksContainer.createEl('a', {
+      text: 'Documentation',
+      href: 'https://obsidian-magic.com/docs'
+    });
+    docsLink.setAttr('target', '_blank');
+    
+    // Add GitHub link
+    const githubLink = linksContainer.createEl('a', {
+      text: 'GitHub Repository',
+      href: 'https://github.com/your-github/obsidian-magic'
+    });
+    githubLink.setAttr('target', '_blank');
   }
 }

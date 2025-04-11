@@ -136,31 +136,84 @@ export class TagManagementView extends ItemView {
   }
   
   private getAllTags(): Array<{ id: string, name: string, count: number }> {
-    // This is a placeholder - we'll need to implement actual tag retrieval
-    // using the Obsidian API and metadata cache
+    // Get all tags from Obsidian's metadata cache
+    const metadataCache = this.plugin.app.metadataCache;
+    const files = this.plugin.app.vault.getMarkdownFiles();
     
-    // For now, return a mock list
-    return [
-      { id: '1', name: '#project/obsidian', count: 12 },
-      { id: '2', name: '#status/active', count: 8 },
-      { id: '3', name: '#topic/ai', count: 15 },
-      { id: '4', name: '#project/thesis', count: 5 },
-      { id: '5', name: '#status/completed', count: 3 },
-      { id: '6', name: '#person/alice', count: 2 },
-    ];
+    // Tag tracking
+    const tagMap = new Map<string, { id: string, name: string, count: number }>();
+    
+    // Process each file
+    files.forEach(file => {
+      // Get file's cache
+      const fileCache = metadataCache.getFileCache(file);
+      
+      if (!fileCache) return;
+      
+      // Get tags from frontmatter
+      const frontmatterTags = fileCache.frontmatter ? fileCache.frontmatter['tags'] || [] : [];
+      // Get tags from content
+      const tags = fileCache.tags || [];
+      
+      // Process frontmatter tags (can be array or string)
+      if (Array.isArray(frontmatterTags)) {
+        frontmatterTags.forEach(tag => {
+          // Clean tag name
+          const tagName = typeof tag === 'string' ? tag : String(tag);
+          const normalizedTag = tagName.startsWith('#') ? tagName : `#${tagName}`;
+          
+          this.addToTagMap(tagMap, normalizedTag);
+        });
+      } else if (typeof frontmatterTags === 'string') {
+        const normalizedTag = frontmatterTags.startsWith('#') ? frontmatterTags : `#${frontmatterTags}`;
+        this.addToTagMap(tagMap, normalizedTag);
+      }
+      
+      // Process content tags
+      tags.forEach(tagCache => {
+        const tagName = tagCache.tag;
+        this.addToTagMap(tagMap, tagName);
+      });
+    });
+    
+    // Convert map to array and sort by name
+    return Array.from(tagMap.values())
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  private addToTagMap(tagMap: Map<string, { id: string, name: string, count: number }>, tagName: string): void {
+    // Skip empty tags
+    if (!tagName) return;
+    
+    // Get or create tag entry
+    if (tagMap.has(tagName)) {
+      // Increment count
+      const tag = tagMap.get(tagName)!;
+      tag.count += 1;
+    } else {
+      // Create new entry
+      tagMap.set(tagName, {
+        id: `tag-${tagName.replace(/[^a-zA-Z0-9]/g, '-')}`,
+        name: tagName,
+        count: 1
+      });
+    }
   }
   
   private renderStats(container: HTMLElement): void {
     // Clear the container
     container.empty();
     
-    // Mock stats for now - will be replaced with actual stats
+    // Get all tags
+    const tags = this.getAllTags();
+    
+    // Calculate stats
     const stats = {
-      totalTags: 15,
-      totalFiles: 42,
-      totalTaggedFiles: 38,
-      coveragePercentage: 90.5,
-      mostUsedTag: '#topic/ai'
+      totalTags: tags.length,
+      totalFiles: this.plugin.app.vault.getMarkdownFiles().length,
+      totalTaggedFiles: this.getTaggedFilesCount(),
+      coveragePercentage: this.calculateCoveragePercentage(),
+      mostUsedTag: this.getMostUsedTag(tags)
     };
     
     // Create a table for the stats
@@ -173,6 +226,51 @@ export class TagManagementView extends ItemView {
     this.addStatRow(tbody, 'Tagged files', stats.totalTaggedFiles);
     this.addStatRow(tbody, 'Coverage', `${stats.coveragePercentage}%`);
     this.addStatRow(tbody, 'Most used tag', stats.mostUsedTag);
+  }
+  
+  private getTaggedFilesCount(): number {
+    const metadataCache = this.plugin.app.metadataCache;
+    const files = this.plugin.app.vault.getMarkdownFiles();
+    
+    // Count files with tags
+    let count = 0;
+    
+    files.forEach(file => {
+      const fileCache = metadataCache.getFileCache(file);
+      
+      if (fileCache) {
+        // Check for frontmatter tags
+        const hasFrontmatterTags = fileCache.frontmatter ? !!fileCache.frontmatter['tags'] : false;
+        // Check for content tags
+        const hasContentTags = fileCache.tags && fileCache.tags.length > 0;
+        
+        if (hasFrontmatterTags || hasContentTags) {
+          count++;
+        }
+      }
+    });
+    
+    return count;
+  }
+  
+  private calculateCoveragePercentage(): number {
+    const totalFiles = this.plugin.app.vault.getMarkdownFiles().length;
+    const taggedFiles = this.getTaggedFilesCount();
+    
+    if (totalFiles === 0) return 0;
+    
+    return Math.round((taggedFiles / totalFiles) * 100 * 10) / 10; // One decimal place
+  }
+  
+  private getMostUsedTag(tags: Array<{ id: string, name: string, count: number }>): string {
+    if (tags.length === 0) return 'No tags';
+    
+    // Find tag with highest count
+    const mostUsedTag = tags.reduce((prev, current) => 
+      (prev.count > current.count) ? prev : current
+    );
+    
+    return mostUsedTag.name;
   }
   
   private addStatRow(tbody: HTMLElement, label: string, value: string | number): void {
