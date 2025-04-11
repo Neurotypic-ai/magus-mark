@@ -104,17 +104,20 @@ obsidian-magic/
 The project implements a modular workspace architecture with the following structure:
 
 - **Workspace Root**: Contains shared configurations and workspace setup
+
   - Root package.json for common dev dependencies
   - Shared configurations (TypeScript, ESLint, Prettier)
   - Workspace configuration (pnpm-workspace.yaml)
 
 - **Apps**: Individual applications with their own configurations
+
   - CLI Application
   - Obsidian Plugin
   - VS Code Extension
   - Each has dedicated package.json, tsconfig.json, and tests
 
 - **Packages**: Shared libraries (potentially publishable)
+
   - Core: Business logic shared across apps
   - Types: Shared type definitions
   - Utils: Common utilities and helpers
@@ -143,11 +146,30 @@ TypeScript project references are used for efficient, targeted builds:
 - Root tsconfig.json includes references to all project configs
 - Incremental builds supported through project references
 
+## File Naming Conventions
+
+The project follows specific file naming conventions to maintain consistency and improve code navigation:
+
+- **Descriptive File Names**: All files have descriptive names that indicate their purpose (e.g., `cli.ts`,
+  `tag-editor.ts`)
+- **No index.ts Files**: Avoid using `index.ts` files except at the root of an entire package
+  - Instead of `commands/index.ts`, use `commands/commands.ts`
+  - Instead of `utils/object/index.ts`, use `utils/object/object.ts`
+  - This makes imports more explicit, improves code navigation, and simplifies debugging
+- **Component Files**: UI component files are named after the component they contain
+- **Type Files**: Type definition files use the `.d.ts` extension where appropriate
+- **Test Files**: Test files are named with the `.test.ts` or `.spec.ts` suffix
+- **Module Boundaries**: Each file should have a single responsibility and export related functionality
+
+These conventions help maintain a flat, navigable structure that makes it easier to understand the codebase and locate
+functionality.
+
 ## CI/CD Configuration
 
 The project implements a comprehensive CI/CD strategy:
 
 - **Repository-level workflows**: Located in `.github/workflows/`
+
   - `ci.yml`: Main CI workflow that runs on all changes
   - `release.yml`: Release workflow triggered by tag creation
 
@@ -156,7 +178,8 @@ The project implements a comprehensive CI/CD strategy:
   - Custom test and build configurations for each component
   - Specialized testing (e.g., accessibility, cross-platform)
 
-For detailed information about the CI/CD setup, refer to the [CI/CD Workflows](../implementation/ci-cd-workflows.md) documentation.
+For detailed information about the CI/CD setup, refer to the [CI/CD Workflows](../implementation/ci-cd-workflows.md)
+documentation.
 
 ## Related Implementation Documentation
 
@@ -167,4 +190,4 @@ For detailed information on specific implementation aspects, refer to these addi
 - [Error Handling](../implementation/error-handling.md)
 - [Type Safety](../implementation/type-safety.md)
 - [Dependency Injection](../implementation/dependency-injection.md)
-- [CI/CD Workflows](../implementation/ci-cd-workflows.md) 
+- [CI/CD Workflows](../implementation/ci-cd-workflows.md)

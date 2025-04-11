@@ -1,19 +1,28 @@
 # OBSIDIAN MAGIC: AI-POWERED CONVERSATION TAGGING SYSTEM
 
-This document provides detailed specifications for a conversation tagging system designed to organize ChatGPT conversations in Obsidian. The system includes tag structures, model prompts, implementation details, and architecture for both a command-line tool and an Obsidian plugin.
+This document provides detailed specifications for a conversation tagging system designed to organize ChatGPT
+conversations in Obsidian. The system includes tag structures, model prompts, implementation details, and architecture
+for both a command-line tool and an Obsidian plugin.
 
 ## PROJECT OVERVIEW
 
-Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
+Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a
+markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes
+conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
 
-The project arose from the need to organize large collections of AI chat exports that become difficult to search and reference over time. While previous attempts at automated tagging resulted in too many inconsistent tags that diminished their usefulness, this system implements a carefully designed taxonomy with fixed categories to ensure tag consistency and utility.
+The project arose from the need to organize large collections of AI chat exports that become difficult to search and
+reference over time. While previous attempts at automated tagging resulted in too many inconsistent tags that diminished
+their usefulness, this system implements a carefully designed taxonomy with fixed categories to ensure tag consistency
+and utility.
 
 The system consists of:
+
 1. A TypeScript command-line tool for batch processing
 2. An Obsidian plugin for seamless integration
 3. Shared core functionality and configurations
 
-Both components use the OpenAI API to analyze and tag conversations with standardized metadata, following a carefully designed tag philosophy.
+Both components use the OpenAI API to analyze and tag conversations with standardized metadata, following a carefully
+designed tag philosophy.
 
 ---
 
@@ -2026,6 +2035,7 @@ The MCP server enables sophisticated AI workflows that bridge development and kn
    - Implement guardrails against large-scale feature removal by validating against documentation
 
 3. **Bidirectional Knowledge Flow**:
+
    - Capture insights from coding sessions into knowledge base
    - Auto-tag code snippets based on content and usage
    - Generate explanatory notes from code through AI assistance
@@ -2096,9 +2106,11 @@ significantly enhancing development productivity and knowledge reuse.
 
 ## 9. CONCLUSION
 
-This comprehensive specification outlines a state-of-the-art AI-powered tagging system for Obsidian that transforms how ChatGPT conversations and other AI chat history are organized and accessed. The system consists of:
+This comprehensive specification outlines a state-of-the-art AI-powered tagging system for Obsidian that transforms how
+ChatGPT conversations and other AI chat history are organized and accessed. The system consists of:
 
-1. **Core Tagging Engine**: A sophisticated classification system with hierarchical taxonomies for consistent, meaningful tags
+1. **Core Tagging Engine**: A sophisticated classification system with hierarchical taxonomies for consistent,
+   meaningful tags
 2. **Optimized Model Prompts**: Precision-engineered prompts for accurate classification with minimal token usage
 3. **TypeScript CLI**: A robust command-line tool with comprehensive features for batch processing
 4. **Obsidian Plugin**: A deep integration with the Obsidian knowledge management system
@@ -2106,11 +2118,18 @@ This comprehensive specification outlines a state-of-the-art AI-powered tagging 
 6. **Advanced Implementation**: Cutting-edge techniques leveraging OpenAI's latest capabilities
 7. **Data Persistence**: A high-performance data storage system for context preservation
 
-The system delivers a balance of automation and control, leveraging artificial intelligence to reduce manual effort while providing the tools needed for human oversight and customization. By maintaining a consistent tagging vocabulary across different tools and environments, it creates a unified knowledge graph that spans your entire digital workspace.
+The system delivers a balance of automation and control, leveraging artificial intelligence to reduce manual effort
+while providing the tools needed for human oversight and customization. By maintaining a consistent tagging vocabulary
+across different tools and environments, it creates a unified knowledge graph that spans your entire digital workspace.
 
-This implementation marks a significant advancement in personal knowledge management, combining the power of AI with the flexibility of modern development and documentation tools. It allows for the organization and retrieval of AI conversations in ways that illuminate connections between topics and make your knowledge base more accessible and useful.
+This implementation marks a significant advancement in personal knowledge management, combining the power of AI with the
+flexibility of modern development and documentation tools. It allows for the organization and retrieval of AI
+conversations in ways that illuminate connections between topics and make your knowledge base more accessible and
+useful.
 
-As AI chat histories continue to grow in size and importance, this system provides the necessary infrastructure to transform them from ephemeral conversations into a structured, searchable knowledge repository that enhances productivity and insight.
+As AI chat histories continue to grow in size and importance, this system provides the necessary infrastructure to
+transform them from ephemeral conversations into a structured, searchable knowledge repository that enhances
+productivity and insight.
 
 ```
 
