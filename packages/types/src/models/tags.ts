@@ -10,7 +10,7 @@ export type YearTag = `${number}`;
 /**
  * Life area tags taxonomy
  */
-export type LifeAreaTag = 
+export type LifeAreaTag =
   | 'career'
   | 'relationships'
   | 'health'
@@ -21,9 +21,9 @@ export type LifeAreaTag =
   | 'hobby';
 
 /**
- * Primary knowledge domains
+ * Primary knowledge domains (predefined)
  */
-export type DomainTag =
+export type PredefinedDomainTag =
   | 'software-development'
   | 'philosophy'
   | 'design'
@@ -38,20 +38,24 @@ export type DomainTag =
   | 'finance'
   | 'productivity'
   | 'writing'
-  | 'ai'
-  | string; // Allow for domain extensibility
+  | 'ai';
+
+/**
+ * Domain tag type that allows both predefined values and custom extensions
+ */
+export type DomainTag = PredefinedDomainTag | (string & {});
 
 /**
  * Subdomains by primary domain
  */
 export interface SubdomainMap {
-  'software-development': 
-    | 'frontend' 
-    | 'backend' 
-    | 'devops' 
-    | 'mobile' 
-    | 'data' 
-    | 'security' 
+  'software-development':
+    | 'frontend'
+    | 'backend'
+    | 'devops'
+    | 'mobile'
+    | 'data'
+    | 'security'
     | 'architecture'
     | 'desktop'
     | 'web'
@@ -61,22 +65,22 @@ export interface SubdomainMap {
     | 'testing'
     | 'debugging'
     | 'game-dev';
-  'philosophy': 
-    | 'ethics' 
-    | 'metaphysics' 
-    | 'epistemology' 
-    | 'logic' 
+  philosophy:
+    | 'ethics'
+    | 'metaphysics'
+    | 'epistemology'
+    | 'logic'
     | 'aesthetics'
     | 'existentialism'
     | 'phenomenology'
     | 'political-philosophy'
     | 'philosophy-of-mind'
     | 'philosophy-of-science';
-  'design': 
-    | 'ux' 
-    | 'ui' 
-    | 'graphic' 
-    | 'industrial' 
+  design:
+    | 'ux'
+    | 'ui'
+    | 'graphic'
+    | 'industrial'
     | 'interaction'
     | 'graphic-design'
     | 'typography'
@@ -86,62 +90,37 @@ export interface SubdomainMap {
     | 'branding'
     | 'information-architecture'
     | 'product-design';
-  'psychology': 
-    | 'cognitive' 
-    | 'clinical' 
-    | 'developmental' 
-    | 'social' 
+  psychology:
+    | 'cognitive'
+    | 'clinical'
+    | 'developmental'
+    | 'social'
     | 'behavioral'
     | 'positive-psychology'
     | 'neuroscience'
     | 'personality'
     | 'motivation'
     | 'emotion';
-  'business': 
-    | 'marketing' 
-    | 'strategy' 
-    | 'management' 
-    | 'entrepreneurship' 
+  business:
+    | 'marketing'
+    | 'strategy'
+    | 'management'
+    | 'entrepreneurship'
     | 'operations'
     | 'finance'
     | 'sales'
     | 'product-management'
     | 'leadership';
-  'science': 
-    | 'physics' 
-    | 'biology' 
-    | 'chemistry' 
-    | 'mathematics' 
-    | 'computer-science';
-  'arts': 
-    | 'visual' 
-    | 'music' 
-    | 'literature' 
-    | 'performing' 
-    | 'digital';
-  'entertainment': 
-    | 'games' 
-    | 'film' 
-    | 'television' 
-    | 'books' 
-    | 'sports';
-  'technology': 
-    | 'ai' 
-    | 'blockchain' 
-    | 'iot' 
-    | 'vr-ar' 
-    | 'robotics';
-  'health': 
-    | 'fitness' 
-    | 'nutrition' 
-    | 'mental-health' 
-    | 'medical' 
-    | 'wellness';
-  'education': 
-    | 'k12' 
-    | 'higher-ed' 
-    | 'professional' 
-    | 'self-learning' 
+  science: 'physics' | 'biology' | 'chemistry' | 'mathematics' | 'computer-science';
+  arts: 'visual' | 'music' | 'literature' | 'performing' | 'digital';
+  entertainment: 'games' | 'film' | 'television' | 'books' | 'sports';
+  technology: 'ai' | 'blockchain' | 'iot' | 'vr-ar' | 'robotics';
+  health: 'fitness' | 'nutrition' | 'mental-health' | 'medical' | 'wellness';
+  education:
+    | 'k12'
+    | 'higher-ed'
+    | 'professional'
+    | 'self-learning'
     | 'teaching'
     | 'pedagogy'
     | 'learning-theory'
@@ -151,13 +130,8 @@ export interface SubdomainMap {
     | 'literacy'
     | 'higher-education'
     | 'lifelong-learning';
-  'finance': 
-    | 'investing' 
-    | 'personal-finance' 
-    | 'corporate-finance' 
-    | 'crypto' 
-    | 'banking';
-  'productivity':
+  finance: 'investing' | 'personal-finance' | 'corporate-finance' | 'crypto' | 'banking';
+  productivity:
     | 'time-management'
     | 'task-management'
     | 'note-taking'
@@ -168,7 +142,7 @@ export interface SubdomainMap {
     | 'habits'
     | 'focus'
     | 'tools';
-  'writing':
+  writing:
     | 'fiction'
     | 'non-fiction'
     | 'technical-writing'
@@ -180,7 +154,7 @@ export interface SubdomainMap {
     | 'journalism'
     | 'creative-writing'
     | 'documentation';
-  'ai':
+  ai:
     | 'machine-learning'
     | 'deep-learning'
     | 'nlp'
@@ -195,14 +169,14 @@ export interface SubdomainMap {
 }
 
 /**
- * Subdomain type 
+ * Subdomain type
  */
 export type SubdomainTag = string;
 
 /**
- * Common contextual wildcard tags that can be used across domains
+ * Common predefined contextual wildcard tags
  */
-export type ContextualTag = 
+export type PredefinedContextualTag =
   | 'beginner'
   | 'advanced'
   | 'comparison'
@@ -222,8 +196,12 @@ export type ContextualTag =
   | 'problem-solving'
   | 'decision-making'
   | 'productivity'
-  | 'communication'
-  | string; // Allow for custom contextual tags
+  | 'communication';
+
+/**
+ * Contextual tag type that allows both predefined values and custom extensions
+ */
+export type ContextualTag = PredefinedContextualTag | (string & {});
 
 /**
  * Conversation type tags taxonomy
@@ -284,4 +262,4 @@ export interface TagSet {
 /**
  * Tag application behavior options
  */
-export type TagBehavior = 'append' | 'replace' | 'merge'; 
+export type TagBehavior = 'append' | 'replace' | 'merge';
