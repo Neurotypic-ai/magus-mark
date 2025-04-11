@@ -1,0 +1,129 @@
+/* Obsidian Magic Plugin Styles */
+
+/* Tag Management View */
+.tag-section, 
+.actions-section, 
+.stats-section {
+  margin-bottom: 2rem;
+}
+
+.search-container {
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.search-container input {
+  flex-grow: 1;
+  margin-left: 0.5rem;
+  padding: 0.5rem;
+}
+
+.tag-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  border-radius: 4px;
+}
+
+.tag-item:hover {
+  background-color: var(--background-secondary-alt);
+}
+
+.tag-name {
+  margin-left: 0.5rem;
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.tag-count {
+  margin: 0 0.5rem;
+  opacity: 0.7;
+  font-size: 0.85em;
+}
+
+.tag-edit-btn,
+.tag-delete-btn {
+  margin-left: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+}
+
+.tag-edit-btn {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.tag-delete-btn {
+  background-color: var(--text-error);
+  color: white;
+}
+
+.action-container {
+  margin: 1rem 0;
+}
+
+.action-container button {
+  padding: 0.5rem 1rem;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.stats-section table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stats-section td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.stats-section td:first-child {
+  font-weight: 500;
+  width: 40%;
+}
+
+.obsidian-magic-status {
+  display: flex;
+  align-items: center;
+}
+
+.obsidian-magic-status:before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--interactive-accent);
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+/* Accessibility Improvements */
+button, input {
+  transition: all 0.2s ease;
+}
+
+button:focus, input:focus {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+input::placeholder {
+  opacity: 0.7;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: more) {
+  .tag-item {
+    border: 1px solid var(--text-normal);
+  }
+  
+  button {
+    border: 1px solid currentColor;
+  }
+} 
