@@ -18,7 +18,7 @@ const __dirname = dirname(__filename);
 
 console.info(__dirname);
 
-const DEBUG = process.env.NODE_ENV === 'development' && process.env.DEBUG === 'true';
+const DEBUG = process.env['NODE_ENV'] === 'development' && process.env['DEBUG'] === 'true';
 
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config} */
 const baseConfig = {
@@ -52,8 +52,8 @@ const jsConfig = {
   },
   rules: {
     ...js.configs.recommended.rules,
-    ...reactPlugin.configs.flat?.recommended.rules,
-    ...reactPlugin.configs.flat?.['jsx-runtime'].rules,
+    ...reactPlugin.configs.flat?.['recommended']?.rules || {},
+    ...reactPlugin.configs.flat?.['jsx-runtime']?.rules || {},
     ...reactHooksPlugin.configs.recommended.rules,
     ...jsxA11yPlugin.flatConfigs.recommended.rules,
     'react/jsx-no-leaked-render': ['warn', { validStrategies: ['ternary'] }],
@@ -107,14 +107,14 @@ const tsConfig = {
     ...importXPlugin.configs.typescript.rules,
 
     // React and JSX rules
-    ...reactPlugin.configs.flat?.recommended.rules,
-    ...reactPlugin.configs.flat?.['jsx-runtime'].rules,
+    ...reactPlugin.configs.flat?.['recommended']?.rules || {},
+    ...reactPlugin.configs.flat?.['jsx-runtime']?.rules || {},
     ...reactHooksPlugin.configs.recommended.rules,
     ...jsxA11yPlugin.flatConfigs.recommended.rules,
 
-    ...tsBase.rules,
-    ...tsRecommendedTypeChecked.rules,
-    ...tsStylisticTypeChecked.rules,
+    ...tsBase?.rules || {},
+    ...tsRecommendedTypeChecked?.rules || {},
+    ...tsStylisticTypeChecked?.rules || {},
 
     'import-x/order': 'off',
 
