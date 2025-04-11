@@ -1,4 +1,5 @@
-import { App, Plugin, PluginSettingTab, Setting, TFile, TFolder, Notice } from 'obsidian';
+import type { App} from 'obsidian';
+import { Plugin, PluginSettingTab, Setting, TFile, TFolder, Notice } from 'obsidian';
 import { TagManagementView, TAG_MANAGEMENT_VIEW_TYPE } from './ui/TagManagementView';
 import { TagVisualizationView, TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
 import { TaggingService } from './services/TaggingService';
@@ -267,7 +268,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     modal.open();
   }
   
-  async tagFolder(folder: TFolder, includeSubfolders: boolean = true) {
+  async tagFolder(folder: TFolder, includeSubfolders = true) {
     if (!folder) return;
     
     // Update status

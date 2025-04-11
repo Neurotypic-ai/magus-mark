@@ -1,0 +1,21 @@
+# Development files
+src/
+tests/
+tsconfig.json
+tsconfig.*.json
+.github/
+docs/
+.editorconfig
+.prettierrc
+.eslintrc.js
+CONTRIBUTING.md
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+
+# Build artifacts
+node_modules/
+tsconfig.tsbuildinfo
+
+# Test files
+coverage/
+*.log

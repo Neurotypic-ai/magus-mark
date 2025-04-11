@@ -1,250 +1,268 @@
-import { Notice, requestUrl } from 'obsidian';
+import { Notice } from 'obsidian';
+
+import { ApiKeyError, AppError, FileSystemError, failure, success } from './errors';
+
 import type ObsidianMagicPlugin from '../main';
+import type { Result } from './errors';
 
 /**
- * Interface for key storage strategy
- */
-interface KeyStorageStrategy {
-  saveKey(key: string): Promise<void>;
-  loadKey(): Promise<string | null>;
-  deleteKey(): Promise<void>;
-}
-
-/**
- * Stores the key in Obsidian's local plugin data
- */
-class LocalKeyStorage implements KeyStorageStrategy {
-  private plugin: ObsidianMagicPlugin;
-  
-  constructor(plugin: ObsidianMagicPlugin) {
-    this.plugin = plugin;
-  }
-  
-  async saveKey(key: string): Promise<void> {
-    this.plugin.settings.apiKey = key;
-    await this.plugin.saveSettings();
-  }
-  
-  async loadKey(): Promise<string | null> {
-    return this.plugin.settings.apiKey || null;
-  }
-  
-  async deleteKey(): Promise<void> {
-    this.plugin.settings.apiKey = '';
-    await this.plugin.saveSettings();
-  }
-}
-
-/**
- * Stores the key in the system keychain when available
- * Falls back to local storage if not available
- */
-class SystemKeyStorage implements KeyStorageStrategy {
-  private plugin: ObsidianMagicPlugin;
-  private localStorage: LocalKeyStorage;
-  private keychainAvailable = false;
-  
-  constructor(plugin: ObsidianMagicPlugin) {
-    this.plugin = plugin;
-    this.localStorage = new LocalKeyStorage(plugin);
-    
-    // Check if we can use system keychain
-    this.checkKeychainAvailability();
-  }
-  
-  private async checkKeychainAvailability(): Promise<void> {
-    try {
-      // On desktop platforms, we can detect if native Node APIs are available
-      // In a real implementation, we would check for keychain-specific APIs
-      // This is just a simplified version for this implementation
-      const platform = (window as any).electron?.platform;
-      this.keychainAvailable = !!platform;
-    } catch (error) {
-      this.keychainAvailable = false;
-      console.log('System keychain not available:', error);
-    }
-  }
-  
-  async saveKey(key: string): Promise<void> {
-    if (!this.keychainAvailable) {
-      // Fall back to local storage
-      await this.localStorage.saveKey(key);
-      return;
-    }
-    
-    try {
-      // In a real implementation, we would use platform-specific keychain APIs
-      // For macOS: Keychain Access
-      // For Windows: Windows Credential Manager
-      // For Linux: Secret Service API / libsecret
-      
-      // For now, just store an empty value in the settings to indicate
-      // that the real value is in the system keychain
-      this.plugin.settings.apiKey = '[KEYCHAIN-PROTECTED]';
-      
-      // Store keychain identifier in settings
-      const keychainId = `obsidian-magic-api-key-${this.plugin.manifest.id}`;
-      this.plugin.settings.apiKeyKeychainId = keychainId;
-      
-      // Save this info to settings
-      await this.plugin.saveSettings();
-      
-      // Mock keychain storage 
-      console.log(`Storing API key in system keychain with ID: ${keychainId}`);
-      
-      // In a real implementation, we would call the system keychain here
-      window.localStorage.setItem(keychainId, key);
-    } catch (error) {
-      console.error('Failed to save key to system keychain:', error);
-      new Notice('Failed to save key to system keychain. Falling back to local storage.');
-      
-      // Fall back to local storage
-      await this.localStorage.saveKey(key);
-    }
-  }
-  
-  async loadKey(): Promise<string | null> {
-    if (!this.keychainAvailable) {
-      // Fall back to local storage
-      return this.localStorage.loadKey();
-    }
-    
-    try {
-      // Check if we have a keychain ID stored
-      const keychainId = this.plugin.settings.apiKeyKeychainId;
-      
-      if (!keychainId) {
-        // No keychain ID, fall back to local storage
-        return this.localStorage.loadKey();
-      }
-      
-      // In a real implementation, we would use the system keychain API
-      // For now, use localStorage as a mock
-      const key = window.localStorage.getItem(keychainId);
-      
-      return key;
-    } catch (error) {
-      console.error('Failed to load key from system keychain:', error);
-      new Notice('Failed to load key from system keychain. Trying local storage.');
-      
-      // Fall back to local storage
-      return this.localStorage.loadKey();
-    }
-  }
-  
-  async deleteKey(): Promise<void> {
-    if (!this.keychainAvailable) {
-      // Fall back to local storage
-      await this.localStorage.deleteKey();
-      return;
-    }
-    
-    try {
-      // Get keychain ID
-      const keychainId = this.plugin.settings.apiKeyKeychainId;
-      
-      if (keychainId) {
-        // In a real implementation, we would delete from the system keychain
-        // For now, just remove from localStorage
-        window.localStorage.removeItem(keychainId);
-      }
-      
-      // Clear settings
-      this.plugin.settings.apiKey = '';
-      this.plugin.settings.apiKeyKeychainId = '';
-      await this.plugin.saveSettings();
-    } catch (error) {
-      console.error('Failed to delete key from system keychain:', error);
-      new Notice('Failed to delete key from system keychain.');
-      
-      // Still clear local settings
-      await this.localStorage.deleteKey();
-    }
-  }
-}
-
-/**
- * Service for managing API keys securely
+ * Handles secure storage and management of API keys
+ * Provides multiple storage options:
+ * - System keychain
+ * - Local encrypted storage
  */
 export class KeyManager {
   private plugin: ObsidianMagicPlugin;
-  private storage: KeyStorageStrategy;
-  
+
   constructor(plugin: ObsidianMagicPlugin) {
     this.plugin = plugin;
-    
-    // Initialize the appropriate storage strategy based on settings
-    this.storage = this.createStorageStrategy();
   }
-  
-  private createStorageStrategy(): KeyStorageStrategy {
-    const storageType = this.plugin.settings.apiKeyStorage;
-    
-    switch (storageType) {
-      case 'system':
-        return new SystemKeyStorage(this.plugin);
-      case 'local':
-      default:
-        return new LocalKeyStorage(this.plugin);
+
+  /**
+   * Save API key to the selected storage method
+   */
+  async saveKey(apiKey: string): Promise<Result<boolean>> {
+    try {
+      if (!apiKey) {
+        throw new ApiKeyError('API key cannot be empty');
+      }
+
+      if (this.plugin.settings.apiKeyStorage === 'system') {
+        await this.saveToSystemKeychain(apiKey);
+      } else {
+        await this.saveToLocalStorage(apiKey);
+      }
+
+      new Notice('API key has been saved successfully');
+      return success(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Failed to save API key: ${message}`);
+
+      return failure(error instanceof AppError ? error : new ApiKeyError(`Failed to save API key: ${message}`));
     }
   }
-  
+
   /**
-   * Update the storage strategy when settings change
-   */
-  updateStorageStrategy(): void {
-    this.storage = this.createStorageStrategy();
-  }
-  
-  /**
-   * Save API key using the current storage strategy
-   */
-  async saveKey(key: string): Promise<void> {
-    await this.storage.saveKey(key);
-  }
-  
-  /**
-   * Load API key using the current storage strategy
+   * Load API key from the selected storage method
    */
   async loadKey(): Promise<string | null> {
-    return this.storage.loadKey();
+    try {
+      if (this.plugin.settings.apiKeyStorage === 'system') {
+        return await this.loadFromSystemKeychain();
+      } else {
+        return this.loadFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('Error loading API key:', error);
+      new Notice(`Failed to load API key: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
   }
-  
+
   /**
-   * Delete API key using the current storage strategy
+   * Delete API key from the selected storage method
    */
-  async deleteKey(): Promise<void> {
-    await this.storage.deleteKey();
+  async deleteKey(): Promise<Result<boolean>> {
+    try {
+      if (this.plugin.settings.apiKeyStorage === 'system') {
+        await this.deleteFromSystemKeychain();
+      } else {
+        await this.deleteFromLocalStorage();
+      }
+
+      new Notice('API key has been deleted successfully');
+      return success(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`Failed to delete API key: ${message}`);
+
+      return failure(error instanceof AppError ? error : new ApiKeyError(`Failed to delete API key: ${message}`));
+    }
   }
-  
+
   /**
    * Validate if an API key is correctly formatted
    */
-  isValidKeyFormat(key: string): boolean {
-    // Simple format validation for OpenAI API keys
-    // They typically start with "sk-" and are fairly long
-    return /^sk-[a-zA-Z0-9]{48,}$/.test(key);
+  validateKey(apiKey: string): boolean {
+    // Simple validation for OpenAI API keys (sk-...)
+    return !!apiKey && apiKey.startsWith('sk-') && apiKey.length > 20;
   }
-  
+
   /**
-   * Verify if an API key works by making a test request
+   * Save API key to the system keychain
    */
-  async verifyKey(key: string): Promise<boolean> {
+  private async saveToSystemKeychain(apiKey: string): Promise<void> {
     try {
-      // Make a minimal request to OpenAI API to validate the key
-      const response = await requestUrl({
-        url: 'https://api.openai.com/v1/models',
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      return response.status === 200;
+      // Detect environment
+      if (this.isElectronAvailable()) {
+        // Use Electron secure storage
+        const { ipcRenderer } = window.require('electron');
+        await ipcRenderer.invoke('set-secure-key', this.plugin.settings.apiKeyKeychainId, apiKey);
+      } else if (this.isNodeKeytarAvailable()) {
+        // Use node-keytar
+        const keytar = require('node-keytar');
+        await keytar.setPassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId, apiKey);
+      } else {
+        throw new ApiKeyError('System keychain is not available');
+      }
+
+      // Clear from local storage
+      this.plugin.settings.apiKey = '';
+      await this.plugin.saveSettings();
     } catch (error) {
-      console.error('API key validation failed:', error);
+      throw new ApiKeyError(
+        `Failed to save to system keychain: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Load API key from the system keychain
+   */
+  private async loadFromSystemKeychain(): Promise<string | null> {
+    try {
+      // Detect environment
+      if (this.isElectronAvailable()) {
+        // Use Electron secure storage
+        const { ipcRenderer } = window.require('electron');
+        return await ipcRenderer.invoke('get-secure-key', this.plugin.settings.apiKeyKeychainId);
+      } else if (this.isNodeKeytarAvailable()) {
+        // Use node-keytar
+        const keytar = require('node-keytar');
+        return await keytar.getPassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId);
+      } else {
+        throw new ApiKeyError('System keychain is not available');
+      }
+    } catch (error) {
+      throw new ApiKeyError(
+        `Failed to load from system keychain: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Delete API key from the system keychain
+   */
+  private async deleteFromSystemKeychain(): Promise<void> {
+    try {
+      // Detect environment
+      if (this.isElectronAvailable()) {
+        // Use Electron secure storage
+        const { ipcRenderer } = window.require('electron');
+        await ipcRenderer.invoke('delete-secure-key', this.plugin.settings.apiKeyKeychainId);
+      } else if (this.isNodeKeytarAvailable()) {
+        // Use node-keytar
+        const keytar = require('node-keytar');
+        await keytar.deletePassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId);
+      } else {
+        throw new ApiKeyError('System keychain is not available');
+      }
+    } catch (error) {
+      throw new ApiKeyError(
+        `Failed to delete from system keychain: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Save API key to local storage with simple encryption
+   */
+  private async saveToLocalStorage(apiKey: string): Promise<void> {
+    try {
+      // Simple encryption for local storage
+      const encryptedKey = this.encryptKey(apiKey);
+      this.plugin.settings.apiKey = encryptedKey;
+      await this.plugin.saveSettings();
+    } catch (error) {
+      throw new FileSystemError(
+        `Failed to save to local storage: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Load API key from local storage with simple decryption
+   */
+  private loadFromLocalStorage(): string | null {
+    try {
+      const encryptedKey = this.plugin.settings.apiKey;
+      if (!encryptedKey) {
+        return null;
+      }
+
+      return this.decryptKey(encryptedKey);
+    } catch (error) {
+      throw new FileSystemError(
+        `Failed to load from local storage: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Delete API key from local storage
+   */
+  private async deleteFromLocalStorage(): Promise<void> {
+    try {
+      this.plugin.settings.apiKey = '';
+      await this.plugin.saveSettings();
+    } catch (error) {
+      throw new FileSystemError(
+        `Failed to delete from local storage: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Simple encryption for local storage
+   * Note: This is not secure for production use, but provides basic obfuscation
+   */
+  private encryptKey(apiKey: string): string {
+    // In a real implementation, use a proper encryption library
+    // For demonstration, we'll use a simple Base64 encoding with a salt
+    const salt = 'obsidian-magic';
+    const input = salt + apiKey;
+    return Buffer.from(input).toString('base64');
+  }
+
+  /**
+   * Simple decryption for local storage
+   */
+  private decryptKey(encryptedKey: string): string {
+    try {
+      // In a real implementation, use a proper decryption library
+      // For demonstration, we'll use a simple Base64 decoding with a salt
+      const salt = 'obsidian-magic';
+      const decoded = Buffer.from(encryptedKey, 'base64').toString();
+      if (!decoded.startsWith(salt)) {
+        throw new Error('Invalid encrypted key format');
+      }
+      return decoded.substring(salt.length);
+    } catch (error) {
+      throw new Error(`Failed to decrypt key: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Check if Electron is available
+   */
+  private isElectronAvailable(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      window.require &&
+      typeof window.require === 'function' &&
+      window.require('electron')
+    );
+  }
+
+  /**
+   * Check if node-keytar is available
+   */
+  private isNodeKeytarAvailable(): boolean {
+    try {
+      return !!require('node-keytar');
+    } catch {
       return false;
     }
   }
-} 
+}

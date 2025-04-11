@@ -1,4 +1,5 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import type { WorkspaceLeaf } from 'obsidian';
+import { ItemView } from 'obsidian';
 import type ObsidianMagicPlugin from '../main';
 
 export const TAG_MANAGEMENT_VIEW_TYPE = 'obsidian-magic-tag-management';
@@ -81,7 +82,7 @@ export class TagManagementView extends ItemView {
     // Clean up any event listeners or resources when view is closed
   }
   
-  private renderTagsList(container: HTMLElement, filterTerm: string = ''): void {
+  private renderTagsList(container: HTMLElement, filterTerm = ''): void {
     // Clear the container
     container.empty();
     
@@ -124,18 +125,18 @@ export class TagManagementView extends ItemView {
         cls: 'tag-edit-btn',
         text: 'Edit'
       });
-      editBtn.addEventListener('click', () => this.handleEditTag(tag));
+      editBtn.addEventListener('click', () => { this.handleEditTag(tag); });
       
       // Delete button
       const deleteBtn = tagEl.createEl('button', { 
         cls: 'tag-delete-btn',
         text: 'Delete'
       });
-      deleteBtn.addEventListener('click', () => this.handleDeleteTag(tag));
+      deleteBtn.addEventListener('click', () => { this.handleDeleteTag(tag); });
     });
   }
   
-  private getAllTags(): Array<{ id: string, name: string, count: number }> {
+  private getAllTags(): { id: string, name: string, count: number }[] {
     // Get all tags from Obsidian's metadata cache
     const metadataCache = this.plugin.app.metadataCache;
     const files = this.plugin.app.vault.getMarkdownFiles();
@@ -262,7 +263,7 @@ export class TagManagementView extends ItemView {
     return Math.round((taggedFiles / totalFiles) * 100 * 10) / 10; // One decimal place
   }
   
-  private getMostUsedTag(tags: Array<{ id: string, name: string, count: number }>): string {
+  private getMostUsedTag(tags: { id: string, name: string, count: number }[]): string {
     if (tags.length === 0) return 'No tags';
     
     // Find tag with highest count

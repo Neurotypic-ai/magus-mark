@@ -1,0 +1,107 @@
+name: Release Obsidian Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PLUGIN_NAME: obsidian-magic
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: |
+          cd apps/obsidian-plugin
+          pnpm run lint
+
+      - name: Type Check
+        run: |
+          cd apps/obsidian-plugin
+          pnpm run typecheck
+
+      - name: Test
+        run: |
+          cd apps/obsidian-plugin
+          pnpm run test
+
+      - name: Build Plugin
+        run: |
+          cd apps/obsidian-plugin
+          pnpm run build
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract Release Notes
+        id: extract_release_notes
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          NOTES=$(awk "/## \\[$VERSION\\]/,/## \\[/" apps/obsidian-plugin/CHANGELOG.md | sed '$d' | sed '1d' | sed 's/^/  /')
+          NOTES="${NOTES//'%'/'%25'}"
+          NOTES="${NOTES//$'\n'/'%0A'}"
+          NOTES="${NOTES//$'\r'/'%0D'}"
+          echo "NOTES=$NOTES" >> $GITHUB_OUTPUT
+
+      - name: Package Plugin
+        run: |
+          cd apps/obsidian-plugin
+          mkdir -p ${{ github.workspace }}/release
+          cp -r dist manifest.json styles.css README.md ${{ github.workspace }}/release/
+          cd ${{ github.workspace }}/release
+          zip -r ${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            # Obsidian Magic v${{ steps.get_version.outputs.VERSION }}
+
+            ${{ steps.extract_release_notes.outputs.NOTES }}
+
+            ## Installation
+            1. Download the latest release
+            2. Extract the zip file into your Obsidian plugins folder
+            3. Enable the plugin in Obsidian settings
+
+            ## Documentation
+            See the [full documentation](https://github.com/obsidian-magic/obsidian-magic/wiki) for details.
+          files: |
+            ${{ github.workspace }}/release/${{ env.PLUGIN_NAME }}-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+
+  notify:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: 'New Release: Obsidian Magic v${{ needs.build.outputs.version }}'
+          description: 'A new version of Obsidian Magic has been released!'
+          color: 0x7F6DF2
+          url: 'https://github.com/obsidian-magic/obsidian-magic/releases/latest'

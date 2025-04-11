@@ -1,4 +1,4 @@
-import { 
+import type { 
   EditorView, 
   ViewPlugin, 
   Decoration, 
@@ -82,7 +82,7 @@ const tagEditorPlugin = (plugin: ObsidianMagicPlugin) => {
               
               // Create decoration for tag
               const decoration = Decoration.replace({
-                widget: new TagWidget(tag, (t) => this.handleTagClick(t, view)),
+                widget: new TagWidget(tag, (t) => { this.handleTagClick(t, view); }),
                 inclusive: true
               });
               
@@ -200,19 +200,19 @@ export class DocumentTagService {
     
     // Parse frontmatter
     const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-    const match = content.match(frontmatterRegex);
+    const match = frontmatterRegex.exec(content);
     
-    if (match && match[1]) {
+    if (match?.[1]) {
       // Extract frontmatter
       const frontmatter = match[1];
       
       // Check if tags exist
       const tagsRegex = /tags:\s*\[(.*?)\]/;
-      const tagsMatch = frontmatter.match(tagsRegex);
+      const tagsMatch = tagsRegex.exec(frontmatter);
       
       let updatedContent: string | undefined;
       
-      if (tagsMatch && tagsMatch[1] !== undefined) {
+      if (tagsMatch?.[1] !== undefined) {
         // Tags exist, add new tag if it doesn't exist
         const tags = tagsMatch[1].split(',').map(t => t.trim());
         

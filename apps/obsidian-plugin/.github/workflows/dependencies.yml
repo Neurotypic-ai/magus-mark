@@ -1,0 +1,110 @@
+name: Dependency Checks
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Run weekly on Monday at midnight
+  push:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Dependency Checks
+        run: |
+          cd apps/obsidian-plugin
+          node .github/scripts/check-dependencies.js
+
+      - name: Upload Dependency Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: apps/obsidian-plugin/dependency-report.md
+
+  dependency-updates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for dependency updates
+        uses: MeilCli/npm-update-check-action@v5
+        id: check
+        with:
+          execute_directories: './apps/obsidian-plugin'
+          output_text_style: 'long'
+
+      - name: Write dependency report to file
+        if: steps.check.outputs.has_npm_update == 'true'
+        run: |
+          echo "${{ steps.check.outputs.npm_update_text }}" > ./dependency-report.md
+
+      - name: Create issue if updates available
+        if: steps.check.outputs.has_npm_update == 'true'
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: 'Dependencies Update Available'
+          content-filepath: ./dependency-report.md
+          labels: dependencies, automated issue
+
+  license-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install license-checker
+        run: npm install -g license-checker
+
+      - name: Check Licenses
+        run: |
+          cd apps/obsidian-plugin
+          license-checker --production --json --out licenses.json
+
+      - name: Upload License Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: apps/obsidian-plugin/licenses.json

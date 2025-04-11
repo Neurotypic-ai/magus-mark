@@ -1,4 +1,5 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import type { WorkspaceLeaf } from 'obsidian';
+import { ItemView } from 'obsidian';
 import type ObsidianMagicPlugin from '../main';
 
 export const TAG_VISUALIZATION_VIEW_TYPE = 'obsidian-magic-tag-visualization';
@@ -153,7 +154,7 @@ export class TagVisualizationView extends ItemView {
       if (tag.related) {
         tag.related.forEach(relatedId => {
           const relatedTag = tags.find(t => t.id === relatedId);
-          if (relatedTag && relatedTag.x && relatedTag.y) {
+          if (relatedTag?.x && relatedTag.y) {
             this.ctx!.beginPath();
             this.ctx!.moveTo(x, y);
             this.ctx!.lineTo(relatedTag.x, relatedTag.y);
@@ -193,14 +194,14 @@ export class TagVisualizationView extends ItemView {
     this.drawVisualization();
   }
   
-  private getTagData(): Array<{
+  private getTagData(): {
     id: string;
     name: string;
     count: number;
     related?: string[];
     x?: number;
     y?: number;
-  }> {
+  }[] {
     // Get all tags from Obsidian's metadata cache
     const metadataCache = this.plugin.app.metadataCache;
     const files = this.plugin.app.vault.getMarkdownFiles();
@@ -247,7 +248,7 @@ export class TagVisualizationView extends ItemView {
       
       // Process frontmatter tags
       const frontmatterTags: string[] = [];
-      if (fileCache.frontmatter && fileCache.frontmatter['tags']) {
+      if (fileCache.frontmatter?.['tags']) {
         const fmTags = fileCache.frontmatter['tags'];
         if (Array.isArray(fmTags)) {
           fmTags.forEach(tag => {
@@ -271,7 +272,7 @@ export class TagVisualizationView extends ItemView {
       }
       
       // Combine all tags found in this file
-      const fileTags = [...new Set([...frontmatterTags, ...inlineTags])].filter(tag => tag !== undefined) as string[];
+      const fileTags = [...new Set([...frontmatterTags, ...inlineTags])].filter(tag => tag !== undefined);
       
       // Build relationships between tags (tags that appear in the same file)
       for (let i = 0; i < fileTags.length; i++) {

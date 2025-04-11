@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
-  "author": "Your Name",
-  "authorUrl": "https://github.com/yourusername",
-  "fundingUrl": "",
+  "author": "Obsidian Magic Team",
+  "authorUrl": "https://github.com/obsidian-magic/obsidian-magic",
+  "fundingUrl": "https://github.com/sponsors/obsidian-magic",
   "isDesktopOnly": false
 } 
