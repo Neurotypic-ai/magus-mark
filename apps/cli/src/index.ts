@@ -3,18 +3,17 @@
  * Obsidian Magic CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
+import chalk from 'chalk';
+import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { config as dotenvConfig } from 'dotenv';
-import chalk from 'chalk';
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import { logger } from './utils/logger';
-import { config } from './utils/config';
-import { AppError } from './utils/errors';
-import { costManager } from './utils/cost-manager';
-import { getAllCommands } from './commands';
+
 import pkg from '../package.json';
+import { getAllCommands } from './commands/commands';
+import { config } from './utils/config';
+import { costManager } from './utils/cost-manager';
+import { AppError } from './utils/errors';
+import { logger } from './utils/logger';
 
 // Import update-notifier dynamically to avoid linter errors
 let updateNotifier: any;
@@ -38,14 +37,14 @@ process.on('uncaughtException', (error) => {
     logger.error(`Uncaught exception: ${error.message}`);
     logger.debug(error.stack || '');
   }
-  
+
   // Save any usage data before exiting
   try {
     costManager.saveUsageData();
   } catch (e) {
     // Ignore errors during cleanup
   }
-  
+
   process.exit(1);
 });
 
@@ -61,14 +60,14 @@ process.on('unhandledRejection', (reason) => {
   } else {
     logger.error(`Unhandled rejection: ${String(reason)}`);
   }
-  
+
   // Save any usage data before exiting
   try {
     costManager.saveUsageData();
   } catch (e) {
     // Ignore errors during cleanup
   }
-  
+
   process.exit(1);
 });
 
@@ -110,25 +109,25 @@ async function main() {
 
     // Add global options
     cli.options({
-      'config': {
+      config: {
         describe: 'Path to configuration file',
-        type: 'string'
+        type: 'string',
       },
-      'verbose': {
+      verbose: {
         describe: 'Show detailed output',
         type: 'boolean',
-        alias: 'V'
+        alias: 'V',
       },
-      'output': {
+      output: {
         describe: 'Output file path',
         type: 'string',
-        alias: 'o'
+        alias: 'o',
       },
       'output-format': {
         describe: 'Output format',
         choices: ['pretty', 'json', 'silent'],
-        default: config.get('outputFormat')
-      }
+        default: config.get('outputFormat'),
+      },
     });
 
     // Add version information
@@ -139,17 +138,19 @@ async function main() {
     cli.epilogue(`For more information, see https://github.com/khallmark/obsidian-magic`);
 
     // Display banner before executing commands
-    cli.middleware([(argv) => {
-      if (!argv['help'] && !argv['version']) {
-        console.log(banner);
-        console.log();
-      }
-      return Promise.resolve();
-    }]);
+    cli.middleware([
+      (argv) => {
+        if (!argv['help'] && !argv['version']) {
+          console.log(banner);
+          console.log();
+        }
+        return Promise.resolve();
+      },
+    ]);
 
     // Parse the arguments
     await cli.parse();
-      
+
     // Save any usage data before exiting successfully
     costManager.saveUsageData();
   } catch (error) {
@@ -161,14 +162,14 @@ async function main() {
         logger.debug(error.stack);
       }
     }
-    
+
     // Save any usage data before exiting with error
     try {
       costManager.saveUsageData();
     } catch (e) {
       // Ignore errors during cleanup
     }
-    
+
     process.exit(1);
   }
 }
