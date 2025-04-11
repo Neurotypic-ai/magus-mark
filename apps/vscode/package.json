@@ -1,0 +1,60 @@
+{
+  "name": "obsidian-magic-vscode",
+  "displayName": "Obsidian Magic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
+  "main": "./dist/extension.js",
+  "publisher": "YourName",
+  "engines": {
+    "vscode": "^1.78.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "obsidian-magic.tagFile",
+        "title": "Obsidian Magic: Tag Current File"
+      },
+      {
+        "command": "obsidian-magic.openTagExplorer",
+        "title": "Obsidian Magic: Open Tag Explorer"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "obsidianMagicTagExplorer",
+          "name": "Obsidian Magic Tags"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --no-dependencies",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@obsidian-magic/core": "workspace:*",
+    "@obsidian-magic/types": "workspace:*",
+    "@obsidian-magic/utils": "workspace:*",
+    "websocket": "^1.0.35"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/vscode": "^1.99.1",
+    "@types/websocket": "^1.0.10",
+    "@vscode/vsce": "^3.3.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

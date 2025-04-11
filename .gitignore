@@ -1,65 +1,45 @@
-# Node and Package Manager
+# Dependencies
 node_modules/
-.npm
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
 .pnpm-store/
+.npm/
 
-# TypeScript/JavaScript build artifacts
+# Build outputs
 dist/
 build/
-*.tsbuildinfo
-.turbo
-coverage/
-*.lcov
-.nyc_output
 
-# Environment/Configuration files
+# Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.npmrc
-.yarnrc
+.env.*
+!.env.example
 
-# Editor and OS files
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 !.vscode/tasks.json
-.idea/
-*.sublime-project
-*.sublime-workspace
+!.vscode/launch.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 .DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
 
-# Project-specific
-**/dist/*
-**/build/*
-**/coverage/*
-**/node_modules/*
-.cache/
-.temp/
-.hot/
-*.log
+# Test coverage
+coverage/
 
-# Testing artifacts
-tmp/
-temp/
-.jest/
-jest-cache/
+# Typescript
+*.tsbuildinfo
+.tscache/
 
-# Documentation builds
-documentation/site/
-documentation/build/
-
-# Secrets and keys
-*.pem
-*.key
-*.cert
+# Obsidian
+.obsidian/

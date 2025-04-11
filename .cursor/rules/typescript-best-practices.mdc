@@ -118,3 +118,129 @@ alwaysApply: true
 - Use infer for type inference in conditional types
 - Apply intersection types for type composition
 - Use mapped types to transform object structures
+
+## Module Resolution
+
+- **NO TypeScript Paths**: We explicitly avoid using TypeScript's path mapping feature (`paths` in tsconfig) as it can lead to confusion and make the codebase harder to navigate. Instead, we use relative imports and workspace package references.
+
+## Type Safety
+
+- Use strict TypeScript configuration
+- Enable all strict type checking options
+- No use of `any` type
+- No non-null assertions
+- Explicit return types on functions
+- Prefer type imports over value imports
+- Use branded types for type safety when needed
+
+## Code Organization
+
+- Keep types close to their usage
+- Use barrel files (index.ts) sparingly and only when it improves organization
+- Prefer interfaces for public APIs and type aliases for internal types
+- Use discriminated unions for complex state management
+
+## Error Handling
+
+- Use custom error classes
+- Handle all possible error cases
+- Avoid throwing non-Error objects
+- Use Result types for operations that can fail
+
+## Testing
+
+- Write tests in TypeScript
+- Use type-safe test utilities
+- Test type definitions where appropriate
+- Use test fixtures with proper types
+
+## Documentation
+
+- Document public APIs with TSDoc comments
+- Include examples in documentation
+- Document complex type parameters
+- Keep documentation up to date with code changes
+
+## Performance
+
+- Use const assertions where appropriate
+- Avoid type assertions unless absolutely necessary
+- Be mindful of type inference performance
+- Use `satisfies` operator for better type checking
+
+## Naming Conventions
+
+- Use PascalCase for types, interfaces, and classes
+- Use camelCase for variables, functions, and methods
+- Use UPPER_CASE for constants
+- Prefix interfaces with 'I' only when there's a class implementation
+- Suffix type parameters with 'Type' (e.g., TDataType)
+
+## Code Style
+
+- Consistent use of quotes (single)
+- Consistent use of semicolons
+- Proper spacing and indentation
+- Clear and descriptive naming
+
+## Imports/Exports
+
+- Use named exports over default exports
+- Group imports logically
+- Use type imports for type-only imports
+- Avoid side effects in imports
+
+## Error Messages
+
+- Use template literals for dynamic error messages
+- Include relevant context in error messages
+- Use consistent error message formatting
+- Document error conditions
+
+## Generics
+
+- Use meaningful generic names
+- Constrain generics appropriately
+- Document generic parameters
+- Use generic constraints effectively
+
+## Async Code
+
+- Use async/await over raw promises
+- Handle promise rejections
+- Type async function returns properly
+- Use proper error handling in async code
+
+## Type Guards
+
+- Use type predicates
+- Create reusable type guards
+- Document type guard assumptions
+- Test type guards thoroughly
+
+## Enums
+
+- Use const enums for better performance
+- Document enum values
+- Use string enums for better debugging
+- Consider union types instead of enums
+
+## Null/Undefined Handling
+
+- Use undefined for optional values
+- Use null when explicitly setting to no value
+- Use optional chaining
+- Use nullish coalescing
+
+## Type Inference
+
+- Let TypeScript infer types when obvious
+- Explicitly type complex objects
+- Use type inference in loops
+- Document when inference is important
+
+## Related Documentation
+
+- [Project Structure](mdc:documentation/implementation/project-structure.md)
+- [Testing Strategy](mdc:.cursor/rules/testing-strategy.mdc)
+- [Build System](mdc:.cursor/rules/build-system.mdc)

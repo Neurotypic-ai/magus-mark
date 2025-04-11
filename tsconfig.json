@@ -23,5 +23,12 @@
     "./eslint.config.js",
     "./prettier.config.js"
   ],
-  "references": []
+  "references": [
+    { "path": "packages/types" },
+    { "path": "packages/utils" },
+    { "path": "packages/core" },
+    { "path": "apps/cli" },
+    { "path": "apps/obsidian-plugin" },
+    { "path": "apps/vscode" }
+  ]
 }

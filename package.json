@@ -1,0 +1,43 @@
+{
+  "name": "obsidian-magic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
+  "author": "Kevin Hallmark <kevin.hallmark@littleblackhat.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.8.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "dev": "tsc -b --watch",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
+    "@types/node": "^22.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@typescript-eslint/parser": "^8.29.1",
+    "eslint": "^9.24.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-import-x": "^4.10.2",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-testing-library": "^7.1.1",
+    "prettier": "^3.5.3",
+    "prettier-plugin-sql": "^0.19.0",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.29.1"
+  }
+}
