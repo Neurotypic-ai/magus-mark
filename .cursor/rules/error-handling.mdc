@@ -8,30 +8,46 @@ alwaysApply: false
 
 The project implements comprehensive error handling strategies to ensure robustness:
 
-## Custom Error Classes
+## Custom Error Hierarchy
 
-Create specialized error classes for different failure modes:
+Create a structured error hierarchy for different failure modes:
 
 ```typescript
-// Custom error classes
-class OpenAIError extends Error {
-  constructor(
-    message: string, 
-    public readonly statusCode: number,
-    public readonly errorCode: string
-  ) {
+// Base error class
+class AppError extends Error {
+  code: string;
+  recoverable: boolean;
+  
+  constructor(message: string, code: string, recoverable = false) {
     super(message);
-    this.name = 'OpenAIError';
+    this.name = this.constructor.name;
+    this.code = code;
+    this.recoverable = recoverable;
   }
 }
 
-class ValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly field?: string
-  ) {
-    super(message);
-    this.name = 'ValidationError';
+// Specific error types
+class UserInputError extends AppError {
+  constructor(message: string, code = 'INVALID_INPUT') {
+    super(message, code, true);
+  }
+}
+
+class ApiError extends AppError {
+  statusCode?: number;
+  retryAfter?: number;
+  
+  constructor(message: string, code = 'API_ERROR', statusCode?: number, retryAfter?: number) {
+    super(message, code, statusCode ? statusCode < 500 : false);
+    this.statusCode = statusCode;
+    this.retryAfter = retryAfter;
+  }
+}
+
+class ValidationError extends AppError {
+  constructor(message: string, field?: string, code = 'VALIDATION_ERROR') {
+    super(message, code, true);
+    this.field = field;
   }
 }
 ```
@@ -42,7 +58,7 @@ Use the Result pattern for operations that can fail:
 
 ```typescript
 // Result pattern
-interface Result<T, E = Error> {
+interface Result<T, E = AppError> {
   success: boolean;
   value?: T;
   error?: E;
@@ -52,7 +68,7 @@ function success<T>(value: T): Result<T> {
   return { success: true, value };
 }
 
-function failure<E = Error>(error: E): Result<never, E> {
+function failure<E = AppError>(error: E): Result<never, E> {
   return { success: false, error };
 }
 
@@ -63,34 +79,124 @@ async function classifyDocument(path: string): Promise<Result<TagSet>> {
     const tags = await taggingService.classifyContent(content);
     return success(tags);
   } catch (err) {
-    return failure(err instanceof Error ? err : new Error(String(err)));
+    return failure(err instanceof AppError ? err : new AppError(String(err), 'UNKNOWN_ERROR'));
   }
+}
+```
+
+## Retry Mechanisms
+
+Implement robust retry logic for transient failures:
+
+```typescript
+async function apiCallWithRetry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    initialDelay = 1000,
+    maxDelay = 60000,
+    factor = 2,
+  } = options;
+  
+  let attempt = 0;
+  
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      attempt++;
+      
+      if (attempt > maxRetries) {
+        throw error;
+      }
+      
+      if (isRetryableError(error)) {
+        const delay = calculateBackoff(error, attempt, initialDelay, maxDelay, factor);
+        logger.warn(`Retrying after ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(delay);
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.statusCode >= 500 || error.statusCode === 429;
+  }
+  
+  return isNetworkError(error);
 }
 ```
 
 ## Error Handling Best Practices
 
 1. **Error Classification**:
-   - Distinguish between operational and programming errors
-   - Categorize errors by source (system, user, external service)
-   - Use error codes for programmatic handling
+   - Use a typed error hierarchy with specific error classes
+   - Include contextual information in errors (status codes, metadata)
+   - Categorize errors as recoverable or non-recoverable
 
 2. **Recovery Strategies**:
    - Implement retry logic with exponential backoff for transient errors
-   - Provide graceful degradation paths
-   - Use sensible defaults when appropriate
+   - Use fallback mechanisms for critical operations
+   - Preserve partial results when batch operations partially fail
+   - Implement session persistence for resumable operations
 
 3. **Error Reporting**:
-   - Log detailed error information for debugging
-   - Present user-friendly error messages in UIs
-   - Include contextual information and recovery suggestions
+   - Provide user-friendly messages with actionable advice
+   - Include troubleshooting steps for common errors
+   - Log detailed error information with context for debugging
+   - Use structured logging with error codes and metadata
 
 4. **Error Boundaries**:
    - Implement error boundaries in UI components
    - Isolate errors to prevent cascading failures
    - Maintain application state during error recovery
+   - Use graceful degradation to preserve core functionality
 
 5. **Validation**:
-   - Validate inputs early to prevent downstream errors
+   - Validate inputs early with clear error messages
+   - Implement multi-stage validation (CLI args, config, runtime)
    - Use schema validation for complex data structures
-   - Provide clear validation error messages 
+   - Run preflight checks before starting critical operations
+
+6. **Operational Resilience**:
+   - Handle API rate limits and quota errors gracefully
+   - Implement graceful shutdown with cleanup procedures
+   - Handle unexpected termination with persistence strategies
+   - Provide debugging tools for troubleshooting
+
+## CLI-specific Error Handling
+
+For CLI applications, implement these additional patterns:
+
+```typescript
+// Custom error handler for CLI
+function handleCliError(error: unknown): never {
+  if (error instanceof UserInputError) {
+    console.error(chalk.red('Error:'), error.message);
+    console.error(chalk.yellow('Tip:'), 'Use --help to see valid options');
+  } else if (error instanceof ApiError) {
+    console.error(chalk.red('API Error:'), error.message);
+    if (error.statusCode === 401) {
+      console.error(chalk.yellow('Tip:'), 'Check your API key');
+    }
+  } else {
+    console.error(chalk.red('Unexpected Error:'), error instanceof Error ? error.message : String(error));
+    if (process.env.DEBUG) {
+      console.error(error);
+    }
+  }
+  
+  process.exit(1);
+}
+```
+
+## Reference Documentation
+
+For detailed implementation examples, see:
+- [CLI Error Handling Documentation](mdc:documentation/cli/error-handling.md)
+- [Core Error Handling Patterns](mdc:documentation/core/error-handling.md) 

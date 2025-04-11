@@ -40,10 +40,12 @@ The project implements a modular workspace architecture with the following compo
   - Shared utilities and helpers
 
 - **CLI App**: Command-line interface implementation
-  - Command structure definitions
-  - File processing pipelines
-  - Terminal UI components
-  - CLI-specific utilities
+  - Command structure with Yargs integration
+  - Workflow orchestration and concurrency management
+  - Interactive UI with rich visualizations
+  - Cost management and token optimization
+  - Benchmarking and performance analysis
+  - Comprehensive error handling and recovery
 
 - **Obsidian Plugin App**: Obsidian-specific implementation
   - Plugin registration and lifecycle management
@@ -69,12 +71,25 @@ For more detailed implementation information, refer to these specialized guides:
 - [API Integration](mdc:.cursor/rules/api-integration.mdc)
 - [Accessibility & UX](mdc:.cursor/rules/accessibility-ux.mdc)
 - [VS Code Integration](mdc:.cursor/rules/vscode-integration.mdc)
+- [CLI Tool](mdc:.cursor/rules/cli-tool.mdc)
 
 ## Documentation Links
 
 - [Project Structure](mdc:documentation/implementation/project-structure.md)
 - [Core Tagging Model](mdc:documentation/core/tagging-model.md)
 - [OpenAI Integration](mdc:documentation/core/openai-integration.md)
+
+### CLI Documentation
 - [CLI Overview](mdc:documentation/cli/cli-overview.md)
+- [Command Structure](mdc:documentation/cli/command-structure.md)
+- [Workflow Orchestration](mdc:documentation/cli/workflow-orchestration.md)
+- [Cost Management](mdc:documentation/cli/cost-management.md)
+- [Yargs Implementation](mdc:documentation/cli/yargs-implementation.md)
+- [Error Handling](mdc:documentation/cli/error-handling.md)
+- [Benchmarking](mdc:documentation/cli/benchmarking.md)
+- [Interactive UI](mdc:documentation/cli/interactive-ui.md)
+- [Configuration Reference](mdc:documentation/cli/configuration-reference.md)
+
+### Application Documentation
 - [Obsidian Plugin](mdc:documentation/obsidian-plugin/plugin-overview.md)
 - [VS Code Integration](mdc:documentation/vscode-integration/vscode-overview.md)

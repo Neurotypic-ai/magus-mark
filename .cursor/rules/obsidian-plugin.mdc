@@ -24,6 +24,16 @@ The plugin integrates deeply with Obsidian's systems:
 3. **File System Access**: Safe handling of vault files and paths
 4. **User Interface Integration**: Custom ribbon icons, context menus, and commands
 
+## Document Integration
+
+The plugin provides comprehensive document integration features:
+
+1. **CodeMirror Extension**: Custom syntax highlighting and visual indicators for tags
+2. **Autocomplete Provider**: Context-aware tag suggestions and hierarchical completion
+3. **Tag Validation**: Real-time validation against taxonomy with suggested fixes
+4. **Visual Tag Chips**: Interactive tag display with drag-and-drop and filtering
+5. **Tag Relationship Visualization**: Force-directed graph showing tag connections
+
 ## Advanced Features
 
 The plugin implements sophisticated features for conversation management:
@@ -34,17 +44,40 @@ The plugin implements sophisticated features for conversation management:
 4. **Batch Operations**: Process multiple files with unified settings
 5. **Synchronization**: Coordination with CLI-applied tags
 
-## Settings & Configuration
+## Security & Configuration
 
-The plugin provides a robust settings system:
+The plugin provides robust security and configuration options:
 
-1. **API Configuration**: OpenAI API key and model selection
-2. **Processing Options**: Tag application modes and confidence thresholds
-3. **UI Preferences**: Customization of tag display and interaction
+1. **API Key Management**: Secure storage with multiple options (encrypted, keychain, env vars)
+2. **Permissions Model**: Granular permission controls for API access and file modifications
+3. **Privacy Controls**: Data minimization and local processing options
 4. **Cost Management**: Budget controls and usage tracking
+5. **Enterprise Features**: Team management, audit logs, and centralized configuration
+
+## Ecosystem Integration
+
+The plugin integrates with the broader Obsidian ecosystem:
+
+1. **Core Integration**: Enhances search, graph view, and command palette
+2. **Plugin Compatibility**: Special integrations with popular plugins (Dataview, Calendar, etc.)
+3. **Custom CSS Support**: Theme-aware styling with accessibility focus
+4. **Multi-device Experience**: Mobile-optimized interfaces with synchronization
+5. **External Tool Integration**: Bidirectional sync with VS Code and CLI tools
+
+## Implementation Details
+
+The plugin uses modern TypeScript and Obsidian API practices:
+
+1. **CodeMirror 6 Integration**: Leveraging Obsidian's editor extensions
+2. **Event-driven Architecture**: Proper event handling and cleanup
+3. **Component Lifecycle Management**: Structured onload/onunload flows
+4. **Accessibility-first Design**: WCAG compliance with keyboard navigation
+5. **Performance Optimization**: Efficient rendering for large documents
 
 ## Documentation Links
 
 - [Plugin Overview](mdc:documentation/obsidian-plugin/plugin-overview.md)
 - [Tag Management](mdc:documentation/obsidian-plugin/tag-management.md)
 - [Document Integration](mdc:documentation/obsidian-plugin/document-integration.md)
+- [Security & Configuration](mdc:documentation/obsidian-plugin/security-configuration.md)
+- [Ecosystem Integration](mdc:documentation/obsidian-plugin/ecosystem-integration.md)

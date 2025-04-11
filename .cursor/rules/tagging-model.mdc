@@ -10,13 +10,23 @@ alwaysApply: false
 
 The system implements a sophisticated AI-powered tagging framework with the following structure:
 
-- **Year**: Strictly 4-digit years (e.g., `2023`, `2024`), automatically extracted from conversation metadata or content
-- **Life Area**: Curated taxonomy of life domains (`career`, `relationships`, `health`, etc.)
+- **Year**: Strictly 4-digit years (e.g., `#year/2023`, `#year/2024`), automatically extracted from conversation metadata or content
+- **Life Area**: Curated taxonomy of life domains (`#life/career`, `#life/relationships`, `#life/health`, etc.)
 - **Topical Tags**: Three-tier hierarchical classification:
-  - **Primary Domain**: Selected from a maintained taxonomy of knowledge domains
-  - **Subdomain**: More specific categorization within the primary domain
+  - **Primary Domain**: Selected from a maintained taxonomy of knowledge domains (`#topic/technology`, `#topic/science`, etc.)
+  - **Subdomain**: More specific categorization within the primary domain (`#topic/technology/ai`, `#topic/science/physics`, etc.)
   - **Contextual Tag**: A flexible "wildcard" tag for cross-domain concepts
-- **Conversation Type**: Precisely one conversational modality (`theory`, `practical`, `meta`, etc.)
+- **Conversation Type**: Precisely one conversational modality (`#conversation/theory`, `#conversation/practical`, `#conversation/brainstorming`, etc.)
+
+## Visual Representation
+
+Tags feature consistent visual styling and interaction patterns:
+
+1. **Color Coding**: Each tag category has a distinct color scheme (year: green, life: yellow, topic: blue, conversation: purple)
+2. **Confidence Indicators**: Visual representation of AI confidence in tag assignment
+3. **Interactive Elements**: Click, shift+click, and context-menu based interactions
+4. **Hover Information**: Tooltips showing metadata, related tags, and quick actions
+5. **Graph Visualization**: Force-directed graph showing tag relationships
 
 ## Classification Strategy
 
@@ -25,6 +35,7 @@ The system employs a multi-stage classification approach:
 1. **Domain/Subdomain Classification**: Strict adherence to taxonomy with embedding similarity matching
 2. **Controlled Vocabulary Expansion**: Only contextual tags allow for organic growth with new suggestions
 3. **Multi-label Classification Approach**: Year and conversation type tags always applied; others based on confidence score
+4. **Real-time Validation**: Tags validated against taxonomy with suggested fixes for invalid entries
 
 ## Tag Management & Inference
 
@@ -32,6 +43,19 @@ The system implements context-aware tag management:
 
 1. **Dynamic Tag Allocation**: 0-3 topical tags applied based on content relevance
 2. **Tag Consistency Management**: Configurable modes for handling existing tags (overwrite, merge, augment)
+3. **Drag-and-drop Organization**: Visual reordering of tags within the document
+4. **Filter Operations**: Single-tag filtering, multi-tag filtering, and tag exclusion
+5. **Saved Filters**: User-defined filter combinations for repeated use
+
+## User Interface Integration
+
+The system provides comprehensive UI elements for tag interaction:
+
+1. **Editor Integration**: CodeMirror extensions for syntax highlighting and autocompletion
+2. **Tag Chips**: Visual representation of tags with interactive behavior
+3. **Contextual Sidebar**: Suggestions based on document content and related files
+4. **Relationship Visualization**: Graph-based visualization of tag connections
+5. **Natural Language Filtering**: Query processing for plain language tag filtering
 
 ## Model Prompt Engineering
 
@@ -41,8 +65,21 @@ Precision-engineered prompts for OpenAI's models, with:
 - **Structured Prompt Design**: Clear task delineation and formatting expectations
 - **Chain-of-Thought Reasoning**: Step-by-step analysis before tag assignment
 - **Quality Assurance Framework**: Confidence-based workflow with selective explanation
+- **Context-aware Suggestions**: Tag recommendations based on document content analysis
+
+## Implementation Details
+
+The tagging system uses modern TypeScript patterns:
+
+1. **Type-safe Tag Definitions**: Strict typing for tag categories and hierarchies
+2. **Decorator Pattern**: For attaching metadata to tag instances
+3. **Observer Pattern**: For reactive tag updates across the interface
+4. **Strategy Pattern**: For different tag application and validation approaches
+5. **Factory Pattern**: For creating appropriate tag types from different sources
 
 ## Documentation Links
 
 - [Tagging Model Documentation](mdc:documentation/core/tagging-model.md)
 - [OpenAI Integration](mdc:documentation/core/openai-integration.md)
+- [Document Integration](mdc:documentation/obsidian-plugin/document-integration.md)
+- [Tag Management Interface](mdc:documentation/obsidian-plugin/tag-management.md)
