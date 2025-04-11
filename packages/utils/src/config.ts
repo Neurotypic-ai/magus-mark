@@ -1,11 +1,11 @@
-/**
- * Configuration utility functions for Obsidian Magic
- */
+import os from 'node:os';
+import path from 'node:path';
+
 import { z } from 'zod';
-import path from 'path';
-import os from 'os';
-import type { APIKeyStorage, AIModel, TagBehavior } from '@obsidian-magic/types';
-import { readJsonFile, writeJsonFile, fileExists } from '../file';
+
+import { fileExists, readJsonFile, writeJsonFile } from './file';
+
+import type { AIModel, APIKeyStorage, TagBehavior } from '@obsidian-magic/types';
 
 /**
  * Logging level type
@@ -20,42 +20,42 @@ export const DEFAULT_CONFIG = {
    * Default AI model
    */
   defaultModel: 'gpt-4o' as AIModel,
-  
+
   /**
    * Default tag behavior
    */
   defaultTagBehavior: 'merge' as TagBehavior,
-  
+
   /**
    * Minimum confidence score to accept tags without review
    */
   minConfidence: 0.7,
-  
+
   /**
    * Confidence score threshold for prompting user review
    */
   reviewThreshold: 0.5,
-  
+
   /**
    * Whether to generate explanations for tags
    */
   generateExplanations: true,
-  
+
   /**
    * API key storage location (local or system)
    */
   apiKeyStorage: 'local' as APIKeyStorage,
-  
+
   /**
    * OpenAI API key (if stored locally)
    */
   apiKey: '',
-  
+
   /**
    * Maximum number of concurrent API requests
    */
   concurrency: 3,
-  
+
   /**
    * Cache configuration
    */
@@ -64,13 +64,13 @@ export const DEFAULT_CONFIG = {
      * Whether to enable caching
      */
     enabled: true,
-    
+
     /**
      * Cache directory path (defaults to user's cache directory)
      */
-    directory: path.join(os.homedir(), '.cache', 'obsidian-magic')
+    directory: path.join(os.homedir(), '.cache', 'obsidian-magic'),
   },
-  
+
   /**
    * Logging configuration
    */
@@ -79,22 +79,22 @@ export const DEFAULT_CONFIG = {
      * Logging level (error, warn, info, debug)
      */
     level: 'info' as LogLevel,
-    
+
     /**
      * Whether to log to console
      */
     console: true,
-    
+
     /**
      * Whether to log to file
      */
     file: false,
-    
+
     /**
      * Log file path
      */
-    filePath: path.join(os.homedir(), '.logs', 'obsidian-magic.log')
-  }
+    filePath: path.join(os.homedir(), '.logs', 'obsidian-magic.log'),
+  },
 };
 
 /**
@@ -111,14 +111,14 @@ export const configSchema = z.object({
   concurrency: z.number().int().positive().max(10),
   cache: z.object({
     enabled: z.boolean(),
-    directory: z.string()
+    directory: z.string(),
   }),
   logging: z.object({
     level: z.enum(['error', 'warn', 'info', 'debug']),
     console: z.boolean(),
     file: z.boolean(),
-    filePath: z.string()
-  })
+    filePath: z.string(),
+  }),
 });
 
 /**
@@ -144,7 +144,7 @@ export async function loadConfig(configPath = getDefaultConfigPath()): Promise<C
     if (await fileExists(configPath)) {
       return await readJsonFile(configPath, configSchema);
     }
-    
+
     // Config file doesn't exist, create with defaults
     const config = DEFAULT_CONFIG;
     await writeJsonFile(configPath, config);
@@ -178,21 +178,21 @@ export async function saveConfig(config: Config, configPath = getDefaultConfigPa
  * @returns Updated configuration
  */
 export async function updateConfig(
-  configUpdates: Partial<Config>, 
+  configUpdates: Partial<Config>,
   configPath = getDefaultConfigPath()
 ): Promise<Config> {
   const currentConfig = await loadConfig(configPath);
   const updatedConfig = { ...currentConfig, ...configUpdates };
-  
+
   // Recursively merge nested objects
   if (configUpdates.cache) {
     updatedConfig.cache = { ...currentConfig.cache, ...configUpdates.cache };
   }
-  
+
   if (configUpdates.logging) {
     updatedConfig.logging = { ...currentConfig.logging, ...configUpdates.logging };
   }
-  
+
   await saveConfig(updatedConfig, configPath);
   return updatedConfig;
 }
@@ -206,13 +206,13 @@ export function getApiKey(config: Config): string | null {
   if (config.apiKeyStorage === 'local' && config.apiKey) {
     return config.apiKey;
   }
-  
+
   // Try to get from environment
   const envApiKey = process.env['OPENAI_API_KEY'];
   if (envApiKey) {
     return envApiKey;
   }
-  
+
   return null;
 }
 
@@ -222,17 +222,13 @@ export function getApiKey(config: Config): string | null {
  * @param config - Configuration object
  * @returns Updated configuration
  */
-export async function setApiKey(
-  apiKey: string, 
-  config: Config, 
-  configPath = getDefaultConfigPath()
-): Promise<Config> {
-  const updatedConfig = { 
-    ...config, 
-    apiKey, 
-    apiKeyStorage: 'local' as const 
+export async function setApiKey(apiKey: string, config: Config, configPath = getDefaultConfigPath()): Promise<Config> {
+  const updatedConfig = {
+    ...config,
+    apiKey,
+    apiKeyStorage: 'local' as const,
   };
-  
+
   await saveConfig(updatedConfig, configPath);
   return updatedConfig;
-} 
+}

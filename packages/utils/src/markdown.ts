@@ -32,23 +32,23 @@ export function parseFrontmatter(frontmatter: string): Record<string, unknown> {
     // In a real implementation, we would properly parse the YAML
     const result: Record<string, unknown> = {};
     const lines = frontmatter.split('\n');
-    
+
     for (const line of lines) {
       const colonIndex = line.indexOf(':');
       if (colonIndex > 0) {
         const key = line.substring(0, colonIndex).trim();
         let value = line.substring(colonIndex + 1).trim();
-        
+
         // Handle array values
         if (value.startsWith('[') && value.endsWith(']')) {
           value = value.substring(1, value.length - 1);
-          result[key] = value.split(',').map(v => v.trim());
+          result[key] = value.split(',').map((v) => v.trim());
         } else {
           result[key] = value;
         }
       }
     }
-    
+
     return result;
   } catch (error) {
     console.error('Error parsing frontmatter:', error);
@@ -72,7 +72,7 @@ export function formatFrontmatter(frontmatter: Record<string, unknown>): string 
         } else if (value.length === 1) {
           return `${key}: [${value[0]}]`;
         } else {
-          return `${key}:\n${value.map(v => `  - ${v}`).join('\n')}`;
+          return `${key}:\n${value.map((v) => `  - ${v}`).join('\n')}`;
         }
       } else if (typeof value === 'object' && value !== null) {
         // Handle nested objects (simplified)
@@ -90,24 +90,21 @@ export function formatFrontmatter(frontmatter: Record<string, unknown>): string 
  * @param frontmatter - Frontmatter data to apply
  * @returns Content with updated frontmatter
  */
-export function updateFrontmatter(
-  content: string, 
-  frontmatter: Record<string, unknown>
-): string {
+export function updateFrontmatter(content: string, frontmatter: Record<string, unknown>): string {
   const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
   const match = frontmatterRegex.exec(content);
-  
+
   if (!match) {
     // No existing frontmatter, create new one
     const formattedFrontmatter = formatFrontmatter(frontmatter);
     return `---\n${formattedFrontmatter}\n---\n\n${content}`;
   }
-  
+
   try {
     // Parse existing frontmatter and merge with new
     const existing = parseFrontmatter(match[1] || '');
     const updated = { ...existing, ...frontmatter };
-    
+
     // Format and replace frontmatter
     const formattedFrontmatter = formatFrontmatter(updated);
     return content.replace(frontmatterRegex, `---\n${formattedFrontmatter}\n---`);
@@ -115,4 +112,4 @@ export function updateFrontmatter(
     console.error('Error updating frontmatter:', error);
     return content;
   }
-} 
+}

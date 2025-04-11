@@ -13,16 +13,16 @@ export function isObject(value: unknown): boolean {
 
 /**
  * Deep merge objects
- * 
+ *
  * @param target - Target object to merge into
  * @param source - Source object to merge from
  * @returns A new object with merged properties
  */
 export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const output = { ...target };
-  
+
   if (isObject(target) && isObject(source)) {
-    Object.keys(source).forEach(key => {
+    Object.keys(source).forEach((key) => {
       const sourceValue = source[key as keyof typeof source];
       if (isObject(sourceValue)) {
         if (!(key in target)) {
@@ -43,21 +43,21 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
       }
     });
   }
-  
+
   return output;
 }
 
 /**
  * Safely access deeply nested object properties
- * 
+ *
  * @param obj - Object to access properties from
  * @param path - Path to the property as string with dot notation
  * @param defaultValue - Default value to return if path doesn't exist
  * @returns The value at path or defaultValue if not found
  */
 export function get<T, D = undefined>(
-  obj: Record<string, any> | undefined, 
-  path: string, 
+  obj: Record<string, any> | undefined,
+  path: string,
   defaultValue?: D
 ): T | D | undefined {
   if (!obj || typeof path !== 'string') {
@@ -74,18 +74,16 @@ export function get<T, D = undefined>(
     result = result[key];
   }
 
-  return (result === undefined) ? defaultValue : result;
+  return result === undefined ? defaultValue : result;
 }
 
 /**
  * Safely check if an object has a property
- * 
+ *
  * @param obj - Object to check
  * @param key - Key to check for
  * @returns True if the object has the key
  */
 export function has(obj: unknown, key: string): boolean {
-  return obj !== null 
-    && obj !== undefined 
-    && Object.prototype.hasOwnProperty.call(obj, key);
-} 
+  return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, key);
+}

@@ -1,15 +1,7 @@
 /**
  * Tag utility functions for Obsidian Magic
  */
-import type { 
-  TagSet, 
-  TopicalTag, 
-  DomainTag, 
-  SubdomainTag, 
-  ConfidenceScore,
-  TagBehavior,
-  TagConfidence
-} from '@obsidian-magic/types';
+import type * as Tags from '@obsidian-magic/types';
 
 /**
  * Formats a tag for display in Obsidian
@@ -26,7 +18,7 @@ export function formatTag(tag: string): string {
  * @param subdomain - Optional subdomain tag
  * @returns Hierarchical tag string (e.g., "software-development/frontend")
  */
-export function createHierarchicalTag(domain: DomainTag, subdomain?: SubdomainTag): string {
+export function createHierarchicalTag(domain: Tags.DomainTag, subdomain?: Tags.SubdomainTag): string {
   return subdomain ? `${domain}/${subdomain}` : domain;
 }
 
@@ -35,7 +27,7 @@ export function createHierarchicalTag(domain: DomainTag, subdomain?: SubdomainTa
  * @param hierarchicalTag - Hierarchical tag string (e.g., "software-development/frontend")
  * @returns Domain portion of the tag
  */
-export function extractDomain(hierarchicalTag: string): string {
+export function extractDomain(hierarchicalTag: string): string | undefined {
   return hierarchicalTag.split('/')[0];
 }
 
@@ -54,17 +46,17 @@ export function extractSubdomain(hierarchicalTag: string): string | undefined {
  * @param tagSet - Tag set to format
  * @returns Array of formatted tags
  */
-export function formatTagSetForFrontmatter(tagSet: TagSet): string[] {
+export function formatTagSetForFrontmatter(tagSet: Tags.TagSet): string[] {
   const tags: string[] = [];
-  
+
   // Add year tag
   tags.push(tagSet.year);
-  
+
   // Add life area tag if present
   if (tagSet.life_area) {
     tags.push(tagSet.life_area);
   }
-  
+
   // Add topical tags
   for (const topicalTag of tagSet.topical_tags) {
     // Add domain/subdomain hierarchical tag
@@ -73,16 +65,16 @@ export function formatTagSetForFrontmatter(tagSet: TagSet): string[] {
     } else {
       tags.push(topicalTag.domain);
     }
-    
+
     // Add contextual tag if present
     if (topicalTag.contextual) {
       tags.push(topicalTag.contextual);
     }
   }
-  
+
   // Add conversation type tag
   tags.push(tagSet.conversation_type);
-  
+
   return tags;
 }
 
@@ -91,11 +83,11 @@ export function formatTagSetForFrontmatter(tagSet: TagSet): string[] {
  */
 export function createConfidence(
   overall: number,
-  options: Partial<Omit<TagConfidence, 'overall'>> = {}
-): TagConfidence {
+  options: Partial<Omit<Tags.TagConfidence, 'overall'>> = {}
+): Tags.TagConfidence {
   return {
     overall,
-    ...options
+    ...options,
   };
 }
 
@@ -107,108 +99,116 @@ export function createConfidence(
  * @returns Merged tag set
  */
 export function mergeTagSets(
-  existingTags: TagSet | undefined, 
-  newTags: TagSet, 
-  behavior: TagBehavior
-): TagSet {
+  existingTags: Tags.TagSet | undefined,
+  newTags: Tags.TagSet,
+  behavior: Tags.TagBehavior
+): Tags.TagSet {
   // If no existing tags or behavior is replace, just return new tags
   if (!existingTags || behavior === 'replace') {
     return newTags;
   }
-  
+
   if (behavior === 'append') {
     // Append new tags to existing tags
     return {
       ...existingTags,
-      topical_tags: [
-        ...existingTags.topical_tags,
-        ...newTags.topical_tags
-      ],
+      topical_tags: [...existingTags.topical_tags, ...newTags.topical_tags],
       // Merge confidence scores
       confidence: {
         overall: Math.max(existingTags.confidence.overall, newTags.confidence.overall),
-        ...(existingTags.confidence.year || newTags.confidence.year) && { 
-          year: Math.max(existingTags.confidence.year || 0, newTags.confidence.year || 0) 
-        },
-        ...(existingTags.confidence.life_area || newTags.confidence.life_area) && { 
-          life_area: Math.max(existingTags.confidence.life_area || 0, newTags.confidence.life_area || 0) 
-        },
-        ...(existingTags.confidence.domain || newTags.confidence.domain) && { 
-          domain: Math.max(existingTags.confidence.domain || 0, newTags.confidence.domain || 0) 
-        },
-        ...(existingTags.confidence.subdomain || newTags.confidence.subdomain) && { 
-          subdomain: Math.max(existingTags.confidence.subdomain || 0, newTags.confidence.subdomain || 0) 
-        },
-        ...(existingTags.confidence.contextual || newTags.confidence.contextual) && { 
-          contextual: Math.max(existingTags.confidence.contextual || 0, newTags.confidence.contextual || 0) 
-        },
-        ...(existingTags.confidence.conversation_type || newTags.confidence.conversation_type) && { 
-          conversation_type: Math.max(existingTags.confidence.conversation_type || 0, newTags.confidence.conversation_type || 0) 
-        }
+        ...((existingTags.confidence.year ?? newTags.confidence.year) && {
+          year: Math.max(existingTags.confidence.year ?? 0, newTags.confidence.year ?? 0),
+        }),
+        ...((existingTags.confidence.life_area ?? newTags.confidence.life_area) && {
+          life_area: Math.max(existingTags.confidence.life_area ?? 0, newTags.confidence.life_area ?? 0),
+        }),
+        ...((existingTags.confidence.domain ?? newTags.confidence.domain) && {
+          domain: Math.max(existingTags.confidence.domain ?? 0, newTags.confidence.domain ?? 0),
+        }),
+        ...((existingTags.confidence.subdomain ?? newTags.confidence.subdomain) && {
+          subdomain: Math.max(existingTags.confidence.subdomain ?? 0, newTags.confidence.subdomain ?? 0),
+        }),
+        ...((existingTags.confidence.contextual ?? newTags.confidence.contextual) && {
+          contextual: Math.max(existingTags.confidence.contextual ?? 0, newTags.confidence.contextual ?? 0),
+        }),
+        ...((existingTags.confidence.conversation_type ?? newTags.confidence.conversation_type) && {
+          conversation_type: Math.max(
+            existingTags.confidence.conversation_type ?? 0,
+            newTags.confidence.conversation_type ?? 0
+          ),
+        }),
       },
       // Merge explanations
       explanations: {
         ...existingTags.explanations,
-        ...newTags.explanations
-      }
+        ...newTags.explanations,
+      },
     };
   }
-  
+
   // Merge behavior - intelligently combine tag sets
   const mergedConfidence = {
     overall: Math.max(existingTags.confidence.overall, newTags.confidence.overall),
-    ...(existingTags.confidence.year || newTags.confidence.year) && { 
-      year: Math.max(existingTags.confidence.year || 0, newTags.confidence.year || 0) 
-    },
-    ...(existingTags.confidence.life_area || newTags.confidence.life_area) && { 
-      life_area: Math.max(existingTags.confidence.life_area || 0, newTags.confidence.life_area || 0) 
-    },
-    ...(existingTags.confidence.domain || newTags.confidence.domain) && { 
-      domain: Math.max(existingTags.confidence.domain || 0, newTags.confidence.domain || 0) 
-    },
-    ...(existingTags.confidence.subdomain || newTags.confidence.subdomain) && { 
-      subdomain: Math.max(existingTags.confidence.subdomain || 0, newTags.confidence.subdomain || 0) 
-    },
-    ...(existingTags.confidence.contextual || newTags.confidence.contextual) && { 
-      contextual: Math.max(existingTags.confidence.contextual || 0, newTags.confidence.contextual || 0) 
-    },
-    ...(existingTags.confidence.conversation_type || newTags.confidence.conversation_type) && { 
-      conversation_type: Math.max(existingTags.confidence.conversation_type || 0, newTags.confidence.conversation_type || 0) 
-    }
+    ...((existingTags.confidence.year ?? newTags.confidence.year) && {
+      year: Math.max(existingTags.confidence.year ?? 0, newTags.confidence.year ?? 0),
+    }),
+    ...((existingTags.confidence.life_area ?? newTags.confidence.life_area) && {
+      life_area: Math.max(existingTags.confidence.life_area ?? 0, newTags.confidence.life_area ?? 0),
+    }),
+    ...((existingTags.confidence.domain ?? newTags.confidence.domain) && {
+      domain: Math.max(existingTags.confidence.domain ?? 0, newTags.confidence.domain ?? 0),
+    }),
+    ...((existingTags.confidence.subdomain ?? newTags.confidence.subdomain) && {
+      subdomain: Math.max(existingTags.confidence.subdomain ?? 0, newTags.confidence.subdomain ?? 0),
+    }),
+    ...((existingTags.confidence.contextual ?? newTags.confidence.contextual) && {
+      contextual: Math.max(existingTags.confidence.contextual ?? 0, newTags.confidence.contextual ?? 0),
+    }),
+    ...((existingTags.confidence.conversation_type ?? newTags.confidence.conversation_type) && {
+      conversation_type: Math.max(
+        existingTags.confidence.conversation_type ?? 0,
+        newTags.confidence.conversation_type ?? 0
+      ),
+    }),
   };
-  
+
   return {
     // Use new year if confidence is higher, otherwise keep existing
-    year: newTags.confidence.year && (!existingTags.confidence.year || 
-      (newTags.confidence.year > existingTags.confidence.year))
-      ? newTags.year
-      : existingTags.year,
-      
+    year:
+      newTags.confidence.year &&
+      (!existingTags.confidence.year || newTags.confidence.year > existingTags.confidence.year)
+        ? newTags.year
+        : existingTags.year,
+
     // Use new life area if confidence is higher or existing doesn't have one
-    life_area: newTags.life_area && (!existingTags.life_area || 
-      (newTags.confidence.life_area && existingTags.confidence.life_area && 
-       newTags.confidence.life_area > existingTags.confidence.life_area))
-      ? newTags.life_area
-      : existingTags.life_area,
-      
+    life_area:
+      newTags.life_area &&
+      (!existingTags.life_area ||
+        (newTags.confidence.life_area &&
+          existingTags.confidence.life_area &&
+          newTags.confidence.life_area > existingTags.confidence.life_area))
+        ? newTags.life_area
+        : existingTags.life_area,
+
     // Combine topical tags, preferring ones with higher confidence
     topical_tags: mergeTopicalTags(existingTags.topical_tags, newTags.topical_tags),
-    
+
     // Use new conversation type if confidence is higher, otherwise keep existing
-    conversation_type: newTags.confidence.conversation_type && 
-      (!existingTags.confidence.conversation_type || 
-       (newTags.confidence.conversation_type > existingTags.confidence.conversation_type))
-      ? newTags.conversation_type
-      : existingTags.conversation_type,
-      
+    conversation_type:
+      newTags.confidence.conversation_type &&
+      (!existingTags.confidence.conversation_type ||
+        newTags.confidence.conversation_type > existingTags.confidence.conversation_type)
+        ? newTags.conversation_type
+        : existingTags.conversation_type,
+
     // Calculate new confidence scores
-    confidence: mergedConfidence as TagConfidence,
-    
+    confidence: mergedConfidence as Tags.TagConfidence,
+
     // Merge explanations
     explanations: {
       ...existingTags.explanations,
-      ...newTags.explanations
-    }
+      ...newTags.explanations,
+    },
   };
 }
 
@@ -218,19 +218,15 @@ export function mergeTagSets(
  * @param newTags - New topical tags
  * @returns Merged topical tags array
  */
-function mergeTopicalTags(
-  existingTags: TopicalTag[],
-  newTags: TopicalTag[]
-): TopicalTag[] {
+function mergeTopicalTags(existingTags: Tags.TopicalTag[], newTags: Tags.TopicalTag[]): Tags.TopicalTag[] {
   const mergedTags = [...existingTags];
-  
+
   for (const newTag of newTags) {
     // Check if tag already exists
-    const existingIndex = mergedTags.findIndex(tag => 
-      tag.domain === newTag.domain && 
-      tag.subdomain === newTag.subdomain
+    const existingIndex = mergedTags.findIndex(
+      (tag) => tag.domain === newTag.domain && tag.subdomain === newTag.subdomain
     );
-    
+
     if (existingIndex === -1) {
       // Tag doesn't exist, add it
       mergedTags.push(newTag);
@@ -241,12 +237,12 @@ function mergeTopicalTags(
         mergedTags[existingIndex] = {
           domain: existingTag.domain,
           subdomain: existingTag.subdomain,
-          contextual: newTag.contextual
+          contextual: newTag.contextual,
         };
       }
     }
   }
-  
+
   return mergedTags;
 }
 
@@ -255,7 +251,7 @@ function mergeTopicalTags(
  * @param tagSet - Tag set to calculate confidence for
  * @returns Overall confidence score
  */
-export function getOverallConfidence(tagSet: TagSet): ConfidenceScore {
+export function getOverallConfidence(tagSet: Tags.TagSet): Tags.ConfidenceScore {
   return tagSet.confidence.overall;
 }
 
@@ -265,7 +261,7 @@ export function getOverallConfidence(tagSet: TagSet): ConfidenceScore {
  * @param threshold - Confidence threshold (default: 0.7)
  * @returns True if tag set needs review
  */
-export function needsReview(tagSet: TagSet, threshold = 0.7): boolean {
+export function needsReview(tagSet: Tags.TagSet, threshold = 0.7): boolean {
   return tagSet.confidence.overall < threshold;
 }
 
@@ -274,8 +270,8 @@ export function needsReview(tagSet: TagSet, threshold = 0.7): boolean {
  * @param tagSet - Tag set to extract domains from
  * @returns Array of unique domains
  */
-export function getAllDomains(tagSet: TagSet): DomainTag[] {
-  return [...new Set(tagSet.topical_tags.map(tag => tag.domain))];
+export function getAllDomains(tagSet: Tags.TagSet): Tags.DomainTag[] {
+  return [...new Set(tagSet.topical_tags.map((tag) => tag.domain))];
 }
 
 /**
@@ -283,12 +279,14 @@ export function getAllDomains(tagSet: TagSet): DomainTag[] {
  * @param tagSet - Tag set to extract subdomains from
  * @returns Array of unique subdomains (excluding undefined)
  */
-export function getAllSubdomains(tagSet: TagSet): SubdomainTag[] {
-  return [...new Set(
-    tagSet.topical_tags
-      .map(tag => tag.subdomain)
-      .filter((subdomain): subdomain is SubdomainTag => subdomain !== undefined)
-  )];
+export function getAllSubdomains(tagSet: Tags.TagSet): Tags.SubdomainTag[] {
+  return [
+    ...new Set(
+      tagSet.topical_tags
+        .map((tag) => tag.subdomain)
+        .filter((subdomain): subdomain is Tags.SubdomainTag => subdomain !== undefined)
+    ),
+  ];
 }
 
 /**
@@ -296,10 +294,12 @@ export function getAllSubdomains(tagSet: TagSet): SubdomainTag[] {
  * @param tagSet - Tag set to extract contextual tags from
  * @returns Array of unique contextual tags (excluding undefined)
  */
-export function getAllContextualTags(tagSet: TagSet): string[] {
-  return [...new Set(
-    tagSet.topical_tags
-      .map(tag => tag.contextual)
-      .filter((contextual): contextual is string => contextual !== undefined)
-  )];
-} 
+export function getAllContextualTags(tagSet: Tags.TagSet): string[] {
+  return [
+    ...new Set(
+      tagSet.topical_tags
+        .map((tag) => tag.contextual)
+        .filter((contextual): contextual is string => contextual !== undefined)
+    ),
+  ];
+}

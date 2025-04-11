@@ -3,10 +3,9 @@
   "compilerOptions": {
     "composite": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node"]
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../types" }
-  ]
+  "references": [{ "path": "../types" }]
 }

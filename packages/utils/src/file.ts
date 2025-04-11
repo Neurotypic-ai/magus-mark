@@ -1,8 +1,9 @@
 /**
  * File utility functions for Obsidian Magic
  */
+import path from 'node:path';
+
 import fs from 'fs-extra';
-import path from 'path';
 import { z } from 'zod';
 
 /**
@@ -69,10 +70,8 @@ export async function writeFile(filePath: string, content: string): Promise<void
  * @param pretty - Whether to format the JSON (default: true)
  */
 export async function writeJsonFile<T>(filePath: string, data: T, pretty = true): Promise<void> {
-  const content = pretty 
-    ? JSON.stringify(data, null, 2) 
-    : JSON.stringify(data);
-  
+  const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
+
   await writeFile(filePath, content);
 }
 
@@ -98,13 +97,13 @@ export async function fileExists(filePath: string): Promise<boolean> {
  */
 export async function findFiles(dirPath: string, pattern: RegExp): Promise<string[]> {
   const results: string[] = [];
-  
+
   async function scan(currentPath: string): Promise<void> {
     const entries = await fs.readdir(currentPath, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(currentPath, entry.name);
-      
+
       if (entry.isDirectory()) {
         await scan(fullPath);
       } else if (entry.isFile() && pattern.test(entry.name)) {
@@ -112,7 +111,7 @@ export async function findFiles(dirPath: string, pattern: RegExp): Promise<strin
       }
     }
   }
-  
+
   await scan(dirPath);
   return results;
 }
@@ -145,4 +144,4 @@ export async function safeDeleteFile(filePath: string): Promise<boolean> {
     }
     throw error;
   }
-} 
+}

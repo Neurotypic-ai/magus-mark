@@ -34,7 +34,7 @@ export function toKebabCase(text: string): string {
 export function toCamelCase(text: string): string {
   return text
     .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
-    .replace(/^[A-Z]/, firstChar => firstChar.toLowerCase());
+    .replace(/^[A-Z]/, (firstChar) => firstChar.toLowerCase());
 }
 
 /**
@@ -101,12 +101,12 @@ export function sanitizeHtml(html: string): string {
 export function randomString(length: number): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
-  
+
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     result += characters.charAt(randomIndex);
   }
-  
+
   return result;
 }
 
@@ -119,19 +119,19 @@ export function formatDuration(ms: number): string {
   if (ms < 1000) {
     return `${ms.toFixed(2)}ms`;
   }
-  
+
   const seconds = ms / 1000;
   if (seconds < 60) {
     return `${seconds.toFixed(2)}s`;
   }
-  
+
   const minutes = seconds / 60;
   if (minutes < 60) {
     const fullMinutes = Math.floor(minutes);
     const remainingSeconds = seconds - fullMinutes * 60;
     return `${fullMinutes}m ${remainingSeconds.toFixed(0)}s`;
   }
-  
+
   const hours = minutes / 60;
   const fullHours = Math.floor(hours);
   const remainingMinutes = Math.floor(minutes - fullHours * 60);
@@ -150,6 +150,6 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 4
+    maximumFractionDigits: 4,
   }).format(amount);
-} 
+}

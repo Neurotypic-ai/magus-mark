@@ -1,19 +1,10 @@
 /**
  * Validation utility functions for Obsidian Magic
  */
+import { DEFAULT_TAXONOMY } from '@obsidian-magic/core';
 import { z } from 'zod';
-import type { 
-  DomainTag, 
-  SubdomainMap, 
-  SubdomainTag, 
-  LifeAreaTag, 
-  ConversationTypeTag,
-  TagSet,
-  TopicalTag,
-  TagConfidence,
-  YearTag,
-  ConfidenceScore
-} from '@obsidian-magic/types';
+
+import type { ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainTag, TagSet, YearTag } from '@obsidian-magic/types';
 
 /**
  * Validates and ensures a value is between min and max (inclusive)
@@ -29,104 +20,71 @@ export function clamp(value: number, min: number, max: number): number {
 /**
  * Zod schema for validating confidence scores (0.0 to 1.0)
  */
-export const confidenceScoreSchema = z.number()
+export const confidenceScoreSchema = z
+  .number()
   .min(0)
   .max(1)
-  .refine(n => !isNaN(n), {
-    message: "Confidence score must be a valid number"
+  .refine((n) => !isNaN(n), {
+    message: 'Confidence score must be a valid number',
   });
 
 /**
  * Zod schema for validating year tags (4-digit years)
  */
-export const yearTagSchema = z.string()
+export const yearTagSchema = z
+  .string()
   .regex(/^\d{4}$/, {
-    message: "Year must be a 4-digit number"
+    message: 'Year must be a 4-digit number',
   })
-  .transform(val => val as YearTag);
+  .transform((val) => val as YearTag);
 
 /**
  * Dictionary of domains
  */
-export const DOMAINS = [
-  'software-development',
-  'philosophy',
-  'design',
-  'psychology',
-  'business',
-  'science',
-  'arts',
-  'entertainment',
-  'technology',
-  'health',
-  'education',
-  'finance'
-] as const;
+export const DOMAINS = DEFAULT_TAXONOMY.domains as readonly DomainTag[];
 
 /**
  * Dictionary of life areas
  */
-export const LIFE_AREAS = [
-  'career',
-  'relationships',
-  'health',
-  'learning',
-  'projects',
-  'personal-growth',
-  'finance',
-  'hobby'
-] as const;
+export const LIFE_AREAS = DEFAULT_TAXONOMY.lifeAreas as readonly LifeAreaTag[];
 
 /**
  * Dictionary of conversation types
  */
-export const CONVERSATION_TYPES = [
-  'theory',
-  'practical',
-  'meta',
-  'casual',
-  'adhd-thought',
-  'deep-dive',
-  'exploration',
-  'experimental',
-  'reflection',
-  'planning',
-  'question',
-  'analysis'
-] as const;
+export const CONVERSATION_TYPES = DEFAULT_TAXONOMY.conversationTypes as readonly ConversationTypeTag[];
 
 /**
  * Dictionary of subdomains by domain
  */
-export const SUBDOMAINS: Record<DomainTag, readonly SubdomainTag[]> = {
-  'software-development': ['frontend', 'backend', 'devops', 'mobile', 'data', 'security', 'architecture'] as const,
-  'philosophy': ['ethics', 'metaphysics', 'epistemology', 'logic', 'aesthetics'] as const,
-  'design': ['ux', 'ui', 'graphic', 'industrial', 'interaction'] as const,
-  'psychology': ['cognitive', 'clinical', 'developmental', 'social', 'behavioral'] as const,
-  'business': ['marketing', 'strategy', 'management', 'entrepreneurship', 'operations'] as const,
-  'science': ['physics', 'biology', 'chemistry', 'mathematics', 'computer-science'] as const,
-  'arts': ['visual', 'music', 'literature', 'performing', 'digital'] as const,
-  'entertainment': ['games', 'film', 'television', 'books', 'sports'] as const,
-  'technology': ['ai', 'blockchain', 'iot', 'vr-ar', 'robotics'] as const,
-  'health': ['fitness', 'nutrition', 'mental-health', 'medical', 'wellness'] as const,
-  'education': ['k12', 'higher-ed', 'professional', 'self-learning', 'teaching'] as const,
-  'finance': ['investing', 'personal-finance', 'corporate-finance', 'crypto', 'banking'] as const
-};
+export const SUBDOMAINS: Record<DomainTag, readonly SubdomainTag[]> = (() => {
+  const result: Partial<Record<DomainTag, readonly SubdomainTag[]>> = {};
+
+  // Convert the subdomains map from DEFAULT_TAXONOMY to the expected format
+  for (const domain of DEFAULT_TAXONOMY.domains) {
+    // TypeScript isn't smart enough to know these are valid keys
+    const subdomains = DEFAULT_TAXONOMY.subdomains[domain as keyof typeof DEFAULT_TAXONOMY.subdomains];
+    if (subdomains) {
+      result[domain as DomainTag] = subdomains as readonly SubdomainTag[];
+    }
+  }
+
+  return result as Record<DomainTag, readonly SubdomainTag[]>;
+})();
 
 /**
  * Zod schema for validating domain tags
  */
-export const domainTagSchema = z.enum(DOMAINS);
+export const domainTagSchema = z.enum(DOMAINS as any);
 
 /**
  * Zod schema for validating life area tags
  */
-export const lifeAreaTagSchema = z.enum(LIFE_AREAS);
+export const lifeAreaTagSchema = z.enum(LIFE_AREAS as any);
 
 /**
  * Zod schema for validating conversation type tags
  */
-export const conversationTypeTagSchema = z.enum(CONVERSATION_TYPES);
+export const conversationTypeTagSchema = z.enum(CONVERSATION_TYPES as any);
 
 /**
  * Zod schema for validating contextual tags
@@ -139,7 +97,7 @@ export const contextualTagSchema = z.string();
 export const topicalTagSchema = z.object({
   domain: domainTagSchema,
   subdomain: z.string().optional(),
-  contextual: z.string().optional()
+  contextual: z.string().optional(),
 });
 
 /**
@@ -152,7 +110,7 @@ export const tagConfidenceSchema = z.object({
   domain: confidenceScoreSchema.optional(),
   subdomain: confidenceScoreSchema.optional(),
   contextual: confidenceScoreSchema.optional(),
-  conversation_type: confidenceScoreSchema.optional()
+  conversation_type: confidenceScoreSchema.optional(),
 });
 
 /**
@@ -164,7 +122,7 @@ export const tagSetSchema = z.object({
   topical_tags: z.array(topicalTagSchema).min(1),
   conversation_type: conversationTypeTagSchema,
   confidence: tagConfidenceSchema,
-  explanations: z.record(z.string()).optional()
+  explanations: z.record(z.string()).optional(),
 });
 
 /**
@@ -173,11 +131,8 @@ export const tagSetSchema = z.object({
  * @param subdomain - Subdomain to check
  * @returns True if the domain has the subdomain
  */
-export function isDomainWithSubdomain(
-  domain: DomainTag,
-  subdomain: string
-): subdomain is SubdomainMap[typeof domain] {
-  return SUBDOMAINS[domain].includes(subdomain as any);
+export function isDomainWithSubdomain(domain: DomainTag, subdomain: string): boolean {
+  return SUBDOMAINS[domain]?.includes(subdomain) ?? false;
 }
 
 /**
@@ -195,7 +150,7 @@ export function validateTagSet(tagSet: unknown): TagSet {
  * @returns Array of subdomains
  */
 export function getSubdomainsForDomain(domain: DomainTag): readonly SubdomainTag[] {
-  return SUBDOMAINS[domain];
+  return SUBDOMAINS[domain] ?? [];
 }
 
 /**
@@ -204,7 +159,7 @@ export function getSubdomainsForDomain(domain: DomainTag): readonly SubdomainTag
  * @returns True if value is a valid domain
  */
 export function isValidDomain(value: string): value is DomainTag {
-  return DOMAINS.includes(value as any);
+  return (DOMAINS as readonly string[]).includes(value);
 }
 
 /**
@@ -213,7 +168,7 @@ export function isValidDomain(value: string): value is DomainTag {
  * @returns True if value is a valid life area
  */
 export function isValidLifeArea(value: string): value is LifeAreaTag {
-  return LIFE_AREAS.includes(value as any);
+  return (LIFE_AREAS as readonly string[]).includes(value);
 }
 
 /**
@@ -222,5 +177,5 @@ export function isValidLifeArea(value: string): value is LifeAreaTag {
  * @returns True if value is a valid conversation type
  */
 export function isValidConversationType(value: string): value is ConversationTypeTag {
-  return CONVERSATION_TYPES.includes(value as any);
-} 
+  return (CONVERSATION_TYPES as readonly string[]).includes(value);
+}

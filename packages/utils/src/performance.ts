@@ -16,7 +16,7 @@ export async function measureExecutionTime<T>(
   const result = await fn(...args);
   const end = performance.now();
   const timeTaken = end - start;
-  
+
   return { result, timeTaken };
 }
 
@@ -34,7 +34,7 @@ export function measureExecutionTimeSync<T>(
   const result = fn(...args);
   const end = performance.now();
   const timeTaken = end - start;
-  
+
   return { result, timeTaken };
 }
 
@@ -44,17 +44,14 @@ export function measureExecutionTimeSync<T>(
  * @param delay - Delay in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: any[]) => void>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout | null = null;
-  
-  return function(...args: Parameters<T>): void {
+
+  return function (...args: Parameters<T>): void {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    
+
     timeoutId = setTimeout(() => {
       fn(...args);
       timeoutId = null;
@@ -68,25 +65,25 @@ export function debounce<T extends (...args: any[]) => void>(
  * @param limit - Time limit in milliseconds
  * @returns Throttled function
  */
-export function throttle<T extends (...args: any[]) => void>(
-  fn: T,
-  limit: number
-): (...args: Parameters<T>) => void {
+export function throttle<T extends (...args: any[]) => void>(fn: T, limit: number): (...args: Parameters<T>) => void {
   let lastCall = 0;
   let timeoutId: NodeJS.Timeout | null = null;
-  
-  return function(...args: Parameters<T>): void {
+
+  return function (...args: Parameters<T>): void {
     const now = Date.now();
-    
+
     if (now - lastCall >= limit) {
       fn(...args);
       lastCall = now;
     } else if (!timeoutId) {
-      timeoutId = setTimeout(() => {
-        fn(...args);
-        lastCall = Date.now();
-        timeoutId = null;
-      }, limit - (now - lastCall));
+      timeoutId = setTimeout(
+        () => {
+          fn(...args);
+          lastCall = Date.now();
+          timeoutId = null;
+        },
+        limit - (now - lastCall)
+      );
     }
   };
 }
@@ -96,18 +93,16 @@ export function throttle<T extends (...args: any[]) => void>(
  * @param fn - Function to memoize
  * @returns Memoized function
  */
-export function memoize<T extends (...args: any[]) => any>(
-  fn: T
-): (...args: Parameters<T>) => ReturnType<T> {
+export function memoize<T extends (...args: any[]) => any>(fn: T): (...args: Parameters<T>) => ReturnType<T> {
   const cache = new Map<string, ReturnType<T>>();
-  
-  return function(...args: Parameters<T>): ReturnType<T> {
+
+  return function (...args: Parameters<T>): ReturnType<T> {
     const key = JSON.stringify(args);
-    
+
     if (cache.has(key)) {
       return cache.get(key)!;
     }
-    
+
     const result = fn(...args);
     cache.set(key, result);
     return result;
@@ -120,43 +115,43 @@ export function memoize<T extends (...args: any[]) => any>(
  * @param concurrency - Maximum number of concurrent tasks
  * @returns Promise that resolves when all tasks complete
  */
-export async function runWithConcurrencyLimit<T>(
-  tasks: (() => Promise<T>)[],
-  concurrency: number
-): Promise<T[]> {
+export async function runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
   const results: T[] = [];
   let nextTaskIndex = 0;
   const inProgress = new Set<Promise<void>>();
-  
+
   async function runTask(taskIndex: number): Promise<void> {
     try {
-      const result = await tasks[taskIndex]();
-      results[taskIndex] = result;
+      const task = tasks[taskIndex];
+      if (task) {
+        const result = await task();
+        results[taskIndex] = result;
+      }
     } catch (error) {
       results[taskIndex] = error as any;
     }
   }
-  
+
   while (nextTaskIndex < tasks.length || inProgress.size > 0) {
     // Start new tasks if we haven't hit the concurrency limit
     while (inProgress.size < concurrency && nextTaskIndex < tasks.length) {
       const taskPromise = runTask(nextTaskIndex);
       inProgress.add(taskPromise);
-      
+
       // Remove the task from in-progress when it completes
       taskPromise.then(() => {
         inProgress.delete(taskPromise);
       });
-      
+
       nextTaskIndex++;
     }
-    
+
     // Wait for any task to complete if we've hit the limit
     if (inProgress.size >= concurrency) {
       await Promise.race(inProgress);
     }
   }
-  
+
   return results;
 }
 
@@ -169,12 +164,15 @@ export async function runWithConcurrencyLimit<T>(
 export async function measureMemoryUsage<T>(
   fn: (...args: any[]) => Promise<T>,
   ...args: any[]
-): Promise<{ result: T; memoryStats: { before: NodeJS.MemoryUsage; after: NodeJS.MemoryUsage; diff: Record<string, number> } }> {
+): Promise<{
+  result: T;
+  memoryStats: { before: NodeJS.MemoryUsage; after: NodeJS.MemoryUsage; diff: Record<string, number> };
+}> {
   // Note: For more accurate measurements, run Node.js with --expose-gc flag and call gc() here
   const before = process.memoryUsage();
   const result = await fn(...args);
   const after = process.memoryUsage();
-  
+
   // Calculate difference
   const diff: Record<string, number> = {};
   for (const key in before) {
@@ -183,9 +181,9 @@ export async function measureMemoryUsage<T>(
       diff[key] = after[typedKey] - before[typedKey];
     }
   }
-  
+
   return {
     result,
-    memoryStats: { before, after, diff }
+    memoryStats: { before, after, diff },
   };
-} 
+}
