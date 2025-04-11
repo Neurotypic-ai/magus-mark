@@ -42,10 +42,10 @@ interface VSCodeCommandsTool {
     commands: Array<{
       id: string;
       title: string;
-      category?: string | undefined;
-      keybinding?: string | undefined;
+      category?: string;
+      keybinding?: string;
     }>;
-    executed?: string | undefined;
+    executed?: string;
   }>;
 }
 
@@ -75,15 +75,17 @@ type VSCodeTool = VSCodeSettingsTool | VSCodeCommandsTool | VSCodeDocumentationT
 
 /**
  * @vscode participant implementation for Obsidian Magic's Cursor integration
- * Based on VS Code's implementation mentioned in official blog posts
+ * Based on Cursor's Model Context Protocol specification
  */
-export class VSCodeParticipant {
+export class VSCodeParticipant implements vscode.Disposable {
   private tools: VSCodeTool[] = [];
   private readonly settingsCache: Map<string, any> = new Map();
-  private readonly commandsCache: Map<string, ExtendedCommand> = new Map();
+  private readonly commandsCache: Map<string, vscode.Command> = new Map();
+  private readonly context: vscode.ExtensionContext;
   private disposables: vscode.Disposable[] = [];
 
-  constructor() {
+  constructor(context: vscode.ExtensionContext) {
+    this.context = context;
     this.initializeTools();
     this.cacheSettings();
     this.cacheCommands();
@@ -152,11 +154,11 @@ export class VSCodeParticipant {
       description: 'Search and execute VS Code commands with natural language',
       parameters: {
         query: 'The natural language query to search commands',
-        execute: false
+        execute: 'Whether to execute the top matching command'
       },
       execute: async (params) => {
         const query = params.query.toLowerCase();
-        const shouldExecute = Boolean(params.execute) || false;
+        const shouldExecute = params.execute || false;
         const results = [];
 
         // Search in cached commands
@@ -181,16 +183,14 @@ export class VSCodeParticipant {
         results.sort((a, b) => b.matchScore - a.matchScore);
         
         // Execute top command if requested
-        let executed: string | undefined;
+        let executed;
         if (shouldExecute && results.length > 0) {
           const topCommand = results[0];
-          if (topCommand) {
-            await vscode.commands.executeCommand(topCommand.id);
-            executed = topCommand.id;
-          }
+          await vscode.commands.executeCommand(topCommand.id);
+          executed = topCommand.id;
         }
         
-        // Return results, removing matchScore property and ensuring optional properties
+        // Return results, removing matchScore property
         return {
           commands: results.slice(0, 10).map(({ matchScore, ...rest }) => rest),
           executed
@@ -296,10 +296,10 @@ export class VSCodeParticipant {
           category: 'Workbench'
         },
         {
-          id: 'workbench.activityBar.orientation',
-          title: 'Activity Bar Orientation',
-          description: 'Controls the orientation of the activity bar (vertical or horizontal).',
-          default: 'vertical',
+          id: 'workbench.activityBar.location',
+          title: 'Activity Bar Location',
+          description: 'Controls the location of the activity bar (left, right, or hidden).',
+          default: 'left',
           category: 'Workbench'
         }
       ];
@@ -322,22 +322,22 @@ export class VSCodeParticipant {
       // For now, we'll use a small set of common commands as an example
       const commonCommands = [
         {
-          command: 'workbench.action.openSettings',
+          id: 'workbench.action.openSettings',
           title: 'Open Settings',
           category: 'Preferences'
         },
         {
-          command: 'workbench.action.openCommandPalette',
+          id: 'workbench.action.openCommandPalette',
           title: 'Show Command Palette',
           category: 'View'
         },
         {
-          command: 'editor.action.formatDocument',
+          id: 'editor.action.formatDocument',
           title: 'Format Document',
           category: 'Editor'
         },
         {
-          command: 'workbench.action.toggleSidebarVisibility',
+          id: 'workbench.action.toggleSidebarVisibility',
           title: 'Toggle Sidebar Visibility',
           category: 'View'
         }
@@ -345,7 +345,7 @@ export class VSCodeParticipant {
       
       // Cache commands
       for (const command of commonCommands) {
-        this.commandsCache.set(command.command, command as ExtendedCommand);
+        this.commandsCache.set(command.id, command as vscode.Command);
       }
     } catch (error) {
       console.error('Failed to cache commands:', error);

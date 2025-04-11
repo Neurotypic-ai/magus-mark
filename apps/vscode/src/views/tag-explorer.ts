@@ -1,242 +1,310 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
-/**
- * Tag data model for the explorer
- */
-export interface Tag {
+// Tag node representation for the tree view
+interface TagNode {
   id: string;
   name: string;
-  color?: string;
+  description?: string;
+  children: TagNode[];
+  type: 'tag' | 'category';
   count: number;
-  children?: Tag[];
 }
 
 /**
- * Tree data provider for the Obsidian Magic Tag Explorer
+ * TagExplorer class - Provides a tree data provider for the Obsidian Magic tag explorer
  */
-export class TagExplorerProvider implements vscode.TreeDataProvider<TagTreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<TagTreeItem | undefined | null | void> = new vscode.EventEmitter<TagTreeItem | undefined | null | void>();
-  readonly onDidChangeTreeData: vscode.Event<TagTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Disposable {
+  private _onDidChangeTreeData: vscode.EventEmitter<TagNode | undefined | null | void> = new vscode.EventEmitter<TagNode | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<TagNode | undefined | null | void> = this._onDidChangeTreeData.event;
   
-  private tags: Tag[] = [];
-
-  constructor() {
-    // Load tags initially with mock data
-    this.loadTags();
+  private context: vscode.ExtensionContext;
+  private tags: TagNode[] = [];
+  private disposables: vscode.Disposable[] = [];
+  
+  constructor(context: vscode.ExtensionContext) {
+    this.context = context;
+    
+    // Load initial tag data
+    this.loadTagData();
+    
+    // Register for events that might change tag data
+    this.registerEventHandlers();
   }
-
+    getParent?(element: TagNode): vscode.ProviderResult<TagNode> {
+        throw new Error('Method not implemented.');
+    }
+    resolveTreeItem?(item: vscode.TreeItem, element: TagNode, token: vscode.CancellationToken): vscode.ProviderResult<vscode.TreeItem> {
+        throw new Error('Method not implemented.');
+    }
+  
+  /**
+   * Load tag data - in a real implementation, this would load from the core tagging system
+   */
+  private loadTagData(): void {
+    // Mock data - in a real implementation, this would come from the tagging system
+    this.tags = [
+      {
+        id: 'concept',
+        name: 'Concept',
+        type: 'category',
+        description: 'Conceptual discussions',
+        count: 15,
+        children: [
+          {
+            id: 'concept.architecture',
+            name: 'Architecture',
+            type: 'tag',
+            description: 'System architecture discussions',
+            count: 8,
+            children: []
+          },
+          {
+            id: 'concept.algorithms',
+            name: 'Algorithms',
+            type: 'tag',
+            description: 'Algorithm discussions',
+            count: 7,
+            children: []
+          }
+        ]
+      },
+      {
+        id: 'implementation',
+        name: 'Implementation',
+        type: 'category',
+        description: 'Implementation details',
+        count: 23,
+        children: [
+          {
+            id: 'implementation.typescript',
+            name: 'TypeScript',
+            type: 'tag',
+            description: 'TypeScript implementation details',
+            count: 12,
+            children: []
+          },
+          {
+            id: 'implementation.python',
+            name: 'Python',
+            type: 'tag',
+            description: 'Python implementation details',
+            count: 11,
+            children: []
+          }
+        ]
+      },
+      {
+        id: 'ai',
+        name: 'AI',
+        type: 'category',
+        description: 'AI-related discussions',
+        count: 18,
+        children: [
+          {
+            id: 'ai.openai',
+            name: 'OpenAI',
+            type: 'tag',
+            description: 'OpenAI-specific discussions',
+            count: 10,
+            children: []
+          },
+          {
+            id: 'ai.anthropic',
+            name: 'Anthropic',
+            type: 'tag',
+            description: 'Anthropic-specific discussions',
+            count: 8,
+            children: []
+          }
+        ]
+      }
+    ];
+    
+    // Notify tree view of data changes
+    this.refresh();
+  }
+  
+  /**
+   * Register for events that might change tag data
+   */
+  private registerEventHandlers(): void {
+    // Listen for command to add a new tag
+    const addTagDisposable = vscode.commands.registerCommand('obsidian-magic.addTag', async () => {
+      // Prompt for tag name
+      const tagName = await vscode.window.showInputBox({
+        placeHolder: 'Enter tag name',
+        prompt: 'Enter a new tag name'
+      });
+      
+      if (!tagName) return;
+      
+      // Prompt for description
+      const description = await vscode.window.showInputBox({
+        placeHolder: 'Enter tag description (optional)',
+        prompt: 'Enter a description for the tag'
+      });
+      
+      // Prompt for category
+      const categories = this.tags.map(tag => tag.name);
+      let category = await vscode.window.showQuickPick(
+        ['<New Category>', ...categories],
+        { placeHolder: 'Select category or create new' }
+      );
+      
+      if (!category) return;
+      
+      // If new category selected, prompt for category name
+      if (category === '<New Category>') {
+        category = await vscode.window.showInputBox({
+          placeHolder: 'Enter category name',
+          prompt: 'Enter a new category name'
+        });
+        
+        if (!category) return;
+        
+        // Add new category
+        this.tags.push({
+          id: category.toLowerCase().replace(/\s+/g, '-'),
+          name: category,
+          type: 'category',
+          count: 0,
+          children: []
+        });
+      }
+      
+      // Find category node
+      const categoryNode = this.tags.find(tag => tag.name === category);
+      
+      if (categoryNode) {
+        // Add new tag to category
+        categoryNode.children.push({
+          id: `${categoryNode.id}.${tagName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: tagName,
+          type: 'tag',
+          description,
+          count: 0,
+          children: []
+        });
+        
+        // Update category count
+        categoryNode.count++;
+        
+        // Refresh the tree view
+        this.refresh();
+        
+        vscode.window.showInformationMessage(`Tag '${tagName}' added to category '${category}'`);
+      }
+    });
+    
+    // Listen for command to delete a tag
+    const deleteTagDisposable = vscode.commands.registerCommand('obsidian-magic.deleteTag', async (node: TagNode) => {
+      if (!node) return;
+      
+      // Confirm deletion
+      const confirmation = await vscode.window.showWarningMessage(
+        `Are you sure you want to delete tag '${node.name}'?`,
+        'Yes',
+        'No'
+      );
+      
+      if (confirmation !== 'Yes') return;
+      
+      // Find parent category
+      const categoryId = node.id.split('.')[0];
+      const category = this.tags.find(tag => tag.id === categoryId);
+      
+      if (category) {
+        // Remove tag from category
+        category.children = category.children.filter(child => child.id !== node.id);
+        
+        // Update category count
+        category.count = category.children.length;
+        
+        // Refresh the tree view
+        this.refresh();
+        
+        vscode.window.showInformationMessage(`Tag '${node.name}' deleted`);
+      }
+    });
+    
+    this.disposables.push(addTagDisposable, deleteTagDisposable);
+  }
+  
   /**
    * Refresh the tree view
    */
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
-
+  
   /**
-   * Load tags from the data source
-   * In a real implementation, this would connect to the tag system
+   * Get tree item for a given element
    */
-  private loadTags(): void {
-    // Mock data for now
-    this.tags = [
-      {
-        id: 'concepts',
-        name: 'Concepts',
-        color: '#4287f5',
-        count: 15,
-        children: [
-          { id: 'ai', name: 'AI', color: '#42b0f5', count: 8 },
-          { id: 'programming', name: 'Programming', color: '#42f5a7', count: 7 }
-        ]
-      },
-      {
-        id: 'projects',
-        name: 'Projects',
-        color: '#f542b0',
-        count: 10,
-        children: [
-          { id: 'obsidian-magic', name: 'Obsidian Magic', color: '#f5b042', count: 5 },
-          { id: 'personal', name: 'Personal', color: '#f55442', count: 5 }
-        ]
-      },
-      {
-        id: 'status',
-        name: 'Status',
-        color: '#a142f5',
-        count: 8,
-        children: [
-          { id: 'todo', name: 'Todo', color: '#f54242', count: 3 },
-          { id: 'in-progress', name: 'In Progress', color: '#f5d042', count: 2 },
-          { id: 'completed', name: 'Completed', color: '#42f54e', count: 3 }
-        ]
-      }
-    ];
-  }
-
-  /**
-   * Get TreeItem for a given element
-   */
-  getTreeItem(element: TagTreeItem): vscode.TreeItem {
-    return element;
-  }
-
-  /**
-   * Get children for a given element
-   */
-  getChildren(element?: TagTreeItem): Thenable<TagTreeItem[]> {
-    if (!element) {
-      // Root level - return top-level tags
-      return Promise.resolve(this.tags.map(tag => new TagTreeItem(tag)));
-    } else {
-      // Child level - return children if any
-      return Promise.resolve(
-        (element.tag.children || []).map(child => new TagTreeItem(child))
-      );
-    }
-  }
-
-  /**
-   * Add a new tag
-   */
-  addTag(name: string, parentId?: string): void {
-    const newTag: Tag = {
-      id: name.toLowerCase().replace(/\s+/g, '-'),
-      name,
-      color: this.getRandomColor(),
-      count: 0
-    };
-
-    if (parentId) {
-      // Add as child to existing tag
-      const addChildToTag = (tags: Tag[]): boolean => {
-        for (const tag of tags) {
-          if (tag.id === parentId) {
-            tag.children = tag.children || [];
-            tag.children.push(newTag);
-            return true;
-          }
-          if (tag.children) {
-            if (addChildToTag(tag.children)) {
-              return true;
-            }
-          }
-        }
-        return false;
-      };
-
-      addChildToTag(this.tags);
-    } else {
-      // Add as top-level tag
-      this.tags.push(newTag);
-    }
-
-    this.refresh();
-  }
-
-  /**
-   * Delete a tag
-   */
-  deleteTag(id: string): void {
-    // Remove from top level
-    this.tags = this.tags.filter(tag => tag.id !== id);
-    
-    // Remove from children
-    const removeFromChildren = (tags: Tag[]): void => {
-      for (const tag of tags) {
-        if (tag.children) {
-          tag.children = tag.children.filter(child => child.id !== id);
-          removeFromChildren(tag.children);
-        }
-      }
-    };
-    
-    removeFromChildren(this.tags);
-    this.refresh();
-  }
-
-  /**
-   * Generate a random color for a new tag
-   */
-  private getRandomColor(): string {
-    const colors = [
-      '#4287f5', '#42b0f5', '#42f5a7', '#f542b0', 
-      '#f5b042', '#f55442', '#a142f5', '#f54242'
-    ];
-    const index = Math.floor(Math.random() * colors.length);
-    return colors[index] || '#4287f5'; // Provide default color in case of undefined
-  }
-}
-
-/**
- * TreeItem implementation for a tag
- */
-export class TagTreeItem extends vscode.TreeItem {
-  constructor(public readonly tag: Tag) {
-    super(
-      tag.name,
-      tag.children && tag.children.length > 0 
-        ? vscode.TreeItemCollapsibleState.Collapsed 
+  getTreeItem(element: TagNode): vscode.TreeItem {
+    const treeItem = new vscode.TreeItem(
+      element.name,
+      element.type === 'category' && element.children.length > 0
+        ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None
     );
     
-    this.tooltip = `${tag.name} (${tag.count} items)`;
-    this.description = `${tag.count}`;
-    this.contextValue = 'tag';
+    // Set tree item properties
+    treeItem.id = element.id;
+    treeItem.tooltip = element.description || element.name;
+    treeItem.contextValue = element.type;
     
-    // Apply tag-specific styles
-    this.iconPath = new vscode.ThemeIcon('tag', new vscode.ThemeColor('charts.blue'));
-    
-    // Set color if available
-    if (tag.color) {
-      // VS Code doesn't support direct color styling in TreeItems
-      // In a full implementation, we would use decorations or custom views
+    // Set appropriate icon based on type
+    if (element.type === 'category') {
+      treeItem.iconPath = new vscode.ThemeIcon('symbol-folder');
+    } else {
+      treeItem.iconPath = new vscode.ThemeIcon('tag');
     }
+    
+    // Add badge for count if greater than 0
+    if (element.count > 0) {
+      treeItem.description = `${element.count}`;
+    }
+    
+    return treeItem;
+  }
+  
+  /**
+   * Get children for a given element, or root if no element provided
+   */
+  getChildren(element?: TagNode): TagNode[] {
+    if (!element) {
+      return this.tags;
+    }
+    
+    return element.children;
+  }
+  
+  /**
+   * Dispose of resources
+   */
+  dispose(): void {
+    this.disposables.forEach(d => d.dispose());
+    this.disposables = [];
+    this._onDidChangeTreeData.dispose();
   }
 }
 
 /**
- * Registers the Tag Explorer view
+ * Register the tag explorer tree view
  */
 export function registerTagExplorer(context: vscode.ExtensionContext): vscode.Disposable {
-  // Create the tree data provider
-  const tagExplorerProvider = new TagExplorerProvider();
+  // Create explorer instance
+  const tagExplorer = new TagExplorer(context);
   
-  // Register the tree data provider
+  // Register tree data provider
   const treeView = vscode.window.createTreeView('obsidianMagicTagExplorer', {
-    treeDataProvider: tagExplorerProvider,
+    treeDataProvider: tagExplorer,
     showCollapseAll: true
   });
   
-  // Register commands related to the tag explorer
-  const addTagCommand = vscode.commands.registerCommand('obsidian-magic.addTag', async () => {
-    const tagName = await vscode.window.showInputBox({
-      placeHolder: 'Enter tag name',
-      prompt: 'Create a new tag'
-    });
-    
-    if (tagName) {
-      tagExplorerProvider.addTag(tagName);
-      vscode.window.showInformationMessage(`Tag '${tagName}' created.`);
-    }
-  });
-  
-  const deleteTagCommand = vscode.commands.registerCommand('obsidian-magic.deleteTag', async (item: TagTreeItem) => {
-    if (item) {
-      const confirm = await vscode.window.showWarningMessage(
-        `Are you sure you want to delete tag '${item.tag.name}'?`,
-        { modal: true },
-        'Delete'
-      );
-      
-      if (confirm && confirm === 'Delete') {
-        tagExplorerProvider.deleteTag(item.tag.id);
-        vscode.window.showInformationMessage(`Tag '${item.tag.name}' deleted.`);
-      }
-    }
-  });
-  
-  // Add command registrations to context
-  context.subscriptions.push(treeView, addTagCommand, deleteTagCommand);
+  // Add explorer to disposables
+  context.subscriptions.push(tagExplorer);
   
   return treeView;
 } 

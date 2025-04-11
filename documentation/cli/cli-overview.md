@@ -1,6 +1,97 @@
-# Command Line Tool Overview
+# CLI Overview
 
-The CLI component of Obsidian Magic provides a robust command-line interface for batch processing of conversation files, with advanced cost management and intelligent workflow orchestration.
+The Obsidian Magic CLI is a command-line tool for processing and tagging AI conversations in Markdown files. It's designed to work seamlessly with Obsidian vaults but can process any Markdown files containing conversation exports.
+
+## Architecture
+
+The CLI is built with a modular architecture:
+
+- **Command Layer**: Yargs-based command registration and parsing
+- **Service Layer**: Core business logic implementation
+- **Utility Layer**: Helper functions and shared utilities
+- **UI Layer**: Interactive user interface components
+
+### Command Layer
+
+Commands are structured using Yargs' command module pattern, with each command defined in its own file in the `commands/` directory. This separation allows for easy addition of new commands and clear organization of code.
+
+Each command consists of:
+- Command name and description
+- Options and arguments definitions
+- Handler function with implementation
+
+### Service Layer
+
+The service layer interacts with the core tagging engine from `@obsidian-magic/core`. This layer is responsible for:
+- Preparing documents for tagging
+- Handling API interactions
+- Processing results
+- Updating files with new tags
+
+### Utility Layer
+
+Common utilities include:
+- Configuration management (`config.ts`)
+- Logging and output formatting (`logger.ts`)
+- Cost tracking and management (`cost-manager.ts`)
+- Error handling (`errors.ts`)
+- File operations (`frontmatter.ts`)
+- Workflow orchestration (`workflow.ts`)
+
+### UI Layer
+
+The UI components provide interactive elements:
+- Progress indicators
+- Interactive tag editing
+- Confirmation prompts
+- Cost warnings and notifications
+
+## Data Flow
+
+1. User invokes a command with arguments
+2. Command layer parses options and validates input
+3. Files are identified and prepared for processing
+4. Core engine processes files with OpenAI integration
+5. Results are formatted according to output preferences
+6. Files are updated with new tags (if not in dry-run mode)
+7. Summary statistics are presented to the user
+
+## Workflow Management
+
+The CLI implements efficient workflow management with:
+- Concurrency control for parallel processing
+- Cost management to stay within budget
+- Progress tracking for large batches
+- Error recovery for transient failures
+- Interactive feedback when needed
+
+## Configuration
+
+Configuration is managed through multiple layers:
+1. Built-in defaults
+2. Configuration files (via cosmiconfig)
+3. Environment variables
+4. Command-line arguments
+
+This layered approach allows for flexible configuration while maintaining sensible defaults.
+
+## Error Handling
+
+The CLI implements a comprehensive error handling strategy:
+- Custom error classes for different types of failures
+- Graceful degradation when possible
+- Clear error messages with actionable information
+- Debug logging for troubleshooting
+- Structured error reporting in JSON mode
+
+## Cross-Platform Compatibility
+
+The CLI is designed to work across:
+- macOS
+- Windows
+- Linux
+
+File paths, configuration storage, and terminal interactions are all implemented with cross-platform compatibility in mind.
 
 ## Key Features
 
@@ -12,31 +103,6 @@ The CLI component of Obsidian Magic provides a robust command-line interface for
 - Comprehensive benchmarking capabilities
 - Sophisticated workflow orchestration
 - Rich command-line interface with Yargs integration
-
-## Architecture
-
-The CLI tool uses a carefully selected set of high-quality dependencies to balance functionality with maintainability:
-
-### Core Technologies
-
-- **TypeScript**: Fully typed implementation with strict mode enabled
-- **Node.js**: Modern ESM modules with Node 18+ features
-- **OpenAI SDK**: Latest official SDK for API integrations
-
-### Essential Dependencies
-
-- **yargs**: Command line argument parsing with interactive menus and command grouping
-- **dotenv**: Environment variable management with support for different environments
-- **ora**: Terminal spinners for async operations
-- **cli-progress**: Progress bars for batch operations
-- **chalk**: Terminal styling for improved readability
-- **boxen**: Information boxes for statistics display
-- **conf**: Typed configuration storage for persisting settings
-- **tokenizers**: Accurate token counting for OpenAI models
-- **zod**: Runtime validation of configurations and API responses
-- **inquirer**: Interactive command-line prompts for guided workflows
-- **cosmiconfig**: Configuration discovery and loading from multiple sources
-- **fs-extra**: Extended file system operations for robust file handling
 
 ## Command Structure
 

@@ -8,10 +8,16 @@
     "tag-conversations": "./bin/tag-conversations.js"
   },
   "scripts": {
+    "prebuild": "node scripts/build.js",
     "build": "tsc -b",
     "clean": "rimraf dist",
     "test": "vitest run",
-    "start": "node dist/index.js"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "dev": "tsc -b -w",
+    "lint": "eslint src --ext .ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
     "@obsidian-magic/core": "workspace:*",

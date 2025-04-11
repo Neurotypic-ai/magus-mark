@@ -1,39 +1,26 @@
 # Obsidian Magic
 
-AI-powered tagging system for organizing ChatGPT conversations and other AI chat history in Obsidian.
+A suite of tools for organizing and tagging AI conversations in Obsidian.
 
-## Project Overview
+## Overview
 
-Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
+Obsidian Magic provides intelligent tagging and organization for AI chat exports, with a focus on making your knowledge base more searchable and navigable.
 
-## System Components
+## Components
 
-The system consists of:
-
-- **Core Tagging Engine** - A sophisticated classification system with hierarchical taxonomies
-- **OpenAI Integration** - Precision-engineered prompts for accurate classification
-- **Command Line Tool** - A TypeScript CLI for batch processing
-- **Obsidian Plugin** - Deep integration with the Obsidian knowledge management system
-- **VS Code & Cursor Integration** - Development environment extensions
-
-## Repository Structure
-
-```
-obsidian-magic/
-├── apps/                    # Application implementations
-│   ├── cli/                 # Command-line application
-│   ├── obsidian-plugin/     # Obsidian plugin
-│   └── vscode/              # VS Code extension
-├── packages/                # Shared packages
-│   ├── core/                # Core library package
-│   ├── types/               # Shared type definitions
-│   └── utils/               # Shared utilities
-├── documentation/           # Project documentation
-├── config/                  # Configuration files
-└── prompts/                 # OpenAI prompt templates
-```
+- **CLI Tool**: Process and tag conversations from the command line
+- **Obsidian Plugin**: Integration directly within Obsidian
+- **VS Code Extension**: Integration with VS Code and Cursor
 
 ## Getting Started
+
+### Prerequisites
+
+- Node.js 18 or higher
+- pnpm (for workspace management)
+- OpenAI API key
+
+### Installation
 
 ```bash
 # Clone the repository
@@ -45,27 +32,24 @@ pnpm install
 
 # Build all packages
 pnpm build
-
-# Run the CLI
-pnpm --filter @obsidian-magic/cli start
 ```
 
-## Development
+### Using the CLI
 
 ```bash
-# Watch mode for development
-pnpm dev
+# Set up your configuration
+cd apps/cli
+npm link
+tag-conversations setup
 
-# Run tests
-pnpm test
-
-# Lint files
-pnpm lint
-
-# Format files
-pnpm format
+# Process a file
+tag-conversations tag ./path/to/conversation.md
 ```
+
+## Documentation
+
+For more detailed documentation, see the [docs directory](./documentation/).
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.

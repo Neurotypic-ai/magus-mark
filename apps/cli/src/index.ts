@@ -29,6 +29,7 @@ try {
   if (fs.existsSync(packageJsonPath)) {
     const packageJson = fs.readJsonSync(packageJsonPath);
     version = packageJson.version;
+    logger.debug(`Obsidian Magic CLI version ${version}`);
   }
 } catch (error) {
   // Fallback to hardcoded version if package.json can't be read

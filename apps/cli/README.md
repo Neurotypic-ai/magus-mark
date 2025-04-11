@@ -5,10 +5,14 @@ Command-line tool for processing and tagging conversations in Obsidian markdown 
 ## Installation
 
 ```bash
-# Install globally
+# From the repository
+cd apps/cli
+npm link
+
+# Or install globally from npm (once published)
 npm install -g @obsidian-magic/cli
 
-# Or use npx without installing
+# Or use without installing
 npx @obsidian-magic/cli <command>
 ```
 
@@ -74,7 +78,8 @@ Subcommands:
 - `set <key> <value>`: Set configuration values
 - `import <file>`: Import configuration from file
 - `export`: Export configuration to file
-- `setup`: Interactive configuration setup
+- `reset`: Reset configuration to defaults
+- `setup`: Interactive configuration setup (alias: `tag-conversations setup`)
 
 ### `test`
 
@@ -123,6 +128,13 @@ tag-conversations taxonomy list
 tag-conversations taxonomy create --domain=Programming
 ```
 
+Subcommands:
+- `list`: List all taxonomies
+- `get <domain>`: Get a specific taxonomy
+- `create <domain>`: Create a new taxonomy
+- `update <domain>`: Update an existing taxonomy
+- `delete <domain>`: Delete a taxonomy
+
 Options:
 - `--domain`: Domain name
 - `--description`: Domain description
@@ -136,6 +148,31 @@ The CLI can be configured in multiple ways:
 2. Environment variables: `OPENAI_API_KEY=your-key tag-conversations`
 3. Configuration file: `tag-conversations --config=./my-config.json`
 4. Direct config commands: `tag-conversations config set apiKey your-key`
+
+Configuration is stored in:
+- macOS: `~/Library/Preferences/obsidian-magic-cli-nodejs`
+- Windows: `%APPDATA%\obsidian-magic-cli-nodejs\Config`
+- Linux: `~/.config/obsidian-magic-cli-nodejs`
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/obsidian-magic.git
+cd obsidian-magic
+
+# Install dependencies
+pnpm install
+
+# Build the CLI
+pnpm --filter @obsidian-magic/cli build
+
+# Run tests
+pnpm --filter @obsidian-magic/cli test
+
+# Watch mode for development
+pnpm --filter @obsidian-magic/cli dev
+```
 
 ## Documentation
 

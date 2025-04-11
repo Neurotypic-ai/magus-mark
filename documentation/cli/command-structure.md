@@ -1,130 +1,167 @@
-# CLI Command Structure & Options
+# Command Structure
 
-The Obsidian Magic CLI implements a comprehensive command structure with nested commands, option groups, and rich documentation.
+The CLI uses a hierarchical command structure with Yargs to provide a consistent and intuitive interface.
 
-## Main Command Groups
+## Command Organization
 
-```bash
-# Tag conversations
-tag-conversations tag [paths...] [options]
+Commands are organized into logical groups:
 
-# Run tests and benchmarks
-tag-conversations test [options]
+- **Core Operations**: `tag` - The primary functionality of tagging conversations
+- **Configuration**: `config`, `setup` - Managing settings and preferences
+- **Analysis & Reporting**: `stats`, `test` - Performance analysis and usage statistics
+- **Knowledge Management**: `taxonomy` - Managing tag taxonomies and classification schemes
 
-# Manage configuration
-tag-conversations config [command] [options]
+## Command Implementation
 
-# View statistics and reports
-tag-conversations stats [options]
+Each command is implemented as a Yargs CommandModule with:
+- Command name and description
+- Builder function defining options and examples
+- Handler function implementing the command logic
 
-# Taxonomy management
-tag-conversations taxonomy [command] [options]
-```
-
-## Tagging Command Options
-
-```bash
-# Basic usage
-tag-conversations tag ./convos/ --model=gpt-3.5-turbo
-
-# Core options
---model <name>           # Model to use for classification
---mode <mode>            # Operation mode: auto|interactive|differential
---dry-run                # Calculate tokens and estimate cost without processing
---force                  # Process all files regardless of existing tags
---concurrency <num>      # Number of parallel operations (default: 3)
-
-# Tag handling
---tag-mode <mode>        # How to handle existing tags: overwrite|merge|augment
---min-confidence <0-1>   # Minimum confidence threshold for auto-tagging
---review-threshold <0-1> # Confidence below which to flag for review
-
-# Cost management
---max-cost <dollars>     # Maximum budget for this run
---on-limit <action>      # Action on hitting limit: pause|warn|stop
-
-# Output control
---format <format>        # Output format: pretty|json|silent
---verbose                # Show detailed progress
---output <file>          # Save results to specified file
-```
-
-## Test/Benchmark Command
-
-```bash
-# Run standard tests
-tag-conversations test --samples=20
-
-# Comprehensive benchmark
-tag-conversations test --benchmark --all-models --report=report.json
-
-# Test options
---samples <number>       # Number of samples to process
---test-set <path>        # Path to test set with known classifications
---models <model,model>   # Models to test
---benchmark              # Run full benchmark suite
---report <file>          # Save detailed results to file
-```
-
-## Configuration Commands
-
-```bash
-# Set configuration values
-tag-conversations config set api-key <key>
-tag-conversations config set default-model gpt-4
-
-# View current configuration
-tag-conversations config get
-tag-conversations config get default-model
-
-# Import/export configuration
-tag-conversations config import ./config.json
-tag-conversations config export --format=json
-```
-
-## Taxonomy Management
-
-```bash
-# List all domains
-tag-conversations taxonomy list domains
-
-# Add new domain
-tag-conversations taxonomy add domain <name> --description="..."
-
-# Import taxonomy updates
-tag-conversations taxonomy import ./updated-taxonomy.json
+```typescript
+export const exampleCommand: CommandModule = {
+  command: 'example [options]',
+  describe: 'Example command description',
+  builder: (yargs) => {
+    return yargs
+      .option('option-name', {
+        describe: 'Description of option',
+        type: 'string'
+      })
+      .example('$0 example --option-name value', 'Example usage');
+  },
+  handler: async (argv) => {
+    // Command implementation
+  }
+};
 ```
 
 ## Global Options
 
-Options that apply to all commands:
+The following options are available to all commands:
 
-```bash
---help                   # Show help for command
---version                # Show version number
---config <path>          # Use specified config file
---log-level <level>      # Set log level: debug|info|warn|error
+- `--config`: Path to configuration file
+- `--verbose`: Enable verbose output
+- `--output-format`: Output format (pretty, json, silent)
+
+## Command: tag
+
+The primary command for processing and tagging conversations.
+
+```
+tag-conversations tag [paths..] [options]
 ```
 
-## Environment Variables
+### Arguments
 
-The CLI supports the following environment variables:
+- `paths`: Files or directories to process (required)
 
-- `OPENAI_API_KEY` - OpenAI API key for tagging
-- `OPENAI_ORG_ID` - Optional organization ID for OpenAI API
-- `TAG_CONVERSATIONS_CONFIG` - Path to config file
-- `TAG_CONVERSATIONS_LOG_LEVEL` - Log level
-- `TAG_CONVERSATIONS_MAX_COST` - Maximum cost in dollars
+### Options
 
-Environment variables can be loaded from a `.env` file in the current directory or specified with `--env-file`.
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--model` | string | gpt-3.5-turbo | Model to use (gpt-3.5-turbo, gpt-4, gpt-4o) |
+| `--mode` | string | auto | Operation mode (auto, interactive, differential) |
+| `--dry-run` | boolean | false | Calculate tokens without processing |
+| `--force` | boolean | false | Process all files regardless of existing tags |
+| `--concurrency` | number | 3 | Number of parallel operations |
+| `--tag-mode` | string | merge | How to handle existing tags (append, replace, merge) |
+| `--min-confidence` | number | 0.7 | Minimum threshold for auto-tagging |
+| `--review-threshold` | number | 0.5 | Confidence below which to flag for review |
+| `--max-cost` | number | - | Maximum budget for this run |
+| `--on-limit` | string | warn | Action on hitting limit (pause, warn, stop) |
+| `--output` | string | - | Save results to specified file |
 
-## Progressive Disclosure
+## Command: config
 
-The CLI implements progressive disclosure of complexity:
+Manage configuration options.
 
-- Basic commands are simple to use with good defaults
-- Advanced options are available but not required
-- Help documentation is comprehensive at every level
-- Examples are provided for common use cases
+```
+tag-conversations config <command> [options]
+```
 
-Command documentation is accessible through `--help` flags at any level of the command hierarchy. 
+### Subcommands
+
+- `get [key]`: View configuration values
+- `set <key> <value>`: Set configuration values
+- `import <file>`: Import configuration from file
+- `export`: Export configuration to file
+- `reset`: Reset configuration to defaults
+
+## Command: setup
+
+Interactive configuration setup, alias for `config setup`.
+
+```
+tag-conversations setup
+```
+
+## Command: test
+
+Run tests and benchmarks.
+
+```
+tag-conversations test [options]
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--benchmark` | boolean | false | Run performance benchmark |
+| `--samples` | number | 5 | Number of samples to test |
+| `--test-set` | string | - | Path to test set file |
+| `--models` | string | - | Comma-separated list of models to test |
+| `--report` | string | - | Path to save report |
+
+## Command: stats
+
+View statistics and reports.
+
+```
+tag-conversations stats [options]
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--period` | string | month | Time period (day, week, month, all) |
+| `--type` | string | all | Statistics type (usage, cost, all) |
+
+## Command: taxonomy
+
+Manage taxonomy.
+
+```
+tag-conversations taxonomy <command> [options]
+```
+
+### Subcommands
+
+- `list`: List all taxonomies
+- `get <domain>`: Get a specific taxonomy
+- `create <domain>`: Create a new taxonomy
+- `update <domain>`: Update an existing taxonomy
+- `delete <domain>`: Delete a taxonomy
+
+### Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `--domain` | string | Domain name |
+| `--description` | string | Domain description |
+| `--file` | string | Path to taxonomy file |
+
+## Exit Codes
+
+The CLI uses the following exit codes:
+
+| Code | Description |
+|------|-------------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Invalid argument |
+| 3 | API error |
+| 4 | Configuration error |
+| 5 | Cost limit exceeded 
