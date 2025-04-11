@@ -2,254 +2,100 @@
  * Core type definitions for Obsidian Magic
  */
 
-/**
- * Represents a year tag (strictly 4-digit years)
- */
-export type YearTag = `${number}`;
+// Export all model types
+export * from './models/tags';
+export * from './models/api';
+export * from './models/plugin';
+export * from './models/cli';
+export * from './models/vscode';
+
+// Export all validators
+export * from './validators/tags';
+export * from './validators/api';
 
 /**
- * Life area tags taxonomy
+ * Utility type for deep partial objects
  */
-export type LifeAreaTag = 
-  | 'career'
-  | 'relationships'
-  | 'health'
-  | 'learning'
-  | 'projects'
-  | 'personal-growth'
-  | 'finance'
-  | 'hobby';
+export type DeepPartial<T> = T extends object
+  ? { [P in keyof T]?: DeepPartial<T[P]> }
+  : T;
 
 /**
- * Primary knowledge domains
+ * Utility type for mapped record types
  */
-export type DomainTag =
-  | 'software-development'
-  | 'philosophy'
-  | 'design'
-  | 'psychology'
-  | 'business'
-  | 'science'
-  | 'arts'
-  | 'entertainment'
-  | 'technology'
-  | 'health'
-  | 'education'
-  | 'finance';
+export type StringRecord<T> = Record<string, T>;
 
 /**
- * Subdomains by primary domain
+ * Result type for operations that can fail
  */
-export interface SubdomainMap {
-  'software-development': 
-    | 'frontend' 
-    | 'backend' 
-    | 'devops' 
-    | 'mobile' 
-    | 'data' 
-    | 'security' 
-    | 'architecture';
-  'philosophy': 
-    | 'ethics' 
-    | 'metaphysics' 
-    | 'epistemology' 
-    | 'logic' 
-    | 'aesthetics';
-  'design': 
-    | 'ux' 
-    | 'ui' 
-    | 'graphic' 
-    | 'industrial' 
-    | 'interaction';
-  'psychology': 
-    | 'cognitive' 
-    | 'clinical' 
-    | 'developmental' 
-    | 'social' 
-    | 'behavioral';
-  'business': 
-    | 'marketing' 
-    | 'strategy' 
-    | 'management' 
-    | 'entrepreneurship' 
-    | 'operations';
-  'science': 
-    | 'physics' 
-    | 'biology' 
-    | 'chemistry' 
-    | 'mathematics' 
-    | 'computer-science';
-  'arts': 
-    | 'visual' 
-    | 'music' 
-    | 'literature' 
-    | 'performing' 
-    | 'digital';
-  'entertainment': 
-    | 'games' 
-    | 'film' 
-    | 'television' 
-    | 'books' 
-    | 'sports';
-  'technology': 
-    | 'ai' 
-    | 'blockchain' 
-    | 'iot' 
-    | 'vr-ar' 
-    | 'robotics';
-  'health': 
-    | 'fitness' 
-    | 'nutrition' 
-    | 'mental-health' 
-    | 'medical' 
-    | 'wellness';
-  'education': 
-    | 'k12' 
-    | 'higher-ed' 
-    | 'professional' 
-    | 'self-learning' 
-    | 'teaching';
-  'finance': 
-    | 'investing' 
-    | 'personal-finance' 
-    | 'corporate-finance' 
-    | 'crypto' 
-    | 'banking';
+export type Result<T, E = Error> = 
+  | { success: true; value: T } 
+  | { success: false; error: E };
+
+/**
+ * Async operation status
+ */
+export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
+
+/**
+ * Async operation state
+ */
+export interface AsyncState<T, E = Error> {
+  status: AsyncStatus;
+  data?: T;
+  error?: E;
 }
 
 /**
- * Subdomain type extracted from the SubdomainMap
+ * Pagination parameters
  */
-export type SubdomainTag = SubdomainMap[DomainTag];
-
-/**
- * Common contextual wildcard tags that can be used across domains
- */
-export type ContextualTag = 
-  | 'beginner'
-  | 'advanced'
-  | 'comparison'
-  | 'tutorial'
-  | 'critique'
-  | 'review'
-  | 'history'
-  | 'future'
-  | 'trends'
-  | 'innovation'
-  | 'ethics'
-  | 'impact'
-  | 'tools'
-  | 'techniques'
-  | 'resources'
-  | 'case-study'
-  | 'problem-solving'
-  | 'decision-making'
-  | 'productivity'
-  | 'communication'
-  | string; // Allow for custom contextual tags
-
-/**
- * Conversation type tags taxonomy
- */
-export type ConversationTypeTag =
-  | 'theory'
-  | 'practical'
-  | 'meta'
-  | 'casual'
-  | 'adhd-thought'
-  | 'deep-dive'
-  | 'exploration'
-  | 'experimental'
-  | 'reflection'
-  | 'planning'
-  | 'question'
-  | 'analysis';
-
-/**
- * Confidence score for a tag assignment (0.0 to 1.0)
- */
-export type ConfidenceScore = number;
-
-/**
- * Topical tag structure combining domain, subdomain, and contextual elements
- */
-export interface TopicalTag {
-  domain: DomainTag;
-  subdomain?: SubdomainTag;
-  contextual?: ContextualTag;
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+  totalItems?: number;
+  totalPages?: number;
 }
 
 /**
- * Confidence scores for each tag category
+ * Pagination result
  */
-export interface TagConfidence {
-  overall: ConfidenceScore;
-  year?: ConfidenceScore;
-  life_area?: ConfidenceScore;
-  domain?: ConfidenceScore;
-  subdomain?: ConfidenceScore;
-  contextual?: ConfidenceScore;
-  conversation_type?: ConfidenceScore;
+export interface PaginatedResult<T> {
+  items: T[];
+  pagination: Required<PaginationParams>;
 }
 
 /**
- * Complete tag set for a conversation
+ * Sorting options
  */
-export interface TagSet {
-  year: YearTag;
-  life_area?: LifeAreaTag;
-  topical_tags: TopicalTag[];
-  conversation_type: ConversationTypeTag;
-  confidence: TagConfidence;
-  explanations?: Record<string, string>;
+export interface SortOptions {
+  field: string;
+  direction: 'asc' | 'desc';
 }
 
 /**
- * Tag application behavior options
+ * Filter options
  */
-export type TagBehavior = 'append' | 'replace' | 'merge';
-
-/**
- * OpenAI model options
- */
-export type AIModel = 'gpt-4o' | 'gpt-3.5-turbo';
-
-/**
- * API key storage location
- */
-export type APIKeyStorage = 'local' | 'system';
-
-/**
- * Result of a tagging operation
- */
-export interface TaggingResult {
-  success: boolean;
-  tags?: TagSet;
-  error?: {
-    message: string;
-    code: string;
-    recoverable: boolean;
-  };
+export interface FilterOptions<T> {
+  field: keyof T;
+  operator: '=' | '!=' | '>' | '>=' | '<' | '<=' | 'contains' | 'startsWith' | 'endsWith';
+  value: unknown;
 }
 
 /**
- * Options for tagging operations
+ * Query options
  */
-export interface TaggingOptions {
-  model: AIModel;
-  behavior: TagBehavior;
-  minConfidence: ConfidenceScore;
-  reviewThreshold: ConfidenceScore;
-  generateExplanations: boolean;
+export interface QueryOptions<T> {
+  pagination?: PaginationParams;
+  sort?: SortOptions;
+  filters?: FilterOptions<T>[];
 }
 
 /**
- * Document representing a conversation to be tagged
+ * Type-safe event emitter types
  */
-export interface Document {
-  id: string;
-  path: string;
-  content: string;
-  metadata?: Record<string, unknown>;
-  existingTags?: TagSet;
-}
+export interface TypedEventEmitter<TEvents extends Record<string, unknown[]>> {
+  on<K extends keyof TEvents>(event: K, listener: (...args: TEvents[K]) => void): void;
+  off<K extends keyof TEvents>(event: K, listener: (...args: TEvents[K]) => void): void;
+  once<K extends keyof TEvents>(event: K, listener: (...args: TEvents[K]) => void): void;
+  emit<K extends keyof TEvents>(event: K, ...args: TEvents[K]): void;
+} 
