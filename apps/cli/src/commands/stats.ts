@@ -1,7 +1,7 @@
 import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
 import { fileExists, findFiles } from '@obsidian-magic/utils';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 export const statsCommand: CommandModule = {
   command: 'stats [directory]',
@@ -44,7 +44,7 @@ export const statsCommand: CommandModule = {
       
       // Find all markdown files
       const spinner = logger.spinner('Finding files...');
-      const files = await findFiles(directory, /\.(md|markdown)$/);
+      const files = await findFiles(directory, '**/*.{md,markdown}');
       spinner.succeed(`Found ${files.length} files`);
       
       // Mock stats generation (would actually analyze files in real implementation)

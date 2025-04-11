@@ -11,15 +11,15 @@ import path from 'path';
 dotenvConfig();
 
 // Import command modules
-import { tagCommand } from './commands/tag.js';
-import { testCommand } from './commands/test.js';
-import { configCommand } from './commands/config.js';
-import { configInteractiveCommand } from './commands/config-interactive.js';
-import { statsCommand } from './commands/stats.js';
-import { taxonomyCommand } from './commands/taxonomy.js';
-import { logger } from './utils/logger.js';
-import { AppError } from './utils/errors.js';
-import { costManager } from './utils/cost-manager.js';
+import { tagCommand } from './commands/tag';
+import { testCommand } from './commands/test';
+import { configCommand } from './commands/config';
+import { configInteractiveCommand } from './commands/config-interactive';
+import { statsCommand } from './commands/stats';
+import { taxonomyCommand } from './commands/taxonomy';
+import { logger } from './utils/logger';
+import { AppError } from './utils/errors';
+import { costManager } from './utils/cost-manager';
 
 // Get version from package.json
 const packageJsonPath = path.resolve(__dirname, '../package.json');
@@ -90,7 +90,7 @@ async function main() {
       .version(version)
       .middleware([(argv) => {
         // Configure logger based on global options
-        const verbose = argv.verbose as boolean;
+        const verbose = argv['verbose'] as boolean;
         const outputFormat = argv['output-format'] as 'pretty' | 'json' | 'silent' | undefined;
         
         logger.configure({
@@ -98,7 +98,7 @@ async function main() {
           outputFormat: outputFormat || 'pretty'
         });
         
-        return argv;
+        // Don't return anything
       }])
       .option('config', {
         describe: 'Path to configuration file',

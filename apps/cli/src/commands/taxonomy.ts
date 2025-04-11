@@ -1,7 +1,7 @@
 import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
 import { readFile, writeFile, fileExists } from '@obsidian-magic/utils';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 export const taxonomyCommand: CommandModule = {
   command: 'taxonomy <command>',

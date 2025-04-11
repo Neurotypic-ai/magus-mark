@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
-import boxen from 'boxen';
-import { config } from './config.js';
+import boxen, { type Options as BoxenOptions } from 'boxen';
 import type { LogLevel } from '../types/commands';
 
 /**
@@ -84,17 +83,14 @@ class Logger {
       return;
     }
     
-    const options: boxen.Options = {
+    const options: BoxenOptions = {
       padding: 1,
       margin: 1,
       borderStyle: 'round',
       borderColor: 'cyan',
-      titleAlignment: 'center'
+      titleAlignment: 'center',
+      ...(title ? { title } : {})
     };
-    
-    if (title) {
-      options.title = title;
-    }
     
     console.log(boxen(content, options));
   }
@@ -143,7 +139,7 @@ class Logger {
       return;
     }
     
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
+    const timestamp = new Date().toISOString().split('T')[1]?.slice(0, 8) ?? "";
     
     switch (level) {
       case 'error':

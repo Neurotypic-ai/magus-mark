@@ -6,8 +6,8 @@ import { logger } from '../utils/logger';
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
 import type { TagOptions } from '../types/commands';
-import type { AIModel, TagBehavior, Document, TagSet } from '@obsidian-magic/types';
-import { OpenAIClient, TaggingService } from '@obsidian-magic/core';
+import type { AIModel, TagBehavior, TagSet } from '@obsidian-magic/types';
+import { OpenAIClient, TaggingService, type Document } from '@obsidian-magic/core';
 import cliProgress from 'cli-progress';
 
 // Use native Node.js fs.promises for file globbing
@@ -218,8 +218,7 @@ Cost Estimate:
           model: model as AIModel || 'gpt-4o',
           behavior: tagMode || 'merge',
           minConfidence: minConfidence || 0.65,
-          reviewThreshold: reviewThreshold || 0.85,
-          generateExplanations: true
+          reviewThreshold: reviewThreshold || 0.85
         }
       );
       
@@ -256,8 +255,8 @@ Cost Estimate:
             id: path.basename(filePath, path.extname(filePath)),
             content,
             path: filePath,
-            existingTags,
-            metadata: {}
+            metadata: {},
+            existingTags: existingTags || []  // Provide empty array as default
           };
           
           // Tag the document

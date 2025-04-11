@@ -1,7 +1,7 @@
 import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
-import { logger } from '../utils/logger.js';
-import { benchmark } from '../utils/benchmark.js';
+import { logger } from '../utils/logger';
+import { benchmark } from '../utils/benchmark';
 import type { TestOptions } from '../types/commands';
 import type { AIModel } from '@obsidian-magic/types';
 
@@ -57,9 +57,6 @@ export const testCommand: CommandModule = {
       const options = argv as unknown as TestOptions;
       const { 
         benchmark: runBenchmark, 
-        samples, 
-        testSet, 
-        report, 
         verbose,
         outputFormat
       } = options;
@@ -67,11 +64,11 @@ export const testCommand: CommandModule = {
       // Configure logger
       logger.configure({
         logLevel: verbose ? 'debug' : 'info',
-        outputFormat: outputFormat
+        outputFormat: outputFormat || 'pretty'
       });
       
       // Parse models
-      const modelsArg = (argv.models as string) || 'gpt-3.5-turbo';
+      const modelsArg = (argv['models'] as string) || 'gpt-3.5-turbo';
       const models = modelsArg.split(',').map(m => m.trim()) as AIModel[];
       
       if (models.length === 0) {
@@ -106,9 +103,9 @@ async function runBenchmarkCommand(models: AIModel[], options: TestOptions): Pro
   
   const result = await benchmark.runBenchmark({
     models,
-    samples: options.samples,
-    testSet: options.testSet,
-    reportPath: options.report,
+    samples: options.samples || 10,
+    testSet: options.testSet || '',
+    reportPath: options.report || '',
     saveReport: !!options.report
   });
   
@@ -116,8 +113,6 @@ async function runBenchmarkCommand(models: AIModel[], options: TestOptions): Pro
     logger.error(`Benchmark failed: ${result.getError().message}`);
     return;
   }
-  
-  const report = result.getValue();
   
   // Additional summary information
   logger.info(chalk.bold.green('\nBenchmark completed successfully!'));

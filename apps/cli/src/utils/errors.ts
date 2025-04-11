@@ -7,14 +7,14 @@
  */
 export class AppError extends Error {
   public readonly code: string;
-  public readonly cause?: Error;
+  public override readonly cause: Error | undefined;
   public readonly context: Record<string, unknown>;
 
   constructor(
     message: string, 
     options: { 
       code?: string; 
-      cause?: Error; 
+      cause?: Error | undefined; 
       context?: Record<string, unknown> 
     } = {}
   ) {
@@ -58,7 +58,7 @@ export class ConfigError extends AppError {
     message: string, 
     options: { 
       code?: string; 
-      cause?: Error; 
+      cause?: Error | undefined; 
       context?: Record<string, unknown> 
     } = {}
   ) {
@@ -77,7 +77,7 @@ export class ApiError extends AppError {
     message: string, 
     options: { 
       code?: string; 
-      cause?: Error; 
+      cause?: Error | undefined; 
       context?: Record<string, unknown> 
     } = {}
   ) {
@@ -96,7 +96,7 @@ export class FileSystemError extends AppError {
     message: string, 
     options: { 
       code?: string; 
-      cause?: Error; 
+      cause?: Error | undefined; 
       context?: Record<string, unknown> 
     } = {}
   ) {
@@ -115,7 +115,7 @@ export class ValidationError extends AppError {
     message: string, 
     options: { 
       code?: string; 
-      cause?: Error; 
+      cause?: Error | undefined; 
       context?: Record<string, unknown> 
     } = {}
   ) {
@@ -136,7 +136,7 @@ export class CostLimitError extends AppError {
       code?: string;
       cost: number;
       limit: number;
-      cause?: Error; 
+      cause?: Error | undefined; 
       context?: Record<string, unknown> 
     }
   ) {
@@ -156,8 +156,8 @@ export class CostLimitError extends AppError {
  * Result type for operations that can fail
  */
 export class Result<T, E extends Error = AppError> {
-  private readonly _value?: T;
-  private readonly _error?: E;
+  private readonly _value: T | undefined;
+  private readonly _error: E | undefined;
   
   private constructor(value?: T, error?: E) {
     this._value = value;
@@ -167,8 +167,8 @@ export class Result<T, E extends Error = AppError> {
   /**
    * Create a successful result
    */
-  public static ok<T>(value: T): Result<T> {
-    return new Result<T>(value, undefined);
+  public static ok<T>(value: T): Result<T, AppError> {
+    return new Result<T, AppError>(value, undefined);
   }
   
   /**
@@ -219,7 +219,7 @@ export class Result<T, E extends Error = AppError> {
     if (this._error !== undefined) {
       return Result.fail<U, E>(this._error);
     }
-    return Result.ok<U>(fn(this._value as T));
+    return Result.ok<U>(fn(this._value as T)) as unknown as Result<U, E>;
   }
   
   /**
@@ -227,7 +227,7 @@ export class Result<T, E extends Error = AppError> {
    */
   public mapError<F extends Error>(fn: (error: E) => F): Result<T, F> {
     if (this._error === undefined) {
-      return Result.ok<T>(this._value as T);
+      return Result.ok<T>(this._value as T) as unknown as Result<T, F>;
     }
     return Result.fail<T, F>(fn(this._error));
   }
@@ -267,7 +267,10 @@ export async function tryCatch<T>(fn: () => Promise<T>): Promise<Result<T>> {
     return Result.fail<T, AppError>(
       new AppError(
         error instanceof Error ? error.message : String(error),
-        { cause: error instanceof Error ? error : undefined }
+        { 
+          cause: error instanceof Error ? error : undefined,
+          code: 'ERR_UNKNOWN' 
+        }
       )
     );
   }

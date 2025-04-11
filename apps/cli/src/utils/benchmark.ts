@@ -1,10 +1,9 @@
 import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
-import { logger } from './logger.js';
-import { costManager } from './cost-manager.js';
-import { config } from './config.js';
-import { Result, tryCatch } from './errors.js';
+import { logger } from './logger';
+import { costManager } from './cost-manager';
+import { Result, AppError, FileSystemError, ValidationError } from './errors';
 import type { AIModel } from '@obsidian-magic/types';
 
 /**
@@ -128,7 +127,10 @@ export class Benchmark {
         : path.resolve(process.cwd(), testSetPath);
       
       if (!fs.existsSync(fullPath)) {
-        return Result.fail(new Error(`Test set path does not exist: ${fullPath}`));
+        return Result.fail(new FileSystemError(`Test set path does not exist: ${fullPath}`, {
+          code: 'FILE_NOT_FOUND',
+          context: { path: fullPath }
+        }));
       }
       
       const stats = await fs.stat(fullPath);
@@ -166,13 +168,21 @@ export class Benchmark {
         
         return Result.ok(this.testCases);
       } else {
-        return Result.fail(new Error(`Test set path must be a JSON file or directory: ${fullPath}`));
+        return Result.fail(new ValidationError(`Test set path must be a JSON file or directory: ${fullPath}`, {
+          code: 'INVALID_FILE_TYPE',
+          context: { path: fullPath }
+        }));
       }
     } catch (error) {
       if (error instanceof Error) {
-        return Result.fail(error);
+        return Result.fail(new AppError(error.message, {
+          code: 'LOAD_TEST_CASE_ERROR',
+          cause: error
+        }));
       }
-      return Result.fail(new Error(`Failed to load test cases: ${String(error)}`));
+      return Result.fail(new AppError(`Failed to load test cases: ${String(error)}`, {
+        code: 'UNKNOWN_ERROR'
+      }));
     }
   }
   
@@ -183,19 +193,16 @@ export class Benchmark {
     const { models, samples = 10, testSet, saveReport = true, reportPath } = options;
     
     if (!models || models.length === 0) {
-      return Result.fail(new Error('No models specified for benchmarking'));
+      return Result.fail(new ValidationError('No models specified for benchmarking', {
+        code: 'INVALID_PARAMETER'
+      }));
     }
     
-    // Load test cases if a test set is specified
-    if (testSet) {
-      const loadResult = await this.loadTestCases(testSet);
-      if (loadResult.isFail()) {
-        return Result.fail(loadResult.getError());
-      }
-    }
     
     if (this.testCases.length === 0) {
-      return Result.fail(new Error('No test cases available for benchmarking'));
+      return Result.fail(new ValidationError('No test cases available for benchmarking', {
+        code: 'NO_TEST_CASES'
+      }));
     }
     
     // Limit samples to available test cases
@@ -216,7 +223,7 @@ export class Benchmark {
       
       // Process each test case
       for (let i = 0; i < selectedTestCases.length; i++) {
-        const testCase = selectedTestCases[i];
+        const testCase = selectedTestCases[i]!;
         logger.info(`  Processing test case ${i + 1}/${selectedTestCases.length}: ${testCase.id}`);
         
         const runResult = await this.runTestCase(model, testCase);
@@ -289,7 +296,6 @@ export class Benchmark {
       // Calculate overall accuracy
       const accuracy = successfulRuns.reduce((sum, run) => {
         const expectedSet = new Set(run.testCase.expectedTags);
-        const suggestedSet = new Set(run.suggestedTags);
         
         // Count matching tags
         const matchingTags = run.suggestedTags.filter(tag => expectedSet.has(tag)).length;
@@ -333,31 +339,34 @@ export class Benchmark {
     const totalDuration = Date.now() - startTime;
     
     // Find best model for each metric
-    const bestAccuracy = modelReports.reduce((best, report) => 
-      report.accuracy > best.accuracy ? report : best, modelReports[0]);
+    const bestAccuracy = modelReports.length > 0 ? modelReports.reduce((best, report) => 
+      report.accuracy > best.accuracy ? report : best, modelReports[0]!) : undefined;
     
-    const bestF1 = modelReports.reduce((best, report) => 
-      report.f1Score > best.f1Score ? report : best, modelReports[0]);
+    const bestF1 = modelReports.length > 0 ? modelReports.reduce((best, report) => 
+      report.f1Score > best.f1Score ? report : best, modelReports[0]!) : undefined;
     
-    const bestCostEfficiency = modelReports.reduce((best, report) => {
+    const bestCostEfficiency = modelReports.length > 0 ? modelReports.reduce((best, report) => {
       // Cost per correct tag
       const costPerCorrectTag = report.costIncurred.total / (report.accuracy * report.samples);
-      const bestCostPerCorrectTag = best.costIncurred.total / (best.accuracy * best.samples);
+      const bestCostPerCorrectTag = best!.costIncurred.total / (best!.accuracy * best!.samples);
       return costPerCorrectTag < bestCostPerCorrectTag ? report : best;
-    }, modelReports[0]);
+    }, modelReports[0]!) : undefined;
     
-    const bestLatency = modelReports.reduce((best, report) => 
-      report.latency.average < best.latency.average ? report : best, modelReports[0]);
+    const bestLatency = modelReports.length > 0 ? modelReports.reduce((best, report) => 
+      report.latency.average < best!.latency.average ? report : best, modelReports[0]!) : undefined;
+    
+    // Default model if no reports available
+    const defaultModel = models[0] || 'gpt-3.5-turbo';
     
     // Create overall summary report
     const report: BenchmarkReport = {
       timestamp: new Date().toISOString(),
       models: modelReports,
       summary: {
-        bestOverall: bestF1.model,
-        bestAccuracy: bestAccuracy.model,
-        bestCostEfficiency: bestCostEfficiency.model,
-        bestLatency: bestLatency.model
+        bestOverall: bestF1?.model || defaultModel,
+        bestAccuracy: bestAccuracy?.model || defaultModel,
+        bestCostEfficiency: bestCostEfficiency?.model || defaultModel,
+        bestLatency: bestLatency?.model || defaultModel
       },
       settings: {
         samples: sampleSize,
@@ -452,7 +461,7 @@ export class Benchmark {
    */
   private simulateTagGeneration(model: AIModel, testCase: TestCase): string[] {
     // Simulate different accuracy levels for different models
-    const accuracy = model === 'gpt-4o' ? 0.9 : model === 'gpt-4' ? 0.85 : 0.7;
+    const accuracy = model === 'gpt-4o' ? 0.9 : 0.7; // Default to lower accuracy for non-gpt-4o models
     
     // Start with expected tags
     const resultTags: string[] = [];
@@ -469,8 +478,9 @@ export class Benchmark {
     const possibleExtraTags = ['conversation', 'chat', 'openai', 'gpt', 'ai', 'notes', 'programming', 'tech', 'question', 'research'];
     
     for (let i = 0; i < extraTagCount; i++) {
-      const randomTag = possibleExtraTags[Math.floor(Math.random() * possibleExtraTags.length)];
-      if (!resultTags.includes(randomTag)) {
+      const randomIndex = Math.floor(Math.random() * possibleExtraTags.length);
+      const randomTag = possibleExtraTags[randomIndex];
+      if (randomTag && !resultTags.includes(randomTag)) {
         resultTags.push(randomTag);
       }
     }

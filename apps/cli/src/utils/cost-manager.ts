@@ -1,22 +1,24 @@
-import { logger } from './logger.js';
-import { config } from './config.js';
-import { CostLimitError } from './errors.js';
+import { logger } from './logger';
+import { config } from './config';
+import { CostLimitError } from './errors';
 import type { AIModel } from '@obsidian-magic/types';
 
 // Token pricing per 1K tokens (in USD)
-const MODEL_PRICING = {
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'gpt-3.5-turbo': {
     input: 0.0005,
     output: 0.0015
-  },
-  'gpt-4': {
-    input: 0.03,
-    output: 0.06
   },
   'gpt-4o': {
     input: 0.01,
     output: 0.03
   }
+};
+
+// Default pricing for fallback
+const DEFAULT_PRICING = {
+  input: 0.0005,
+  output: 0.0015
 };
 
 // Default token estimations
@@ -45,7 +47,7 @@ interface CostData {
  * Cost manager options
  */
 interface CostManagerOptions {
-  maxCost?: number;
+  maxCost?: number | undefined;
   onLimit?: 'pause' | 'warn' | 'stop';
 }
 
@@ -54,15 +56,13 @@ interface CostManagerOptions {
  */
 export class CostManager {
   private static instance: CostManager;
-  private tokenUsage: Record<AIModel, TokenUsage> = {
+  private tokenUsage: Record<string, TokenUsage> = {
     'gpt-3.5-turbo': { input: 0, output: 0, total: 0 },
-    'gpt-4': { input: 0, output: 0, total: 0 },
     'gpt-4o': { input: 0, output: 0, total: 0 }
   };
   
-  private costs: Record<AIModel, CostData> = {
+  private costs: Record<string, CostData> = {
     'gpt-3.5-turbo': { input: 0, output: 0, total: 0 },
-    'gpt-4': { input: 0, output: 0, total: 0 },
     'gpt-4o': { input: 0, output: 0, total: 0 }
   };
   
@@ -115,14 +115,23 @@ export class CostManager {
     model: AIModel, 
     tokens: { input: number; output: number }
   ): void {
+    // Initialize if model doesn't exist
+    if (!this.tokenUsage[model]) {
+      this.tokenUsage[model] = { input: 0, output: 0, total: 0 };
+    }
+    if (!this.costs[model]) {
+      this.costs[model] = { input: 0, output: 0, total: 0 };
+    }
+    
     // Update token counts
     this.tokenUsage[model].input += tokens.input;
     this.tokenUsage[model].output += tokens.output;
     this.tokenUsage[model].total += tokens.input + tokens.output;
     
     // Calculate costs
-    const inputCost = (tokens.input / 1000) * MODEL_PRICING[model].input;
-    const outputCost = (tokens.output / 1000) * MODEL_PRICING[model].output;
+    const modelPricing = MODEL_PRICING[model] || DEFAULT_PRICING;
+    const inputCost = (tokens.input / 1000) * modelPricing.input;
+    const outputCost = (tokens.output / 1000) * modelPricing.output;
     const totalCost = inputCost + outputCost;
     
     this.costs[model].input += inputCost;
@@ -156,8 +165,9 @@ export class CostManager {
     model: AIModel, 
     tokens: { input: number; output: number }
   ): CostData {
-    const inputCost = (tokens.input / 1000) * MODEL_PRICING[model].input;
-    const outputCost = (tokens.output / 1000) * MODEL_PRICING[model].output;
+    const modelPricing = MODEL_PRICING[model] || DEFAULT_PRICING;
+    const inputCost = (tokens.input / 1000) * modelPricing.input;
+    const outputCost = (tokens.output / 1000) * modelPricing.output;
     
     return {
       input: inputCost,
@@ -181,14 +191,14 @@ export class CostManager {
   /**
    * Get current token usage
    */
-  public getTokenUsage(): Record<AIModel, TokenUsage> {
+  public getTokenUsage(): Record<string, TokenUsage> {
     return this.tokenUsage;
   }
   
   /**
    * Get current costs
    */
-  public getCosts(): Record<AIModel, CostData> {
+  public getCosts(): Record<string, CostData> {
     return this.costs;
   }
   
@@ -206,7 +216,7 @@ export class CostManager {
    * Reset usage tracking
    */
   public reset(): void {
-    for (const model of Object.keys(this.tokenUsage) as AIModel[]) {
+    for (const model of Object.keys(this.tokenUsage)) {
       this.tokenUsage[model] = { input: 0, output: 0, total: 0 };
       this.costs[model] = { input: 0, output: 0, total: 0 };
     }
@@ -219,30 +229,39 @@ export class CostManager {
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
     
-    const usageHistory = config.get('usageHistory') || {};
+    // Store usage history in memory
+    const usageHistory: Record<string, any> = {};
     
-    if (!usageHistory[currentMonth]) {
-      usageHistory[currentMonth] = {
-        tokens: { ...this.tokenUsage },
-        costs: { ...this.costs }
-      };
-    } else {
-      // Update existing data
-      for (const model of Object.keys(this.tokenUsage) as AIModel[]) {
-        usageHistory[currentMonth].tokens[model] = usageHistory[currentMonth].tokens[model] || { input: 0, output: 0, total: 0 };
-        usageHistory[currentMonth].costs[model] = usageHistory[currentMonth].costs[model] || { input: 0, output: 0, total: 0 };
+    // Create the data structure if it doesn't exist
+    usageHistory[currentMonth] = {
+      tokens: {},
+      costs: {}
+    };
+    
+    // Update with current data
+    for (const model of Object.keys(this.tokenUsage)) {
+      if (this.tokenUsage[model] && this.costs[model]) {
+        // Ensure the objects exist
+        usageHistory[currentMonth].tokens[model] = {
+          input: this.tokenUsage[model].input,
+          output: this.tokenUsage[model].output,
+          total: this.tokenUsage[model].total
+        };
         
-        usageHistory[currentMonth].tokens[model].input += this.tokenUsage[model].input;
-        usageHistory[currentMonth].tokens[model].output += this.tokenUsage[model].output;
-        usageHistory[currentMonth].tokens[model].total += this.tokenUsage[model].total;
-        
-        usageHistory[currentMonth].costs[model].input += this.costs[model].input;
-        usageHistory[currentMonth].costs[model].output += this.costs[model].output;
-        usageHistory[currentMonth].costs[model].total += this.costs[model].total;
+        usageHistory[currentMonth].costs[model] = {
+          input: this.costs[model].input,
+          output: this.costs[model].output,
+          total: this.costs[model].total
+        };
       }
     }
     
-    config.set('usageHistory', usageHistory);
+    // Store the usage history using profiles which is supported
+    const profiles = config.get('profiles') || {};
+    if (typeof profiles === 'object') {
+      profiles['usageHistory'] = usageHistory;
+      config.set('profiles', profiles);
+    }
   }
   
   /**
@@ -281,17 +300,10 @@ export class CostManager {
         { input: estimatedTokens, output: expectedOutputTokens }
       ).total;
       
-      const gpt4Cost = this.estimateCost(
-        'gpt-4', 
-        { input: estimatedTokens, output: expectedOutputTokens }
-      ).total;
-      
       // Check against max cost
       if (options.maxCost !== undefined) {
         if (gpt4oCost <= options.maxCost) {
           return 'gpt-4o';
-        } else if (gpt4Cost <= options.maxCost) {
-          return 'gpt-4';
         } else {
           return 'gpt-3.5-turbo'; // Fallback to cheapest option
         }

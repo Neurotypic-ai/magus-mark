@@ -1,5 +1,4 @@
-import type { start } from 'repl';
-import { logger } from './logger.js';
+import { logger } from './logger';
 import { EventEmitter } from 'events';
 
 /**
@@ -33,7 +32,7 @@ interface WorkflowOptions {
 /**
  * Workflow events
  */
-interface WorkflowEvents<T> {
+export interface WorkflowEvents<T> {
   taskStart: (taskId: string) => void;
   taskComplete: (taskId: string, result: T) => void;
   taskError: (taskId: string, error: Error) => void;

@@ -1,13 +1,12 @@
 import type { CommandModule } from 'yargs';
-import { 
-  loadConfig, 
-  saveConfig, 
-  updateConfig, 
-  DEFAULT_CONFIG,
+import {
+  config
+} from '../utils/config';
+import {
   fileExists,
   writeFile
 } from '@obsidian-magic/utils';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 export const configCommand: CommandModule = {
   command: 'config <command>',
@@ -24,13 +23,13 @@ export const configCommand: CommandModule = {
           }),
         handler: async (argv) => {
           const { key } = argv as any;
-          const config = await loadConfig();
+          const currentConfig = config.getAll();
           
           if (key) {
             // Get a specific key
             const value = key.split('.').reduce((obj: Record<string, any>, k: string) => 
               obj && typeof obj === 'object' ? obj[k] : undefined, 
-              config
+              currentConfig
             );
             
             if (value !== undefined) {
@@ -40,7 +39,7 @@ export const configCommand: CommandModule = {
             }
           } else {
             // Show all configuration values
-            logger.box(JSON.stringify(config, null, 2), 'Current Configuration');
+            logger.box(JSON.stringify(currentConfig, null, 2), 'Current Configuration');
           }
         }
       })
@@ -71,18 +70,8 @@ export const configCommand: CommandModule = {
               parsedValue = value;
             }
             
-            // Create update object with nested path
-            const updateObj: Record<string, any> = {};
-            const keyParts = key.split('.');
-            let current = updateObj;
-            
-            for (let i = 0; i < keyParts.length - 1; i++) {
-              current[keyParts[i]] = {};
-              current = current[keyParts[i]];
-            }
-            
-            current[keyParts[keyParts.length - 1]] = parsedValue;
-            await updateConfig(updateObj);
+            // Set the value
+            config.set(key as any, parsedValue);
             
             logger.info(`Set ${key} = ${JSON.stringify(parsedValue)}`);
           } catch (error) {
@@ -107,8 +96,7 @@ export const configCommand: CommandModule = {
               return;
             }
             
-            const importedConfig = await loadConfig(file as string);
-            await saveConfig(importedConfig);
+            await config.loadConfigFile(file as string);
             
             logger.info(`Configuration imported from ${file}`);
           } catch (error) {
@@ -135,9 +123,9 @@ export const configCommand: CommandModule = {
         handler: async (argv) => {
           const { format, output } = argv as any;
           try {
-            const config = await loadConfig();
+            const currentConfig = config.getAll();
             const configStr = format === 'json' 
-              ? JSON.stringify(config, null, 2)
+              ? JSON.stringify(currentConfig, null, 2)
               : '# TODO: Implement YAML export';
             
             await writeFile(output as string, configStr);
@@ -151,7 +139,7 @@ export const configCommand: CommandModule = {
         command: 'reset',
         describe: 'Reset configuration to defaults',
         handler: async () => {
-          await saveConfig(DEFAULT_CONFIG);
+          config.reset();
           logger.info('Configuration reset to defaults');
         }
       })

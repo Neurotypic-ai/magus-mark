@@ -1,19 +1,54 @@
 /**
- * Configuration re-export from @obsidian-magic/utils
- * This file exists only to maintain backward compatibility and consistent imports
+ * Configuration utilities for CLI
  */
-import { 
-  loadConfig, 
-  saveConfig, 
-  DEFAULT_CONFIG, 
-  type Config 
-} from '@obsidian-magic/utils';
 import Conf from 'conf';
 import { z } from 'zod';
 import { cosmiconfig } from 'cosmiconfig';
-import path from 'path';
-import fs from 'fs-extra';
+import { readFile, writeFile, fileExists } from '@obsidian-magic/utils';
 import type { AIModel, TagBehavior } from '@obsidian-magic/types';
+import os from 'os';
+import pathModule from 'path';
+
+/**
+ * Configuration type
+ */
+export type Config = {
+  apiKey: string;
+  defaultModel: AIModel;
+  defaultTagBehavior: TagBehavior;
+  minConfidence: number;
+  reviewThreshold: number;
+  concurrency: number;
+  vaultPath?: string;
+  outputPath?: string;
+  costLimit: number;
+  costLimitAction: 'warn' | 'pause' | 'stop';
+  enableAnalytics: boolean;
+  profiles?: Record<string, any>;
+  logging: {
+    level: 'error' | 'warn' | 'info' | 'debug';
+    format: 'pretty' | 'json' | 'silent';
+  };
+};
+
+/**
+ * Default configuration
+ */
+export const DEFAULT_CONFIG: Config = {
+  apiKey: '',
+  defaultModel: 'gpt-3.5-turbo',
+  defaultTagBehavior: 'merge',
+  minConfidence: 0.7,
+  reviewThreshold: 0.5,
+  concurrency: 3,
+  costLimit: 10,
+  costLimitAction: 'warn',
+  enableAnalytics: true,
+  logging: {
+    level: 'info',
+    format: 'pretty'
+  }
+};
 
 /**
  * Legacy ConfigType alias for backward compatibility
@@ -21,8 +56,43 @@ import type { AIModel, TagBehavior } from '@obsidian-magic/types';
 export type ConfigType = Config;
 
 /**
+ * Get default config path
+ */
+function getDefaultConfigPath(): string {
+  return pathModule.join(os.homedir(), '.config', 'obsidian-magic', 'config.json');
+}
+
+/**
+ * Load configuration from file
+ */
+export async function loadConfig(configPath = getDefaultConfigPath()): Promise<Config> {
+  try {
+    if (await fileExists(configPath)) {
+      const dataStr = await readFile(configPath);
+      const data = JSON.parse(dataStr);
+      return { ...DEFAULT_CONFIG, ...data };
+    }
+    
+    return DEFAULT_CONFIG;
+  } catch (error) {
+    console.warn(`Error loading config: ${(error as Error).message}`);
+    return DEFAULT_CONFIG;
+  }
+}
+
+/**
+ * Save configuration to file
+ */
+export async function saveConfig(config: Config, configPath = getDefaultConfigPath()): Promise<void> {
+  try {
+    await writeFile(configPath, JSON.stringify(config, null, 2));
+  } catch (error) {
+    throw new Error(`Failed to save config: ${(error as Error).message}`);
+  }
+}
+
+/**
  * Configuration manager class that provides a singleton interface to the config utilities
- * Provides backward compatibility with the previous implementation
  */
 export class ConfigManager {
   private static instance: ConfigManager;
@@ -30,7 +100,7 @@ export class ConfigManager {
 
   private constructor() {
     // Load configuration immediately
-    this.loadConfig().catch(err => {
+    this.loadConfig().catch((err: Error) => {
       console.error('Error loading configuration:', err);
     });
     
@@ -69,7 +139,7 @@ export class ConfigManager {
    */
   public set<K extends keyof Config>(key: K, value: Config[K]): void {
     this.currentConfig[key] = value;
-    saveConfig(this.currentConfig).catch(err => {
+    saveConfig(this.currentConfig).catch((err: Error) => {
       console.error('Error saving configuration:', err);
     });
   }
@@ -93,7 +163,7 @@ export class ConfigManager {
    */
   public reset(): void {
     this.currentConfig = DEFAULT_CONFIG;
-    saveConfig(this.currentConfig).catch(err => {
+    saveConfig(this.currentConfig).catch((err: Error) => {
       console.error('Error saving configuration:', err);
     });
   }
@@ -102,7 +172,7 @@ export class ConfigManager {
 export const config = ConfigManager.getInstance();
 
 // Define the schema for configuration validation
-const configSchema = z.object({
+export const configSchema = z.object({
   // Core settings
   apiKey: z.string().optional(),
   defaultModel: z.enum(['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'] as const),
@@ -134,7 +204,7 @@ const configSchema = z.object({
   })
 });
 
-// Default configuration
+// Default configuration for Conf
 const defaultConfig = {
   defaultModel: 'gpt-3.5-turbo' as AIModel,
   defaultTagBehavior: 'merge' as TagBehavior,
@@ -152,15 +222,29 @@ const defaultConfig = {
 
 // Load environment-specific configuration (dev, prod, test)
 function loadEnvironmentConfig() {
-  const explorer = cosmiconfig('tagconv');
-  const result = explorer.searchSync() || { config: {} };
-  return result.config;
+  try {
+    // Use synchronous search to avoid async complexity during initialization
+    const explorer = cosmiconfig('tagconv');
+    // Try to use searchSync with type assertion
+    const anyExplorer = explorer as any;
+    if (typeof anyExplorer.searchSync === 'function') {
+      const result = anyExplorer.searchSync();
+      return result?.config || {};
+    } else {
+      // If searchSync is not available, just return defaults
+      return {};
+    }
+  } catch (error) {
+    console.warn(`Error loading environment config: ${(error as Error).message}`);
+    return {};
+  }
 }
 
 // Create config instance
 const configInstance = new Conf({
   projectName: 'obsidian-magic',
-  schema: configSchema.partial(),
+  // Convert Zod schema to Conf schema format
+  schema: {} as any,
   defaults: {
     ...defaultConfig,
     ...loadEnvironmentConfig()

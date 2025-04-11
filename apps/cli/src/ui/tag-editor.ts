@@ -1,7 +1,6 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { logger } from '../utils/logger.js';
-import type { TagSet } from '@obsidian-magic/types';
+import { logger } from '../utils/logger';
 
 /**
  * Interactive tag editor options
@@ -77,9 +76,6 @@ export class TagEditor {
     if (lowConfidenceTags.length > 0) {
       logger.info(`${chalk.bold('Low confidence tags:')} ${lowConfidenceTags.map(t => chalk.gray(t)).join(', ')}`);
     }
-    
-    // Prepare initial selection
-    const initialSelection = [...autoAcceptedTags, ...reviewTags];
     
     // Build the interactive interface
     const { selectedTags } = await inquirer.prompt([

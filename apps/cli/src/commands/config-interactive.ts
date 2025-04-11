@@ -1,11 +1,8 @@
 import type { CommandModule } from 'yargs';
 import inquirer from 'inquirer';
-import fs from 'fs-extra';
-import path from 'path';
 import chalk from 'chalk';
-import { logger } from '../utils/logger.js';
-import { config } from '../utils/config.js';
-import type { AIModel } from '@obsidian-magic/types';
+import { logger } from '../utils/logger';
+import { config } from '../utils/config';
 
 /**
  * Interactive configuration setup
@@ -21,9 +18,9 @@ export const configInteractiveCommand: CommandModule = {
   },
   handler: async (argv) => {
     try {
-      const profileName = argv.profile as string | undefined;
+      const profileName = argv['profile'] as string | undefined;
       
-      const currentApiKey = process.env.OPENAI_API_KEY || config.get('apiKey');
+      const currentApiKey = process.env['OPENAI_API_KEY'] || config.get('apiKey');
       
       logger.info(chalk.bold('Interactive Configuration Setup'));
       
@@ -42,7 +39,7 @@ export const configInteractiveCommand: CommandModule = {
           type: 'list',
           name: 'defaultModel',
           message: 'Default model for tagging:',
-          choices: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'],
+          choices: ['gpt-3.5-turbo', 'gpt-4o'],
           default: () => config.get('defaultModel') || 'gpt-3.5-turbo'
         },
         {
@@ -62,14 +59,14 @@ export const configInteractiveCommand: CommandModule = {
           name: 'tagMode',
           message: 'Default tag handling mode:',
           choices: ['append', 'replace', 'merge'],
-          default: () => config.get('tagMode') || 'merge'
+          default: () => config.get('tagMode' as any) || 'merge'
         },
         {
           type: 'list',
           name: 'logLevel',
           message: 'Log level:',
           choices: ['error', 'warn', 'info', 'debug'],
-          default: () => config.get('logLevel') || 'info'
+          default: () => config.get('logLevel' as any) || 'info'
         },
         {
           type: 'input',
@@ -92,12 +89,12 @@ export const configInteractiveCommand: CommandModule = {
       ];
       
       // Run the interactive prompt
-      const answers = await inquirer.prompt(questions);
+      const answers = await inquirer.prompt(questions as any);
       
       // Save the configuration
       Object.entries(answers).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          config.set(key, value);
+          config.set(key as any, value);
         }
       });
       
