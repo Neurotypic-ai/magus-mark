@@ -94,7 +94,10 @@ export class FrontmatterProcessor {
       return frontmatter;
     } catch (error) {
       console.error('Error parsing frontmatter:', error);
-      throw new MarkdownError('Failed to parse frontmatter', 'FRONTMATTER_PARSE_ERROR', true);
+      throw new MarkdownError('Failed to parse frontmatter', {
+        code: 'FRONTMATTER_PARSE_ERROR',
+        recoverable: true,
+      });
     }
   }
 
@@ -233,7 +236,10 @@ export class FrontmatterProcessor {
       return content.replace(frontmatterRegex, formattedFrontmatter);
     } catch (error) {
       console.error('Error updating frontmatter:', error);
-      throw new MarkdownError('Failed to update frontmatter', 'FRONTMATTER_UPDATE_ERROR', true);
+      throw new MarkdownError('Failed to update frontmatter', {
+        code: 'FRONTMATTER_UPDATE_ERROR',
+        recoverable: true,
+      });
     }
   }
 

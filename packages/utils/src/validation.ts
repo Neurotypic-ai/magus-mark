@@ -1,7 +1,7 @@
 /**
  * Validation utility functions for Obsidian Magic
  */
-import { DEFAULT_TAXONOMY } from '@obsidian-magic/core';
+import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '@obsidian-magic/types';
 import { z } from 'zod';
 
 import type { ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainTag, TagSet, YearTag } from '@obsidian-magic/types';
@@ -38,20 +38,10 @@ export const yearTagSchema = z
   })
   .transform((val) => val as YearTag);
 
-/**
- * Dictionary of domains
- */
-export const DOMAINS = DEFAULT_TAXONOMY.domains as readonly DomainTag[];
-
-/**
- * Dictionary of life areas
- */
-export const LIFE_AREAS = DEFAULT_TAXONOMY.lifeAreas as readonly LifeAreaTag[];
-
-/**
- * Dictionary of conversation types
- */
-export const CONVERSATION_TYPES = DEFAULT_TAXONOMY.conversationTypes as readonly ConversationTypeTag[];
+// Safe cast of taxonomy domains to readonly arrays for Zod enum usage
+const DOMAIN_ARRAY = [...DOMAINS] as [string, ...string[]];
+const LIFE_AREA_ARRAY = [...LIFE_AREAS] as [string, ...string[]];
+const CONVERSATION_TYPE_ARRAY = [...CONVERSATION_TYPES] as [string, ...string[]];
 
 /**
  * Dictionary of subdomains by domain
@@ -59,12 +49,11 @@ export const CONVERSATION_TYPES = DEFAULT_TAXONOMY.conversationTypes as readonly
 export const SUBDOMAINS: Record<DomainTag, readonly SubdomainTag[]> = (() => {
   const result: Partial<Record<DomainTag, readonly SubdomainTag[]>> = {};
 
-  // Convert the subdomains map from DEFAULT_TAXONOMY to the expected format
-  for (const domain of DEFAULT_TAXONOMY.domains) {
-    // TypeScript isn't smart enough to know these are valid keys
-    const subdomains = DEFAULT_TAXONOMY.subdomains[domain as keyof typeof DEFAULT_TAXONOMY.subdomains];
+  // Convert the subdomains map to the expected format
+  for (const domain of DOMAINS) {
+    const subdomains = SUBDOMAINS_MAP[domain];
     if (subdomains) {
-      result[domain as DomainTag] = subdomains as readonly SubdomainTag[];
+      result[domain] = subdomains as readonly SubdomainTag[];
     }
   }
 
@@ -74,17 +63,17 @@ export const SUBDOMAINS: Record<DomainTag, readonly SubdomainTag[]> = (() => {
 /**
  * Zod schema for validating domain tags
  */
-export const domainTagSchema = z.enum(DOMAINS as any);
+export const domainTagSchema = z.enum(DOMAIN_ARRAY);
 
 /**
  * Zod schema for validating life area tags
  */
-export const lifeAreaTagSchema = z.enum(LIFE_AREAS as any);
+export const lifeAreaTagSchema = z.enum(LIFE_AREA_ARRAY);
 
 /**
  * Zod schema for validating conversation type tags
  */
-export const conversationTypeTagSchema = z.enum(CONVERSATION_TYPES as any);
+export const conversationTypeTagSchema = z.enum(CONVERSATION_TYPE_ARRAY);
 
 /**
  * Zod schema for validating contextual tags
@@ -159,7 +148,7 @@ export function getSubdomainsForDomain(domain: DomainTag): readonly SubdomainTag
  * @returns True if value is a valid domain
  */
 export function isValidDomain(value: string): value is DomainTag {
-  return (DOMAINS as readonly string[]).includes(value);
+  return DOMAINS.includes(value as DomainTag);
 }
 
 /**
@@ -168,7 +157,7 @@ export function isValidDomain(value: string): value is DomainTag {
  * @returns True if value is a valid life area
  */
 export function isValidLifeArea(value: string): value is LifeAreaTag {
-  return (LIFE_AREAS as readonly string[]).includes(value);
+  return LIFE_AREAS.includes(value as LifeAreaTag);
 }
 
 /**
@@ -177,5 +166,5 @@ export function isValidLifeArea(value: string): value is LifeAreaTag {
  * @returns True if value is a valid conversation type
  */
 export function isValidConversationType(value: string): value is ConversationTypeTag {
-  return (CONVERSATION_TYPES as readonly string[]).includes(value);
+  return CONVERSATION_TYPES.includes(value as ConversationTypeTag);
 }

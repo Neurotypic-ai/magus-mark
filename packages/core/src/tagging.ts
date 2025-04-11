@@ -4,10 +4,9 @@
 import { PromptEngineering } from './openai';
 import { TaxonomyManager } from './tagging/taxonomy';
 
-import type { Document, TagSet, TaggingOptions, TaggingResult } from '@obsidian-magic/types';
+import type { Document, TagSet, TaggingOptions, TaggingResult, Taxonomy } from '@obsidian-magic/types';
 
 import type { OpenAIClient } from './openai';
-import type { Taxonomy } from './tagging/taxonomy';
 
 /**
  * Default tagging options
@@ -102,7 +101,7 @@ export class TaggingService {
       return {
         success: false,
         error: {
-          message: error.message || 'Unknown error during tagging',
+          message: error.message,
           code: 'UNEXPECTED_ERROR',
           recoverable: false,
         },

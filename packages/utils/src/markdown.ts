@@ -102,7 +102,7 @@ export function updateFrontmatter(content: string, frontmatter: Record<string, u
 
   try {
     // Parse existing frontmatter and merge with new
-    const existing = parseFrontmatter(match[1] || '');
+    const existing = parseFrontmatter(match[1] ?? '');
     const updated = { ...existing, ...frontmatter };
 
     // Format and replace frontmatter

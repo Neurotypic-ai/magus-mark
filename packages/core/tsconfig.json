@@ -6,8 +6,5 @@
     "outDir": "dist"
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../types" },
-    { "path": "../utils" }
-  ]
+  "references": [{ "path": "../types" }, { "path": "../utils" }]
 }

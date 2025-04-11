@@ -8,17 +8,29 @@ export * from './models/api';
 export * from './models/plugin';
 export * from './models/cli';
 export * from './models/vscode';
+export * from './models/taxonomy';
 
 // Export all validators
 export * from './validators/tags';
 export * from './validators/api';
 
+// Re-export constants for direct access
+export {
+  DOMAINS,
+  LIFE_AREAS,
+  CONVERSATION_TYPES,
+  CONTEXTUAL_TAGS_LIST,
+  SUBDOMAINS_MAP,
+  DEFAULT_TAXONOMY,
+} from './models/taxonomy';
+
+// Re-export types for direct access
+export type { Taxonomy } from './models/taxonomy';
+
 /**
  * Utility type for deep partial objects
  */
-export type DeepPartial<T> = T extends object
-  ? { [P in keyof T]?: DeepPartial<T[P]> }
-  : T;
+export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
 
 /**
  * Utility type for mapped record types
@@ -28,9 +40,7 @@ export type StringRecord<T> = Record<string, T>;
 /**
  * Result type for operations that can fail
  */
-export type Result<T, E = Error> = 
-  | { success: true; value: T } 
-  | { success: false; error: E };
+export type Result<T, E = Error> = { success: true; value: T } | { success: false; error: E };
 
 /**
  * Async operation status
@@ -98,4 +108,4 @@ export interface TypedEventEmitter<TEvents extends Record<string, unknown[]>> {
   off<K extends keyof TEvents>(event: K, listener: (...args: TEvents[K]) => void): void;
   once<K extends keyof TEvents>(event: K, listener: (...args: TEvents[K]) => void): void;
   emit<K extends keyof TEvents>(event: K, ...args: TEvents[K]): void;
-} 
+}

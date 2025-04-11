@@ -5,6 +5,8 @@
  * OpenAI integration, markdown parsing, and other core features.
  */
 
+import type { AIModel } from '@obsidian-magic/types';
+
 // Export all components from the core module
 export * from './errors';
 export * from './markdown';
@@ -40,7 +42,7 @@ export async function initializeCore(options: {
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({
     apiKey: options.openaiApiKey ?? process.env['OPENAI_API_KEY'] ?? '',
-    model: (options.model ?? 'gpt-4o') as any, // Type assertion needed for string to AIModel
+    model: (options.model ?? 'gpt-4o') as AIModel, // Type assertion needed for string to AIModel
   });
 
   // Initialize taxonomy manager

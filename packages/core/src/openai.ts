@@ -4,7 +4,7 @@
 import OpenAI from 'openai';
 import { encoding_for_model } from 'tiktoken';
 
-import { APIError, AppError, ErrorCodes, normalizeError } from './errors';
+import { APIError, ErrorCodes, normalizeError } from './errors';
 
 import type { AIModel } from '@obsidian-magic/types';
 
@@ -86,7 +86,10 @@ export class OpenAIClient {
    */
   private initClient(): void {
     if (!this.config.apiKey) {
-      throw new APIError('API key is required to initialize the OpenAI client', ErrorCodes.MISSING_API_KEY, false);
+      throw new APIError('API key is required to initialize the OpenAI client', {
+        code: ErrorCodes.MISSING_API_KEY,
+        recoverable: false,
+      });
     }
 
     this.client = new OpenAI({
@@ -220,7 +223,8 @@ export class OpenAIClient {
               estimatedCost: totalTokens * costPerToken,
             },
           };
-        } catch (parseError) {
+        } catch (_) {
+          void _; // Mark as intentionally unused
           // If parsing fails, return the raw text
           return {
             success: true,
@@ -293,11 +297,10 @@ export class OpenAIClient {
    */
   async moderateContent(text: string): Promise<ModerationResult> {
     if (!this.client) {
-      throw new APIError(
-        'OpenAI client is not initialized. Please set a valid API key.',
-        ErrorCodes.MISSING_API_KEY,
-        false
-      );
+      throw new APIError('OpenAI client is not initialized. Please set a valid API key.', {
+        code: ErrorCodes.MISSING_API_KEY,
+        recoverable: false,
+      });
     }
 
     try {
@@ -305,28 +308,30 @@ export class OpenAIClient {
       const result = response.results[0];
 
       if (!result) {
-        throw new APIError('Moderation API returned no results', ErrorCodes.API_ERROR, true);
+        throw new APIError('Moderation API returned no results', {
+          code: ErrorCodes.API_ERROR,
+          recoverable: true,
+        });
       }
 
       // Extract flagged categories for easier access
       const flaggedCategories = Object.entries(result.categories)
-        .filter(([_, isFlagged]) => isFlagged)
+        .filter(([, isFlagged]) => isFlagged)
         .map(([category]) => category);
 
       return {
         flagged: result.flagged,
-        categories: result.categories,
-        categoryScores: result.category_scores,
+        categories: result.categories as unknown as Record<string, boolean>,
+        categoryScores: result.category_scores as unknown as Record<string, number>,
         flaggedCategories,
       };
     } catch (error) {
       const normalizedError = normalizeError(error);
-      throw new APIError(
-        `Moderation API error: ${normalizedError.message}`,
-        ErrorCodes.API_ERROR,
-        true,
-        (error as any)?.status
-      );
+      throw new APIError(`Moderation API error: ${normalizedError.message}`, {
+        code: ErrorCodes.API_ERROR,
+        recoverable: true,
+        statusCode: (error as Error & { status?: number }).status,
+      });
     }
   }
 
@@ -380,12 +385,10 @@ export class OpenAIClient {
           ? 'gpt-3.5-turbo'
           : 'gpt-4o';
 
-      if (!this.encodingCache[modelName]) {
-        this.encodingCache[modelName] = encoding_for_model(modelName);
-      }
-
+      this.encodingCache[modelName] ??= encoding_for_model(modelName);
       return this.encodingCache[modelName].encode(text).length;
-    } catch (error) {
+    } catch (_) {
+      void _; // Mark as intentionally unused
       // Fallback to approximate count if tiktoken fails
       return Math.ceil(text.length / 4);
     }
@@ -395,11 +398,11 @@ export class OpenAIClient {
 /**
  * Prompt engineering utilities for constructing effective prompts
  */
-export class PromptEngineering {
+export const PromptEngineering = {
   /**
    * Create a structured tagging prompt
    */
-  static createTaggingPrompt(
+  createTaggingPrompt(
     content: string,
     taxonomy: Record<string, unknown>,
     options: {
@@ -461,12 +464,12 @@ Provide your classification as a valid JSON object with the following structure:
 `;
 
     return prompt;
-  }
+  },
 
   /**
    * Get examples for few-shot learning
    */
-  private static getTaggingExamples(): string {
+  getTaggingExamples(): string {
     return `
 Example 1:
 <conversation>
@@ -520,12 +523,12 @@ Assistant: It's completely normal to feel nervous before an interview. Try these
 }
 </classification>
 `;
-  }
+  },
 
   /**
    * Extract relevant sections from content exceeding token limits
    */
-  static extractRelevantSections(content: string, maxTokens: number): string {
+  extractRelevantSections(content: string, maxTokens: number): string {
     // Split the content into paragraphs
     const paragraphs = content.split(/\n\s*\n/);
 
@@ -598,7 +601,7 @@ Assistant: It's completely normal to feel nervous before an interview. Try these
       const text = p.toLowerCase();
       const score = keywordIndicators.reduce((acc, keyword) => {
         const regex = new RegExp(`\\b${keyword}\\b`, 'g');
-        const matches = (text.match(regex) || []).length;
+        const matches = (text.match(regex) ?? []).length;
         return acc + matches;
       }, 0);
 
@@ -620,7 +623,7 @@ Assistant: It's completely normal to feel nervous before an interview. Try these
     for (const { index } of scoredIndices) {
       const paragraph = paragraphs[index];
       if (paragraph) {
-        const tokens = tokenCounts[index] || 0;
+        const tokens = tokenCounts[index] ?? 0;
         if (currentTokens + tokens + 100 <= maxTokens) {
           // 100 token buffer
           midSections.push(paragraph);
@@ -642,7 +645,7 @@ Assistant: It's completely normal to feel nervous before an interview. Try these
       for (let i = 2; i < paragraphs.length - 2; i += step) {
         const paragraph = paragraphs[i];
         if (paragraph) {
-          const tokens = tokenCounts[i] || 0;
+          const tokens = tokenCounts[i] ?? 0;
           if (currentTokens + tokens + 100 <= maxTokens) {
             midSections.push(paragraph);
             currentTokens += tokens;
@@ -661,5 +664,5 @@ Assistant: It's completely normal to feel nervous before an interview. Try these
       midSections.length > 0 ? '...' : '',
       conclusion,
     ].join('\n\n');
-  }
-}
+  },
+};

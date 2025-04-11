@@ -1,6 +1,7 @@
 /**
  * Core tag definitions for Obsidian Magic's tagging system
  */
+import type { CONTEXTUAL_TAGS, CONVERSATION_TYPE_TAGS, DOMAIN_TAGS, LIFE_AREA_TAGS, SUBDOMAIN_TAGS } from './taxonomy';
 
 /**
  * Represents a year tag (strictly 4-digit years)
@@ -10,35 +11,12 @@ export type YearTag = `${number}`;
 /**
  * Life area tags taxonomy
  */
-export type LifeAreaTag =
-  | 'career'
-  | 'relationships'
-  | 'health'
-  | 'learning'
-  | 'projects'
-  | 'personal-growth'
-  | 'finance'
-  | 'hobby';
+export type LifeAreaTag = (typeof LIFE_AREA_TAGS)[number];
 
 /**
  * Primary knowledge domains (predefined)
  */
-export type PredefinedDomainTag =
-  | 'software-development'
-  | 'philosophy'
-  | 'design'
-  | 'psychology'
-  | 'business'
-  | 'science'
-  | 'arts'
-  | 'entertainment'
-  | 'technology'
-  | 'health'
-  | 'education'
-  | 'finance'
-  | 'productivity'
-  | 'writing'
-  | 'ai';
+export type PredefinedDomainTag = (typeof DOMAIN_TAGS)[number];
 
 /**
  * Domain tag type that allows both predefined values and custom extensions
@@ -46,126 +24,17 @@ export type PredefinedDomainTag =
 export type DomainTag = PredefinedDomainTag | (string & {});
 
 /**
+ * Generate the subdomain types for each domain
+ */
+type SubdomainTypes = {
+  [K in keyof typeof SUBDOMAIN_TAGS]: (typeof SUBDOMAIN_TAGS)[K][number] | string[] | readonly string[];
+};
+
+/**
  * Subdomains by primary domain
  */
-export interface SubdomainMap {
-  'software-development':
-    | 'frontend'
-    | 'backend'
-    | 'devops'
-    | 'mobile'
-    | 'data'
-    | 'security'
-    | 'architecture'
-    | 'desktop'
-    | 'web'
-    | 'api'
-    | 'database'
-    | 'performance'
-    | 'testing'
-    | 'debugging'
-    | 'game-dev';
-  philosophy:
-    | 'ethics'
-    | 'metaphysics'
-    | 'epistemology'
-    | 'logic'
-    | 'aesthetics'
-    | 'existentialism'
-    | 'phenomenology'
-    | 'political-philosophy'
-    | 'philosophy-of-mind'
-    | 'philosophy-of-science';
-  design:
-    | 'ux'
-    | 'ui'
-    | 'graphic'
-    | 'industrial'
-    | 'interaction'
-    | 'graphic-design'
-    | 'typography'
-    | 'visual-design'
-    | 'animation'
-    | 'illustration'
-    | 'branding'
-    | 'information-architecture'
-    | 'product-design';
-  psychology:
-    | 'cognitive'
-    | 'clinical'
-    | 'developmental'
-    | 'social'
-    | 'behavioral'
-    | 'positive-psychology'
-    | 'neuroscience'
-    | 'personality'
-    | 'motivation'
-    | 'emotion';
-  business:
-    | 'marketing'
-    | 'strategy'
-    | 'management'
-    | 'entrepreneurship'
-    | 'operations'
-    | 'finance'
-    | 'sales'
-    | 'product-management'
-    | 'leadership';
-  science: 'physics' | 'biology' | 'chemistry' | 'mathematics' | 'computer-science';
-  arts: 'visual' | 'music' | 'literature' | 'performing' | 'digital';
-  entertainment: 'games' | 'film' | 'television' | 'books' | 'sports';
-  technology: 'ai' | 'blockchain' | 'iot' | 'vr-ar' | 'robotics';
-  health: 'fitness' | 'nutrition' | 'mental-health' | 'medical' | 'wellness';
-  education:
-    | 'k12'
-    | 'higher-ed'
-    | 'professional'
-    | 'self-learning'
-    | 'teaching'
-    | 'pedagogy'
-    | 'learning-theory'
-    | 'curriculum'
-    | 'e-learning'
-    | 'educational-technology'
-    | 'literacy'
-    | 'higher-education'
-    | 'lifelong-learning';
-  finance: 'investing' | 'personal-finance' | 'corporate-finance' | 'crypto' | 'banking';
-  productivity:
-    | 'time-management'
-    | 'task-management'
-    | 'note-taking'
-    | 'knowledge-management'
-    | 'systems'
-    | 'workflow'
-    | 'organization'
-    | 'habits'
-    | 'focus'
-    | 'tools';
-  writing:
-    | 'fiction'
-    | 'non-fiction'
-    | 'technical-writing'
-    | 'blogging'
-    | 'copywriting'
-    | 'storytelling'
-    | 'editing'
-    | 'publishing'
-    | 'journalism'
-    | 'creative-writing'
-    | 'documentation';
-  ai:
-    | 'machine-learning'
-    | 'deep-learning'
-    | 'nlp'
-    | 'computer-vision'
-    | 'reinforcement-learning'
-    | 'prompt-engineering'
-    | 'data-science'
-    | 'neural-networks'
-    | 'generative-ai'
-    | 'llms';
-  [key: string]: string | string[]; // Allow for extension with new domains
+export interface SubdomainMap extends SubdomainTypes, Record<string, string | string[] | readonly string[]> {
+  // Allow for extension with new domains
 }
 
 /**
@@ -176,27 +45,7 @@ export type SubdomainTag = string;
 /**
  * Common predefined contextual wildcard tags
  */
-export type PredefinedContextualTag =
-  | 'beginner'
-  | 'advanced'
-  | 'comparison'
-  | 'tutorial'
-  | 'critique'
-  | 'review'
-  | 'history'
-  | 'future'
-  | 'trends'
-  | 'innovation'
-  | 'ethics'
-  | 'impact'
-  | 'tools'
-  | 'techniques'
-  | 'resources'
-  | 'case-study'
-  | 'problem-solving'
-  | 'decision-making'
-  | 'productivity'
-  | 'communication';
+export type PredefinedContextualTag = (typeof CONTEXTUAL_TAGS)[number];
 
 /**
  * Contextual tag type that allows both predefined values and custom extensions
@@ -206,19 +55,7 @@ export type ContextualTag = PredefinedContextualTag | (string & {});
 /**
  * Conversation type tags taxonomy
  */
-export type ConversationTypeTag =
-  | 'theory'
-  | 'practical'
-  | 'meta'
-  | 'casual'
-  | 'adhd-thought'
-  | 'deep-dive'
-  | 'exploration'
-  | 'experimental'
-  | 'reflection'
-  | 'planning'
-  | 'question'
-  | 'analysis';
+export type ConversationTypeTag = (typeof CONVERSATION_TYPE_TAGS)[number];
 
 /**
  * Confidence score for a tag assignment (0.0 to 1.0)

@@ -1,10 +1,9 @@
 /**
  * Batch processing service for tagging multiple documents
  */
-import type { Document, TaggingResult, TaggingOptions } from '@obsidian-magic/types';
-import type { TaggingService } from './index';
-import { PromptTemplates } from '../openai/prompts';
-import { OpenAIClient } from '../openai';
+import type { Document, TaggingOptions, TaggingResult } from '@obsidian-magic/types';
+
+import type { TaggingService } from '../tagging';
 
 /**
  * Options for batch processing
@@ -14,22 +13,22 @@ export interface BatchProcessingOptions {
    * Maximum number of concurrent requests to the OpenAI API
    */
   concurrency: number;
-  
+
   /**
    * Whether to continue processing if a document fails
    */
   continueOnError: boolean;
-  
+
   /**
    * Callback for progress updates
    */
   onProgress?: (completed: number, total: number, current?: Document) => void;
-  
+
   /**
    * Callback for error handling
    */
   onError?: (error: Error, document?: Document) => void;
-  
+
   /**
    * Tagging options to use for all documents
    */
@@ -41,8 +40,18 @@ export interface BatchProcessingOptions {
  */
 export const DEFAULT_BATCH_OPTIONS: BatchProcessingOptions = {
   concurrency: 3,
-  continueOnError: true
+  continueOnError: true,
 };
+
+/**
+ * Extended tagging result with usage information
+ */
+interface ExtendedTaggingResult extends TaggingResult {
+  usage?: {
+    totalTokens: number;
+    estimatedCost: number;
+  };
+}
 
 /**
  * Results of batch processing
@@ -51,11 +60,11 @@ export interface BatchProcessingResult {
   /**
    * Results for each document
    */
-  results: { 
+  results: {
     document: Document;
     result: TaggingResult;
   }[];
-  
+
   /**
    * Documents that failed processing
    */
@@ -63,7 +72,7 @@ export interface BatchProcessingResult {
     document: Document;
     error: Error;
   }[];
-  
+
   /**
    * Summary of the batch operation
    */
@@ -83,15 +92,12 @@ export interface BatchProcessingResult {
 export class BatchProcessingService {
   private taggingService: TaggingService;
   private options: BatchProcessingOptions;
-  
-  constructor(
-    taggingService: TaggingService,
-    options: Partial<BatchProcessingOptions> = {}
-  ) {
+
+  constructor(taggingService: TaggingService, options: Partial<BatchProcessingOptions> = {}) {
     this.taggingService = taggingService;
     this.options = { ...DEFAULT_BATCH_OPTIONS, ...options };
   }
-  
+
   /**
    * Process a batch of documents
    */
@@ -101,78 +107,85 @@ export class BatchProcessingService {
     const errors: BatchProcessingResult['errors'] = [];
     let totalTokensUsed = 0;
     let estimatedCost = 0;
-    
+
     // Process documents in parallel based on concurrency limit
     const queue = [...documents];
     const inProgress = new Set<Promise<void>>();
-    
+
     while (queue.length > 0 || inProgress.size > 0) {
       // Fill up to concurrency limit
       while (queue.length > 0 && inProgress.size < this.options.concurrency) {
-        const document = queue.shift()!;
-        
-        const promise = this.processDocument(document).then(result => {
-          if (result.success) {
-            results.push({ document, result });
-            
-            // Track token usage if available
-            if (result.usage) {
-              totalTokensUsed += result.usage.totalTokens;
-              estimatedCost += result.usage.estimatedCost;
+        const document = queue.shift();
+
+        // Skip if document is undefined (shouldn't happen, but for type safety)
+        if (!document) continue;
+
+        const promise = this.processDocument(document)
+          .then((result) => {
+            if (result.success) {
+              results.push({ document, result });
+
+              // Track token usage if available
+              const extendedResult = result as ExtendedTaggingResult;
+              if (extendedResult.usage) {
+                totalTokensUsed += extendedResult.usage.totalTokens;
+                estimatedCost += extendedResult.usage.estimatedCost;
+              }
+            } else {
+              // Handle error
+              const error = new Error(result.error?.message ?? 'Unknown error');
+              errors.push({ document, error });
+
+              if (this.options.onError) {
+                this.options.onError(error, document);
+              }
+
+              // If not continuing on error, reject the promise
+              if (!this.options.continueOnError) {
+                throw error;
+              }
             }
-          } else {
-            // Handle error
-            const error = new Error(result.error?.message || 'Unknown error');
-            errors.push({ document, error });
-            
+
+            // Progress callback
+            if (this.options.onProgress) {
+              const completed = results.length + errors.length;
+              const total = documents.length;
+              this.options.onProgress(completed, total);
+            }
+
+            // Remove from in-progress set
+            inProgress.delete(promise);
+          })
+          .catch((error: unknown) => {
+            // Handle unexpected errors
+            const processedError = error instanceof Error ? error : new Error(String(error));
+            errors.push({ document, error: processedError });
+
             if (this.options.onError) {
-              this.options.onError(error, document);
+              this.options.onError(processedError, document);
             }
-            
-            // If not continuing on error, reject the promise
+
+            // If not continuing on error, re-throw
             if (!this.options.continueOnError) {
-              throw error;
+              throw processedError;
             }
-          }
-          
-          // Progress callback
-          if (this.options.onProgress) {
-            const completed = results.length + errors.length;
-            const total = documents.length;
-            this.options.onProgress(completed, total);
-          }
-          
-          // Remove from in-progress set
-          inProgress.delete(promise);
-        }).catch(error => {
-          // Handle unexpected errors
-          errors.push({ document, error });
-          
-          if (this.options.onError) {
-            this.options.onError(error, document);
-          }
-          
-          // If not continuing on error, re-throw
-          if (!this.options.continueOnError) {
-            throw error;
-          }
-          
-          // Remove from in-progress set
-          inProgress.delete(promise);
-        });
-        
+
+            // Remove from in-progress set
+            inProgress.delete(promise);
+          });
+
         // Add to in-progress set
         inProgress.add(promise);
       }
-      
+
       // Wait for at least one promise to complete if we've reached concurrency limit
       if (inProgress.size >= this.options.concurrency || (queue.length === 0 && inProgress.size > 0)) {
         await Promise.race(inProgress);
       }
     }
-    
+
     const processingTimeMs = Date.now() - startTime;
-    
+
     // Generate summary
     const summary = {
       total: documents.length,
@@ -180,12 +193,12 @@ export class BatchProcessingService {
       failed: errors.length,
       totalTokensUsed,
       estimatedCost,
-      processingTimeMs
+      processingTimeMs,
     };
-    
+
     return { results, errors, summary };
   }
-  
+
   /**
    * Process a single document
    */
@@ -201,12 +214,12 @@ export class BatchProcessingService {
         error: {
           message: error instanceof Error ? error.message : 'Unknown error',
           code: 'BATCH_PROCESSING_ERROR',
-          recoverable: false
-        }
+          recoverable: false,
+        },
       };
     }
   }
-  
+
   /**
    * Estimate the batch processing cost without executing it
    */
@@ -219,38 +232,38 @@ export class BatchProcessingService {
     const averageTokensPerCharacter = 0.25; // Rough estimate of tokens per character
     const totalCharacters = documents.reduce((sum, doc) => sum + (doc.content.length || 0), 0);
     const estimatedPromptTokens = totalCharacters * averageTokensPerCharacter;
-    
+
     // Estimate completion tokens (typically smaller than prompt)
     const estimatedCompletionTokens = documents.length * 500; // Rough estimate of tokens per response
-    
+
     const totalEstimatedTokens = estimatedPromptTokens + estimatedCompletionTokens;
-    
+
     // Estimate cost based on gpt-4o pricing ($0.01 per 1K tokens)
     const estimatedCost = (totalEstimatedTokens / 1000) * 0.01;
-    
+
     // Estimate time based on API response time and concurrency
     const averageTimePerDocument = 5; // seconds
     const estimatedTimeTotalSeconds = (documents.length / this.options.concurrency) * averageTimePerDocument;
     const estimatedTimeMinutes = estimatedTimeTotalSeconds / 60;
-    
+
     return {
       estimatedTokens: Math.ceil(totalEstimatedTokens),
       estimatedCost: parseFloat(estimatedCost.toFixed(2)),
-      estimatedTimeMinutes: parseFloat(estimatedTimeMinutes.toFixed(1))
+      estimatedTimeMinutes: parseFloat(estimatedTimeMinutes.toFixed(1)),
     };
   }
-  
+
   /**
    * Set batch processing options
    */
   setOptions(options: Partial<BatchProcessingOptions>): void {
     this.options = { ...this.options, ...options };
   }
-  
+
   /**
    * Get current batch processing options
    */
   getOptions(): BatchProcessingOptions {
     return { ...this.options };
   }
-} 
+}
