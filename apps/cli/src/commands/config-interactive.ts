@@ -1,12 +1,15 @@
 import path from 'path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
+import { modelManager } from '@obsidian-magic/core';
 import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 
 import { config } from '../utils/config';
 import { logger } from '../utils/logger';
 
+import type { ModelPricing } from '@obsidian-magic/core';
+import type { AIModel } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';
 
 import type { Config } from '../types/config';
@@ -14,11 +17,12 @@ import type { Config } from '../types/config';
 // Configuration types
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 type TagMode = 'append' | 'replace' | 'merge';
-type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o';
+// Use AIModel instead of redefining ModelType
+// type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o';
 
 interface ConfigSettings {
   apiKey?: string;
-  defaultModel: ModelType;
+  defaultModel: AIModel;
   tagMode: TagMode;
   concurrency?: number;
   logLevel: LogLevel;
@@ -28,6 +32,90 @@ interface ConfigSettings {
   outputDir?: string;
   profiles?: Record<string, Partial<ConfigSettings>>;
   [key: string]: unknown;
+}
+
+/**
+ * Get model choices for selection dropdown
+ * @param apiKey API key to check available models
+ * @returns Array of model choices
+ */
+async function getModelChoices(apiKey?: string): Promise<{ value: AIModel; name: string }[]> {
+  if (!apiKey) {
+    // Return default choices if no API key is available
+    return [
+      { value: 'gpt-3.5-turbo' as AIModel, name: 'gpt-3.5-turbo - Fastest & Most Affordable' },
+      { value: 'gpt-4o' as AIModel, name: 'gpt-4o - Best Overall Performance (Recommended)' },
+    ];
+  }
+
+  try {
+    // Get models from the API
+    const modelsByCategory = await modelManager.getModelsByCategory(apiKey);
+
+    // Prepare choices
+    const choices: { value: AIModel; name: string }[] = [];
+
+    // Add GPT-4 models (most capable)
+    if (modelsByCategory.gpt4) {
+      modelsByCategory.gpt4.forEach((model) => {
+        choices.push({
+          value: model.id as AIModel,
+          name: `${model.name} - ${getPriceDescription(model)}`,
+        });
+      });
+    }
+
+    // Add O1 models (advanced)
+    if (modelsByCategory.o1) {
+      modelsByCategory.o1.forEach((model) => {
+        choices.push({
+          value: model.id as AIModel,
+          name: `${model.name} - ${getPriceDescription(model)} (Advanced)`,
+        });
+      });
+    }
+
+    // Add GPT-3.5 models (budget)
+    if (modelsByCategory.gpt3) {
+      modelsByCategory.gpt3.forEach((model) => {
+        choices.push({
+          value: model.id as AIModel,
+          name: `${model.name} - ${getPriceDescription(model)} (Budget)`,
+        });
+      });
+    }
+
+    // Add base models
+    if (modelsByCategory.base) {
+      modelsByCategory.base.forEach((model) => {
+        choices.push({
+          value: model.id as AIModel,
+          name: `${model.name} - ${getPriceDescription(model)} (Base)`,
+        });
+      });
+    }
+
+    return choices.length > 0
+      ? choices
+      : [
+          { value: 'gpt-3.5-turbo' as AIModel, name: 'gpt-3.5-turbo - Fastest & Most Affordable' },
+          { value: 'gpt-4o' as AIModel, name: 'gpt-4o - Best Overall Performance (Recommended)' },
+        ];
+  } catch (error) {
+    console.warn('Error fetching available models:', error);
+    // Fall back to default choices on error
+    return [
+      { value: 'gpt-3.5-turbo' as AIModel, name: 'gpt-3.5-turbo - Fastest & Most Affordable' },
+      { value: 'gpt-4o' as AIModel, name: 'gpt-4o - Best Overall Performance (Recommended)' },
+    ];
+  }
+}
+
+/**
+ * Get price description for a model
+ */
+function getPriceDescription(model: ModelPricing): string {
+  return `$${(model.inputPrice / 1000).toFixed(2)}/$${(model.outputPrice / 1000).toFixed(2)} per 1K tokens`;
 }
 
 /**
@@ -86,14 +174,14 @@ export const configInteractiveCommand: CommandModule = {
 
       answers.apiKey = apiKeyResponse === '[keep current]' ? currentApiKey : apiKeyResponse;
 
-      answers.defaultModel = await select<ModelType>({
+      // Get model choices based on API key
+      const modelChoices = await getModelChoices(answers.apiKey);
+
+      // Select model with dynamic choices
+      answers.defaultModel = await select<AIModel>({
         message: 'Default model for tagging:',
-        choices: [
-          { value: 'gpt-3.5-turbo', name: 'gpt-3.5-turbo' },
-          { value: 'gpt-4', name: 'gpt-4' },
-          { value: 'gpt-4o', name: 'gpt-4o' },
-        ],
-        default: (config.get('defaultModel') as ModelType | undefined) ?? 'gpt-3.5-turbo',
+        choices: modelChoices,
+        default: config.get('defaultModel') ?? 'gpt-3.5-turbo',
       });
 
       const currentTagMode = config.get('tagMode') as TagMode | undefined;
@@ -215,8 +303,8 @@ export const configInteractiveCommand: CommandModule = {
 
       // If a profile was specified, save it as a named profile
       if (profileName) {
-        const profiles = (config.get('profiles') as Record<string, Partial<ConfigSettings>> | undefined) ?? {};
-        profiles[profileName] = answers;
+        const profiles = config.get('profiles') ?? {};
+        profiles[profileName] = answers as Partial<Config>;
         config.set('profiles', profiles);
         logger.success(`Profile '${profileName}' saved.`);
       }

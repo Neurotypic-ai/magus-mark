@@ -1,14 +1,19 @@
-import { AppError, FileSystemError, failure, success } from '@obsidian-magic/core';
-import { Notice } from 'obsidian';
+import { APIError, AppError, FileSystemError, Result } from '@obsidian-magic/core';
+import { Notice, Platform } from 'obsidian';
 
-import type { ApiError, Result } from '@obsidian-magic/core';
+import type * as Electron from 'electron';
 
 import type ObsidianMagicPlugin from '../main';
+
+// Safely access Electron APIs at runtime using the Obsidian-recommended pattern
+/* eslint-disable */
+const electron: typeof Electron | null = Platform.isDesktopApp ? window.require('electron') : null;
+/* eslint-enable */
 
 /**
  * Handles secure storage and management of API keys
  * Provides multiple storage options:
- * - System keychain
+ * - Electron secure storage
  * - Local encrypted storage
  */
 export class KeyManager {
@@ -24,7 +29,7 @@ export class KeyManager {
   async saveKey(apiKey: string): Promise<Result<boolean>> {
     try {
       if (!apiKey) {
-        throw new ApiError('API key cannot be empty', {
+        throw new APIError('API key cannot be empty', {
           code: 'API_KEY_EMPTY',
           recoverable: false,
         });
@@ -37,12 +42,12 @@ export class KeyManager {
       }
 
       new Notice('API key has been saved successfully');
-      return success(true);
+      return Result.ok(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to save API key: ${message}`);
 
-      return failure(error instanceof AppError ? error : new ApiError(`Failed to save API key: ${message}`));
+      return Result.fail(error instanceof AppError ? error : new APIError(`Failed to save API key: ${message}`));
     }
   }
 
@@ -75,12 +80,12 @@ export class KeyManager {
       }
 
       new Notice('API key has been deleted successfully');
-      return success(true);
+      return Result.ok(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to delete API key: ${message}`);
 
-      return failure(error instanceof AppError ? error : new ApiError(`Failed to delete API key: ${message}`));
+      return Result.fail(error instanceof AppError ? error : new APIError(`Failed to delete API key: ${message}`));
     }
   }
 
@@ -97,24 +102,18 @@ export class KeyManager {
    */
   private async saveToSystemKeychain(apiKey: string): Promise<void> {
     try {
-      // Detect environment
-      if (this.isElectronAvailable()) {
-        // Use Electron secure storage
-        const { ipcRenderer } = window.require('electron');
-        await ipcRenderer.invoke('set-secure-key', this.plugin.settings.apiKeyKeychainId, apiKey);
-      } else if (this.isNodeKeytarAvailable()) {
-        // Use node-keytar
-        const keytar = require('node-keytar');
-        await keytar.setPassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId, apiKey);
-      } else {
-        throw new ApiError('System keychain is not available');
+      if (!electron) {
+        throw new APIError('System keychain is not available: Electron not detected');
       }
+
+      const { ipcRenderer } = electron;
+      await ipcRenderer.invoke('set-secure-key', this.plugin.settings.apiKeyKeychainId, apiKey);
 
       // Clear from local storage
       this.plugin.settings.apiKey = '';
       await this.plugin.saveSettings();
     } catch (error) {
-      throw new ApiError(
+      throw new APIError(
         `Failed to save to system keychain: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -125,20 +124,14 @@ export class KeyManager {
    */
   private async loadFromSystemKeychain(): Promise<string | null> {
     try {
-      // Detect environment
-      if (this.isElectronAvailable()) {
-        // Use Electron secure storage
-        const { ipcRenderer } = window.require('electron');
-        return await ipcRenderer.invoke('get-secure-key', this.plugin.settings.apiKeyKeychainId);
-      } else if (this.isNodeKeytarAvailable()) {
-        // Use node-keytar
-        const keytar = require('node-keytar');
-        return await keytar.getPassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId);
-      } else {
-        throw new ApiError('System keychain is not available');
+      if (!electron) {
+        throw new APIError('System keychain is not available: Electron not detected');
       }
+
+      const { ipcRenderer } = electron;
+      return (await ipcRenderer.invoke('get-secure-key', this.plugin.settings.apiKeyKeychainId)) as string | null;
     } catch (error) {
-      throw new ApiError(
+      throw new APIError(
         `Failed to load from system keychain: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -149,20 +142,14 @@ export class KeyManager {
    */
   private async deleteFromSystemKeychain(): Promise<void> {
     try {
-      // Detect environment
-      if (this.isElectronAvailable()) {
-        // Use Electron secure storage
-        const { ipcRenderer } = window.require('electron');
-        await ipcRenderer.invoke('delete-secure-key', this.plugin.settings.apiKeyKeychainId);
-      } else if (this.isNodeKeytarAvailable()) {
-        // Use node-keytar
-        const keytar = require('node-keytar');
-        await keytar.deletePassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId);
-      } else {
-        throw new ApiError('System keychain is not available');
+      if (!electron) {
+        throw new APIError('System keychain is not available: Electron not detected');
       }
+
+      const { ipcRenderer } = electron;
+      await ipcRenderer.invoke('delete-secure-key', this.plugin.settings.apiKeyKeychainId);
     } catch (error) {
-      throw new ApiError(
+      throw new APIError(
         `Failed to delete from system keychain: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -243,29 +230,6 @@ export class KeyManager {
       return decoded.substring(salt.length);
     } catch (error) {
       throw new Error(`Failed to decrypt key: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
-   * Check if Electron is available
-   */
-  private isElectronAvailable(): boolean {
-    return (
-      typeof window !== 'undefined' &&
-      window.require &&
-      typeof window.require === 'function' &&
-      window.require('electron')
-    );
-  }
-
-  /**
-   * Check if node-keytar is available
-   */
-  private isNodeKeytarAvailable(): boolean {
-    try {
-      return !!require('node-keytar');
-    } catch {
-      return false;
     }
   }
 }

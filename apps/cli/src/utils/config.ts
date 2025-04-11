@@ -225,7 +225,18 @@ export const config = ConfigImpl.getInstance();
 export const configSchema = z.object({
   // Core settings
   apiKey: z.string().optional(),
-  defaultModel: z.enum(['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'] as const).optional(),
+  defaultModel: z
+    .enum([
+      'gpt-4',
+      'gpt-4-turbo',
+      'gpt-4o',
+      'gpt-4-vision',
+      'gpt-3.5-turbo',
+      'gpt-3.5-turbo-instruct',
+      'davinci-002',
+      'babbage-002',
+    ])
+    .optional(),
 
   // Processing parameters
   minConfidence: z.number().min(0).max(1).optional(),

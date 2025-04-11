@@ -1,14 +1,20 @@
 # OpenAI Integration & Prompt Engineering
 
-This document describes the OpenAI integration and prompt engineering techniques used for accurate classification with minimal token usage.
+This document describes the OpenAI integration and prompt engineering techniques used for accurate classification with
+minimal token usage.
+
+> **Note**: For a complete list of supported models and selection guidance, see
+> [Supported Models](./supported-models.md).
 
 ## Context-Optimized Prompting
 
-The system employs OpenAI's recommended prompt engineering practices to maximize classification accuracy while minimizing token usage:
+The system employs OpenAI's recommended prompt engineering practices to maximize classification accuracy while
+minimizing token usage:
 
 ### Intelligent Context Selection
 
-- Rather than passing entire conversations, the system uses an embedding-based extractive approach to identify the most relevant segments
+- Rather than passing entire conversations, the system uses an embedding-based extractive approach to identify the most
+  relevant segments
 - For long conversations, a two-stage process is used:
   1. First pass: Generate an embedding-based summary focusing on topical indicators
   2. Second pass: Submit the summary plus key excerpts for detailed tagging
@@ -17,7 +23,8 @@ The system employs OpenAI's recommended prompt engineering practices to maximize
 ### Structured Prompt Design
 
 - Clear task delineation with explicit instructions and formatting expectations
-- System message establishes the role: "You are a precise conversation classifier specialized in identifying topics, conversation types, and contextual metadata."
+- System message establishes the role: "You are a precise conversation classifier specialized in identifying topics,
+  conversation types, and contextual metadata."
 - Clearly delimited sections using markdown separators to distinguish instructions, reference data, and content
 - Example:
 
@@ -164,4 +171,4 @@ The system implements a sophisticated quality assurance approach with multiple r
 
 - If GPT-4 requests fail due to rate limits, fall back to GPT-3.5-Turbo
 - Allow specifying different models for different stages of processing
-- Implement circuit breaker pattern to prevent overwhelming the API during outages 
+- Implement circuit breaker pattern to prevent overwhelming the API during outages

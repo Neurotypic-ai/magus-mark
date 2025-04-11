@@ -1,14 +1,17 @@
 /**
  * Example CLI usage of the Obsidian Magic core module
- * 
+ *
  * To run:
  * 1. Set OPENAI_API_KEY environment variable
  * 2. npx tsx packages/core/examples/cli-example.ts
  */
-import { initializeCore } from '../src';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { initializeCore } from '../src';
+
+import type { AIModel } from '@obsidian-magic/types';
 
 // Get the directory name using CommonJS compatible approach
 const __filename = fileURLToPath(import.meta.url);
@@ -21,53 +24,54 @@ async function main() {
     console.error('Error: OPENAI_API_KEY environment variable is required.');
     process.exit(1);
   }
-  
+
+  // Get model from arguments or use default
+  const modelArg = process.argv[2];
+  const model: AIModel = (modelArg as AIModel) || 'gpt-4o';
+
   try {
     // Initialize core module
-    console.log('Initializing Obsidian Magic core module...');
-    const core = initializeCore({
+    console.log(`Initializing Obsidian Magic core module with model: ${model}...`);
+    const core = await initializeCore({
       openaiApiKey: apiKey,
-      model: 'gpt-4o'
+      model,
     });
-    
+
     // Load example document
     const documentPath = path.join(__dirname, 'sample-conversation.md');
     const content = await fs.readFile(documentPath, 'utf-8');
-    
+
     // Parse document
-    const document = core.documentProcessor.parseDocument(
-      'sample-1',
-      documentPath,
-      content
-    );
-    
+    const document = core.documentProcessor.parseDocument('sample-1', documentPath, content);
+
     console.log(`\nProcessing document: ${path.basename(documentPath)}`);
     console.log(`Content length: ${content.length} characters`);
-    
+    console.log(`Using model: ${model}`);
+
     // Estimate token usage
     const tokens = core.openAIClient.estimateTokenCount(content);
     console.log(`Estimated tokens: ${tokens}`);
-    
+
     // Process document
     console.log('\nTagging document...');
     const startTime = Date.now();
     const result = await core.taggingService.tagDocument(document);
     const elapsed = Date.now() - startTime;
-    
+
     // Print results
     if (result.success && result.tags) {
       console.log('\nTagging successful!');
       console.log(`Time taken: ${elapsed}ms`);
-      
+
       const { tags } = result;
-      
+
       console.log('\n====== TAGS ======');
       console.log(`Year: ${tags.year}`);
-      
+
       if (tags.life_area) {
         console.log(`Life Area: ${tags.life_area}`);
       }
-      
+
       console.log('\nTopical Tags:');
       tags.topical_tags.forEach((tag, index) => {
         console.log(`  ${index + 1}. Domain: ${tag.domain}`);
@@ -78,25 +82,25 @@ async function main() {
           console.log(`     Contextual: ${tag.contextual}`);
         }
       });
-      
+
       console.log(`\nConversation Type: ${tags.conversation_type}`);
-      
+
       console.log('\nConfidence Scores:');
       Object.entries(tags.confidence).forEach(([key, value]) => {
         console.log(`  ${key}: ${(value as number).toFixed(2)}`);
       });
-      
+
       if (tags.explanations) {
         console.log('\nExplanations:');
         Object.entries(tags.explanations).forEach(([key, value]) => {
           console.log(`  ${key}: ${value}`);
         });
       }
-      
+
       // Update document with tags
       console.log('\nUpdating document with tags...');
       const updatedContent = core.documentProcessor.updateDocument(document, tags);
-      
+
       // Write updated content to a new file
       const outputPath = path.join(__dirname, 'sample-conversation-tagged.md');
       await fs.writeFile(outputPath, updatedContent, 'utf-8');
@@ -106,39 +110,35 @@ async function main() {
       console.error(`Error: ${result.error?.message}`);
       console.error(`Code: ${result.error?.code}`);
     }
-    
+
     // Batch processing example
     console.log('\n\n==== BATCH PROCESSING EXAMPLE ====');
-    
+
     // Create a batch of documents
-    const batch = [
-      document,
-      { ...document, id: 'sample-2' }
-    ];
-    
+    const batch = [document, { ...document, id: 'sample-2' }];
+
     // Get cost estimate
     const costEstimate = core.batchProcessingService.estimateBatchCost(batch);
     console.log('\nBatch Processing Estimate:');
     console.log(`Estimated tokens: ${costEstimate.estimatedTokens}`);
     console.log(`Estimated cost: $${costEstimate.estimatedCost}`);
     console.log(`Estimated time: ${costEstimate.estimatedTimeMinutes} minutes`);
-    
+
     // Process batch with progress reporting
     console.log('\nProcessing batch...');
     const batchStartTime = Date.now();
-    
+
     const batchResult = await core.batchProcessingService.processBatch(batch);
-    
+
     const batchElapsed = Date.now() - batchStartTime;
     console.log(`Batch processing complete in ${batchElapsed}ms`);
-    
+
     console.log('\nBatch Summary:');
     console.log(`Total documents: ${batchResult.summary.total}`);
     console.log(`Successfully processed: ${batchResult.summary.successful}`);
     console.log(`Failed: ${batchResult.summary.failed}`);
     console.log(`Total tokens used: ${batchResult.summary.totalTokensUsed}`);
     console.log(`Estimated cost: $${batchResult.summary.estimatedCost.toFixed(4)}`);
-    
   } catch (error) {
     console.error('An error occurred:', error);
     process.exit(1);
@@ -254,7 +254,7 @@ function SearchResults() {
 
 This pattern is very useful for optimizing your components and avoiding unnecessary effects.
 `;
-    
+
     await fs.mkdir(path.dirname(samplePath), { recursive: true });
     await fs.writeFile(samplePath, sampleContent, 'utf-8');
     console.log(`Created sample file: ${samplePath}`);
@@ -264,7 +264,7 @@ This pattern is very useful for optimizing your components and avoiding unnecess
 // Ensure sample file exists then run main function
 createSampleIfNeeded()
   .then(() => main())
-  .catch(error => {
+  .catch((error) => {
     console.error('Error in setup:', error);
     process.exit(1);
-  }); 
+  });

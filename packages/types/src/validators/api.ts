@@ -3,21 +3,24 @@
  */
 
 import { z } from 'zod';
+
 import { tagSetSchema } from './tags';
 
 // Basic API validators
-export const aiModelSchema = z.enum(['gpt-4o', 'gpt-3.5-turbo']);
+export const aiModelSchema = z.string();
 
 export const apiKeyStorageSchema = z.enum(['local', 'system']);
 
 export const taggingResultSchema = z.object({
   success: z.boolean(),
   tags: tagSetSchema.optional(),
-  error: z.object({
-    message: z.string(),
-    code: z.string(),
-    recoverable: z.boolean()
-  }).optional()
+  error: z
+    .object({
+      message: z.string(),
+      code: z.string(),
+      recoverable: z.boolean(),
+    })
+    .optional(),
 });
 
 export const taggingOptionsSchema = z.object({
@@ -25,7 +28,7 @@ export const taggingOptionsSchema = z.object({
   behavior: z.enum(['append', 'replace', 'merge']),
   minConfidence: z.number().min(0).max(1),
   reviewThreshold: z.number().min(0).max(1),
-  generateExplanations: z.boolean()
+  generateExplanations: z.boolean(),
 });
 
 export const documentSchema = z.object({
@@ -33,21 +36,21 @@ export const documentSchema = z.object({
   path: z.string(),
   content: z.string(),
   metadata: z.record(z.unknown()).optional(),
-  existingTags: tagSetSchema.optional()
+  existingTags: tagSetSchema.optional(),
 });
 
 // Advanced API validators
 export const rateLimitInfoSchema = z.object({
   totalRequests: z.number().int().positive(),
   remainingRequests: z.number().int().nonnegative(),
-  resetTime: z.date()
+  resetTime: z.date(),
 });
 
 export const apiErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
   recoverable: z.boolean(),
-  rateLimitInfo: rateLimitInfoSchema.optional()
+  rateLimitInfo: rateLimitInfoSchema.optional(),
 });
 
 export const apiUsageStatsSchema = z.object({
@@ -55,7 +58,7 @@ export const apiUsageStatsSchema = z.object({
   promptTokens: z.number().int().nonnegative(),
   completionTokens: z.number().int().nonnegative(),
   cost: z.number().nonnegative(),
-  currency: z.literal('USD')
+  currency: z.literal('USD'),
 });
 
 export const apiRequestTrackingSchema = z.object({
@@ -65,7 +68,7 @@ export const apiRequestTrackingSchema = z.object({
   endTime: z.date().optional(),
   status: z.enum(['pending', 'success', 'error']),
   usage: apiUsageStatsSchema.optional(),
-  error: apiErrorSchema.optional()
+  error: apiErrorSchema.optional(),
 });
 
 export const apiConfigSchema = z.object({
@@ -75,7 +78,7 @@ export const apiConfigSchema = z.object({
   defaultModel: aiModelSchema,
   timeoutMs: z.number().int().positive(),
   maxRetries: z.number().int().nonnegative(),
-  costPerTokenMap: z.record(z.number().nonnegative())
+  costPerTokenMap: z.record(z.number().nonnegative()),
 });
 
 export const batchTaggingJobSchema = z.object({
@@ -86,15 +89,17 @@ export const batchTaggingJobSchema = z.object({
   progress: z.object({
     total: z.number().int().nonnegative(),
     completed: z.number().int().nonnegative(),
-    failed: z.number().int().nonnegative()
+    failed: z.number().int().nonnegative(),
   }),
-  stats: z.object({
-    startTime: z.date(),
-    endTime: z.date().optional(),
-    totalTokens: z.number().int().nonnegative(),
-    totalCost: z.number().nonnegative(),
-    currency: z.literal('USD')
-  }).optional()
+  stats: z
+    .object({
+      startTime: z.date(),
+      endTime: z.date().optional(),
+      totalTokens: z.number().int().nonnegative(),
+      totalCost: z.number().nonnegative(),
+      currency: z.literal('USD'),
+    })
+    .optional(),
 });
 
 // Type inference helpers
@@ -108,4 +113,4 @@ export type APIErrorSchema = z.infer<typeof apiErrorSchema>;
 export type APIUsageStatsSchema = z.infer<typeof apiUsageStatsSchema>;
 export type APIRequestTrackingSchema = z.infer<typeof apiRequestTrackingSchema>;
 export type APIConfigSchema = z.infer<typeof apiConfigSchema>;
-export type BatchTaggingJobSchema = z.infer<typeof batchTaggingJobSchema>; 
+export type BatchTaggingJobSchema = z.infer<typeof batchTaggingJobSchema>;

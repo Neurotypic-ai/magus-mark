@@ -5,6 +5,9 @@
  * OpenAI integration, markdown parsing, and other core features.
  */
 
+// Export model calculation function from openai-models
+import { calculateCost as calcCost } from './openai-models';
+
 import type { AIModel } from '@obsidian-magic/types';
 
 // Export all components from the core module
@@ -12,6 +15,8 @@ export * from './errors';
 export * from './markdown';
 export * from './openai';
 export * from './tagging';
+export * from './openai-models';
+export * from './model-manager';
 
 // Export tagging functionality
 export * from './tagging/taxonomy';
@@ -19,6 +24,8 @@ export * from './tagging/batch';
 
 // Export version information
 export const VERSION = '0.1.0';
+
+export const calculateCost = calcCost;
 
 /**
  * Initialize the core module with configuration
@@ -28,7 +35,7 @@ export const VERSION = '0.1.0';
  */
 export async function initializeCore(options: {
   openaiApiKey?: string;
-  model?: string;
+  model?: AIModel;
   taxonomy?: Record<string, unknown>;
 }) {
   // Import needed classes - using the exports we already have
@@ -42,7 +49,7 @@ export async function initializeCore(options: {
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({
     apiKey: options.openaiApiKey ?? process.env['OPENAI_API_KEY'] ?? '',
-    model: (options.model ?? 'gpt-4o') as AIModel, // Type assertion needed for string to AIModel
+    model: options.model ?? 'gpt-4o',
   });
 
   // Initialize taxonomy manager

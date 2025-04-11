@@ -2,20 +2,18 @@
  * Service for integrating with the core tagging functionality
  */
 import {
-  ApiError,
+  APIError,
   ApiKeyError,
   TaggingService as CoreTaggingService,
   DocumentProcessor,
   FileSystemError,
   OpenAIClient,
+  Result,
   TaggingError,
-  failure,
-  success,
   withRetry,
 } from '@obsidian-magic/core';
 import { Notice } from 'obsidian';
 
-import type { Result } from '@obsidian-magic/core';
 import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/types';
 import type { TFile } from 'obsidian';
 
@@ -43,11 +41,10 @@ export interface ErrorDetails {
 /**
  * Result type for file processing operations
  */
-export interface FileProcessingResult
-  extends Result<{
-    file: TFile;
-    tags?: TagSet | undefined;
-  }> {}
+export type FileProcessingResult = Result<{
+  file: TFile;
+  tags?: TagSet | undefined;
+}>;
 
 /**
  * Tagging service for Obsidian integration
@@ -126,7 +123,9 @@ export class TaggingService {
       try {
         content = await this.plugin.app.vault.read(file);
       } catch (err) {
-        throw new FileSystemError(`Could not read file: ${(err as Error).message}`, file.path);
+        throw new FileSystemError(`Could not read file: ${(err as Error).message}`, {
+          path: file.path,
+        });
       }
 
       // Parse document
@@ -139,13 +138,13 @@ export class TaggingService {
       });
 
       if (!result.success) {
-        throw new TaggingError(result.error?.message || 'Unknown tagging error');
+        throw new TaggingError(result.error?.message ?? 'Unknown tagging error');
       }
 
       // Update file with new tags
       try {
         // Only update if we have tags and the behavior isn't 'suggest'
-        if (result.tags && this.plugin.settings.defaultTagBehavior !== ('suggest' as any)) {
+        if (result.tags && this.plugin.settings.defaultTagBehavior !== 'suggest') {
           const updatedContent = this.documentProcessor.updateDocument(document, result.tags);
 
           // Write back to file
@@ -160,12 +159,14 @@ export class TaggingService {
           this.plugin.statusBarElement.setText('Magic: Ready');
         }
 
-        return success({
+        return Result.ok({
           file,
           tags: result.tags,
-        }) as FileProcessingResult;
+        });
       } catch (writeErr) {
-        throw new FileSystemError(`Could not update file: ${(writeErr as Error).message}`, file.path);
+        throw new FileSystemError(`Could not update file: ${(writeErr as Error).message}`, {
+          path: file.path,
+        });
       }
     } catch (error) {
       // Reset status
@@ -176,7 +177,7 @@ export class TaggingService {
       // Show error notice with actionable advice
       if (error instanceof ApiKeyError) {
         new Notice('API key missing: Please add your OpenAI API key in settings');
-      } else if (error instanceof ApiError) {
+      } else if (error instanceof APIError) {
         new Notice(
           `API Error: ${error.message}. ${error.statusCode === 429 ? 'Rate limit exceeded, try again later.' : ''}`
         );
@@ -186,7 +187,7 @@ export class TaggingService {
         new Notice(`Error tagging document: ${error instanceof Error ? error.message : String(error)}`);
       }
 
-      return failure(error instanceof Error ? error : new Error(String(error)));
+      return Result.fail(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -203,12 +204,14 @@ export class TaggingService {
     while (queue.length > 0 || inProgress.size > 0) {
       // Fill the pool to concurrency limit
       while (queue.length > 0 && inProgress.size < concurrency) {
-        const file = queue.shift()!;
+        const file = queue.shift();
+        if (!file) continue;
+
         const promise = this.processFile(file);
         inProgress.add(promise);
 
         // When complete, remove from in-progress and store result
-        promise.then((result) => {
+        void promise.then((result) => {
           inProgress.delete(promise);
           results.push(result);
 
@@ -218,7 +221,7 @@ export class TaggingService {
           const percent = Math.round((completed / total) * 100);
 
           if (this.plugin.statusBarElement) {
-            this.plugin.statusBarElement.setText(`Magic: Processing files (${percent}%)...`);
+            this.plugin.statusBarElement.setText(`Magic: Processing files (${String(percent)}%)...`);
           }
         });
       }

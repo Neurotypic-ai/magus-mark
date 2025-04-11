@@ -18,23 +18,23 @@ export const configCommand: CommandModule = {
             describe: 'Configuration key to get',
             type: 'string',
           }),
-        handler: async (argv) => {
-          const { key } = argv as any;
+        handler: (argv) => {
+          const { key } = argv as { key?: string };
           const currentConfig = config.getAll();
 
           if (key) {
             // Get a specific key
-            const value = key
-              .split('.')
-              .reduce(
-                (obj: Record<string, any>, k: string) => (obj && typeof obj === 'object' ? obj[k] : undefined),
-                currentConfig
-              );
+            const value = key.split('.').reduce<unknown>((obj, k) => {
+              if (obj && typeof obj === 'object') {
+                return (obj as Record<string, unknown>)[k];
+              }
+              return undefined;
+            }, currentConfig);
 
             if (value !== undefined) {
-              logger.info(`${key}: ${JSON.stringify(value)}`);
+              logger.info(`${String(key)}: ${JSON.stringify(value)}`);
             } else {
-              logger.warn(`Configuration key '${key}' not found`);
+              logger.warn(`Configuration key '${String(key)}' not found`);
             }
           } else {
             // Show all configuration values
@@ -57,22 +57,22 @@ export const configCommand: CommandModule = {
               type: 'string',
               demandOption: true,
             }),
-        handler: async (argv) => {
-          const { key, value } = argv as any;
+        handler: (argv) => {
+          const { key, value } = argv as { key: string; value: string };
           try {
             // Try to parse the value as JSON
-            let parsedValue: any;
+            let parsedValue: unknown;
             try {
-              parsedValue = JSON.parse(value as string);
-            } catch (e) {
+              parsedValue = JSON.parse(value);
+            } catch {
               // If it's not valid JSON, use the string value directly
               parsedValue = value;
             }
 
             // Set the value
-            config.set(key, parsedValue);
+            config.set(key as keyof typeof config.getAll, parsedValue as never);
 
-            logger.info(`Set ${key} = ${JSON.stringify(parsedValue)}`);
+            logger.info(`Set ${String(key)} = ${JSON.stringify(parsedValue)}`);
           } catch (error) {
             logger.error(`Failed to set configuration: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -88,16 +88,16 @@ export const configCommand: CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const { file } = argv as any;
+          const { file } = argv as { file: string };
           try {
-            if (!(await fileExists(file as string))) {
-              logger.error(`File not found: ${file}`);
+            if (!(await fileExists(file))) {
+              logger.error(`File not found: ${String(file)}`);
               return;
             }
 
-            await config.loadConfigFile(file as string);
+            await config.reload();
 
-            logger.info(`Configuration imported from ${file}`);
+            logger.info(`Configuration imported from ${String(file)}`);
           } catch (error) {
             logger.error(`Failed to import configuration: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -120,14 +120,14 @@ export const configCommand: CommandModule = {
               alias: 'o',
             }),
         handler: async (argv) => {
-          const { format, output } = argv as any;
+          const { format, output } = argv as { format: string; output: string };
           try {
             const currentConfig = config.getAll();
             const configStr =
               format === 'json' ? JSON.stringify(currentConfig, null, 2) : '# TODO: Implement YAML export';
 
-            await writeFile(output as string, configStr);
-            logger.info(`Configuration exported to ${output}`);
+            await writeFile(output, configStr);
+            logger.info(`Configuration exported to ${String(output)}`);
           } catch (error) {
             logger.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -136,13 +136,15 @@ export const configCommand: CommandModule = {
       .command({
         command: 'reset',
         describe: 'Reset configuration to defaults',
-        handler: async () => {
-          config.reset();
+        handler: () => {
+          config.clear();
           logger.info('Configuration reset to defaults');
         },
       })
       .demandCommand(1, 'You must specify a command')
       .help();
   },
-  handler: () => {}, // Main handler doesn't do anything, subcommands are used instead
+  handler: (): void => {
+    // Main handler doesn't do anything, subcommands are used instead
+  },
 };

@@ -2,12 +2,12 @@
  * API and operational type definitions for Obsidian Magic
  */
 
-import type { TagSet } from './tags';
+import type { TagBehavior, TagSet } from './tags';
 
 /**
- * OpenAI model options
+ * OpenAI model options - dynamically determined at runtime
  */
-export type AIModel = 'gpt-4o' | 'gpt-3.5-turbo';
+export type AIModel = string;
 
 /**
  * API key storage location
@@ -32,7 +32,7 @@ export interface TaggingResult {
  */
 export interface TaggingOptions {
   model: AIModel;
-  behavior: 'append' | 'replace' | 'merge';
+  behavior: TagBehavior;
   minConfidence: number;
   reviewThreshold: number;
   generateExplanations: boolean;
@@ -125,4 +125,4 @@ export interface BatchTaggingJob {
     totalCost: number;
     currency: 'USD';
   };
-} 
+}

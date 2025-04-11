@@ -11,8 +11,7 @@ import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
 import { logger } from '../utils/logger';
 
-import type { Document } from '@obsidian-magic/core';
-import type { AIModel, TagBehavior, TagSet } from '@obsidian-magic/types';
+import type { AIModel, Document, TagBehavior, TagSet } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';
 
 import type { TagOptions } from '../types/commands';
@@ -114,7 +113,7 @@ export const tagCommand: CommandModule = {
       } = options;
 
       // Get paths array from positional arguments
-      const paths = (argv['paths'] as string[]) ?? [];
+      const paths = argv['paths'] as string[];
 
       // Validate paths
       if (paths.length === 0) {
@@ -180,11 +179,11 @@ export const tagCommand: CommandModule = {
       let totalTagged = 0;
       let totalErrors = 0;
       let totalCost = 0;
-      let fileResults: Record<string, any> = {};
+      let fileResults: Record<string, { success: boolean; tags?: TagSet; error?: unknown }> = {};
 
       // In dry-run mode, just print the files that would be processed
       if (dryRun) {
-        logger.info(chalk.bold(`Found ${filesToProcess.length} files for processing`));
+        logger.info(chalk.bold(`Found ${String(filesToProcess.length)} files for processing`));
 
         if (verbose) {
           logger.info('Files to process:');
@@ -197,15 +196,15 @@ export const tagCommand: CommandModule = {
         // Assuming ~2000 tokens per file on average
         const tokenEstimate = filesToProcess.length * 2000;
         const modelName = model as string;
-        const isGpt4Model = modelName === 'gpt-4' ?? modelName === 'gpt-4o';
+        const isGpt4Model = modelName === 'gpt-4' || modelName === 'gpt-4o';
         // GPT-4 models cost roughly $0.01 per 1K tokens, GPT-3.5 around $0.002
         const costEstimate = isGpt4Model ? (tokenEstimate / 1000) * 0.01 : (tokenEstimate / 1000) * 0.002;
 
         logger.box(
           `
 Cost Estimate:
-- Files: ${filesToProcess.length}
-- Estimated tokens: ~${tokenEstimate}
+- Files: ${String(filesToProcess.length)}
+- Estimated tokens: ~${String(tokenEstimate)}
 - Estimated cost: $${costEstimate.toFixed(2)}
         `.trim(),
           'Dry Run Summary'
@@ -218,11 +217,11 @@ Cost Estimate:
       // Initialize OpenAI client and tagging service
       const openAIClient = new OpenAIClient({
         apiKey,
-        model: model! ?? 'gpt-4o',
+        model: model ?? 'gpt-4o',
       });
 
       const taggingService = new TaggingService(openAIClient, {
-        model: model! ?? 'gpt-4o',
+        model: model ?? 'gpt-4o',
         behavior: tagMode ?? 'merge',
         minConfidence: minConfidence ?? 0.65,
         reviewThreshold: reviewThreshold ?? 0.85,
@@ -259,13 +258,15 @@ Cost Estimate:
             return;
           }
 
-          // Create document object
+          // Create document object and handle undefined existingTags
+          // Instead of creating an empty TagSet which may not match the expected structure,
+          // we'll let the TaggingService handle the undefined case internally
           const document: Document = {
             id: path.basename(filePath, path.extname(filePath)),
             content,
             path: filePath,
             metadata: {},
-            existingTags: existingTags ?? [], // Provide empty array as default
+            existingTags,
           };
 
           // Tag the document
@@ -273,31 +274,45 @@ Cost Estimate:
 
           if (!result.success) {
             totalErrors++;
-            logger.error(`Failed to tag file ${filePath}: ${result.error?.message}`);
+            logger.error(`Failed to tag file ${filePath}: ${String(result.error?.message)}`);
             fileResults[filePath] = { success: false, error: result.error };
             return;
           }
 
           // In interactive mode, prompt for confirmation before updating
           if (mode === 'interactive') {
-            const shouldUpdate = await promptForConfirmation(filePath, result.tags!);
-            if (!shouldUpdate) {
-              logger.info(`Skipping file: ${filePath}`);
+            // Since we checked result.success, we know result.tags exists
+            if (result.tags) {
+              const shouldUpdate = await promptForConfirmation(filePath, result.tags);
+              if (!shouldUpdate) {
+                logger.info(`Skipping file: ${filePath}`);
+                return;
+              }
+            } else {
+              logger.warn(`No tags were generated for ${filePath}`);
               return;
             }
           }
 
-          // Update the file with new tags (using non-null assertion since we've checked success above)
-          await updateFileWithTags(filePath, content, result.tags!);
+          // Update the file with new tags (with proper type guard check)
+          if (result.tags) {
+            await updateFileWithTags(filePath, content, result.tags);
 
-          totalTagged++;
-          totalProcessed++;
+            totalTagged++;
+            totalProcessed++;
 
-          // Store results for output
-          fileResults[filePath] = {
-            success: true,
-            tags: result.tags,
-          };
+            // Store results for output
+            fileResults[filePath] = {
+              success: true,
+              tags: result.tags,
+            };
+          } else {
+            logger.warn(`No tags were generated for ${filePath}`);
+            fileResults[filePath] = {
+              success: false,
+              error: 'No tags were generated',
+            };
+          }
 
           // Update progress
           if (mode !== 'interactive') {
@@ -328,7 +343,7 @@ Cost Estimate:
         // Check if we've hit the cost limit
         if (maxCost && totalCost >= maxCost) {
           if (onLimit === 'stop') {
-            logger.warn(`Cost limit of $${maxCost} reached. Stopping processing.`);
+            logger.warn(`Cost limit of $${String(maxCost)} reached. Stopping processing.`);
             break;
           } else if (onLimit === 'pause') {
             const { continue: shouldContinue } = await promptUserForContinue(maxCost);
@@ -338,7 +353,7 @@ Cost Estimate:
               break;
             }
           } else {
-            logger.warn(`Cost limit of $${maxCost} reached, but continuing as requested.`);
+            logger.warn(`Cost limit of $${String(maxCost)} reached, but continuing as requested.`);
           }
         }
       }
@@ -358,9 +373,9 @@ Cost Estimate:
       logger.box(
         `
 Summary:
-- Files processed: ${totalProcessed}
-- Files tagged: ${totalTagged}
-- Errors: ${totalErrors}
+- Files processed: ${String(totalProcessed)}
+- Files tagged: ${String(totalTagged)}
+- Errors: ${String(totalErrors)}
 - Estimated cost: $${totalCost.toFixed(2)}
       `.trim(),
         'Processing Complete'
@@ -439,7 +454,7 @@ async function promptForConfirmation(filePath: string, tags: TagSet): Promise<bo
  * Prompt user whether to continue after hitting cost limit
  */
 async function promptUserForContinue(maxCost: number): Promise<{ continue: boolean }> {
-  console.log(`\nCost limit of $${maxCost} reached. Continue processing? (y/n)`);
+  console.log(`\nCost limit of $${String(maxCost)} reached. Continue processing? (y/n)`);
 
   // Simple prompt for yes/no
   const shouldContinue = await new Promise<boolean>((resolve) => {

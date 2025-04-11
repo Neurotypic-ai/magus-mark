@@ -101,7 +101,16 @@ export const DEFAULT_CONFIG = {
  * Configuration schema
  */
 export const configSchema = z.object({
-  defaultModel: z.enum(['gpt-4o', 'gpt-3.5-turbo']),
+  defaultModel: z.enum([
+    'gpt-4',
+    'gpt-4-turbo',
+    'gpt-4o',
+    'gpt-4-vision',
+    'gpt-3.5-turbo',
+    'gpt-3.5-turbo-instruct',
+    'davinci-002',
+    'babbage-002',
+  ]),
   defaultTagBehavior: z.enum(['append', 'replace', 'merge']),
   minConfidence: z.number().min(0).max(1),
   reviewThreshold: z.number().min(0).max(1),

@@ -1,34 +1,13 @@
 import * as path from 'path';
 
 import { CostLimitError } from '@obsidian-magic/core';
+import { calculateCost } from '@obsidian-magic/core/src/openai-models';
 import * as fs from 'fs-extra';
 
 import { config } from './config';
 import { logger } from './logger';
 
 import type { AIModel } from '@obsidian-magic/types';
-
-// Token pricing per 1K tokens (in USD)
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  'gpt-3.5-turbo': {
-    input: 0.0005,
-    output: 0.0015,
-  },
-  'gpt-4o': {
-    input: 0.01,
-    output: 0.03,
-  },
-};
-
-// Default pricing for fallback
-const DEFAULT_PRICING = {
-  input: 0.0005,
-  output: 0.0015,
-};
-
-// Default token estimations
-const DEFAULT_TOKENS_PER_WORD = 1.3;
-const DEFAULT_TOKENS_PER_CHARACTER = 0.25;
 
 /**
  * Usage record interface
@@ -60,33 +39,16 @@ interface TokenUsage {
 }
 
 /**
- * Cost data
- */
-interface CostData {
-  input: number;
-  output: number;
-  total: number;
-}
-
-/**
- * Cost manager options
- */
-interface CostManagerOptions {
-  maxCost?: number | undefined;
-  onLimit?: 'pause' | 'warn' | 'stop';
-}
-
-/**
  * Cost manager class
  */
 class CostManager {
-  private static instance: CostManager;
+  private static instance: CostManager | null = null;
   private usageData: UsageRecord[] = [];
   private session: {
     startTime: number;
     totalCost: number;
     totalTokens: number;
-    models: Record<AIModel, TokenUsage>;
+    models: Partial<Record<AIModel, TokenUsage>>;
   };
   private dataFile: string;
   private limits: CostLimits;
@@ -102,7 +64,6 @@ class CostManager {
       totalTokens: 0,
       models: {
         'gpt-3.5-turbo': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-        'gpt-4': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         'gpt-4o': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       },
     };
@@ -153,17 +114,17 @@ class CostManager {
     this.session.totalCost += cost;
     this.session.totalTokens += totalTokens;
 
+    // Initialize model tracking if not exists
+    if (!this.session.models[model]) {
+      this.session.models[model] = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    }
+
     // Update model-specific usage
-    if (this.session.models[model]) {
-      this.session.models[model].inputTokens += input;
-      this.session.models[model].outputTokens += output;
-      this.session.models[model].totalTokens += totalTokens;
-    } else {
-      this.session.models[model] = {
-        inputTokens: input,
-        outputTokens: output,
-        totalTokens,
-      };
+    const modelUsage = this.session.models[model];
+    if (modelUsage) {
+      modelUsage.inputTokens += input;
+      modelUsage.outputTokens += output;
+      modelUsage.totalTokens += totalTokens;
     }
 
     // Record usage
@@ -209,7 +170,7 @@ class CostManager {
 
     // Calculate costs per model
     for (const [model, usage] of Object.entries(this.session.models)) {
-      if (usage.totalTokens > 0) {
+      if (usage && usage.totalTokens > 0) {
         modelBreakdown[model] = {
           tokens: { ...usage },
           cost: this.calculateCost(model as AIModel, usage.inputTokens, usage.outputTokens),
@@ -269,7 +230,13 @@ class CostManager {
   private loadUsageData(): void {
     try {
       if (fs.existsSync(this.dataFile)) {
-        this.usageData = fs.readJSONSync(this.dataFile);
+        const data = fs.readJSONSync(this.dataFile);
+        // Validate that the loaded data is an array
+        if (Array.isArray(data)) {
+          this.usageData = data as UsageRecord[];
+        } else {
+          this.usageData = [];
+        }
         logger.debug(`Loaded usage data from ${this.dataFile}`);
       } else {
         this.usageData = [];
@@ -285,16 +252,7 @@ class CostManager {
    * Calculate cost based on model and tokens
    */
   private calculateCost(model: AIModel, inputTokens: number, outputTokens: number): number {
-    // Official OpenAI pricing as of April 2024
-    switch (model) {
-      case 'gpt-4':
-        return (inputTokens / 1000) * 0.03 + (outputTokens / 1000) * 0.06;
-      case 'gpt-4o':
-        return (inputTokens / 1000) * 0.01 + (outputTokens / 1000) * 0.03;
-      case 'gpt-3.5-turbo':
-      default:
-        return (inputTokens / 1000) * 0.0005 + (outputTokens / 1000) * 0.0015;
-    }
+    return calculateCost(model, inputTokens, outputTokens);
   }
 
   /**

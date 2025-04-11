@@ -99,4 +99,4 @@ export interface TagSet {
 /**
  * Tag application behavior options
  */
-export type TagBehavior = 'append' | 'replace' | 'merge';
+export type TagBehavior = 'append' | 'replace' | 'merge' | 'suggest';

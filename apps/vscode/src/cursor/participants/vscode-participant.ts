@@ -73,10 +73,14 @@ export class VSCodeParticipant implements vscode.Disposable {
       name: 'vscodeSettings',
       description: 'Search VS Code settings with natural language',
       parameters: {
-        query: 'The natural language query to search settings',
+        query: {
+          description: 'The natural language query to search settings',
+          type: 'string',
+          required: true,
+        },
       },
       execute: (params: Record<string, unknown>) => {
-        const query = (params.query as string).toLowerCase();
+        const query = (params['query'] as string).toLowerCase();
         const configuration = vscode.workspace.getConfiguration();
         const results: {
           id: string;
@@ -109,7 +113,6 @@ export class VSCodeParticipant implements vscode.Disposable {
         results.sort((a, b) => b.matchScore - a.matchScore);
 
         // Return top matches, removing the matchScore property
-
         return Promise.resolve({
           settings: results.slice(0, 10).map(({ matchScore, ...rest }) => rest),
         });
@@ -125,12 +128,20 @@ export class VSCodeParticipant implements vscode.Disposable {
       name: 'vscodeCommands',
       description: 'Search and execute VS Code commands with natural language',
       parameters: {
-        query: 'The natural language query to search commands',
-        execute: 'Whether to execute the top matching command (true/false)',
+        query: {
+          description: 'The natural language query to search commands',
+          type: 'string',
+          required: true,
+        },
+        execute: {
+          description: 'Whether to execute the top matching command (true/false)',
+          type: 'boolean',
+          required: false,
+        },
       },
       execute: async (params: Record<string, unknown>) => {
-        const query = (params.query as string).toLowerCase();
-        const shouldExecute = params.execute === true;
+        const query = (params['query'] as string).toLowerCase();
+        const shouldExecute = params['execute'] === true;
         const results: {
           id: string;
           title: string;
@@ -171,7 +182,6 @@ export class VSCodeParticipant implements vscode.Disposable {
         }
 
         // Return results, removing matchScore property
-
         return {
           commands: results.slice(0, 10).map(({ matchScore, ...rest }) => rest),
           executed,
@@ -188,12 +198,16 @@ export class VSCodeParticipant implements vscode.Disposable {
       name: 'vscodeDocumentation',
       description: 'Search VS Code documentation with natural language',
       parameters: {
-        query: 'The natural language query to search documentation',
+        query: {
+          description: 'The natural language query to search documentation',
+          type: 'string',
+          required: true,
+        },
       },
       execute: (params: Record<string, unknown>) => {
         // This would normally use a vector DB or similar for semantic search
         // For now, we'll return some static results based on query keywords
-        const query = (params.query as string).toLowerCase();
+        const query = (params['query'] as string).toLowerCase();
         const results: {
           title: string;
           content: string;
@@ -297,7 +311,7 @@ export class VSCodeParticipant implements vscode.Disposable {
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to cache settings:', error);
-      return Promise.reject(error);
+      return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));
     }
   }
 
@@ -338,7 +352,7 @@ export class VSCodeParticipant implements vscode.Disposable {
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to cache commands:', error);
-      return Promise.reject(error);
+      return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));
     }
   }
 
