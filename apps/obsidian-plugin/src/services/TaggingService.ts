@@ -1,16 +1,25 @@
 /**
  * Service for integrating with the core tagging functionality
  */
-import { TaggingService as CoreTaggingService, DocumentProcessor, OpenAIClient } from '@obsidian-magic/core';
-import type { TFile } from 'obsidian';
+import {
+  ApiError,
+  ApiKeyError,
+  TaggingService as CoreTaggingService,
+  DocumentProcessor,
+  FileSystemError,
+  OpenAIClient,
+  TaggingError,
+  failure,
+  success,
+  withRetry,
+} from '@obsidian-magic/core';
 import { Notice } from 'obsidian';
 
-import { ApiError, ApiKeyError, FileSystemError, TaggingError, failure, success, withRetry } from './errors';
-
+import type { Result } from '@obsidian-magic/core';
 import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/types';
+import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
-import type { Result } from './errors';
 
 /**
  * Error types specific to the tagging service

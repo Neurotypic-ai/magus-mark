@@ -13,22 +13,19 @@ export interface ErrorOptions {
  */
 export class AppError extends Error {
   public readonly code: string;
-  public readonly cause?: Error;
+  public override readonly cause?: Error;
   public readonly context?: Record<string, unknown>;
   public readonly recoverable: boolean;
 
   constructor(message: string, options: ErrorOptions = {}) {
     super(message);
     this.name = this.constructor.name;
-    this.code = options.code || 'UNKNOWN_ERROR';
+    this.code = options.code ?? 'UNKNOWN_ERROR';
     this.cause = options.cause;
     this.context = options.context;
     this.recoverable = options.recoverable ?? true;
 
-    // Maintain proper stack trace
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
@@ -38,10 +35,10 @@ export class AppError extends Error {
 export class ValidationError extends AppError {
   constructor(message: string, options: ErrorOptions = {}) {
     super(message, {
-      code: options.code || 'VALIDATION_ERROR',
+      code: options.code ?? 'VALIDATION_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true
+      recoverable: options.recoverable ?? true,
     });
   }
 }
@@ -52,10 +49,10 @@ export class ValidationError extends AppError {
 export class FileSystemError extends AppError {
   constructor(message: string, options: ErrorOptions = {}) {
     super(message, {
-      code: options.code || 'FILE_SYSTEM_ERROR',
+      code: options.code ?? 'FILE_SYSTEM_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true
+      recoverable: options.recoverable ?? true,
     });
   }
 }
@@ -66,10 +63,10 @@ export class FileSystemError extends AppError {
 export class NetworkError extends AppError {
   constructor(message: string, options: ErrorOptions = {}) {
     super(message, {
-      code: options.code || 'NETWORK_ERROR',
+      code: options.code ?? 'NETWORK_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true
+      recoverable: options.recoverable ?? true,
     });
   }
 }
@@ -80,10 +77,10 @@ export class NetworkError extends AppError {
 export class APIError extends AppError {
   constructor(message: string, options: ErrorOptions = {}) {
     super(message, {
-      code: options.code || 'API_ERROR',
+      code: options.code ?? 'API_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? false
+      recoverable: options.recoverable ?? false,
     });
   }
 }
@@ -94,10 +91,10 @@ export class APIError extends AppError {
 export class ConfigurationError extends AppError {
   constructor(message: string, options: ErrorOptions = {}) {
     super(message, {
-      code: options.code || 'CONFIGURATION_ERROR',
+      code: options.code ?? 'CONFIGURATION_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true
+      recoverable: options.recoverable ?? true,
     });
   }
 }
@@ -175,4 +172,4 @@ export class Result<T> {
       return Result.fail<U>(error instanceof Error ? error : new Error(String(error)));
     }
   }
-} 
+}

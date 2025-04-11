@@ -3,6 +3,7 @@
  * Obsidian Magic CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
+import { AppError } from '@obsidian-magic/core';
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
@@ -12,7 +13,6 @@ import pkg from '../package.json';
 import { getAllCommands } from './commands/commands';
 import { config } from './utils/config';
 import { costManager } from './utils/cost-manager';
-import { AppError } from './utils/errors';
 import { logger } from './utils/logger';
 
 // Import update-notifier dynamically to avoid linter errors

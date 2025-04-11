@@ -1,12 +1,13 @@
 import * as http from 'http';
 
 import * as vscode from 'vscode';
-import { server as WebSocketServer } from 'websocket';
+import { WebSocketServer } from 'ws';
 
 import { LanguageModelAPI } from './language-model-api';
 import { VSCodeParticipant } from './participants/vscode-participant';
 
-import type { connection } from 'websocket';
+import type { IncomingMessage } from 'http';
+import type { WebSocket } from 'ws';
 
 /**
  * Type for tool parameter definitions
@@ -62,7 +63,7 @@ interface TagSuggestion {
 export class MCPServer implements vscode.Disposable {
   private httpServer: http.Server;
   private wsServer: WebSocketServer;
-  private connections: connection[] = [];
+  private connections: WebSocket[] = [];
   private tools = new Map<string, Tool>();
   private participant: VSCodeParticipant | undefined;
   private languageModelAPI: LanguageModelAPI | undefined;
@@ -82,8 +83,8 @@ export class MCPServer implements vscode.Disposable {
 
     // Initialize WebSocket server
     this.wsServer = new WebSocketServer({
-      httpServer: this.httpServer,
-      autoAcceptConnections: false,
+      server: this.httpServer,
+      clientTracking: true,
     });
 
     // Set up event handlers
@@ -107,35 +108,38 @@ export class MCPServer implements vscode.Disposable {
    * Set up WebSocket server event handlers
    */
   private setupEventHandlers(): void {
-    this.wsServer.on('request', (request) => {
+    this.wsServer.on('connection', (ws: WebSocket, request: IncomingMessage) => {
       try {
-        // In a real implementation, we would verify the origin
-        const connection = request.accept(null, request.origin);
-        this.connections.push(connection);
+        this.connections.push(ws);
 
-        console.log('WebSocket connection accepted from:', request.origin);
+        const remoteAddress = request.socket.remoteAddress ?? 'unknown';
+        console.log('WebSocket connection accepted from:', remoteAddress);
 
         // Handle incoming messages
-        connection.on('message', (message) => {
-          // Handle only UTF8 messages
-          if (message.type === 'utf8') {
-            // Access utf8Data safely by asserting the type
-            const utf8Message = message as { type: 'utf8'; utf8Data: string };
-            if (utf8Message.utf8Data) {
-              this.handleUtf8Message(connection, utf8Message.utf8Data);
-            }
-          } else {
-            console.warn('Received non-UTF8 message, ignoring');
+        ws.on('message', (data: Buffer | string) => {
+          try {
+            const message = data.toString();
+            this.handleUtf8Message(ws, message);
+          } catch (error) {
+            console.warn('Error processing message:', error);
           }
         });
 
         // Handle connection close
-        connection.on('close', (reasonCode, description) => {
-          console.log(`WebSocket connection closed: ${reasonCode.toString()} - ${description}`);
-          this.connections = this.connections.filter((conn) => conn !== connection);
+        ws.on('close', (code: number, reason: Buffer) => {
+          console.log(`WebSocket connection closed: ${code.toString()} - ${reason.toString()}`);
+          this.connections = this.connections.filter((conn) => conn !== ws);
+        });
+
+        // Handle errors
+        ws.on('error', (error: Error) => {
+          console.error('WebSocket error:', error);
         });
       } catch (error) {
-        console.error('Error handling WebSocket request:', error);
+        console.error(
+          'Error handling WebSocket connection:',
+          error instanceof Error ? error : new Error(String(error))
+        );
       }
     });
   }
@@ -264,37 +268,37 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
   /**
    * Handle UTF-8 message
    */
-  private handleUtf8Message(connection: connection, utf8Data: string): void {
+  private handleUtf8Message(ws: WebSocket, message: string): void {
     try {
-      const data = JSON.parse(utf8Data) as MCPMessage;
+      const data = JSON.parse(message) as MCPMessage;
 
       if (data.type === 'invoke') {
-        void this.handleToolInvocation(connection, data);
+        void this.handleToolInvocation(ws, data);
       } else if (data.type === 'list_tools') {
-        this.handleListTools(connection);
+        this.handleListTools(ws);
       }
     } catch (error) {
       console.error('Error parsing message:', error);
-      this.sendErrorResponse(connection, 'Failed to parse message');
+      this.sendErrorResponse(ws, 'Failed to parse message');
     }
   }
 
   /**
    * Handle tool invocation request
    */
-  private async handleToolInvocation(connection: connection, data: MCPMessage): Promise<void> {
+  private async handleToolInvocation(ws: WebSocket, data: MCPMessage): Promise<void> {
     const toolName = data.toolName;
     const parameters = data.parameters;
 
     if (!toolName) {
-      this.sendErrorResponse(connection, 'Tool name is required', data.id);
+      this.sendErrorResponse(ws, 'Tool name is required', data.id);
       return;
     }
 
     const tool = this.tools.get(toolName);
 
     if (!tool) {
-      this.sendErrorResponse(connection, `Tool not found: ${toolName}`, data.id);
+      this.sendErrorResponse(ws, `Tool not found: ${toolName}`, data.id);
       return;
     }
 
@@ -303,7 +307,7 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
       const result = await tool.execute(parameters ?? {});
 
       // Send response
-      connection.sendUTF(
+      ws.send(
         JSON.stringify({
           type: 'result',
           id: data.id,
@@ -313,7 +317,7 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
     } catch (error) {
       console.error(`Error executing tool ${toolName}:`, error);
       this.sendErrorResponse(
-        connection,
+        ws,
         `Error executing tool ${toolName}: ${error instanceof Error ? error.message : String(error)}`,
         data.id
       );
@@ -323,14 +327,14 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
   /**
    * Handle list tools request
    */
-  private handleListTools(connection: connection): void {
+  private handleListTools(ws: WebSocket): void {
     const tools = Array.from(this.tools.entries()).map(([name, tool]) => ({
       name,
       description: tool.description,
       parameters: tool.parameters,
     }));
 
-    connection.sendUTF(
+    ws.send(
       JSON.stringify({
         type: 'tools',
         tools,
@@ -341,8 +345,8 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
   /**
    * Send error response
    */
-  private sendErrorResponse(connection: connection, message: string, id?: string): void {
-    connection.sendUTF(
+  private sendErrorResponse(ws: WebSocket, message: string, id?: string): void {
+    ws.send(
       JSON.stringify({
         type: 'error',
         id,
@@ -364,9 +368,9 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
    */
   public dispose(): void {
     // Close all connections
-    this.connections.forEach((connection) => {
+    this.connections.forEach((ws) => {
       try {
-        connection.close();
+        ws.close();
       } catch (error) {
         console.error('Error closing connection:', error);
       }
@@ -375,8 +379,9 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
     // Close server
     try {
       this.httpServer.close();
+      this.wsServer.close();
     } catch (error) {
-      console.error('Error closing HTTP server:', error);
+      console.error('Error closing HTTP/WebSocket server:', error);
     }
 
     // Dispose of other resources

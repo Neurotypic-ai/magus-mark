@@ -1,9 +1,10 @@
 /**
  * Mock implementations of utility functions
  */
-import * as fs from 'fs-extra';
 import * as path from 'path';
 import { promisify } from 'util';
+
+import * as fs from 'fs-extra';
 
 /**
  * Check if file exists
@@ -24,7 +25,7 @@ export async function findFiles(dir: string, pattern: string): Promise<string[]>
     // Mock implementation that returns files in the directory
     const files = await fs.readdir(dir);
     return files
-      .filter(file => {
+      .filter((file) => {
         // Simple glob-like pattern matching
         if (pattern === '*') return true;
         if (pattern.startsWith('*.')) {
@@ -33,7 +34,7 @@ export async function findFiles(dir: string, pattern: string): Promise<string[]>
         }
         return file.includes(pattern);
       })
-      .map(file => path.join(dir, file));
+      .map((file) => path.join(dir, file));
   } catch (error) {
     return [];
   }
@@ -88,7 +89,7 @@ export async function ensureDir(dirPath: string): Promise<void> {
  * Format a file path for display
  */
 export function formatPath(filePath: string): string {
-  const homedir = process.env['HOME'] || process.env['USERPROFILE'] || '~';
+  const homedir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '~';
   return filePath.replace(homedir, '~');
 }
 
@@ -108,7 +109,7 @@ export function formatCurrency(amount: number): string {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 4,
-    maximumFractionDigits: 4
+    maximumFractionDigits: 4,
   }).format(amount);
 }
 
@@ -119,11 +120,11 @@ export function formatDuration(ms: number): string {
   if (ms < 1000) {
     return `${ms.toFixed(0)}ms`;
   }
-  
+
   if (ms < 60000) {
     return `${(ms / 1000).toFixed(2)}s`;
   }
-  
+
   const minutes = Math.floor(ms / 60000);
   const seconds = ((ms % 60000) / 1000).toFixed(1);
   return `${minutes}m ${seconds}s`;
@@ -136,16 +137,16 @@ export function getFileSize(filePath: string): string {
   try {
     const stats = fs.statSync(filePath);
     const bytes = stats.size;
-    
+
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = bytes;
     let unitIndex = 0;
-    
+
     while (size > 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;
     }
-    
+
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   } catch (error) {
     return 'Unknown';
@@ -160,7 +161,7 @@ export async function executeCommand(command: string): Promise<{ stdout: string;
   try {
     return await exec(command);
   } catch (error: any) {
-    throw new Error(`Command failed: ${command}\n${error.stderr || error.message}`);
+    throw new Error(`Command failed: ${command}\n${error.stderr ?? error.message}`);
   }
 }
 
@@ -169,33 +170,27 @@ export async function executeCommand(command: string): Promise<{ stdout: string;
  */
 export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const output = { ...target };
-  
+
   if (isObject(target) && isObject(source)) {
-     
-    Object.keys(source).forEach(key => {
+    Object.keys(source).forEach((key) => {
       const typedKey = key as keyof T;
-       
+
       const sourceValue = source[typedKey];
-      
+
       if (isObject(sourceValue)) {
         if (!(key in target)) {
-           
           Object.assign(output, { [typedKey]: sourceValue });
         } else {
           const targetValue = target[typedKey];
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          output[typedKey] = deepMerge(
-            targetValue as Record<string, any>,
-            sourceValue as Record<string, any>
-          ) as any;
+          output[typedKey] = deepMerge(targetValue as Record<string, any>, sourceValue as Record<string, any>) as any;
         }
       } else {
-         
         Object.assign(output, { [typedKey]: sourceValue });
       }
     });
   }
-  
+
   return output;
 }
 
@@ -204,4 +199,4 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
  */
 function isObject(item: unknown): item is Record<string, unknown> {
   return item !== null && typeof item === 'object' && !Array.isArray(item);
-} 
+}

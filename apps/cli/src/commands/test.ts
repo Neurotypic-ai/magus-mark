@@ -1,12 +1,16 @@
-import type { CommandModule } from 'yargs';
+import path from 'path';
+
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import path from 'path';
-import { logger } from '../utils/logger';
-import { benchmark } from '../utils/benchmark';
+
 import { formatCurrency, formatDuration } from '../mocks/utils';
-import type { TestOptions } from '../types/commands';
+import { benchmark } from '../utils/benchmark';
+import { logger } from '../utils/logger';
+
 import type { AIModel } from '@obsidian-magic/types';
+import type { CommandModule } from 'yargs';
+
+import type { TestOptions } from '../types/commands';
 
 /**
  * Test and benchmark command
@@ -19,46 +23,46 @@ export const testCommand: CommandModule = {
       .option('benchmark', {
         describe: 'Run performance benchmark',
         type: 'boolean',
-        default: false
+        default: false,
       })
       .option('samples', {
         describe: 'Number of samples to test',
         type: 'number',
-        default: 10
+        default: 10,
       })
       .option('test-set', {
         describe: 'Path to test set file or directory',
-        type: 'string'
+        type: 'string',
       })
       .option('models', {
         describe: 'Models to test (comma-separated)',
         type: 'string',
-        default: 'gpt-3.5-turbo,gpt-4'
+        default: 'gpt-3.5-turbo,gpt-4',
       })
       .option('report', {
         describe: 'Path to save report',
-        type: 'string'
+        type: 'string',
       })
       .option('verbose', {
         describe: 'Show detailed output',
         type: 'boolean',
         alias: 'v',
-        default: false
+        default: false,
       })
       .option('output-format', {
         describe: 'Output format',
         choices: ['pretty', 'json', 'silent'],
-        default: 'pretty'
+        default: 'pretty',
       })
       .option('tagged-only', {
         describe: 'Only test files that already have tags',
         type: 'boolean',
-        default: false
+        default: false,
       })
       .option('accuracy-threshold', {
         describe: 'Minimum accuracy threshold to pass tests',
         type: 'number',
-        default: 0.8
+        default: 0.8,
       })
       .example('$0 test --benchmark', 'Run a basic benchmark')
       .example('$0 test --models=gpt-3.5-turbo,gpt-4 --samples=20', 'Benchmark specific models')
@@ -68,29 +72,23 @@ export const testCommand: CommandModule = {
     try {
       // Parse arguments with proper types
       const options = argv as unknown as TestOptions;
-      const { 
-        benchmark: runBenchmark, 
-        verbose,
-        outputFormat,
-        samples = 10,
-        testSet
-      } = options;
-      
+      const { benchmark: runBenchmark, verbose, outputFormat, samples = 10, testSet } = options;
+
       // Configure logger
       logger.configure({
         logLevel: verbose ? 'debug' : 'info',
-        outputFormat: outputFormat || 'pretty'
+        outputFormat: outputFormat ?? 'pretty',
       });
-      
+
       // Parse models
-      const modelsArg = (argv['models'] as string) || 'gpt-3.5-turbo';
-      const models = modelsArg.split(',').map(m => m.trim()) as AIModel[];
-      
+      const modelsArg = (argv['models'] as string) ?? 'gpt-3.5-turbo';
+      const models = modelsArg.split(',').map((m) => m.trim()) as AIModel[];
+
       if (models.length === 0) {
         logger.error('No models specified. Use --models option to specify models to test.');
         process.exit(1);
       }
-      
+
       if (runBenchmark) {
         await runBenchmarkCommand(models, options);
       } else if (testSet) {
@@ -103,7 +101,7 @@ export const testCommand: CommandModule = {
       logger.error(`Test command failed: ${error instanceof Error ? error.message : String(error)}`);
       process.exit(1);
     }
-  }
+  },
 };
 
 /**
@@ -112,37 +110,40 @@ export const testCommand: CommandModule = {
 async function runBenchmarkCommand(models: AIModel[], options: TestOptions): Promise<void> {
   logger.info(chalk.bold('Running benchmark'));
   logger.info(`Models: ${models.join(', ')}`);
-  logger.info(`Samples: ${options.samples || 10}`);
-  
+  logger.info(`Samples: ${options.samples ?? 10}`);
+
   if (options.testSet) {
     logger.info(`Test set: ${options.testSet}`);
   }
-  
+
   // Show progress spinner
   const spinner = logger.spinner('Running benchmark...');
-  
+
   const result = await benchmark.runBenchmark({
     models,
-    samples: options.samples || 10,
-    testSet: options.testSet || '',
-    reportPath: options.report || '',
-    saveReport: !!options.report
+    samples: options.samples ?? 10,
+    testSet: options.testSet ?? '',
+    reportPath: options.report ?? '',
+    saveReport: !!options.report,
   });
-  
+
   spinner.stop();
-  
+
   if (result.isFail()) {
     logger.error(`Benchmark failed: ${result.getError().message}`);
     return;
   }
-  
+
   const report = result.getValue();
-  
+
   // Display summary
-  logger.box(`
+  logger.box(
+    `
 Benchmark Results:
 
-${report.models.map(model => `
+${report.models
+  .map(
+    (model) => `
 ${chalk.bold(model.model)}
 - Accuracy: ${(model.accuracy * 100).toFixed(2)}%
 - Precision: ${(model.precision * 100).toFixed(2)}%
@@ -152,21 +153,25 @@ ${chalk.bold(model.model)}
 - Cost: ${formatCurrency(model.costIncurred.total)}
 - Avg latency: ${formatDuration(model.latency.average)}
 - Samples: ${model.samples} (${model.failedSamples} failed)
-`).join('\n')}
+`
+  )
+  .join('\n')}
 
 Summary:
 - Best overall: ${chalk.bold(report.summary.bestOverall)}
 - Best accuracy: ${chalk.bold(report.summary.bestAccuracy)}
 - Best cost efficiency: ${chalk.bold(report.summary.bestCostEfficiency)}
 - Best latency: ${chalk.bold(report.summary.bestLatency)}
-  `.trim(), 'Benchmark Results');
-  
+  `.trim(),
+    'Benchmark Results'
+  );
+
   // Additional summary information
   logger.info(chalk.bold.green('\nBenchmark completed successfully!'));
-  
+
   // Store benchmark results in config if needed
   // This could be used for tracking improvements over time
-  
+
   if (options.report) {
     logger.info(`Full report saved to: ${options.report}`);
   }
@@ -180,32 +185,32 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
     logger.error('No test set specified. Use --test-set option to specify a test set.');
     return;
   }
-  
+
   logger.info(chalk.bold('Running tests on test set'));
   logger.info(`Test set: ${options.testSet}`);
   logger.info(`Models: ${models.join(', ')}`);
-  
+
   try {
     // Check if test set exists
-    if (!await fs.pathExists(options.testSet)) {
+    if (!(await fs.pathExists(options.testSet))) {
       logger.error(`Test set not found: ${options.testSet}`);
       return;
     }
-    
+
     // Show progress
     const spinner = logger.spinner('Loading test set...');
-    
+
     // Load and parse test cases - this would use the real implementation
     // For now, we'll create mock test cases
     const testCases = [];
-    
+
     if ((await fs.stat(options.testSet)).isDirectory()) {
       // Mock directory of test cases
       for (let i = 1; i <= 5; i++) {
         testCases.push({
           id: `test-${i}`,
           content: `This is test case ${i}`,
-          expectedTags: ['test', `tag-${i}`, i % 2 === 0 ? 'even' : 'odd']
+          expectedTags: ['test', `tag-${i}`, i % 2 === 0 ? 'even' : 'odd'],
         });
       }
     } else {
@@ -213,44 +218,46 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
       testCases.push({
         id: 'test-1',
         content: 'This is a test case',
-        expectedTags: ['test', 'example', 'mock']
+        expectedTags: ['test', 'example', 'mock'],
       });
     }
-    
+
     spinner.succeed(`Loaded ${testCases.length} test cases`);
-    
+
     // Run tests for each model
     for (const model of models) {
       logger.info(`\nTesting model: ${chalk.bold(model)}`);
-      
+
       const testSpinner = logger.spinner(`Running tests on ${model}...`);
-      
+
       // Mock test results
       const results = {
         passed: Math.floor(testCases.length * 0.8),
         failed: Math.floor(testCases.length * 0.2),
         total: testCases.length,
-        accuracy: 0.8 + (Math.random() * 0.15),
-        precision: 0.75 + (Math.random() * 0.2),
-        recall: 0.7 + (Math.random() * 0.25),
-        f1Score: 0.75 + (Math.random() * 0.2)
+        accuracy: 0.8 + Math.random() * 0.15,
+        precision: 0.75 + Math.random() * 0.2,
+        recall: 0.7 + Math.random() * 0.25,
+        f1Score: 0.75 + Math.random() * 0.2,
       };
-      
+
       testSpinner.succeed(`Completed tests on ${model}`);
-      
+
       // Display results
-      logger.box(`
+      logger.box(
+        `
 Model: ${chalk.bold(model)}
 Tests: ${results.total} (${results.passed} passed, ${results.failed} failed)
 Accuracy: ${(results.accuracy * 100).toFixed(2)}%
 Precision: ${(results.precision * 100).toFixed(2)}%
 Recall: ${(results.recall * 100).toFixed(2)}%
 F1 Score: ${(results.f1Score * 100).toFixed(2)}%
-      `.trim(), `Test Results: ${model}`);
+      `.trim(),
+        `Test Results: ${model}`
+      );
     }
-    
+
     logger.info(chalk.bold.green('\nTests completed successfully!'));
-    
   } catch (error) {
     logger.error(`Failed to run tests: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -262,7 +269,7 @@ F1 Score: ${(results.f1Score * 100).toFixed(2)}%
 async function runBasicTestsCommand(models: AIModel[], options: TestOptions): Promise<void> {
   logger.info(chalk.bold('Running basic tests'));
   logger.info(`Models: ${models.join(', ')}`);
-  
+
   try {
     // Create a temporary test case
     const testCase = {
@@ -288,47 +295,41 @@ TypeScript offers several key features:
 
 These features help catch errors during development and make code more maintainable.
       `.trim(),
-      expectedTags: ['typescript', 'programming', 'web-development']
+      expectedTags: ['typescript', 'programming', 'web-development'],
     };
-    
+
     logger.info('Testing basic tagging functionality...');
-    
+
     // Run tests for each model
     for (const model of models) {
       const testSpinner = logger.spinner(`Testing ${model}...`);
-      
+
       // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Mock results
-      const suggestedTags = [
-        'typescript',
-        'programming',
-        'web-development',
-        'javascript',
-        'language-features'
-      ];
-      
-      const correctTags = suggestedTags.filter(tag => 
-        testCase.expectedTags.includes(tag)
-      );
-      
+      const suggestedTags = ['typescript', 'programming', 'web-development', 'javascript', 'language-features'];
+
+      const correctTags = suggestedTags.filter((tag) => testCase.expectedTags.includes(tag));
+
       const accuracy = correctTags.length / testCase.expectedTags.length;
-      
+
       testSpinner.succeed(`Tested ${model}`);
-      
+
       // Display results
-      logger.box(`
+      logger.box(
+        `
 Model: ${chalk.bold(model)}
 Expected tags: ${testCase.expectedTags.join(', ')}
 Suggested tags: ${suggestedTags.join(', ')}
 Accuracy: ${(accuracy * 100).toFixed(2)}%
-      `.trim(), `Basic Test: ${model}`);
+      `.trim(),
+        `Basic Test: ${model}`
+      );
     }
-    
+
     logger.info(chalk.bold.green('\nTests completed successfully!'));
-    
   } catch (error) {
     logger.error(`Failed to run basic tests: ${error instanceof Error ? error.message : String(error)}`);
   }
-} 
+}

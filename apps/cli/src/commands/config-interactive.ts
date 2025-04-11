@@ -1,10 +1,34 @@
-import type { CommandModule } from 'yargs';
-import inquirer from 'inquirer';
-import chalk from 'chalk';
-import fs from 'fs-extra';
 import path from 'path';
-import { logger } from '../utils/logger';
+
+import { confirm, input, number, select } from '@inquirer/prompts';
+import chalk from 'chalk';
+import * as fsExtra from 'fs-extra';
+
 import { config } from '../utils/config';
+import { logger } from '../utils/logger';
+
+import type { CommandModule } from 'yargs';
+
+import type { Config } from '../types/config';
+
+// Configuration types
+type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+type TagMode = 'append' | 'replace' | 'merge';
+type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o';
+
+interface ConfigSettings {
+  apiKey?: string;
+  defaultModel: ModelType;
+  tagMode: TagMode;
+  concurrency?: number;
+  logLevel: LogLevel;
+  vaultPath?: string;
+  enableAnalytics?: boolean;
+  costLimit?: number;
+  outputDir?: string;
+  profiles?: Record<string, Partial<ConfigSettings>>;
+  [key: string]: unknown;
+}
 
 /**
  * Interactive configuration setup
@@ -16,16 +40,16 @@ export const configInteractiveCommand: CommandModule = {
     return yargs
       .option('profile', {
         describe: 'Configuration profile name',
-        type: 'string'
+        type: 'string',
       })
       .option('minimal', {
         describe: 'Only ask for essential settings',
         type: 'boolean',
-        default: false
+        default: false,
       })
       .option('export', {
         describe: 'Export configuration to file after setup',
-        type: 'string'
+        type: 'string',
       });
   },
   handler: async (argv) => {
@@ -33,164 +57,200 @@ export const configInteractiveCommand: CommandModule = {
       const profileName = argv['profile'] as string | undefined;
       const minimal = argv['minimal'] as boolean;
       const exportPath = argv['export'] as string | undefined;
-      
-      const currentApiKey = process.env['OPENAI_API_KEY'] || config.get('apiKey');
-      
+
+      const currentApiKey = process.env['OPENAI_API_KEY'] ?? config.get('apiKey');
+
       logger.info(chalk.bold('Interactive Configuration Setup'));
-      
+
       if (minimal) {
         logger.info('Using minimal setup mode (essential settings only)');
       }
-      
-      // Define the configuration questions
-      const essentialQuestions = [
-        {
-          type: 'input',
-          name: 'apiKey',
-          message: 'OpenAI API Key (press Enter to keep existing):',
-          default: () => currentApiKey ? '[keep current]' : '',
-          filter: (input: string) => {
-            return input === '[keep current]' ? currentApiKey : input;
+
+      // Define an object to hold our answers
+      const answers: Partial<ConfigSettings> = {};
+
+      // Essential settings
+      const apiKeyResponse = await input({
+        message: 'OpenAI API Key (press Enter to keep existing):',
+        default: currentApiKey ? '[keep current]' : '',
+        transformer: (inputValue) => {
+          if (inputValue === '[keep current]' && currentApiKey) {
+            return '****' + String(currentApiKey).slice(-4);
           }
+          if (inputValue) {
+            return '****' + inputValue.slice(-4);
+          }
+          return '';
         },
-        {
-          type: 'list',
-          name: 'defaultModel',
-          message: 'Default model for tagging:',
-          choices: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'],
-          default: () => config.get('defaultModel') || 'gpt-3.5-turbo'
-        },
-        {
-          type: 'list',
-          name: 'tagMode',
-          message: 'Default tag handling mode:',
-          choices: ['append', 'replace', 'merge'],
-          default: () => config.get('tagMode' as any) || 'merge'
-        }
-      ];
-      
-      const advancedQuestions = [
-        {
-          type: 'number',
-          name: 'concurrency',
+      });
+
+      answers.apiKey = apiKeyResponse === '[keep current]' ? currentApiKey : apiKeyResponse;
+
+      answers.defaultModel = await select<ModelType>({
+        message: 'Default model for tagging:',
+        choices: [
+          { value: 'gpt-3.5-turbo', name: 'gpt-3.5-turbo' },
+          { value: 'gpt-4', name: 'gpt-4' },
+          { value: 'gpt-4o', name: 'gpt-4o' },
+        ],
+        default: (config.get('defaultModel') as ModelType | undefined) ?? 'gpt-3.5-turbo',
+      });
+
+      const currentTagMode = config.get('tagMode') as TagMode | undefined;
+      answers.tagMode = await select<TagMode>({
+        message: 'Default tag handling mode:',
+        choices: [
+          { value: 'append', name: 'append' },
+          { value: 'replace', name: 'replace' },
+          { value: 'merge', name: 'merge' },
+        ],
+        default: currentTagMode ?? 'merge',
+      });
+
+      // Advanced settings (only if not minimal)
+      if (!minimal) {
+        answers.concurrency = await number({
           message: 'Default concurrency level (1-10):',
-          default: () => config.get('concurrency') || 3,
-          validate: (input: number) => {
-            if (input < 1 || input > 10) {
+          default: config.get('concurrency') ?? 3,
+          validate: (value) => {
+            if (value === undefined || value < 1 || value > 10) {
               return 'Please enter a value between 1 and 10';
             }
             return true;
-          }
-        },
-        {
-          type: 'list',
-          name: 'logLevel',
+          },
+        });
+
+        const currentLogLevel = config.get('logLevel') as LogLevel | undefined;
+        answers.logLevel = await select<LogLevel>({
           message: 'Log level:',
-          choices: ['error', 'warn', 'info', 'debug'],
-          default: () => config.get('logLevel' as any) || 'info'
-        },
-        {
-          type: 'input',
-          name: 'vaultPath',
+          choices: [
+            { value: 'error', name: 'error' },
+            { value: 'warn', name: 'warn' },
+            { value: 'info', name: 'info' },
+            { value: 'debug', name: 'debug' },
+          ],
+          default: currentLogLevel ?? 'info',
+        });
+
+        answers.vaultPath = await input({
           message: 'Path to Obsidian vault (optional):',
-          default: () => config.get('vaultPath') || '',
-          validate: async (input: string) => {
-            if (!input) return true; // Optional
-            if (!(await fs.pathExists(input))) {
-              return `Directory does not exist: ${input}`;
+          default: config.get('vaultPath') ?? '',
+          validate: async (inputValue) => {
+            if (!inputValue) return true; // Optional
+
+            // Safely check if path exists
+            let exists = false;
+            try {
+              exists = await fsExtra.pathExists(inputValue);
+            } catch {
+              return 'Error checking path existence';
             }
+
+            if (!exists) {
+              return `Directory does not exist: ${inputValue}`;
+            }
+
             return true;
-          }
-        },
-        {
-          type: 'confirm',
-          name: 'enableAnalytics',
+          },
+        });
+
+        answers.enableAnalytics = await confirm({
           message: 'Enable anonymous usage analytics:',
-          default: () => config.get('enableAnalytics') !== undefined ? config.get('enableAnalytics') : true
-        },
-        {
-          type: 'number',
-          name: 'costLimit',
+          default: config.get('enableAnalytics') !== undefined ? Boolean(config.get('enableAnalytics')) : true,
+        });
+
+        answers.costLimit = await number({
           message: 'Monthly cost limit (USD):',
-          default: () => config.get('costLimit') || 10,
-          validate: (input: number) => {
-            if (input < 0) {
+          default: config.get('costLimit') ?? 10,
+          validate: (value) => {
+            if (value === undefined || value < 0) {
               return 'Please enter a non-negative value';
             }
             return true;
-          }
-        },
-        {
-          type: 'input',
-          name: 'outputDir',
+          },
+        });
+
+        answers.outputDir = await input({
           message: 'Default output directory for reports:',
-          default: () => config.get('outputDir' as any) || './reports'
-        }
-      ];
-      
-      // Choose questions based on minimal flag
-      const questions = minimal ? essentialQuestions : [...essentialQuestions, ...advancedQuestions];
-      
-      // Run the interactive prompt
-      const answers = await inquirer.prompt(questions as any);
-      
+          default: config.get('outputDir') ?? './reports',
+        });
+      }
+
       // Confirm settings
       logger.info('\nReview your settings:');
       Object.entries(answers).forEach(([key, value]) => {
-        const displayValue = key === 'apiKey' && value ? '****' + String(value).slice(-4) : value;
+        // Handle stringification properly to avoid [object Object]
+        let displayValue: string;
+
+        if (value === undefined || value === null) {
+          displayValue = '';
+        } else if (key === 'apiKey' && typeof value === 'string') {
+          displayValue = value ? '****' + value.slice(-4) : '';
+        } else if (typeof value === 'object') {
+          displayValue = JSON.stringify(value);
+        } else {
+          displayValue = JSON.stringify(value);
+        }
+
         logger.info(`${chalk.cyan(key)}: ${displayValue}`);
       });
-      
-      const { confirmSettings } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'confirmSettings',
-          message: 'Save these settings?',
-          default: true
-        }
-      ]);
-      
+
+      const confirmSettings = await confirm({
+        message: 'Save these settings?',
+        default: true,
+      });
+
       if (!confirmSettings) {
         logger.info('Configuration cancelled.');
         return;
       }
-      
+
       // Save the configuration
       Object.entries(answers).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          config.set(key as any, value);
+          // Using explicit type assertion to satisfy the linter
+          config.set(key as keyof Config, value as Config[keyof Config]);
         }
       });
-      
+
       // If a profile was specified, save it as a named profile
       if (profileName) {
-        const profiles = config.get('profiles') || {};
+        const profiles = (config.get('profiles') as Record<string, Partial<ConfigSettings>> | undefined) ?? {};
         profiles[profileName] = answers;
         config.set('profiles', profiles);
         logger.success(`Profile '${profileName}' saved.`);
       }
-      
+
       logger.success('Configuration updated successfully!');
-      
+
       // Export configuration if requested
       if (exportPath) {
         try {
           const configData = config.getAll();
           const exportDir = path.dirname(exportPath);
-          
-          // Ensure export directory exists
-          await fs.ensureDir(exportDir);
-          
-          // Write config to file
-          await fs.writeJson(exportPath, configData, { spaces: 2 });
-          logger.success(`Configuration exported to ${exportPath}`);
+
+          // Safely ensure directory exists
+          try {
+            await fsExtra.ensureDir(exportDir);
+          } catch (error) {
+            throw new Error(`Failed to create directory: ${error instanceof Error ? error.message : String(error)}`);
+          }
+
+          // Safely write config file
+          try {
+            await fsExtra.writeJson(exportPath, configData, { spaces: 2 });
+            logger.success(`Configuration exported to ${exportPath}`);
+          } catch (error) {
+            throw new Error(`Failed to write config file: ${error instanceof Error ? error.message : String(error)}`);
+          }
         } catch (error) {
           logger.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
-      
+
       // Show next steps
-      logger.box(`
+      logger.box(
+        `
 Next Steps:
 
 1. Run a test command:
@@ -201,11 +261,12 @@ Next Steps:
 
 3. View command help:
    tag-conversations <command> --help
-      `.trim(), 'Getting Started');
-      
+      `.trim(),
+        'Getting Started'
+      );
     } catch (error) {
       logger.error(`Configuration setup failed: ${error instanceof Error ? error.message : String(error)}`);
       process.exit(1);
     }
-  }
-}; 
+  },
+};

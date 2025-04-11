@@ -1,9 +1,9 @@
+import { AppError, FileSystemError, failure, success } from '@obsidian-magic/core';
 import { Notice } from 'obsidian';
 
-import { ApiKeyError, AppError, FileSystemError, failure, success } from './errors';
+import type { ApiError, Result } from '@obsidian-magic/core';
 
 import type ObsidianMagicPlugin from '../main';
-import type { Result } from './errors';
 
 /**
  * Handles secure storage and management of API keys
@@ -24,7 +24,10 @@ export class KeyManager {
   async saveKey(apiKey: string): Promise<Result<boolean>> {
     try {
       if (!apiKey) {
-        throw new ApiKeyError('API key cannot be empty');
+        throw new ApiError('API key cannot be empty', {
+          code: 'API_KEY_EMPTY',
+          recoverable: false,
+        });
       }
 
       if (this.plugin.settings.apiKeyStorage === 'system') {
@@ -39,7 +42,7 @@ export class KeyManager {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to save API key: ${message}`);
 
-      return failure(error instanceof AppError ? error : new ApiKeyError(`Failed to save API key: ${message}`));
+      return failure(error instanceof AppError ? error : new ApiError(`Failed to save API key: ${message}`));
     }
   }
 
@@ -77,7 +80,7 @@ export class KeyManager {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(`Failed to delete API key: ${message}`);
 
-      return failure(error instanceof AppError ? error : new ApiKeyError(`Failed to delete API key: ${message}`));
+      return failure(error instanceof AppError ? error : new ApiError(`Failed to delete API key: ${message}`));
     }
   }
 
@@ -104,14 +107,14 @@ export class KeyManager {
         const keytar = require('node-keytar');
         await keytar.setPassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId, apiKey);
       } else {
-        throw new ApiKeyError('System keychain is not available');
+        throw new ApiError('System keychain is not available');
       }
 
       // Clear from local storage
       this.plugin.settings.apiKey = '';
       await this.plugin.saveSettings();
     } catch (error) {
-      throw new ApiKeyError(
+      throw new ApiError(
         `Failed to save to system keychain: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -132,10 +135,10 @@ export class KeyManager {
         const keytar = require('node-keytar');
         return await keytar.getPassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId);
       } else {
-        throw new ApiKeyError('System keychain is not available');
+        throw new ApiError('System keychain is not available');
       }
     } catch (error) {
-      throw new ApiKeyError(
+      throw new ApiError(
         `Failed to load from system keychain: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -156,10 +159,10 @@ export class KeyManager {
         const keytar = require('node-keytar');
         await keytar.deletePassword('obsidian-magic', this.plugin.settings.apiKeyKeychainId);
       } else {
-        throw new ApiKeyError('System keychain is not available');
+        throw new ApiError('System keychain is not available');
       }
     } catch (error) {
-      throw new ApiKeyError(
+      throw new ApiError(
         `Failed to delete from system keychain: ${error instanceof Error ? error.message : String(error)}`
       );
     }

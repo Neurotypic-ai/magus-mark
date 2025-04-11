@@ -1,26 +1,29 @@
-import * as fs from 'fs-extra';
 import * as path from 'path';
+
+import { CostLimitError } from '@obsidian-magic/core';
+import * as fs from 'fs-extra';
+
 import { config } from './config';
 import { logger } from './logger';
-import { CostLimitError } from './errors';
+
 import type { AIModel } from '@obsidian-magic/types';
 
 // Token pricing per 1K tokens (in USD)
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'gpt-3.5-turbo': {
     input: 0.0005,
-    output: 0.0015
+    output: 0.0015,
   },
   'gpt-4o': {
     input: 0.01,
-    output: 0.03
-  }
+    output: 0.03,
+  },
 };
 
 // Default pricing for fallback
 const DEFAULT_PRICING = {
   input: 0.0005,
-  output: 0.0015
+  output: 0.0015,
 };
 
 // Default token estimations
@@ -100,22 +103,19 @@ class CostManager {
       models: {
         'gpt-3.5-turbo': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         'gpt-4': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-        'gpt-4o': { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
-      }
+        'gpt-4o': { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      },
     };
 
     // Set default limits
     this.limits = {
       warningThreshold: config.get('costLimit') ?? 5,
       hardLimit: config.get('costLimit') ?? 10,
-      onLimitReached: config.get('onLimitReached') ?? 'warn'
+      onLimitReached: config.get('onLimitReached') ?? 'warn',
     };
 
     // Set data file path
-    const dataDir = path.join(
-      process.env['HOME'] || process.env['USERPROFILE'] || '.',
-      '.obsidian-magic'
-    );
+    const dataDir = path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.', '.obsidian-magic');
     this.dataFile = path.join(dataDir, 'usage-data.json');
 
     // Load existing data
@@ -142,21 +142,17 @@ class CostManager {
   /**
    * Track API usage
    */
-  public trackUsage(
-    model: AIModel,
-    tokens: { input: number; output: number },
-    operation: string
-  ): number {
+  public trackUsage(model: AIModel, tokens: { input: number; output: number }, operation: string): number {
     const { input, output } = tokens;
     const totalTokens = input + output;
-    
+
     // Calculate cost based on model pricing
     const cost = this.calculateCost(model, input, output);
-    
+
     // Update session data
     this.session.totalCost += cost;
     this.session.totalTokens += totalTokens;
-    
+
     // Update model-specific usage
     if (this.session.models[model]) {
       this.session.models[model].inputTokens += input;
@@ -166,37 +162,34 @@ class CostManager {
       this.session.models[model] = {
         inputTokens: input,
         outputTokens: output,
-        totalTokens
+        totalTokens,
       };
     }
-    
+
     // Record usage
     const record: UsageRecord = {
       timestamp: Date.now(),
       model,
       tokens: totalTokens,
       cost,
-      operation
+      operation,
     };
-    
+
     this.usageData.push(record);
-    
+
     // Check limits
     this.checkLimits();
-    
+
     return cost;
   }
-  
+
   /**
    * Calculate estimated cost for a given number of tokens
    */
-  public estimateCost(
-    model: AIModel,
-    tokens: { input: number; output: number }
-  ): number {
+  public estimateCost(model: AIModel, tokens: { input: number; output: number }): number {
     return this.calculateCost(model, tokens.input, tokens.output);
   }
-  
+
   /**
    * Get current session stats
    */
@@ -204,40 +197,41 @@ class CostManager {
     duration: number;
     totalCost: number;
     totalTokens: number;
-    modelBreakdown: Record<string, {
-      cost: number;
-      tokens: TokenUsage;
-    }>;
+    modelBreakdown: Record<
+      string,
+      {
+        cost: number;
+        tokens: TokenUsage;
+      }
+    >;
   } {
     const modelBreakdown: Record<string, { cost: number; tokens: TokenUsage }> = {};
-    
+
     // Calculate costs per model
     for (const [model, usage] of Object.entries(this.session.models)) {
       if (usage.totalTokens > 0) {
         modelBreakdown[model] = {
           tokens: { ...usage },
-          cost: this.calculateCost(model as AIModel, usage.inputTokens, usage.outputTokens)
+          cost: this.calculateCost(model as AIModel, usage.inputTokens, usage.outputTokens),
         };
       }
     }
-    
+
     return {
       duration: Date.now() - this.session.startTime,
       totalCost: this.session.totalCost,
       totalTokens: this.session.totalTokens,
-      modelBreakdown
+      modelBreakdown,
     };
   }
-  
+
   /**
    * Get usage history for a time period
    */
-  public getUsageHistory(
-    period: 'day' | 'week' | 'month' | 'all' = 'all'
-  ): UsageRecord[] {
+  public getUsageHistory(period: 'day' | 'week' | 'month' | 'all' = 'all'): UsageRecord[] {
     const now = Date.now();
     let cutoff = 0;
-    
+
     switch (period) {
       case 'day':
         cutoff = now - 24 * 60 * 60 * 1000;
@@ -251,10 +245,10 @@ class CostManager {
       default:
         cutoff = 0;
     }
-    
-    return this.usageData.filter(record => record.timestamp >= cutoff);
+
+    return this.usageData.filter((record) => record.timestamp >= cutoff);
   }
-  
+
   /**
    * Save usage data to file
    */
@@ -268,7 +262,7 @@ class CostManager {
       logger.warn(`Failed to save usage data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  
+
   /**
    * Load usage data from file
    */
@@ -286,7 +280,7 @@ class CostManager {
       this.usageData = [];
     }
   }
-  
+
   /**
    * Calculate cost based on model and tokens
    */
@@ -302,44 +296,44 @@ class CostManager {
         return (inputTokens / 1000) * 0.0005 + (outputTokens / 1000) * 0.0015;
     }
   }
-  
+
   /**
    * Check if limits have been exceeded
    */
   private checkLimits(): void {
     const { warningThreshold, hardLimit, onLimitReached } = this.limits;
     const currentCost = this.session.totalCost;
-    
+
     // Warning threshold
     if (currentCost >= warningThreshold && currentCost < hardLimit) {
       logger.warn(`Cost warning: $${currentCost.toFixed(4)} spent so far (threshold: $${warningThreshold.toFixed(2)})`);
     }
-    
+
     // Hard limit
     if (currentCost >= hardLimit) {
       logger.error(`Cost limit reached: $${currentCost.toFixed(4)} (limit: $${hardLimit.toFixed(2)})`);
-      
+
       if (onLimitReached === 'stop') {
         throw new CostLimitError(
           `Cost limit of $${hardLimit.toFixed(2)} exceeded. Current cost: $${currentCost.toFixed(4)}`,
           { cost: currentCost, limit: hardLimit }
         );
       }
-      
+
       if (onLimitReached === 'pause' && !this.paused) {
         this.paused = true;
         logger.warn('Processing paused due to cost limit. Use --force to continue.');
       }
     }
   }
-  
+
   /**
    * Check if processing is paused
    */
   public isPaused(): boolean {
     return this.paused;
   }
-  
+
   /**
    * Reset pause state
    */
@@ -349,4 +343,4 @@ class CostManager {
 }
 
 // Export singleton instance
-export const costManager = CostManager.getInstance(); 
+export const costManager = CostManager.getInstance();

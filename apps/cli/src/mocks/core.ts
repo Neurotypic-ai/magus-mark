@@ -61,17 +61,17 @@ export class OpenAIClient {
   /**
    * Complete a prompt
    */
-  public async complete(prompt: string): Promise<any> {
-    // Mock implementation
-    return {
+  public complete(prompt: string): Promise<{ choices: { message: { content: string } }[] }> {
+    // Mock implementation that uses the prompt parameter
+    return Promise.resolve({
       choices: [
         {
           message: {
-            content: 'This is a mock response from the OpenAI client.'
-          }
-        }
-      ]
-    };
+            content: `This is a mock response for prompt: ${prompt.substring(0, 20)}...`,
+          },
+        },
+      ],
+    });
   }
 }
 
@@ -108,7 +108,7 @@ export class TaggingService {
   }> {
     try {
       // Simulate API call with delay
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Generate mock tags based on content
       const content = document.content.toLowerCase();
@@ -141,7 +141,7 @@ export class TaggingService {
         return {
           success: true,
           tags: Array.from(allTags),
-          confidence
+          confidence,
         };
       }
 
@@ -149,7 +149,7 @@ export class TaggingService {
       return {
         success: true,
         tags,
-        confidence
+        confidence,
       };
     } catch (error) {
       return {
@@ -157,8 +157,8 @@ export class TaggingService {
         error: {
           message: error instanceof Error ? error.message : String(error),
           code: 'TAGGING_ERROR',
-          recoverable: true
-        }
+          recoverable: true,
+        },
       };
     }
   }
@@ -180,7 +180,7 @@ export const taxonomy = {
     ['programming', { tags: ['typescript', 'javascript', 'python', 'rust', 'golang'] }],
     ['frontend', { tags: ['react', 'vue', 'angular', 'svelte'] }],
     ['backend', { tags: ['node', 'express', 'django', 'flask'] }],
-    ['ai', { tags: ['machine-learning', 'deep-learning', 'nlp', 'computer-vision'] }]
+    ['ai', { tags: ['machine-learning', 'deep-learning', 'nlp', 'computer-vision'] }],
   ]),
 
   /**
@@ -194,7 +194,8 @@ export const taxonomy = {
    * Get tags for a domain
    */
   getTagsForDomain(domain: string): string[] {
-    return this.domains.get(domain)?.tags || [];
+    const domainInfo = this.domains.get(domain);
+    return domainInfo ? domainInfo.tags : [];
   },
 
   /**
@@ -213,7 +214,7 @@ export const taxonomy = {
    */
   deleteDomain(domain: string): boolean {
     return this.domains.delete(domain);
-  }
+  },
 };
 
 /**
@@ -236,7 +237,7 @@ export const batchProcessor = {
       documentId: string;
       success: boolean;
       tags?: string[];
-      error?: any;
+      error?: Error;
     }[];
     stats: {
       total: number;
@@ -250,22 +251,22 @@ export const batchProcessor = {
       documentId: string;
       success: boolean;
       tags?: string[];
-      error?: any;
+      error?: Error;
     }[] = [];
     let succeeded = 0;
     let failed = 0;
     let totalTokens = 0;
 
     // Process each document (safely)
-    for (let i = 0; i < (documents.length || 0); i++) {
+    for (let i = 0; i < documents.length; i++) {
       // Make sure document exists
       const doc = documents[i];
       if (!doc) {
         failed++;
         results.push({
-          documentId: `unknown-${i}`,
+          documentId: `unknown-${String(i)}`,
           success: false,
-          error: { message: "Document is undefined", code: "INVALID_DOCUMENT" }
+          error: new Error('Document is undefined'),
         });
         continue;
       }
@@ -283,14 +284,17 @@ export const batchProcessor = {
           results.push({
             documentId: doc.id,
             success: true,
-            tags: result.tags
+            tags: result.tags,
           });
         } else {
           failed++;
           results.push({
             documentId: doc.id,
             success: false,
-            error: result.error
+            error:
+              result.error instanceof Error
+                ? result.error
+                : new Error(typeof result.error === 'string' ? result.error : 'Unknown error'),
           });
         }
       } catch (error) {
@@ -299,11 +303,7 @@ export const batchProcessor = {
         results.push({
           documentId: doc.id,
           success: false,
-          error: {
-            message: error instanceof Error ? error.message : String(error),
-            code: "PROCESSING_ERROR",
-            recoverable: false
-          }
+          error: error instanceof Error ? error : new Error(String(error)),
         });
       }
 
@@ -323,8 +323,8 @@ export const batchProcessor = {
         succeeded,
         failed,
         totalTokens,
-        cost
-      }
+        cost,
+      },
     };
-  }
-}; 
+  },
+};
