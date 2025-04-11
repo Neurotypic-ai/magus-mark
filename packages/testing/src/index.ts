@@ -5,4 +5,4 @@
 /**
  * Mocking utilities
  */
-export * from './mocks'; 
+export * from './mocks';
