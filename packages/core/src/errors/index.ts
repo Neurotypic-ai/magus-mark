@@ -36,13 +36,13 @@ export class APIError extends AppError {
     message: string, 
     code = 'API_ERROR', 
     recoverable = true,
-    status?: number | undefined,
+    status?: number  ,
     rateLimitInfo?: {
       retryAfter?: number | undefined;
       limit?: number | undefined;
       remaining?: number | undefined;
       reset?: Date | undefined;
-    } | undefined
+    }  
   ) {
     super(message, code, recoverable);
     this.status = status;
@@ -74,7 +74,7 @@ export class TaggingError extends AppError {
     message: string,
     code = 'TAGGING_ERROR',
     recoverable = false,
-    documentId?: string | undefined
+    documentId?: string  
   ) {
     super(message, code, recoverable);
     this.documentId = documentId;
@@ -91,7 +91,7 @@ export class MarkdownError extends AppError {
     message: string,
     code = 'MARKDOWN_ERROR',
     recoverable = true,
-    filePath?: string | undefined
+    filePath?: string  
   ) {
     super(message, code, recoverable);
     this.filePath = filePath;

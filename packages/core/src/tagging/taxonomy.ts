@@ -261,9 +261,9 @@ export const DEFAULT_TAXONOMY: Taxonomy = {
  */
 export class TaxonomyManager {
   private taxonomy: Taxonomy;
-  private customDomains: Set<string> = new Set();
-  private customSubdomains: Map<string, Set<string>> = new Map();
-  private customContextualTags: Set<string> = new Set();
+  private customDomains = new Set<string>();
+  private customSubdomains = new Map<string, Set<string>>();
+  private customContextualTags = new Set<string>();
   
   constructor(customTaxonomy?: Partial<Taxonomy>) {
     this.taxonomy = { ...DEFAULT_TAXONOMY };
@@ -291,7 +291,7 @@ export class TaxonomyManager {
           const newSubdomains = Array.isArray(subdomains) ? subdomains : [subdomains];
           
           const uniqueSubdomains = newSubdomains.filter(s => 
-            !existingSubdomains.includes(s as string)
+            !existingSubdomains.includes(s)
           );
           
           this.taxonomy.subdomains[domain] = [
@@ -303,7 +303,7 @@ export class TaxonomyManager {
           if (!this.customSubdomains.has(domain)) {
             this.customSubdomains.set(domain, new Set());
           }
-          uniqueSubdomains.forEach(s => this.customSubdomains.get(domain)?.add(s as string));
+          uniqueSubdomains.forEach(s => this.customSubdomains.get(domain)?.add(s));
         }
       }
       

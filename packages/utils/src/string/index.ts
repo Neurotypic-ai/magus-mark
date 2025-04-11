@@ -48,25 +48,6 @@ export function toPascalCase(text: string): string {
 }
 
 /**
- * Extracts YAML frontmatter from a markdown document
- * @param content - Markdown content
- * @returns Frontmatter string or null if not found
- */
-export function extractFrontmatter(content: string): string | null {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  return match ? match[1] : null;
-}
-
-/**
- * Removes YAML frontmatter from a markdown document
- * @param content - Markdown content
- * @returns Content without frontmatter
- */
-export function removeFrontmatter(content: string): string {
-  return content.replace(/^---\n[\s\S]*?\n---\n?/, '');
-}
-
-/**
  * Slugifies a string for URLs or filenames
  * @param text - String to slugify
  * @returns Slugified string
@@ -127,4 +108,48 @@ export function randomString(length: number): string {
   }
   
   return result;
+}
+
+/**
+ * Format a duration in milliseconds to a human-readable string
+ * @param ms - Duration in milliseconds
+ * @returns Formatted duration string
+ */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms.toFixed(2)}ms`;
+  }
+  
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(2)}s`;
+  }
+  
+  const minutes = seconds / 60;
+  if (minutes < 60) {
+    const fullMinutes = Math.floor(minutes);
+    const remainingSeconds = seconds - fullMinutes * 60;
+    return `${fullMinutes}m ${remainingSeconds.toFixed(0)}s`;
+  }
+  
+  const hours = minutes / 60;
+  const fullHours = Math.floor(hours);
+  const remainingMinutes = Math.floor(minutes - fullHours * 60);
+  const remainingSeconds = Math.floor(seconds - fullHours * 3600 - remainingMinutes * 60);
+  return `${fullHours}h ${remainingMinutes}m ${remainingSeconds}s`;
+}
+
+/**
+ * Format a currency amount
+ * @param amount - Amount to format
+ * @param currency - Currency code (default: USD)
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4
+  }).format(amount);
 } 

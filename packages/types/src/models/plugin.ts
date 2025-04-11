@@ -95,7 +95,7 @@ export interface TagStatistics {
   tagDistribution: Record<string, number>;
   averageConfidence: number;
   userModificationRate: number;
-  mostCommonTags: Array<{tag: string; count: number}>;
+  mostCommonTags: {tag: string; count: number}[];
 }
 
 /**

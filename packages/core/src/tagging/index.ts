@@ -8,7 +8,8 @@ import type {
   Document,
   TagBehavior
 } from '@obsidian-magic/types';
-import { OpenAIClient, PromptEngineering } from '../openai';
+import type { OpenAIClient} from '../openai';
+import { PromptEngineering } from '../openai';
 
 /**
  * Default tagging options

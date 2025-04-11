@@ -36,3 +36,13 @@ export * from './prompt';
  * Performance utilities
  */
 export * from './performance';
+
+/**
+ * Object utilities
+ */
+export * from './object';
+
+/**
+ * Markdown utilities
+ */
+export * from './markdown';

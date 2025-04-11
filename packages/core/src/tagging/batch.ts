@@ -2,7 +2,7 @@
  * Batch processing service for tagging multiple documents
  */
 import type { Document, TaggingResult, TaggingOptions } from '@obsidian-magic/types';
-import { TaggingService } from './index';
+import type { TaggingService } from './index';
 import { PromptTemplates } from '../openai/prompts';
 import { OpenAIClient } from '../openai';
 
@@ -51,18 +51,18 @@ export interface BatchProcessingResult {
   /**
    * Results for each document
    */
-  results: Array<{ 
+  results: { 
     document: Document;
     result: TaggingResult;
-  }>;
+  }[];
   
   /**
    * Documents that failed processing
    */
-  errors: Array<{
+  errors: {
     document: Document;
     error: Error;
-  }>;
+  }[];
   
   /**
    * Summary of the batch operation
@@ -217,7 +217,7 @@ export class BatchProcessingService {
   } {
     // Rough estimation based on document sizes
     const averageTokensPerCharacter = 0.25; // Rough estimate of tokens per character
-    const totalCharacters = documents.reduce((sum, doc) => sum + (doc.content?.length || 0), 0);
+    const totalCharacters = documents.reduce((sum, doc) => sum + (doc.content.length || 0), 0);
     const estimatedPromptTokens = totalCharacters * averageTokensPerCharacter;
     
     // Estimate completion tokens (typically smaller than prompt)

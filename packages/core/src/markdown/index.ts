@@ -62,9 +62,9 @@ export class FrontmatterProcessor {
    */
   extractFrontmatter(content: string): Record<string, unknown> {
     const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-    const match = content.match(frontmatterRegex);
+    const match = frontmatterRegex.exec(content);
     
-    if (!match || !match[1]) {
+    if (!match?.[1]) {
       return {};
     }
     
@@ -111,7 +111,7 @@ export class FrontmatterProcessor {
     if (Array.isArray(frontmatter[tagsKey])) {
       tags = frontmatter[tagsKey] as string[];
     } else if (typeof frontmatter[tagsKey] === 'string') {
-      const tagsStr = frontmatter[tagsKey] as string;
+      const tagsStr = frontmatter[tagsKey];
       tags = tagsStr.split(',').map(t => t.trim());
     }
     
@@ -140,7 +140,7 @@ export class FrontmatterProcessor {
         
         if (topicalTag.subdomain) {
           // Type assertion to handle any subdomain
-          tagParts.push(topicalTag.subdomain as string);
+          tagParts.push(topicalTag.subdomain);
         }
         
         if (topicalTag.contextual) {
@@ -173,11 +173,11 @@ export class FrontmatterProcessor {
       if (tags.topical_tags.length > 0) {
         result['topical_tags'] = tags.topical_tags.map(tag => {
           const topical: Record<string, string> = {
-            domain: tag.domain as string
+            domain: tag.domain
           };
           
           if (tag.subdomain) {
-            topical['subdomain'] = tag.subdomain as string;
+            topical['subdomain'] = tag.subdomain;
           }
           
           if (tag.contextual) {
@@ -199,7 +199,7 @@ export class FrontmatterProcessor {
    */
   updateFrontmatter(content: string, tags: TagSet): string {
     const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-    const match = content.match(frontmatterRegex);
+    const match = frontmatterRegex.exec(content);
     const newTags = this.tagsToFrontmatter(tags);
     
     if (!match) {
@@ -338,7 +338,7 @@ export class DocumentProcessor {
         const year = yearRaw as YearTag;
         
         const lifeArea = frontmatter['life_area'] as LifeAreaTag | undefined;
-        const topicalTagsRaw = frontmatter['topical_tags'] as Array<Record<string, unknown>> || [];
+        const topicalTagsRaw = frontmatter['topical_tags'] as Record<string, unknown>[] || [];
         const conversationType = frontmatter['conversation_type'] as ConversationTypeTag;
         
         // Only return if we have at least year and conversation_type
@@ -437,11 +437,11 @@ export class DocumentProcessor {
         const parts = tag.substring(1).split('/');
         if (parts.length === 0) continue;
         
-        const domain = parts[0] as DomainTag;
+        const domain = parts[0]!;
         const topicalTag: TopicalTag = { domain };
         
         if (parts.length >= 2) {
-          topicalTag.subdomain = parts[1] as SubdomainTag;
+          topicalTag.subdomain = parts[1]!;
         }
         
         if (parts.length >= 3) {
