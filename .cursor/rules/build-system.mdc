@@ -1,0 +1,101 @@
+---
+description: Build system configuration and practices for Obsidian Magic
+globs: **/webpack.config.js,**/tsconfig*.json,**/scripts/**/*.ts
+alwaysApply: false
+---
+
+# Build System
+
+The project uses a unified workspace build system with TypeScript project references for efficient builds:
+
+## Workspace Structure
+
+- **pnpm Workspace**: Manages dependencies across multiple packages
+- **TypeScript Project References**: Enables incremental builds and proper dependency tracking
+- **ESLint Flat Config**: Single configuration file for consistent linting across the workspace
+- **Prettier**: Consistent code formatting across all packages
+
+## App Builds
+
+### CLI Build
+
+- TypeScript compilation with Node.js target
+- Bundle dependencies for distribution
+- Generate executable with shebang
+- Create standalone packages for different platforms
+
+### Obsidian Plugin Build
+
+- TypeScript compilation for browser environment
+- CSS and asset processing
+- Manifest generation
+- Package for direct installation or submission to Obsidian community plugins
+
+### VS Code Extension Build
+
+- VS Code extension packaging
+- Web extension compatibility
+- Extension manifest generation
+- Package for direct installation or marketplace submission
+
+## Package Builds
+
+- Shared packages are built as ES modules
+- Type declaration generation
+- Source maps for debugging
+- Publishing configuration for npm registry
+
+## TypeScript Configuration
+
+The project uses a hierarchical TypeScript configuration:
+
+```
+obsidian-magic/
+├── tsconfig.base.json         # Base compiler options shared by all projects
+├── tsconfig.json              # Root configuration with project references
+├── apps/
+│   ├── cli/
+│   │   └── tsconfig.json      # CLI-specific configuration
+│   ├── obsidian-plugin/
+│   │   └── tsconfig.json      # Plugin-specific configuration
+│   └── vscode/
+│       └── tsconfig.json      # VS Code extension configuration
+└── packages/
+    ├── core/
+    │   └── tsconfig.json      # Core package configuration
+    ├── types/
+    │   └── tsconfig.json      # Types package configuration
+    └── utils/
+        └── tsconfig.json      # Utils package configuration
+```
+
+Each package's tsconfig.json extends the base configuration and adds package-specific settings.
+
+## Build Commands
+
+Common build commands are defined in package.json scripts:
+
+- `build`: Build all packages and applications
+- `build:apps`: Build only applications
+- `build:packages`: Build only shared packages
+- `dev`: Start development mode with watch
+- `clean`: Remove build artifacts
+- `lint`: Run ESLint across the codebase
+- `test`: Run tests for all packages and applications
+
+## Dependency Management
+
+pnpm is used for dependency management with workspace protocol linking:
+
+- Root package.json contains development dependencies
+- Each package/app has its own package.json with specific dependencies
+- Shared packages are referenced using workspace: protocol
+- Version management is enforced through pnpm workspace
+
+## Related Documentation
+
+For detailed information on specific implementation aspects, refer to these additional documents:
+
+- [Project Structure](mdc:documentation/implementation/project-structure.md)
+- [Testing Strategy](mdc:.cursor/rules/testing-strategy.mdc)
+- [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc) 

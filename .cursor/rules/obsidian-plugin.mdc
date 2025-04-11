@@ -1,0 +1,55 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+ ---
+description: Obsidian plugin architecture and integration for Obsidian Magic
+globs: **/obsidian/**/*.ts,**/plugin/**/*.ts,**/obsidian-plugin/**/*.ts
+alwaysApply: false
+---
+
+# Obsidian Plugin
+
+## Core Plugin Architecture
+
+The Obsidian plugin implements a modern, maintainable architecture:
+
+1. **Plugin Core**: Main plugin class implementing Obsidian's plugin API
+2. **UI Components**: Custom views, modals, and settings panels
+3. **Tag Management**: Integration with Obsidian's tagging system
+4. **Document Processing**: Analysis and modification of Markdown content
+
+## Seamless Obsidian Integration
+
+The plugin integrates deeply with Obsidian's systems:
+
+1. **Frontmatter Management**: Reading and writing YAML frontmatter for tag storage
+2. **Metadata Management**: Working with Obsidian's metadata system
+3. **File System Access**: Safe handling of vault files and paths
+4. **User Interface Integration**: Custom ribbon icons, context menus, and commands
+
+## Advanced Features
+
+The plugin implements sophisticated features for conversation management:
+
+1. **Inline Tag Editing**: Direct modification of tags with contextual information
+2. **Taxonomy Browser**: Explore and select from the full tag taxonomy
+3. **Tag Visualization**: Visual representations of tag relationships
+4. **Batch Operations**: Process multiple files with unified settings
+5. **Synchronization**: Coordination with CLI-applied tags
+
+## Settings & Configuration
+
+The plugin provides a robust settings system:
+
+1. **API Configuration**: OpenAI API key and model selection
+2. **Processing Options**: Tag application modes and confidence thresholds
+3. **UI Preferences**: Customization of tag display and interaction
+4. **Cost Management**: Budget controls and usage tracking
+
+## Documentation Links
+
+- [Plugin Overview](mdc:documentation/obsidian-plugin/plugin-overview.md)
+- [Tag Management](mdc:documentation/obsidian-plugin/tag-management.md)
+- [Document Integration](mdc:documentation/obsidian-plugin/document-integration.md)

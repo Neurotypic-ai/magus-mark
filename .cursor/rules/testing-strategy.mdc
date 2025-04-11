@@ -1,0 +1,98 @@
+---
+description: Testing strategies and approaches for Obsidian Magic
+globs: **/tests/**/*.ts,**/jest.config.js,**/*.test.ts,**/*.spec.ts
+alwaysApply: false
+---
+
+# Testing Strategy
+
+The project implements a comprehensive testing strategy using Vitest, a Vite-native test runner:
+
+## Test Organization
+
+Tests are co-located with the code they test, rather than using a centralized test directory:
+
+```
+apps/cli/
+├── src/
+│   ├── commands/
+│   │   ├── tag-command.ts
+│   │   └── tag-command.test.ts     # Test alongside code
+packages/core/
+├── src/
+│   ├── tagging/
+│   │   ├── classifier.ts
+│   │   ├── classifier.test.ts      # Simple unit test
+│   │   └── __tests__/              # Complex test suites
+│   │       ├── fixtures/
+│   │       └── integration.test.ts
+```
+
+## Unit Tests
+
+- Component-level tests with Vitest
+- Mocked dependencies via `vi.mock()` and `vi.spyOn()`
+- High coverage of core business logic
+- Snapshot testing for UI components
+
+## Integration Tests
+
+- Cross-component integration testing
+- API interaction testing with MSW
+- File system operation testing with memfs
+- CLI execution testing with execa
+
+## End-to-End Tests
+
+- CLI workflow testing
+- Plugin installation and operation testing
+- Extension activation and operation testing
+- Real OpenAI API testing (with controlled inputs)
+
+## Performance Testing
+
+- Token usage optimization testing
+- Processing time benchmarking
+- Memory usage profiling
+- Load testing for concurrent operations
+
+## Mocking Strategy
+
+- Service Mocks: Use dependency injection to inject mock services
+- API Mocks: Use MSW (Mock Service Worker) for external API calls
+- File System Mocks: Use memfs for CLI tests that interact with the file system
+
+## Fixture Management
+
+- Factory Functions: Create reusable factory functions for test data
+- Test Data Files: Store larger test fixtures as JSON or Markdown files
+- Snapshot Testing: Use snapshots for complex output validation
+
+## Testing Best Practices
+
+1. **Coverage Goals**:
+   - Aim for >80% coverage of core business logic
+   - Prioritize critical path coverage
+   - Include edge cases and error conditions
+
+2. **Test Organization**:
+   - Co-locate tests with the code they test
+   - Follow AAA pattern (Arrange, Act, Assert)
+   - Use descriptive test names that read as specifications
+
+3. **Test Data Management**:
+   - Use factory functions for consistent test data
+   - Store complex fixtures as separate files
+   - Leverage TypeScript for type-safe test data
+
+4. **Mocking Strategy**:
+   - Use dependency injection for easier mocking
+   - Create reusable mock factories
+   - Mock external services consistently
+   - Prefer interface mocking over implementation mocking
+
+5. **CI Integration**:
+   - Run tests on all pull requests
+   - Include performance benchmarks
+   - Track coverage over time
+   - Use test matrices for different environments 

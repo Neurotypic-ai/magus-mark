@@ -1,0 +1,91 @@
+---
+description: API integration best practices for OpenAI and other external services
+globs: **/api/**/*.ts,**/openai/**/*.ts,**/services/**/*.ts
+alwaysApply: false
+---
+
+# API Integration Best Practices
+
+## OpenAI API Integration
+
+The project uses OpenAI's API for content analysis and tagging:
+
+1. **API Client Management**:
+   - Use the official OpenAI SDK with proper types
+   - Implement proper error handling and retries
+   - Use appropriate timeouts and rate limiting
+   - Securely manage API keys via environment variables or secure storage
+
+2. **Advanced Prompt Engineering**:
+   - Structure prompts with clear instructions and delimiters
+   - Use system messages to set the context and role
+   - Include representative examples for few-shot learning
+   - Follow chain-of-thought reasoning approaches
+   - Use delimiters (triple quotes, XML tags) to clearly separate different parts of the input
+   - Ask the model to adopt a specific persona when appropriate
+   - Specify detailed steps for complex tasks
+   - Write clear, specific instructions rather than vague or ambiguous ones
+   - Provide reference text when factual grounding is needed
+   - Use intent classification to handle different query types with specific instructions
+
+3. **Complex Task Management**:
+   - Split complex tasks into simpler subtasks
+   - For tasks requiring reasoning, give the model time to "think" step-by-step
+   - For dialogue applications that require very long conversations, summarize previous dialogue
+   - Use external tools like embeddings-based search for efficient knowledge retrieval
+   - Ask the model to check if it missed anything on previous passes (self-verification)
+   - Test changes systematically to measure their impact
+
+4. **Token Optimization**:
+   - Implement precise token counting with tiktoken
+   - Use intelligent content extraction to reduce token usage
+   - Structure model responses to minimize completion tokens
+   - Balance between model quality and token efficiency
+   - For long documents, summarize piecewise and construct full summaries recursively
+
+5. **Error Handling**:
+   - Gracefully handle API errors with appropriate fallbacks
+   - Implement exponential backoff for rate limits
+   - Provide meaningful error messages to users
+   - Log API errors for debugging and analysis
+
+## API Security & Safety Best Practices
+
+1. **Authentication & Authorization**:
+   - Never expose API keys in client-side code
+   - Implement token rotation and expiration
+   - Use least privilege principle for API access
+   - Validate and sanitize all inputs
+
+2. **Data Privacy**:
+   - Implement data minimization principles
+   - Respect user privacy settings when sending data
+   - Consider data retention policies
+   - Be transparent about data usage
+
+3. **Rate Limiting & Abuse Prevention**:
+   - Implement client-side rate limiting to prevent API abuse
+   - Use caching where appropriate to reduce API calls
+   - Monitor API usage patterns for anomalies
+   - Implement proper user feedback for rate limit situations
+
+4. **Content Safety**:
+   - Use OpenAI's free Moderation API to filter unsafe content
+   - Perform adversarial testing with inputs designed to "break" the application
+   - Implement human-in-the-loop (HITL) review for critical outputs
+   - Constrain user input and limit output tokens to reduce misuse
+   - Allow users to report issues with an accessible reporting mechanism
+   - Clearly communicate system limitations to users
+
+5. **Risk Mitigation**:
+   - Implement "Know Your Customer" (KYC) verification where appropriate
+   - Use validated dropdown fields instead of open-ended inputs when possible
+   - Return outputs from validated material sets rather than novel generation when feasible
+   - Test your system with a wide range of inputs to ensure robustness
+   - Be vigilant about prompt injection attacks with monitoring and prevention mechanisms
+
+## Documentation Links
+
+- [OpenAI Integration](mdc:documentation/core/openai-integration.md)
+- [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering)
+- [OpenAI Safety Best Practices](https://platform.openai.com/docs/guides/safety-best-practices)

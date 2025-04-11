@@ -1,0 +1,120 @@
+---
+description: TypeScript best practices and coding standards
+globs: **/*.ts,**/*.tsx
+alwaysApply: true
+---
+
+# TypeScript Best Practices
+
+## Type System Configuration
+
+- Leverage TypeScript 5.8.3 features fully (discriminated unions, template literal types, etc.)
+- Use explicit typing for function parameters and returns
+- Apply discriminated unions for type-safe pattern matching
+- Leverage TypeScript's utility types (Pick, Omit, Partial, Required, etc.)
+- Never use `any` - prefer `unknown` with proper type narrowing
+- Use const assertions for literal types (`as const`)
+- Apply template literal types for string manipulation
+
+## Project References & Workspace Structure
+
+- Use TypeScript project references for efficient builds and proper type checking
+- Maintain a hierarchical tsconfig structure:
+  - `tsconfig.base.json` for common settings
+  - Per-package/app configs that extend the base
+  - Solution-level `tsconfig.json` with references
+- Set `composite: true` in referenced project tsconfig files
+- Use `declarationMap: true` for better source mapping
+- Structure imports consistently with clear layering
+- Organize by domain concepts with meaningful directory structures
+
+## Module & Import Best Practices
+
+- Use type-only imports to avoid runtime overhead (`import type`)
+- Favor named exports over default exports for better intellisense
+- Apply barrel files (index.ts) for clean public APIs
+- Use path mapping for internal module references
+- Enforce import sorting and grouping:
+  1. External packages
+  2. Internal shared modules
+  3. Relative imports
+  4. Type imports
+- Leverage `exports` field in package.json for subpath exports
+
+## Type Declarations
+
+- Define interfaces for public APIs and contracts
+- Use type aliases for complex types, unions, and compound structures
+- Maintain separate declaration files for large type definitions
+- Apply namespace augmentation correctly for extending third-party types
+- Create self-documenting types with descriptive names
+- Use mapped types for object transformations
+- Never use `Object`, `Function`, or `{}` - be specific
+- Leverage branded types for nominal typing when needed
+
+## Functional Programming Patterns
+
+- Prefer immutable data structures and pure functions
+- Use array methods (map, filter, reduce) instead of imperative loops
+- Apply function composition for complex operations
+- Implement proper error handling with typed errors
+- Use optional chaining (?.) and nullish coalescing (??) for safer code
+- Leverage async/await with proper type-safe error handling
+
+## ESLint Integration
+
+- Enforce consistent type imports
+- Disallow explicit any
+- Use ESLint with TypeScript Parser for consistent code style
+- Run type-checking as part of the linting process
+- Configure per-directory rule overrides when necessary
+
+## Workspace Dependencies
+
+- Reference shared packages with workspace protocol (`workspace:*`)
+- Maintain consistent versioning across workspace
+- Keep dependencies scoped to appropriate app/package
+- Share common dev dependencies in root package.json
+- Use strict versioning for external dependencies
+- Audit dependencies regularly
+
+## Performance Optimizations
+
+- Leverage incremental builds with `composite: true`
+- Use skipLibCheck for faster type-checking
+- Apply isolatedModules for module boundary optimization
+- Consider lazy loading for heavy dependencies
+- Use memoization for expensive calculations
+- Profile and optimize critical type operations
+- Be cautious with closures that capture large objects
+
+## Testing Approach
+
+- Write unit tests with strong typing
+- Use TypeScript for test files
+- Mock external dependencies appropriately
+- Test with strict type checking
+- Apply generics for type-safe test fixtures and factories
+- Co-locate tests with the implementation files
+
+## Code Style & Documentation
+
+- Apply consistent naming conventions:
+  - PascalCase for types, interfaces, and classes
+  - camelCase for variables, functions, and methods
+  - UPPER_CASE for constants
+- Use JSDoc comments with TypeScript-aware annotations
+- Maintain meaningful comments for complex type manipulations
+- Document function parameters and return types
+- Apply consistent formatting (via Prettier)
+- Use semantic versioning for packages
+
+## Advanced Type Patterns
+
+- Implement higher-order types for complex transformations
+- Use conditional types for branching type logic
+- Apply template literal types for string manipulation
+- Leverage indexed access types for property type extraction
+- Use infer for type inference in conditional types
+- Apply intersection types for type composition
+- Use mapped types to transform object structures

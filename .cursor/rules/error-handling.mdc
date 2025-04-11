@@ -1,0 +1,96 @@
+---
+description: Error handling patterns and best practices for Obsidian Magic
+globs: **/*.ts,**/*.tsx
+alwaysApply: false
+---
+
+# Error Handling
+
+The project implements comprehensive error handling strategies to ensure robustness:
+
+## Custom Error Classes
+
+Create specialized error classes for different failure modes:
+
+```typescript
+// Custom error classes
+class OpenAIError extends Error {
+  constructor(
+    message: string, 
+    public readonly statusCode: number,
+    public readonly errorCode: string
+  ) {
+    super(message);
+    this.name = 'OpenAIError';
+  }
+}
+
+class ValidationError extends Error {
+  constructor(
+    message: string,
+    public readonly field?: string
+  ) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+```
+
+## Result Pattern
+
+Use the Result pattern for operations that can fail:
+
+```typescript
+// Result pattern
+interface Result<T, E = Error> {
+  success: boolean;
+  value?: T;
+  error?: E;
+}
+
+function success<T>(value: T): Result<T> {
+  return { success: true, value };
+}
+
+function failure<E = Error>(error: E): Result<never, E> {
+  return { success: false, error };
+}
+
+// Usage
+async function classifyDocument(path: string): Promise<Result<TagSet>> {
+  try {
+    const content = await readFile(path);
+    const tags = await taggingService.classifyContent(content);
+    return success(tags);
+  } catch (err) {
+    return failure(err instanceof Error ? err : new Error(String(err)));
+  }
+}
+```
+
+## Error Handling Best Practices
+
+1. **Error Classification**:
+   - Distinguish between operational and programming errors
+   - Categorize errors by source (system, user, external service)
+   - Use error codes for programmatic handling
+
+2. **Recovery Strategies**:
+   - Implement retry logic with exponential backoff for transient errors
+   - Provide graceful degradation paths
+   - Use sensible defaults when appropriate
+
+3. **Error Reporting**:
+   - Log detailed error information for debugging
+   - Present user-friendly error messages in UIs
+   - Include contextual information and recovery suggestions
+
+4. **Error Boundaries**:
+   - Implement error boundaries in UI components
+   - Isolate errors to prevent cascading failures
+   - Maintain application state during error recovery
+
+5. **Validation**:
+   - Validate inputs early to prevent downstream errors
+   - Use schema validation for complex data structures
+   - Provide clear validation error messages 

@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+ ---
+description: Core tagging model and classification strategy for Obsidian Magic
+globs: **/tag*.ts,**/classification*.ts,**/taxonomy*.ts,**/model*.ts
+alwaysApply: false
+---
+
+# Tagging Model & Classification Strategy
+
+## Hierarchical Tagging System
+
+The system implements a sophisticated AI-powered tagging framework with the following structure:
+
+- **Year**: Strictly 4-digit years (e.g., `2023`, `2024`), automatically extracted from conversation metadata or content
+- **Life Area**: Curated taxonomy of life domains (`career`, `relationships`, `health`, etc.)
+- **Topical Tags**: Three-tier hierarchical classification:
+  - **Primary Domain**: Selected from a maintained taxonomy of knowledge domains
+  - **Subdomain**: More specific categorization within the primary domain
+  - **Contextual Tag**: A flexible "wildcard" tag for cross-domain concepts
+- **Conversation Type**: Precisely one conversational modality (`theory`, `practical`, `meta`, etc.)
+
+## Classification Strategy
+
+The system employs a multi-stage classification approach:
+
+1. **Domain/Subdomain Classification**: Strict adherence to taxonomy with embedding similarity matching
+2. **Controlled Vocabulary Expansion**: Only contextual tags allow for organic growth with new suggestions
+3. **Multi-label Classification Approach**: Year and conversation type tags always applied; others based on confidence score
+
+## Tag Management & Inference
+
+The system implements context-aware tag management:
+
+1. **Dynamic Tag Allocation**: 0-3 topical tags applied based on content relevance
+2. **Tag Consistency Management**: Configurable modes for handling existing tags (overwrite, merge, augment)
+
+## Model Prompt Engineering
+
+Precision-engineered prompts for OpenAI's models, with:
+
+- **Intelligent Context Selection**: Embedding-based extractive approach for relevant segments
+- **Structured Prompt Design**: Clear task delineation and formatting expectations
+- **Chain-of-Thought Reasoning**: Step-by-step analysis before tag assignment
+- **Quality Assurance Framework**: Confidence-based workflow with selective explanation
+
+## Documentation Links
+
+- [Tagging Model Documentation](mdc:documentation/core/tagging-model.md)
+- [OpenAI Integration](mdc:documentation/core/openai-integration.md)

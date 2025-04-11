@@ -1,0 +1,77 @@
+---
+description: Project overview and architecture information for Obsidian Magic
+globs: **/*.ts,**/*.tsx,**/*.md
+alwaysApply: true
+---
+
+# Obsidian Magic Project Structure
+
+## Project Overview
+
+Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
+
+## Repository Structure
+
+The project uses a modern TypeScript (5.8.3) workspace with pnpm, ESLint flat config, and project references:
+
+```
+obsidian-magic/
+├── apps/                    # Application implementations
+│   ├── cli/                 # Command-line application
+│   ├── obsidian-plugin/     # Obsidian plugin
+│   └── vscode/              # VS Code extension
+├── packages/                # Shared packages (publishable)
+│   ├── core/                # Core library package
+│   ├── types/               # Shared type definitions
+│   └── utils/               # Shared utilities
+├── documentation/           # Project documentation
+├── config/                  # Configuration files
+└── prompts/                 # OpenAI prompt templates
+```
+
+## Workspace Architecture
+
+The project implements a modular workspace architecture with the following components:
+
+- **Core Package**: Contains all shared business logic
+  - Tag classification engines
+  - OpenAI API integration
+  - Markdown parsing and manipulation
+  - Shared utilities and helpers
+
+- **CLI App**: Command-line interface implementation
+  - Command structure definitions
+  - File processing pipelines
+  - Terminal UI components
+  - CLI-specific utilities
+
+- **Obsidian Plugin App**: Obsidian-specific implementation
+  - Plugin registration and lifecycle management
+  - Obsidian UI integration components
+  - Vault access and file manipulation
+  - Settings management
+
+- **VS Code Extension App**: VS Code-specific implementation
+  - Extension activation and registration
+  - VS Code UI components and views
+  - Cursor-specific integration
+  - Workspace file handling
+
+## Implementation Guides
+
+For more detailed implementation information, refer to these specialized guides:
+
+- [Build System](mdc:.cursor/rules/build-system.mdc)
+- [Testing Strategy](mdc:.cursor/rules/testing-strategy.mdc)
+- [Error Handling](mdc:.cursor/rules/error-handling.mdc)
+- [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc)
+- [API Integration](mdc:.cursor/rules/api-integration.mdc)
+- [Accessibility & UX](mdc:.cursor/rules/accessibility-ux.mdc)
+
+## Documentation Links
+
+- [Project Structure](mdc:documentation/implementation/project-structure.md)
+- [Core Tagging Model](mdc:documentation/core/tagging-model.md)
+- [OpenAI Integration](mdc:documentation/core/openai-integration.md)
+- [CLI Overview](mdc:documentation/cli/cli-overview.md)
+- [Obsidian Plugin](mdc:documentation/obsidian-plugin/plugin-overview.md)

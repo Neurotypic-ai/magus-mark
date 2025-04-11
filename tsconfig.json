@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist",
+    "declarationDir": "./dist/types",
+    "checkJs": true,
+    "allowJs": true,
+    "isolatedDeclarations": false,
+    "tsBuildInfoFile": "./dist/main.tsbuildinfo"
+  },
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "**/dist",
+    "**/build/**/*",
+    "**/documentation",
+    "**/.cursor/**",
+    "*.md"
+  ],
+  "files": [
+    "./eslint.config.js",
+    "./prettier.config.js"
+  ],
+  "references": []
+}

@@ -1,0 +1,59 @@
+---
+description: Command Line Tool architecture and implementation for Obsidian Magic
+globs: **/cli/**/*.ts,**/bin/**/*.ts,**/commands/**/*.ts
+alwaysApply: false
+---
+
+# Command Line Tool
+
+## Modern TypeScript CLI Architecture
+
+The CLI tool uses carefully selected dependencies to balance functionality with maintainability:
+
+- **Core Technologies**: TypeScript, Node.js, OpenAI SDK
+- **Essential Dependencies**: yargs, dotenv, ora, cli-progress, chalk, boxen, conf, tokenizers, zod
+- **Development Dependencies**: tsx, vitest, typescript-eslint, prettier, tsup
+
+## Intelligent Workflow Orchestration
+
+The CLI implements a sophisticated workflow engine with multiple operating modes:
+
+1. **Flexible Path Handling**: Support for single files, directories, or multiple paths
+2. **Smart File Discovery**: Recursive directory traversal with glob pattern support
+3. **Intelligent Processing Modes**: Auto, Interactive, Differential, and Update modes
+4. **Frontmatter Analysis**: Parsing YAML/TOML frontmatter to detect and validate existing tags
+
+## Advanced Cost Management System
+
+The CLI implements a sophisticated cost management and estimation system:
+
+1. **Precise Token Estimation**: Using OpenAI's official tokenizer for accurate counts
+2. **Intelligent Token Optimization**: Extracting key segments to reduce token usage
+3. **Budget Controls**: Maximum cost limits with configurable actions
+
+## Command Structure
+
+The CLI implements a comprehensive command structure with nested commands:
+
+```bash
+# Tag conversations
+tag-conversations tag [paths...] [options]
+
+# Run tests and benchmarks
+tag-conversations test [options]
+
+# Manage configuration
+tag-conversations config [command] [options]
+
+# View statistics and reports
+tag-conversations stats [options]
+
+# Taxonomy management
+tag-conversations taxonomy [command] [options]
+```
+
+## Documentation Links
+
+- [CLI Overview](mdc:documentation/cli/cli-overview.md)
+- [Command Structure](mdc:documentation/cli/command-structure.md)
+- [Cost Management](mdc:documentation/cli/cost-management.md)
