@@ -2,8 +2,16 @@ import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
-import { logger } from '../utils/logger.js';
-import type { TagOptions } from '../types/commands.js';
+import { logger } from '../utils/logger';
+import { config } from '../utils/config';
+import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
+import type { TagOptions } from '../types/commands';
+import type { AIModel, TagBehavior, Document, TagSet } from '@obsidian-magic/types';
+import { OpenAIClient, TaggingService } from '@obsidian-magic/core';
+import cliProgress from 'cli-progress';
+
+// Use native Node.js fs.promises for file globbing
+import { readdir, stat } from 'fs/promises';
 
 export const tagCommand: CommandModule = {
   command: 'tag [paths..]',
@@ -17,7 +25,7 @@ export const tagCommand: CommandModule = {
       })
       .option('model', {
         describe: 'Model to use for classification',
-        choices: ['gpt-3.5-turbo', 'gpt-4'],
+        choices: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'] as AIModel[],
         type: 'string',
       })
       .option('mode', {
@@ -42,7 +50,7 @@ export const tagCommand: CommandModule = {
       })
       .option('tag-mode', {
         describe: 'How to handle existing tags',
-        choices: ['overwrite', 'merge', 'augment'],
+        choices: ['append', 'replace', 'merge'] as TagBehavior[],
         default: 'merge',
       })
       .option('min-confidence', {
@@ -90,7 +98,25 @@ export const tagCommand: CommandModule = {
   },
   handler: async (argv) => {
     try {
-      const { paths = [], dryRun, verbose } = argv as any;
+      // Parse arguments with proper types
+      const options = argv as unknown as TagOptions;
+      const { 
+        verbose, 
+        model, 
+        tagMode,
+        minConfidence, 
+        reviewThreshold,
+        concurrency = 3,
+        mode = 'auto',
+        force = false,
+        maxCost,
+        onLimit = 'warn',
+        output,
+        dryRun
+      } = options;
+      
+      // Get paths array from positional arguments
+      const paths = (argv['paths'] as string[]) || [];
       
       // Validate paths
       if (paths.length === 0) {
@@ -98,10 +124,21 @@ export const tagCommand: CommandModule = {
         process.exit(1);
       }
       
+      // Get API key from environment or config
+      const apiKey = process.env['OPENAI_API_KEY'] || config.get('apiKey');
+      
+      if (!apiKey) {
+        logger.error('OpenAI API key not found. Please set OPENAI_API_KEY in your environment or use the config command.');
+        process.exit(1);
+      }
+      
       // Log startup information
       logger.info(chalk.bold('Starting conversation tagging'));
       if (verbose) {
-        logger.info(`Options: ${JSON.stringify(argv, null, 2)}`);
+        logger.info(`Options: ${JSON.stringify({
+          ...options,
+          paths
+        }, null, 2)}`);
       }
       
       // Collect all files to process
@@ -113,21 +150,17 @@ export const tagCommand: CommandModule = {
           continue;
         }
         
-        const stat = await fs.stat(p);
+        const stats = await stat(p);
         
-        if (stat.isFile()) {
-          filesToProcess.push(p);
-        } else if (stat.isDirectory()) {
-          // Recursively find all markdown files
-          const files = await fs.readdir(p);
-          for (const file of files) {
-            const filePath = path.join(p, file);
-            const fileStat = await fs.stat(filePath);
-            
-            if (fileStat.isFile() && (file.endsWith('.md') || file.endsWith('.markdown'))) {
-              filesToProcess.push(filePath);
-            }
+        if (stats.isFile()) {
+          if (p.endsWith('.md') || p.endsWith('.markdown')) {
+            filesToProcess.push(p);
+          } else {
+            logger.warn(`Skipping non-markdown file: ${p}`);
           }
+        } else if (stats.isDirectory()) {
+          // Recursively find all markdown files
+          await findMarkdownFiles(p, filesToProcess);
         }
       }
       
@@ -135,6 +168,13 @@ export const tagCommand: CommandModule = {
         logger.warn('No valid files found to process.');
         return;
       }
+      
+      // Initialize tracking variables
+      let totalProcessed = 0;
+      let totalTagged = 0;
+      let totalErrors = 0;
+      let totalCost = 0;
+      let fileResults: Record<string, any> = {};
       
       // In dry-run mode, just print the files that would be processed
       if (dryRun) {
@@ -145,25 +185,174 @@ export const tagCommand: CommandModule = {
           filesToProcess.forEach(file => logger.info(`- ${file}`));
         }
         
+        // Calculate rough cost estimate
+        // Assuming ~2000 tokens per file on average
+        const tokenEstimate = filesToProcess.length * 2000;
+        const modelName = model as string;
+        const isGpt4Model = modelName === 'gpt-4' || modelName === 'gpt-4o';
+        // GPT-4 models cost roughly $0.01 per 1K tokens, GPT-3.5 around $0.002
+        const costEstimate = isGpt4Model
+          ? (tokenEstimate / 1000) * 0.01 
+          : (tokenEstimate / 1000) * 0.002;
+          
+        logger.box(`
+Cost Estimate:
+- Files: ${filesToProcess.length}
+- Estimated tokens: ~${tokenEstimate}
+- Estimated cost: $${costEstimate.toFixed(2)}
+        `.trim(), 'Dry Run Summary');
+        
         logger.info(chalk.green('Dry run completed. No files were modified.'));
         return;
       }
       
-      // Begin real processing
-      const spinner = logger.spinner(`Processing ${filesToProcess.length} files...`);
+      // Initialize OpenAI client and tagging service
+      const openAIClient = new OpenAIClient({
+        apiKey,
+        model: model as AIModel || 'gpt-4o',
+      });
       
-      // TODO: Implement actual processing logic with OpenAI integration
-      // This would connect to the core package functionality
+      const taggingService = new TaggingService(
+        openAIClient,
+        {
+          model: model as AIModel || 'gpt-4o',
+          behavior: tagMode || 'merge',
+          minConfidence: minConfidence || 0.65,
+          reviewThreshold: reviewThreshold || 0.85,
+          generateExplanations: true
+        }
+      );
       
-      // Mock implementation for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Initialize progress bar
+      const progressBar = new cliProgress.SingleBar({
+        format: `Tagging Progress | ${chalk.cyan('{bar}')} | {percentage}% | {value}/{total} files`,
+        barCompleteChar: '█',
+        barIncompleteChar: '░',
+      }, cliProgress.Presets.shades_classic);
       
-      spinner.succeed(`Processed ${filesToProcess.length} files`);
+      if (mode !== 'interactive') {
+        progressBar.start(filesToProcess.length, 0);
+      }
+      
+      // Process files
+      const processFile = async (filePath: string): Promise<void> => {
+        try {
+          // Read file content
+          const content = await fs.readFile(filePath, 'utf-8');
+          
+          // Extract existing tags from frontmatter
+          const existingTags = extractExistingTags(content);
+          
+          // Skip files that already have tags if not in force mode and in differential mode
+          if (!force && mode === 'differential' && existingTags && Object.keys(existingTags).length > 0) {
+            if (verbose) {
+              logger.info(`Skipping already tagged file: ${filePath}`);
+            }
+            return;
+          }
+          
+          // Create document object
+          const document: Document = {
+            id: path.basename(filePath, path.extname(filePath)),
+            content,
+            path: filePath,
+            existingTags,
+            metadata: {}
+          };
+          
+          // Tag the document
+          const result = await taggingService.tagDocument(document);
+          
+          if (!result.success) {
+            totalErrors++;
+            logger.error(`Failed to tag file ${filePath}: ${result.error?.message}`);
+            fileResults[filePath] = { success: false, error: result.error };
+            return;
+          }
+          
+          // In interactive mode, prompt for confirmation before updating
+          if (mode === 'interactive') {
+            const shouldUpdate = await promptForConfirmation(filePath, result.tags!);
+            if (!shouldUpdate) {
+              logger.info(`Skipping file: ${filePath}`);
+              return;
+            }
+          }
+          
+          // Update the file with new tags (using non-null assertion since we've checked success above)
+          await updateFileWithTags(filePath, content, result.tags!);
+          
+          totalTagged++;
+          totalProcessed++;
+          
+          // Store results for output
+          fileResults[filePath] = { 
+            success: true, 
+            tags: result.tags,
+          };
+          
+          // Update progress
+          if (mode !== 'interactive') {
+            progressBar.increment();
+          } else {
+            logger.info(`Tagged file: ${filePath}`);
+          }
+        } catch (error) {
+          totalErrors++;
+          logger.error(`Error processing file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+          fileResults[filePath] = { success: false, error: String(error) };
+        }
+      };
+      
+      // Configure concurrency limits
+      const batchSize = Math.min(concurrency, filesToProcess.length);
+      const batches = [];
+      
+      // Split files into batches
+      for (let i = 0; i < filesToProcess.length; i += batchSize) {
+        batches.push(filesToProcess.slice(i, i + batchSize));
+      }
+      
+      // Process batches
+      for (const batch of batches) {
+        await Promise.all(batch.map(file => processFile(file)));
+        
+        // Check if we've hit the cost limit
+        if (maxCost && totalCost >= maxCost) {
+          if (onLimit === 'stop') {
+            logger.warn(`Cost limit of $${maxCost} reached. Stopping processing.`);
+            break;
+          } else if (onLimit === 'pause') {
+            const { continue: shouldContinue } = await promptUserForContinue(maxCost);
+            
+            if (!shouldContinue) {
+              logger.warn('Processing stopped by user.');
+              break;
+            }
+          } else {
+            logger.warn(`Cost limit of $${maxCost} reached, but continuing as requested.`);
+          }
+        }
+      }
+      
+      // Stop progress bar
+      if (mode !== 'interactive') {
+        progressBar.stop();
+      }
+      
+      // Save output if requested
+      if (output) {
+        await fs.writeFile(output, JSON.stringify(fileResults, null, 2), 'utf-8');
+        logger.info(`Results saved to ${output}`);
+      }
+      
+      // Display summary
       logger.box(`
 Summary:
-- Files processed: ${filesToProcess.length}
-- Tags added: 0
-- Errors: 0
+- Files processed: ${totalProcessed}
+- Files tagged: ${totalTagged}
+- Errors: ${totalErrors}
+- Estimated cost: $${totalCost.toFixed(2)}
       `.trim(), 'Processing Complete');
       
     } catch (error) {
@@ -171,4 +360,89 @@ Summary:
       process.exit(1);
     }
   }
-}; 
+};
+
+/**
+ * Recursively find markdown files in a directory
+ */
+async function findMarkdownFiles(dir: string, results: string[] = []): Promise<string[]> {
+  const files = await readdir(dir, { withFileTypes: true });
+  
+  for (const file of files) {
+    const fullPath = path.join(dir, file.name);
+    
+    if (file.isDirectory()) {
+      await findMarkdownFiles(fullPath, results);
+    } else if (file.isFile() && (file.name.endsWith('.md') || file.name.endsWith('.markdown'))) {
+      results.push(fullPath);
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Extract existing tags from frontmatter
+ */
+function extractExistingTags(content: string): TagSet | undefined {
+  return extractTagsFromFrontmatter(content);
+}
+
+/**
+ * Update file with new tags
+ */
+async function updateFileWithTags(filePath: string, content: string, tags: TagSet): Promise<void> {
+  // Update content with new tags in frontmatter
+  const updatedContent = updateTagsInFrontmatter(content, tags);
+  
+  // Write the updated content back to the file
+  await fs.writeFile(filePath, updatedContent, 'utf-8');
+  
+  logger.debug(`Updated file ${filePath} with tags`);
+}
+
+/**
+ * Prompt for confirmation in interactive mode
+ */
+async function promptForConfirmation(filePath: string, tags: TagSet): Promise<boolean> {
+  console.log('\n' + chalk.bold(`File: ${filePath}`));
+  console.log(chalk.cyan('Proposed tags:'));
+  console.log(JSON.stringify(tags, null, 2));
+  
+  // Simple prompt for yes/no
+  return new Promise((resolve) => {
+    console.log('Apply these tags? (y/n)');
+    
+    const handleInput = (data: Buffer) => {
+      const input = data.toString().trim().toLowerCase();
+      process.stdin.removeListener('data', handleInput);
+      process.stdin.pause();
+      resolve(input === 'y' || input === 'yes');
+    };
+    
+    process.stdin.resume();
+    process.stdin.once('data', handleInput);
+  });
+}
+
+/**
+ * Prompt user whether to continue after hitting cost limit
+ */
+async function promptUserForContinue(maxCost: number): Promise<{ continue: boolean }> {
+  console.log(`\nCost limit of $${maxCost} reached. Continue processing? (y/n)`);
+  
+  // Simple prompt for yes/no
+  const shouldContinue = await new Promise<boolean>((resolve) => {
+    const handleInput = (data: Buffer) => {
+      const input = data.toString().trim().toLowerCase();
+      process.stdin.removeListener('data', handleInput);
+      process.stdin.pause();
+      resolve(input === 'y' || input === 'yes');
+    };
+    
+    process.stdin.resume();
+    process.stdin.once('data', handleInput);
+  });
+  
+  return { continue: shouldContinue };
+} 

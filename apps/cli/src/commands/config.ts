@@ -1,8 +1,13 @@
 import type { CommandModule } from 'yargs';
-import chalk from 'chalk';
-import fs from 'fs-extra';
+import { 
+  loadConfig, 
+  saveConfig, 
+  updateConfig, 
+  DEFAULT_CONFIG,
+  fileExists,
+  writeFile
+} from '@obsidian-magic/utils';
 import { logger } from '../utils/logger.js';
-import { config } from '../utils/config.js';
 
 export const configCommand: CommandModule = {
   command: 'config <command>',
@@ -17,10 +22,17 @@ export const configCommand: CommandModule = {
             describe: 'Configuration key to get',
             type: 'string'
           }),
-        handler: (argv) => {
+        handler: async (argv) => {
           const { key } = argv as any;
+          const config = await loadConfig();
+          
           if (key) {
-            const value = config.get(key as any);
+            // Get a specific key
+            const value = key.split('.').reduce((obj: Record<string, any>, k: string) => 
+              obj && typeof obj === 'object' ? obj[k] : undefined, 
+              config
+            );
+            
             if (value !== undefined) {
               logger.info(`${key}: ${JSON.stringify(value)}`);
             } else {
@@ -28,8 +40,7 @@ export const configCommand: CommandModule = {
             }
           } else {
             // Show all configuration values
-            const allConfig = config.getAll();
-            logger.box(JSON.stringify(allConfig, null, 2), 'Current Configuration');
+            logger.box(JSON.stringify(config, null, 2), 'Current Configuration');
           }
         }
       })
@@ -48,7 +59,7 @@ export const configCommand: CommandModule = {
               type: 'string',
               demandOption: true
             }),
-        handler: (argv) => {
+        handler: async (argv) => {
           const { key, value } = argv as any;
           try {
             // Try to parse the value as JSON
@@ -60,7 +71,19 @@ export const configCommand: CommandModule = {
               parsedValue = value;
             }
             
-            config.set(key as any, parsedValue);
+            // Create update object with nested path
+            const updateObj: Record<string, any> = {};
+            const keyParts = key.split('.');
+            let current = updateObj;
+            
+            for (let i = 0; i < keyParts.length - 1; i++) {
+              current[keyParts[i]] = {};
+              current = current[keyParts[i]];
+            }
+            
+            current[keyParts[keyParts.length - 1]] = parsedValue;
+            await updateConfig(updateObj);
+            
             logger.info(`Set ${key} = ${JSON.stringify(parsedValue)}`);
           } catch (error) {
             logger.error(`Failed to set configuration: ${error instanceof Error ? error.message : String(error)}`);
@@ -79,12 +102,14 @@ export const configCommand: CommandModule = {
         handler: async (argv) => {
           const { file } = argv as any;
           try {
-            if (!fs.existsSync(file as string)) {
+            if (!(await fileExists(file as string))) {
               logger.error(`File not found: ${file}`);
               return;
             }
             
-            await config.loadConfigFile(file as string);
+            const importedConfig = await loadConfig(file as string);
+            await saveConfig(importedConfig);
+            
             logger.info(`Configuration imported from ${file}`);
           } catch (error) {
             logger.error(`Failed to import configuration: ${error instanceof Error ? error.message : String(error)}`);
@@ -110,12 +135,12 @@ export const configCommand: CommandModule = {
         handler: async (argv) => {
           const { format, output } = argv as any;
           try {
-            const allConfig = config.getAll();
+            const config = await loadConfig();
             const configStr = format === 'json' 
-              ? JSON.stringify(allConfig, null, 2)
+              ? JSON.stringify(config, null, 2)
               : '# TODO: Implement YAML export';
             
-            await fs.writeFile(output as string, configStr);
+            await writeFile(output as string, configStr);
             logger.info(`Configuration exported to ${output}`);
           } catch (error) {
             logger.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);
@@ -125,8 +150,8 @@ export const configCommand: CommandModule = {
       .command({
         command: 'reset',
         describe: 'Reset configuration to defaults',
-        handler: () => {
-          config.reset();
+        handler: async () => {
+          await saveConfig(DEFAULT_CONFIG);
           logger.info('Configuration reset to defaults');
         }
       })

@@ -1,104 +1,131 @@
 import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
-import fs from 'fs-extra';
 import { logger } from '../utils/logger.js';
+import { benchmark } from '../utils/benchmark.js';
+import type { TestOptions } from '../types/commands';
+import type { AIModel } from '@obsidian-magic/types';
 
+/**
+ * Test and benchmark command
+ */
 export const testCommand: CommandModule = {
   command: 'test',
   describe: 'Run tests and benchmarks',
   builder: (yargs) => {
     return yargs
+      .option('benchmark', {
+        describe: 'Run performance benchmark',
+        type: 'boolean',
+        default: false
+      })
       .option('samples', {
-        describe: 'Number of samples to process',
+        describe: 'Number of samples to test',
         type: 'number',
         default: 10
       })
       .option('test-set', {
-        describe: 'Path to test set with known classifications',
+        describe: 'Path to test set file or directory',
         type: 'string'
       })
       .option('models', {
-        describe: 'Models to test',
-        type: 'array',
-        default: ['gpt-3.5-turbo']
-      })
-      .option('benchmark', {
-        describe: 'Run full benchmark suite',
-        type: 'boolean',
-        default: false
+        describe: 'Models to test (comma-separated)',
+        type: 'string',
+        default: 'gpt-3.5-turbo,gpt-4'
       })
       .option('report', {
-        describe: 'Save detailed results to file',
+        describe: 'Path to save report',
         type: 'string'
       })
-      .example('$0 test --samples=20', 'Run standard tests with 20 samples')
-      .example('$0 test --benchmark --all-models', 'Run comprehensive benchmark')
-      .example('$0 test --report=report.json', 'Save results to file');
+      .option('verbose', {
+        describe: 'Show detailed output',
+        type: 'boolean',
+        alias: 'v',
+        default: false
+      })
+      .option('output-format', {
+        describe: 'Output format',
+        choices: ['pretty', 'json', 'silent'],
+        default: 'pretty'
+      })
+      .example('$0 test --benchmark', 'Run a basic benchmark')
+      .example('$0 test --models=gpt-3.5-turbo,gpt-4 --samples=20', 'Benchmark specific models')
+      .example('$0 test --test-set=./test-cases.json', 'Use a custom test set');
   },
   handler: async (argv) => {
     try {
-      const { samples, testSet, models, benchmark, report } = argv as any;
+      // Parse arguments with proper types
+      const options = argv as unknown as TestOptions;
+      const { 
+        benchmark: runBenchmark, 
+        samples, 
+        testSet, 
+        report, 
+        verbose,
+        outputFormat
+      } = options;
       
-      logger.info(chalk.bold('Starting test suite'));
+      // Configure logger
+      logger.configure({
+        logLevel: verbose ? 'debug' : 'info',
+        outputFormat: outputFormat
+      });
       
-      if (benchmark) {
-        logger.info('Running benchmark suite...');
-        // TODO: Implement benchmark
-        const spinner = logger.spinner('Running benchmarks...');
-        
-        // Mock benchmark
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        spinner.succeed('Benchmark completed');
-        
-        // Mock results
-        const results = {
-          models: models,
-          samples: samples,
-          metrics: {
-            accuracy: 0.85,
-            latency: 1200,
-            tokensPerRequest: 350,
-            costPer1000: 0.12
-          }
-        };
-        
-        logger.box(`
-Benchmark Results:
-- Models tested: ${(models as string[]).join(', ')}
-- Samples processed: ${samples}
-- Average accuracy: 85%
-- Average latency: 1200ms
-- Average tokens per request: 350
-- Cost per 1000 samples: $0.12
-        `.trim(), 'Benchmark Complete');
-        
-        if (report) {
-          await fs.writeJSON(report, results, { spaces: 2 });
-          logger.info(`Report saved to ${report}`);
-        }
+      // Parse models
+      const modelsArg = (argv.models as string) || 'gpt-3.5-turbo';
+      const models = modelsArg.split(',').map(m => m.trim()) as AIModel[];
+      
+      if (models.length === 0) {
+        logger.error('No models specified. Use --models option to specify models to test.');
+        process.exit(1);
+      }
+      
+      if (runBenchmark) {
+        await runBenchmarkCommand(models, options);
       } else {
-        logger.info('Running standard tests...');
-        
-        // Check if test set exists
-        if (testSet && !fs.existsSync(testSet)) {
-          logger.error(`Test set not found: ${testSet}`);
-          process.exit(1);
-        }
-        
-        const spinner = logger.spinner('Running tests...');
-        
-        // Mock test run
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        spinner.succeed('Tests completed');
-        
-        // Mock results
-        logger.info(chalk.green('All tests passed successfully!'));
+        logger.info('No action specified. Use --benchmark to run benchmarks.');
+        logger.info('Example: tag-conversations test --benchmark');
       }
     } catch (error) {
-      logger.error(`Test failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(`Test command failed: ${error instanceof Error ? error.message : String(error)}`);
       process.exit(1);
     }
   }
-}; 
+};
+
+/**
+ * Run benchmark
+ */
+async function runBenchmarkCommand(models: AIModel[], options: TestOptions): Promise<void> {
+  logger.info(chalk.bold('Running benchmark'));
+  logger.info(`Models: ${models.join(', ')}`);
+  logger.info(`Samples: ${options.samples || 10}`);
+  
+  if (options.testSet) {
+    logger.info(`Test set: ${options.testSet}`);
+  }
+  
+  const result = await benchmark.runBenchmark({
+    models,
+    samples: options.samples,
+    testSet: options.testSet,
+    reportPath: options.report,
+    saveReport: !!options.report
+  });
+  
+  if (result.isFail()) {
+    logger.error(`Benchmark failed: ${result.getError().message}`);
+    return;
+  }
+  
+  const report = result.getValue();
+  
+  // Additional summary information
+  logger.info(chalk.bold.green('\nBenchmark completed successfully!'));
+  
+  // Store benchmark results in config if needed
+  // This could be used for tracking improvements over time
+  
+  if (options.report) {
+    logger.info(`Full report saved to: ${options.report}`);
+  }
+} 

@@ -1,119 +1,191 @@
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
 import boxen from 'boxen';
-import type { Options as BoxenOptions } from 'boxen';
 import { config } from './config.js';
-
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import type { LogLevel } from '../types/commands';
 
 /**
- * Logger class for consistent formatted logging
+ * Logger utility for consistent CLI output
  */
-export class Logger {
-  private static instance: Logger;
+class Logger {
+  private logLevel: LogLevel = 'info';
+  private outputFormat: 'pretty' | 'json' | 'silent' = 'pretty';
   private spinners: Map<string, Ora> = new Map();
   
-  private constructor() {}
-  
   /**
-   * Get singleton instance
+   * Configure the logger
    */
-  public static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
+  configure(options: { 
+    logLevel?: LogLevel; 
+    outputFormat?: 'pretty' | 'json' | 'silent';
+  }) {
+    if (options.logLevel) {
+      this.logLevel = options.logLevel;
     }
-    return Logger.instance;
+    
+    if (options.outputFormat) {
+      this.outputFormat = options.outputFormat;
+    }
   }
   
   /**
-   * Log a message at the specified level
+   * Log an info message
    */
-  public log(message: string, level: LogLevel = 'info'): void {
-    const configLevel = config.get('logLevel');
-    const levels: Record<LogLevel, number> = {
-      debug: 0,
-      info: 1,
-      warn: 2,
-      error: 3
-    };
-    
-    if (levels[level] >= levels[configLevel]) {
-      const timestamp = new Date().toISOString();
-      let formattedMessage;
-      
-      switch (level) {
-        case 'debug':
-          formattedMessage = chalk.gray(`[DEBUG] ${message}`);
-          break;
-        case 'info':
-          formattedMessage = message;
-          break;
-        case 'warn':
-          formattedMessage = chalk.yellow(`WARNING: ${message}`);
-          break;
-        case 'error':
-          formattedMessage = chalk.red(`ERROR: ${message}`);
-          break;
-      }
-      
-      if (config.get('outputFormat') !== 'silent') {
-        console.log(formattedMessage);
-      }
+  info(message: string) {
+    if (this.shouldLog('info')) {
+      this.log('info', message);
+    }
+  }
+  
+  /**
+   * Log a warning message
+   */
+  warn(message: string) {
+    if (this.shouldLog('warn')) {
+      this.log('warn', message);
+    }
+  }
+  
+  /**
+   * Log an error message
+   */
+  error(message: string) {
+    if (this.shouldLog('error')) {
+      this.log('error', message);
     }
   }
   
   /**
    * Log a debug message
    */
-  public debug(message: string): void {
-    this.log(message, 'debug');
+  debug(message: string) {
+    if (this.shouldLog('debug')) {
+      this.log('debug', message);
+    }
   }
   
   /**
-   * Log an info message
+   * Log a success message
    */
-  public info(message: string): void {
-    this.log(message, 'info');
+  success(message: string) {
+    if (this.shouldLog('info')) {
+      this.log('success', message);
+    }
   }
   
   /**
-   * Log a warning message
+   * Display content in a box
    */
-  public warn(message: string): void {
-    this.log(message, 'warn');
+  box(content: string, title?: string) {
+    if (this.outputFormat === 'silent') return;
+    
+    if (this.outputFormat === 'json') {
+      console.log(JSON.stringify({ type: 'box', content, title }));
+      return;
+    }
+    
+    const options: boxen.Options = {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'round',
+      borderColor: 'cyan',
+      titleAlignment: 'center'
+    };
+    
+    if (title) {
+      options.title = title;
+    }
+    
+    console.log(boxen(content, options));
   }
   
   /**
-   * Log an error message
+   * Display a table
    */
-  public error(message: string): void {
-    this.log(message, 'error');
+  table(data: Record<string, any>[], columns?: string[]) {
+    if (this.outputFormat === 'silent') return;
+    
+    if (this.outputFormat === 'json') {
+      console.log(JSON.stringify({ type: 'table', data }));
+      return;
+    }
+    
+    console.table(data, columns);
   }
   
   /**
-   * Create a spinner for async operations
+   * Format a cost value as currency
    */
-  public spinner(text: string, id: string = 'default'): Ora {
-    if (config.get('outputFormat') === 'silent') {
+  formatCost(value: number): string {
+    return `$${value.toFixed(4)}`;
+  }
+  
+  /**
+   * Format tokens count with comma separators
+   */
+  formatTokens(tokens: number): string {
+    return tokens.toLocaleString();
+  }
+  
+  private shouldLog(level: LogLevel): boolean {
+    if (this.outputFormat === 'silent') return false;
+    
+    const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
+    const currentLevelIndex = levels.indexOf(this.logLevel);
+    const messageLevelIndex = levels.indexOf(level);
+    
+    return messageLevelIndex <= currentLevelIndex;
+  }
+  
+  private log(level: LogLevel | 'success', message: string) {
+    if (this.outputFormat === 'json') {
+      console.log(JSON.stringify({ level, message }));
+      return;
+    }
+    
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, 8);
+    
+    switch (level) {
+      case 'error':
+        console.error(`${chalk.gray(timestamp)} ${chalk.red.bold('ERROR')} ${message}`);
+        break;
+      case 'warn':
+        console.warn(`${chalk.gray(timestamp)} ${chalk.yellow.bold('WARN')} ${message}`);
+        break;
+      case 'info':
+        console.info(`${chalk.gray(timestamp)} ${chalk.blue.bold('INFO')} ${message}`);
+        break;
+      case 'debug':
+        console.debug(`${chalk.gray(timestamp)} ${chalk.magenta.bold('DEBUG')} ${message}`);
+        break;
+      case 'success':
+        console.log(`${chalk.gray(timestamp)} ${chalk.green.bold('SUCCESS')} ${message}`);
+        break;
+    }
+  }
+  
+  /**
+   * Create or update a spinner
+   */
+  spinner(text: string, id: string = 'default'): Ora {
+    if (this.outputFormat === 'silent') {
       // Return a dummy spinner if in silent mode
       const dummySpinner = ora({ text, isSilent: true });
       this.spinners.set(id, dummySpinner);
       return dummySpinner;
     }
     
+    if (this.spinners.has(id)) {
+      const existingSpinner = this.spinners.get(id);
+      if (existingSpinner) {
+        existingSpinner.text = text;
+        return existingSpinner;
+      }
+    }
+    
     const spinner = ora({ text }).start();
     this.spinners.set(id, spinner);
     return spinner;
-  }
-  
-  /**
-   * Update a spinner's text
-   */
-  public updateSpinner(text: string, id: string = 'default'): void {
-    const spinner = this.spinners.get(id);
-    if (spinner) {
-      spinner.text = text;
-    }
   }
   
   /**
@@ -137,33 +209,6 @@ export class Logger {
       this.spinners.delete(id);
     }
   }
-  
-  /**
-   * Display a boxed message
-   */
-  public box(message: string, title?: string): void {
-    if (config.get('outputFormat') !== 'silent') {
-      const boxed = boxen(message, {
-        padding: 1,
-        margin: 1,
-        borderColor: 'green',
-        borderStyle: 'round',
-        ...(title ? { title } : {})
-      });
-      console.log(boxed);
-    }
-  }
-  
-  /**
-   * Display a JSON object
-   */
-  public json(data: unknown): void {
-    if (config.get('outputFormat') === 'json') {
-      console.log(JSON.stringify(data, null, 2));
-    } else if (config.get('outputFormat') === 'pretty') {
-      console.log(data);
-    }
-  }
 }
 
-export const logger = Logger.getInstance(); 
+export const logger = new Logger(); 

@@ -1,4 +1,9 @@
-import type { Arguments, CommandModule } from 'yargs';
+import type { TagBehavior, AIModel } from '@obsidian-magic/types';
+
+/**
+ * Log level type
+ */
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 /**
  * Common command options interface
@@ -14,12 +19,12 @@ export interface CommonOptions {
  * Tag command options interface
  */
 export interface TagOptions extends CommonOptions {
-  model?: string;
+  model?: AIModel;
   mode?: 'auto' | 'interactive' | 'differential';
   dryRun?: boolean;
   force?: boolean;
   concurrency?: number;
-  tagMode?: 'overwrite' | 'merge' | 'augment';
+  tagMode?: TagBehavior;
   minConfidence?: number;
   reviewThreshold?: number;
   maxCost?: number;
@@ -32,7 +37,7 @@ export interface TagOptions extends CommonOptions {
 export interface TestOptions extends CommonOptions {
   samples?: number;
   testSet?: string;
-  models?: string[];
+  models?: AIModel[];
   benchmark?: boolean;
   report?: string;
 }

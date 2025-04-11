@@ -1,113 +1,177 @@
 import type { CommandModule } from 'yargs';
 import chalk from 'chalk';
-import fs from 'fs-extra';
+import { readFile, writeFile, fileExists } from '@obsidian-magic/utils';
 import { logger } from '../utils/logger.js';
 
 export const taxonomyCommand: CommandModule = {
   command: 'taxonomy <command>',
-  describe: 'Manage taxonomy',
+  describe: 'Manage tagging taxonomy',
   builder: (yargs) => {
     return yargs
       .command({
-        command: 'list [domain]',
-        describe: 'List domains or tags',
+        command: 'view',
+        describe: 'View current taxonomy',
         builder: (yargs) => 
-          yargs.positional('domain', {
-            describe: 'Domain to list tags for',
-            type: 'string'
+          yargs.option('format', {
+            describe: 'Output format',
+            choices: ['tree', 'json', 'flat'],
+            default: 'tree',
           }),
-        handler: (argv) => {
-          const { domain } = argv as any;
+        handler: async (argv) => {
+          const { format } = argv as any;
+          
+          // TODO: Implement real taxonomy retrieval
           
           // Mock taxonomy data
-          const mockTaxonomy = {
-            domains: {
-              'technology': {
-                description: 'Technology-related topics',
-                tags: ['javascript', 'react', 'nodejs', 'typescript', 'python']
+          const taxonomy = {
+            domains: [
+              {
+                id: 'programming',
+                name: 'Programming',
+                description: 'Software development topics',
+                topics: [
+                  {
+                    id: 'typescript',
+                    name: 'TypeScript',
+                    keywords: ['typescript', 'ts', 'javascript', 'js']
+                  },
+                  {
+                    id: 'python',
+                    name: 'Python',
+                    keywords: ['python', 'py', 'django', 'flask']
+                  }
+                ]
               },
-              'design': {
-                description: 'Design-related topics',
-                tags: ['ui', 'ux', 'graphics', 'figma', 'sketch']
-              },
-              'business': {
-                description: 'Business-related topics',
-                tags: ['startups', 'marketing', 'sales', 'strategy', 'finance']
+              {
+                id: 'data-science',
+                name: 'Data Science',
+                description: 'Data analysis and machine learning',
+                topics: [
+                  {
+                    id: 'machine-learning',
+                    name: 'Machine Learning',
+                    keywords: ['ml', 'machine learning', 'ai']
+                  },
+                  {
+                    id: 'data-analysis',
+                    name: 'Data Analysis',
+                    keywords: ['pandas', 'numpy', 'analysis']
+                  }
+                ]
               }
-            }
+            ],
+            lifeAreas: [
+              {
+                id: 'work',
+                name: 'Work',
+                keywords: ['job', 'career', 'professional']
+              },
+              {
+                id: 'personal',
+                name: 'Personal',
+                keywords: ['personal', 'hobby', 'life']
+              },
+              {
+                id: 'education',
+                name: 'Education',
+                keywords: ['study', 'learn', 'course']
+              }
+            ],
+            conversationTypes: [
+              {
+                id: 'tutorial',
+                name: 'Tutorial',
+                keywords: ['how to', 'guide', 'instructions']
+              },
+              {
+                id: 'exploration',
+                name: 'Exploration',
+                keywords: ['explore', 'understand', 'concept']
+              },
+              {
+                id: 'troubleshooting',
+                name: 'Troubleshooting',
+                keywords: ['fix', 'error', 'issue', 'problem']
+              }
+            ]
           };
           
-          if (domain) {
-            // Show tags for specific domain
-            const domainData = mockTaxonomy.domains[domain as keyof typeof mockTaxonomy.domains];
-            if (domainData) {
-              logger.box(`
-Domain: ${domain}
-Description: ${domainData.description}
-
-Tags:
-${domainData.tags.map(tag => `- ${tag}`).join('\n')}
-              `.trim(), `${domain} Domain`);
-            } else {
-              logger.warn(`Domain not found: ${domain}`);
-            }
+          // Display taxonomy based on requested format
+          if (format === 'json') {
+            logger.info(JSON.stringify(taxonomy, null, 2));
+          } else if (format === 'flat') {
+            const flatList = [];
+            
+            flatList.push('DOMAINS:');
+            taxonomy.domains.forEach(domain => {
+              flatList.push(`- ${domain.name} (${domain.id})`);
+              domain.topics.forEach(topic => {
+                flatList.push(`  - ${topic.name} (${topic.id})`);
+              });
+            });
+            
+            flatList.push('\nLIFE AREAS:');
+            taxonomy.lifeAreas.forEach(area => {
+              flatList.push(`- ${area.name} (${area.id})`);
+            });
+            
+            flatList.push('\nCONVERSATION TYPES:');
+            taxonomy.conversationTypes.forEach(type => {
+              flatList.push(`- ${type.name} (${type.id})`);
+            });
+            
+            logger.info(flatList.join('\n'));
           } else {
-            // Show all domains
-            const domains = Object.keys(mockTaxonomy.domains);
+            // Tree format (default)
             logger.box(`
-Available Domains:
-${domains.map(d => {
-  const domain = mockTaxonomy.domains[d as keyof typeof mockTaxonomy.domains];
-  return `- ${d}: ${domain.description} (${domain.tags.length} tags)`;
-}).join('\n')}
-            `.trim(), 'Taxonomy Domains');
+DOMAINS
+${taxonomy.domains.map(domain => 
+  `${chalk.bold(domain.name)} (${domain.id})
+   ${domain.description}
+   Topics:
+   ${domain.topics.map(topic => `- ${topic.name} (${topic.id})`).join('\n   ')}`
+).join('\n\n')}
+
+LIFE AREAS
+${taxonomy.lifeAreas.map(area => `${chalk.bold(area.name)} (${area.id})`).join('\n')}
+
+CONVERSATION TYPES
+${taxonomy.conversationTypes.map(type => `${chalk.bold(type.name)} (${type.id})`).join('\n')}
+            `.trim(), 'Taxonomy');
           }
         }
       })
       .command({
-        command: 'add domain <name>',
-        describe: 'Add new domain',
+        command: 'export <file>',
+        describe: 'Export taxonomy to file',
         builder: (yargs) => 
-          yargs
-            .positional('name', {
-              describe: 'Domain name',
-              type: 'string',
-              demandOption: true
-            })
-            .option('description', {
-              describe: 'Domain description',
-              type: 'string',
-              demandOption: true
-            }),
-        handler: (argv) => {
-          const { name, description } = argv as any;
-          logger.info(`Added domain '${name}' with description: ${description}`);
-          // In a real implementation, this would save to a configuration file
-        }
-      })
-      .command({
-        command: 'add tag <domain> <tag>',
-        describe: 'Add tag to domain',
-        builder: (yargs) => 
-          yargs
-            .positional('domain', {
-              describe: 'Domain name',
-              type: 'string',
-              demandOption: true
-            })
-            .positional('tag', {
-              describe: 'Tag name',
-              type: 'string',
-              demandOption: true
-            })
-            .option('description', {
-              describe: 'Tag description',
-              type: 'string'
-            }),
-        handler: (argv) => {
-          const { domain, tag, description } = argv as any;
-          logger.info(`Added tag '${tag}' to domain '${domain}'${description ? ` with description: ${description}` : ''}`);
-          // In a real implementation, this would save to a configuration file
+          yargs.positional('file', {
+            describe: 'Output file path',
+            type: 'string',
+            demandOption: true
+          }),
+        handler: async (argv) => {
+          const { file } = argv as any;
+          
+          // Mock taxonomy export (same as view)
+          const taxonomy = {
+            domains: [
+              /* Same mock data as above */
+            ],
+            lifeAreas: [
+              /* Same mock data as above */
+            ],
+            conversationTypes: [
+              /* Same mock data as above */
+            ]
+          };
+          
+          try {
+            await writeFile(file, JSON.stringify(taxonomy, null, 2));
+            logger.info(`Taxonomy exported to ${file}`);
+          } catch (error) {
+            logger.error(`Failed to export taxonomy: ${error instanceof Error ? error.message : String(error)}`);
+          }
         }
       })
       .command({
@@ -115,57 +179,32 @@ ${domains.map(d => {
         describe: 'Import taxonomy from file',
         builder: (yargs) => 
           yargs.positional('file', {
-            describe: 'Path to taxonomy file',
+            describe: 'Input file path',
             type: 'string',
             demandOption: true
           }),
         handler: async (argv) => {
           const { file } = argv as any;
           
-          if (!fs.existsSync(file as string)) {
-            logger.error(`File not found: ${file}`);
-            return;
-          }
-          
-          logger.info(`Importing taxonomy from ${file}...`);
-          // In a real implementation, this would parse and save the taxonomy
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          logger.info(chalk.green('Taxonomy imported successfully!'));
-        }
-      })
-      .command({
-        command: 'export',
-        describe: 'Export taxonomy to file',
-        builder: (yargs) => 
-          yargs.option('output', {
-            describe: 'Output file path',
-            type: 'string',
-            default: './taxonomy.json',
-            alias: 'o'
-          }),
-        handler: async (argv) => {
-          const { output } = argv as any;
-          
-          // Mock taxonomy data
-          const mockTaxonomy = {
-            domains: {
-              'technology': {
-                description: 'Technology-related topics',
-                tags: ['javascript', 'react', 'nodejs', 'typescript', 'python']
-              },
-              'design': {
-                description: 'Design-related topics',
-                tags: ['ui', 'ux', 'graphics', 'figma', 'sketch']
-              },
-              'business': {
-                description: 'Business-related topics',
-                tags: ['startups', 'marketing', 'sales', 'strategy', 'finance']
-              }
+          try {
+            if (!(await fileExists(file))) {
+              logger.error(`File not found: ${file}`);
+              return;
             }
-          };
-          
-          await fs.writeJSON(output as string, mockTaxonomy, { spaces: 2 });
-          logger.info(`Taxonomy exported to ${output}`);
+            
+            // Read and parse file (would validate in real implementation)
+            const content = await readFile(file);
+            const taxonomy = JSON.parse(content);
+            
+            // TODO: Implement actual import logic
+            
+            logger.info('Taxonomy imported successfully');
+            logger.info(`Domains: ${taxonomy.domains?.length || 0}`);
+            logger.info(`Life areas: ${taxonomy.lifeAreas?.length || 0}`);
+            logger.info(`Conversation types: ${taxonomy.conversationTypes?.length || 0}`);
+          } catch (error) {
+            logger.error(`Failed to import taxonomy: ${error instanceof Error ? error.message : String(error)}`);
+          }
         }
       })
       .demandCommand(1, 'You must specify a command')

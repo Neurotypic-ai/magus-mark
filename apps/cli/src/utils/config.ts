@@ -1,62 +1,42 @@
+/**
+ * Configuration re-export from @obsidian-magic/utils
+ * This file exists only to maintain backward compatibility and consistent imports
+ */
+import { 
+  loadConfig, 
+  saveConfig, 
+  DEFAULT_CONFIG, 
+  type Config 
+} from '@obsidian-magic/utils';
 import Conf from 'conf';
-import { cosmiconfig } from 'cosmiconfig';
 import { z } from 'zod';
+import { cosmiconfig } from 'cosmiconfig';
+import path from 'path';
+import fs from 'fs-extra';
+import type { AIModel, TagBehavior } from '@obsidian-magic/types';
 
 /**
- * Configuration schema with Zod validation
+ * Legacy ConfigType alias for backward compatibility
  */
-const configSchema = z.object({
-  apiKey: z.string().optional(),
-  orgId: z.string().optional(),
-  defaultModel: z.enum(['gpt-3.5-turbo', 'gpt-4']).default('gpt-3.5-turbo'),
-  maxCost: z.number().min(0).default(5),
-  concurrency: z.number().int().min(1).max(10).default(3),
-  logLevel: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-  outputFormat: z.enum(['pretty', 'json', 'silent']).default('pretty'),
-});
-
-export type ConfigType = z.infer<typeof configSchema>;
+export type ConfigType = Config;
 
 /**
- * Default configuration values
- */
-const defaultConfig: ConfigType = {
-  defaultModel: 'gpt-3.5-turbo',
-  maxCost: 5,
-  concurrency: 3,
-  logLevel: 'info',
-  outputFormat: 'pretty',
-};
-
-/**
- * Configuration manager for Obsidian Magic CLI
+ * Configuration manager class that provides a singleton interface to the config utilities
+ * Provides backward compatibility with the previous implementation
  */
 export class ConfigManager {
   private static instance: ConfigManager;
-  private conf: Conf<ConfigType>;
-  private explorer = cosmiconfig('tag-conversations');
+  private currentConfig: Config = DEFAULT_CONFIG;
 
   private constructor() {
-    this.conf = new Conf<ConfigType>({
-      projectName: 'obsidian-magic',
-      schema: defaultConfig as any,
-      defaults: defaultConfig,
+    // Load configuration immediately
+    this.loadConfig().catch(err => {
+      console.error('Error loading configuration:', err);
     });
-
-    // Load environment variables
+    
+    // Handle environment variables
     if (process.env['OPENAI_API_KEY']) {
-      this.set('apiKey', process.env['OPENAI_API_KEY']);
-    }
-    
-    if (process.env['OPENAI_ORG_ID']) {
-      this.set('orgId', process.env['OPENAI_ORG_ID']);
-    }
-    
-    if (process.env['TAG_CONVERSATIONS_MAX_COST']) {
-      const cost = parseFloat(process.env['TAG_CONVERSATIONS_MAX_COST']);
-      if (!isNaN(cost)) {
-        this.set('maxCost', cost);
-      }
+      this.currentConfig.apiKey = process.env['OPENAI_API_KEY'];
     }
   }
 
@@ -71,58 +51,131 @@ export class ConfigManager {
   }
 
   /**
+   * Load configuration
+   */
+  private async loadConfig(path?: string): Promise<void> {
+    this.currentConfig = await loadConfig(path);
+  }
+
+  /**
    * Get a configuration value
    */
-  public get<K extends keyof ConfigType>(key: K): ConfigType[K] {
-    return this.conf.get(key);
+  public get<K extends keyof Config>(key: K): Config[K] {
+    return this.currentConfig[key];
   }
 
   /**
    * Set a configuration value
    */
-  public set<K extends keyof ConfigType>(key: K, value: ConfigType[K]): void {
-    this.conf.set(key, value);
+  public set<K extends keyof Config>(key: K, value: Config[K]): void {
+    this.currentConfig[key] = value;
+    saveConfig(this.currentConfig).catch(err => {
+      console.error('Error saving configuration:', err);
+    });
   }
 
   /**
    * Get all configuration values
    */
-  public getAll(): ConfigType {
-    return this.conf.store;
+  public getAll(): Config {
+    return this.currentConfig;
   }
 
   /**
    * Load configuration from a file
    */
-  public async loadConfigFile(path?: string): Promise<void> {
-    try {
-      const result = path 
-        ? await this.explorer.load(path)
-        : await this.explorer.search();
-      
-      if (result && result.config) {
-        // Validate the loaded config
-        const validConfig = configSchema.partial().safeParse(result.config);
-        if (validConfig.success) {
-          Object.entries(validConfig.data).forEach(([key, value]) => {
-            this.set(key as keyof ConfigType, value as any);
-          });
-        } else {
-          console.warn('Invalid configuration:', validConfig.error.message);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading configuration:', error);
-    }
+  public async loadConfigFile(path: string): Promise<void> {
+    await this.loadConfig(path);
   }
 
   /**
    * Reset configuration to defaults
    */
   public reset(): void {
-    this.conf.clear();
-    this.conf.set(defaultConfig);
+    this.currentConfig = DEFAULT_CONFIG;
+    saveConfig(this.currentConfig).catch(err => {
+      console.error('Error saving configuration:', err);
+    });
   }
 }
 
-export const config = ConfigManager.getInstance(); 
+export const config = ConfigManager.getInstance();
+
+// Define the schema for configuration validation
+const configSchema = z.object({
+  // Core settings
+  apiKey: z.string().optional(),
+  defaultModel: z.enum(['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'] as const),
+  defaultTagBehavior: z.enum(['append', 'replace', 'merge'] as const),
+  
+  // Processing parameters
+  minConfidence: z.number().min(0).max(1),
+  reviewThreshold: z.number().min(0).max(1),
+  concurrency: z.number().int().min(1).max(10),
+  
+  // Paths
+  vaultPath: z.string().optional(),
+  outputPath: z.string().optional(),
+  
+  // Cost management
+  costLimit: z.number().min(0),
+  costLimitAction: z.enum(['warn', 'pause', 'stop'] as const),
+  
+  // Analytics
+  enableAnalytics: z.boolean(),
+  
+  // Named profiles
+  profiles: z.record(z.string(), z.any()).optional(),
+  
+  // Logging
+  logging: z.object({
+    level: z.enum(['error', 'warn', 'info', 'debug'] as const),
+    format: z.enum(['pretty', 'json', 'silent'] as const),
+  })
+});
+
+// Default configuration
+const defaultConfig = {
+  defaultModel: 'gpt-3.5-turbo' as AIModel,
+  defaultTagBehavior: 'merge' as TagBehavior,
+  minConfidence: 0.7,
+  reviewThreshold: 0.5,
+  concurrency: 3,
+  costLimit: 10,
+  costLimitAction: 'warn' as const,
+  enableAnalytics: true,
+  logging: {
+    level: 'info' as const,
+    format: 'pretty' as const
+  }
+};
+
+// Load environment-specific configuration (dev, prod, test)
+function loadEnvironmentConfig() {
+  const explorer = cosmiconfig('tagconv');
+  const result = explorer.searchSync() || { config: {} };
+  return result.config;
+}
+
+// Create config instance
+const configInstance = new Conf({
+  projectName: 'obsidian-magic',
+  schema: configSchema.partial(),
+  defaults: {
+    ...defaultConfig,
+    ...loadEnvironmentConfig()
+  }
+});
+
+// Helper to get typed configuration values
+const getConfigValue = <T>(key: string, defaultValue?: T): T => {
+  return (configInstance.get(key) ?? defaultValue) as T;
+};
+
+// Helper to set configuration values
+const setConfigValue = <T>(key: string, value: T): void => {
+  configInstance.set(key, value);
+};
+
+// Export the typed configuration interface
+export { configInstance, getConfigValue, setConfigValue }; 
