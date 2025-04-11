@@ -24,6 +24,14 @@
       {
         "command": "obsidian-magic.openTagExplorer",
         "title": "Obsidian Magic: Open Tag Explorer"
+      },
+      {
+        "command": "obsidian-magic.cursorTagFile",
+        "title": "Obsidian Magic: Tag with Cursor AI"
+      },
+      {
+        "command": "obsidian-magic.cursorRegisterVSCodeParticipant",
+        "title": "Obsidian Magic: Register @vscode Participant"
       }
     ],
     "views": {
@@ -33,6 +41,21 @@
           "name": "Obsidian Magic Tags"
         }
       ]
+    },
+    "configuration": {
+      "title": "Obsidian Magic",
+      "properties": {
+        "obsidianMagic.cursorFeatures.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Cursor-specific features like @vscode participant"
+        },
+        "obsidianMagic.cursorFeatures.mcpServerPort": {
+          "type": "number",
+          "default": 9876,
+          "description": "Port for the Model Context Protocol server"
+        }
+      }
     }
   },
   "scripts": {
