@@ -2,7 +2,6 @@ import { Modal, TFolder, Notice, Setting } from 'obsidian';
 import type ObsidianMagicPlugin from '../main';
 
 export class FolderTagModal extends Modal {
-  private plugin: ObsidianMagicPlugin;
   private selectedFolder: TFolder | null = null;
   private includeSubfolders: boolean = true;
   private onSubmit: (folder: TFolder, includeSubfolders: boolean) => void;
@@ -12,7 +11,6 @@ export class FolderTagModal extends Modal {
     onSubmit: (folder: TFolder, includeSubfolders: boolean) => void
   ) {
     super(plugin.app);
-    this.plugin = plugin;
     this.onSubmit = onSubmit;
   }
 

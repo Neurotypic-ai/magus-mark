@@ -5,7 +5,6 @@ import { TFile, Notice } from 'obsidian';
 import type { 
   TagSet, 
   TaggingOptions, 
-  TaggingResult,
   Document
 } from '@obsidian-magic/types';
 import { 

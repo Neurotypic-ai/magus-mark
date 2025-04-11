@@ -1,4 +1,4 @@
-import { App, ItemView, Plugin, PluginSettingTab, Setting, TFile, TFolder, WorkspaceLeaf, Notice } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, TFile, TFolder, Notice } from 'obsidian';
 import { TagManagementView, TAG_MANAGEMENT_VIEW_TYPE } from './ui/TagManagementView';
 import { TagVisualizationView, TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
 import { TaggingService } from './services/TaggingService';
