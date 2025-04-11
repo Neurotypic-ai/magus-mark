@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 import { deepMerge } from '../mocks/utils';
 
-import type { AIModel, TagBehavior } from '@obsidian-magic/types';
+import type { TagBehavior } from '@obsidian-magic/types';
 
 import type { LogLevel } from '../types/commands';
 import type { Config, ConfigStorage } from '../types/config';
@@ -22,7 +22,6 @@ import type { Config, ConfigStorage } from '../types/config';
  */
 const DEFAULT_CONFIG: Config = {
   apiKey: undefined,
-  defaultModel: 'gpt-3.5-turbo',
   tagMode: 'merge',
   minConfidence: 0.7,
   reviewThreshold: 0.5,
@@ -40,7 +39,6 @@ const DEFAULT_CONFIG: Config = {
 
 // Default configuration for Conf
 const defaultConfig = {
-  defaultModel: 'gpt-3.5-turbo' as AIModel,
   tagMode: 'merge' as TagBehavior,
   minConfidence: 0.7,
   reviewThreshold: 0.5,
@@ -104,7 +102,7 @@ export async function saveConfig(config: Config, configPath = getDefaultConfigPa
  * Configuration storage implementation
  */
 class ConfigImpl implements ConfigStorage {
-  private static instance: ConfigImpl;
+  private static instance: ConfigImpl | undefined;
   private data: Config = { ...DEFAULT_CONFIG };
   private configPath: string;
 
@@ -117,9 +115,7 @@ class ConfigImpl implements ConfigStorage {
    * Get singleton instance
    */
   public static getInstance(): ConfigImpl {
-    if (!ConfigImpl.instance) {
-      ConfigImpl.instance = new ConfigImpl();
-    }
+    ConfigImpl.instance ??= new ConfigImpl();
     return ConfigImpl.instance;
   }
 
@@ -140,16 +136,51 @@ class ConfigImpl implements ConfigStorage {
       }
     }
 
+    // Special case for defaultModel - don't provide a default value
+    if (key === 'defaultModel') {
+      return this.data[key] as Config[K];
+    }
+
     // Return from config data or default
     return this.data[key] ?? (DEFAULT_CONFIG[key] as Config[K]);
   }
 
   /**
-   * Set a configuration value
+   * Set a configuration value and save it
    */
-  public set<K extends keyof Config>(key: K, value: Config[K]): void {
-    this.data[key] = value;
-    this.save().catch(console.error);
+  public async set<K extends keyof Config>(key: K, value: Config[K]): Promise<void> {
+    // Check if we're changing the API key
+    if (key === 'apiKey' && this.data[key] !== value) {
+      // Clear the model manager cache when API key changes
+      try {
+        const { modelManager } = await import('@obsidian-magic/core/src/model-manager');
+        modelManager.clearCache();
+      } catch (_unused) {
+        // Ignore errors if model manager can't be imported
+        void _unused; // Mark as intentionally unused
+      }
+    }
+
+    // If we're changing the active profile, make sure it exists
+    if (key === 'activeProfile' && typeof value === 'string') {
+      if (!this.data.profiles || !(value in this.data.profiles)) {
+        this.data.profiles ??= {};
+        this.data.profiles[value] = {};
+      }
+    }
+
+    if (this.data.activeProfile && this.data.profiles) {
+      // Store in active profile
+      this.data.profiles[this.data.activeProfile] = {
+        ...this.data.profiles[this.data.activeProfile],
+        [key]: value,
+      };
+    } else {
+      // Store in main config
+      this.data[key] = value;
+    }
+
+    await this.save();
   }
 
   /**
@@ -162,21 +193,21 @@ class ConfigImpl implements ConfigStorage {
   /**
    * Delete a configuration key
    */
-  public delete(key: keyof Config): void {
+  public async delete(key: keyof Config): Promise<void> {
     // Copy data, then delete to avoid dynamic delete
     const newData = { ...this.data };
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete newData[key];
     this.data = newData;
-    this.save().catch(console.error);
+    await this.save();
   }
 
   /**
    * Clear all configuration
    */
-  public clear(): void {
+  public async clear(): Promise<void> {
     this.data = { ...DEFAULT_CONFIG };
-    this.save().catch(console.error);
+    await this.save();
   }
 
   /**
@@ -274,16 +305,15 @@ function loadEnvironmentConfig(): Record<string, unknown> {
 
     // Try to load configuration safely
     try {
-      // Use dynamic import or reflection if needed
-      // This is a safe approach using any because we properly handle errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const searchMethod = (explorer as any).searchSync;
-      if (typeof searchMethod === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      // Use a more specific type for the explorer object
+      const explorerWithSearch = explorer as {
+        searchSync?: () => { config?: Record<string, unknown> } | null;
+      };
+
+      const searchMethod = explorerWithSearch.searchSync;
+      if (searchMethod) {
         const result = searchMethod();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (result && typeof result === 'object' && result.config) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        if (result?.config) {
           return result.config;
         }
       }
@@ -303,8 +333,8 @@ function loadEnvironmentConfig(): Record<string, unknown> {
 const configInstance = new Conf({
   projectName: 'obsidian-magic',
   // Provide a placeholder schema that will be compatible
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  schema: undefined as any,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+  schema: undefined as any, // Required due to Conf's Schema type complexity
   defaults: {
     ...defaultConfig,
     ...loadEnvironmentConfig(),

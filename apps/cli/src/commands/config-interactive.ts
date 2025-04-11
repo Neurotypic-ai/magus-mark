@@ -1,14 +1,14 @@
 import path from 'path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
-import { modelManager } from '@obsidian-magic/core';
+import { modelManager } from '@obsidian-magic/core/src/model-manager';
 import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 
 import { config } from '../utils/config';
 import { logger } from '../utils/logger';
 
-import type { ModelPricing } from '@obsidian-magic/core';
+import type { ModelPricing } from '@obsidian-magic/core/src/openai-models';
 import type { AIModel } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';
 
@@ -41,73 +41,27 @@ interface ConfigSettings {
  */
 async function getModelChoices(apiKey?: string): Promise<{ value: AIModel; name: string }[]> {
   if (!apiKey) {
-    // Return default choices if no API key is available
-    return [
-      { value: 'gpt-3.5-turbo' as AIModel, name: 'gpt-3.5-turbo - Fastest & Most Affordable' },
-      { value: 'gpt-4o' as AIModel, name: 'gpt-4o - Best Overall Performance (Recommended)' },
-    ];
+    // Return empty choices if no API key is available
+    return [];
   }
 
   try {
     // Get models from the API
-    const modelsByCategory = await modelManager.getModelsByCategory(apiKey);
+    const models = await modelManager.getAvailableModels(apiKey);
 
-    // Prepare choices
-    const choices: { value: AIModel; name: string }[] = [];
-
-    // Add GPT-4 models (most capable)
-    if (modelsByCategory.gpt4) {
-      modelsByCategory.gpt4.forEach((model) => {
-        choices.push({
-          value: model.id as AIModel,
-          name: `${model.name} - ${getPriceDescription(model)}`,
-        });
-      });
+    if (models.length === 0) {
+      console.log(chalk.yellow('Warning: No models available for the provided API key.'));
+      return [];
     }
 
-    // Add O1 models (advanced)
-    if (modelsByCategory.o1) {
-      modelsByCategory.o1.forEach((model) => {
-        choices.push({
-          value: model.id as AIModel,
-          name: `${model.name} - ${getPriceDescription(model)} (Advanced)`,
-        });
-      });
-    }
-
-    // Add GPT-3.5 models (budget)
-    if (modelsByCategory.gpt3) {
-      modelsByCategory.gpt3.forEach((model) => {
-        choices.push({
-          value: model.id as AIModel,
-          name: `${model.name} - ${getPriceDescription(model)} (Budget)`,
-        });
-      });
-    }
-
-    // Add base models
-    if (modelsByCategory.base) {
-      modelsByCategory.base.forEach((model) => {
-        choices.push({
-          value: model.id as AIModel,
-          name: `${model.name} - ${getPriceDescription(model)} (Base)`,
-        });
-      });
-    }
-
-    return choices.length > 0
-      ? choices
-      : [
-          { value: 'gpt-3.5-turbo' as AIModel, name: 'gpt-3.5-turbo - Fastest & Most Affordable' },
-          { value: 'gpt-4o' as AIModel, name: 'gpt-4o - Best Overall Performance (Recommended)' },
-        ];
+    // Create a flat list of models
+    return models.map((model: ModelPricing) => ({
+      value: model.id as AIModel,
+      name: `${model.name} - ${getPriceDescription(model)}`,
+    }));
   } catch (error) {
-    console.warn('Error fetching available models:', error);
-    // Fall back to default choices on error
-    return [
-      { value: 'gpt-3.5-turbo' as AIModel, name: 'gpt-3.5-turbo - Fastest & Most Affordable' },
-      { value: 'gpt-4o' as AIModel, name: 'gpt-4o - Best Overall Performance (Recommended)' },
-    ];
+    console.error(chalk.red('Error fetching available models:'), error);
+    return [];
   }
 }
 
@@ -179,9 +133,9 @@ export const configInteractiveCommand: CommandModule = {
 
       // Select model with dynamic choices
       answers.defaultModel = await select<AIModel>({
-        message: 'Default model for tagging:',
-        choices: modelChoices,
-        default: config.get('defaultModel') ?? 'gpt-3.5-turbo',
+        message: 'Default model for tagging (optional):',
+        choices: [{ value: '' as AIModel, name: 'No default model' }, ...modelChoices],
+        default: config.get('defaultModel') ?? '',
       });
 
       const currentTagMode = config.get('tagMode') as TagMode | undefined;
@@ -294,18 +248,18 @@ export const configInteractiveCommand: CommandModule = {
       }
 
       // Save the configuration
-      Object.entries(answers).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(answers)) {
         if (value !== undefined && value !== null && value !== '') {
           // Using explicit type assertion to satisfy the linter
-          config.set(key as keyof Config, value as Config[keyof Config]);
+          void config.set(key as keyof Config, value as Config[keyof Config]);
         }
-      });
+      }
 
       // If a profile was specified, save it as a named profile
       if (profileName) {
         const profiles = config.get('profiles') ?? {};
         profiles[profileName] = answers as Partial<Config>;
-        config.set('profiles', profiles);
+        void config.set('profiles', profiles);
         logger.success(`Profile '${profileName}' saved.`);
       }
 

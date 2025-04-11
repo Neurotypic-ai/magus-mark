@@ -2327,6 +2327,865 @@ Let's look at the type definition in the types package:
 
 ---
 
+Let's check the type exports in the types package:
+
+---
+
+Read file: packages/types/src/index.ts
+
+---
+
+Let's check the API models in the types package:
+
+---
+
+Read file: packages/types/src/models/api.ts
+
+---
+
+Let me check for validators in the types package:
+
+---
+
+Read file: packages/types/src/validators/api.ts
+
+---
+
+Now I'll implement the changes according to the user's requirements. First, let's update the models/api.ts file:
+
+---
+
+```diff
+  /**
+-  * Supported OpenAI models in Obsidian Magic
+-  */
+- export type AIModel =
+-   // O1 Family (Newest)
+-   | 'o1'
+-   | 'o1-mini'
+-   | 'o1-preview'
+-   // O3 Family (Newest)
+-   | 'o3'
+-   | 'o3-mini'
+-   // GPT-4 Family
+-   | 'gpt-4o'
+-   | 'gpt-4o-mini'
+-   | 'gpt-4'
+-   | 'gpt-4-turbo'
+-   | 'gpt-4-vision'
+-   // GPT-3.5 Family
+-   | 'gpt-3.5-turbo'
+-   | 'gpt-3.5-turbo-instruct'
+-   // Base Models
+-   | 'davinci-002'
+-   | 'babbage-002';
+- 
+- /**
+-  * Represents API model family groupings for UI and fallback chains
+-  */
+- export const MODEL_FAMILIES = {
+-   O3: ['o3', 'o3-mini'] as const,
+-   O1: ['o1', 'o1-mini', 'o1-preview'] as const,
+-   GPT4: ['gpt-4o', 'gpt-4o-mini', 'gpt-4', 'gpt-4-turbo', 'gpt-4-vision'] as const,
+-   GPT3: ['gpt-3.5-turbo', 'gpt-3.5-turbo-instruct'] as const,
+-   BASE: ['davinci-002', 'babbage-002'] as const,
+- };
+- 
+- /**
+-  * Default fallback chain for models if preferred model is unavailable
++  * Dynamic OpenAI model support in Obsidian Magic
+   */
+- export const MODEL_FALLBACK_CHAIN: Record<AIModel, AIModel[]> = {
+-   // O3 Family fallbacks
+-   o3: ['o3-mini', 'o1', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+-   'o3-mini': ['o1-mini', 'o1', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+- 
+-   // O1 Family fallbacks
+-   o1: ['o1-mini', 'o1-preview', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+-   'o1-mini': ['o1-preview', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+-   'o1-preview': ['o1', 'o1-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+- 
+-   // GPT-4 Family fallbacks
+-   'gpt-4o': ['gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+-   'gpt-4o-mini': ['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+-   'gpt-4': ['gpt-4-turbo', 'gpt-4o', 'gpt-3.5-turbo'],
+-   'gpt-4-turbo': ['gpt-4o', 'gpt-4', 'gpt-3.5-turbo'],
+-   'gpt-4-vision': ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+- 
+-   // GPT-3.5 Family fallbacks
+-   'gpt-3.5-turbo': ['gpt-3.5-turbo-instruct', 'gpt-4o-mini', 'davinci-002'],
+-   'gpt-3.5-turbo-instruct': ['gpt-3.5-turbo', 'davinci-002'],
+- 
+-   // Base Models fallbacks
+-   'davinci-002': ['gpt-3.5-turbo', 'babbage-002'],
+-   'babbage-002': ['davinci-002', 'gpt-3.5-turbo'],
+- };
++ export type AIModel = string;
+  
+```
+
+---
+
+Now, let's update the types package to redefine AIModel as a string:
+
+---
+
+```diff
+  
+  /**
+-  * OpenAI model options
++  * OpenAI model options - dynamically determined at runtime
+   */
+- export type AIModel =
+-   // GPT-4 Family
+-   | 'gpt-4'
+-   | 'gpt-4-turbo'
+-   | 'gpt-4o'
+-   | 'gpt-4o-mini'
+-   | 'gpt-4-vision'
+-   // GPT-3.5 Family
+-   | 'gpt-3.5-turbo'
+-   | 'gpt-3.5-turbo-instruct'
+-   // Base Models
+-   | 'davinci-002'
+-   | 'babbage-002'
+-   // O1 Family
+-   | 'o1'
+-   | 'o1-mini'
+-   | 'o1-preview'
+-   // O3 Family
+-   | 'o3'
+-   | 'o3-mini';
++ export type AIModel = string;
+  
+  /**
+```
+
+---
+
+Next, let's update the validator in types:
+
+---
+
+```diff
+  
+  // Basic API validators
+- export const aiModelSchema = z.enum([
+-   // GPT-4 Family
+-   'gpt-4',
+-   'gpt-4-turbo',
+-   'gpt-4o',
+-   'gpt-4o-mini',
+-   'gpt-4-vision',
+-   // GPT-3.5 Family
+-   'gpt-3.5-turbo',
+-   'gpt-3.5-turbo-instruct',
+-   // Base Models
+-   'davinci-002',
+-   'babbage-002',
+-   // O1 Family
+-   'o1',
+-   'o1-mini',
+-   'o1-preview',
+-   // O3 Family
+-   'o3',
+-   'o3-mini',
+- ]);
++ export const aiModelSchema = z.string();
+  
+  export const apiKeyStorageSchema = z.enum(['local', 'system']);
+```
+
+---
+
+Now, let's update the openai-models.ts file to make it fully dynamic:
+
+---
+
+```diff
+   */
+  import OpenAI from 'openai';
++ import { encoding_for_model } from 'tiktoken';
+  
+  import type { AIModel } from '@obsidian-magic/types';
+    available: boolean;
+    deprecated: boolean;
+-   category: 'gpt4' | 'gpt3.5' | 'o1' | 'base' | 'other';
+- }
+- 
+- /**
+-  * Current known pricing for models
+-  * This serves as fallback if we can't fetch pricing info dynamically
+-  * Prices in USD per 1M tokens ($0.01 = 1 cent per 1M tokens)
+-  */
+- export const DEFAULT_MODEL_PRICING: Record<string, Omit<ModelPricing, 'available'>> = {
+-   // GPT-4 Family
+-   'gpt-4o': {
+-     id: 'gpt-4o',
+-     name: 'GPT-4o',
+-     inputPrice: 10.0, // $0.01 per 1K tokens
+-     outputPrice: 30.0, // $0.03 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'gpt4',
+-   },
+-   'gpt-4o-mini': {
+-     id: 'gpt-4o-mini',
+-     name: 'GPT-4o Mini',
+-     inputPrice: 2.5, // $0.0025 per 1K tokens
+-     outputPrice: 7.5, // $0.0075 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'gpt4',
+-   },
+-   'gpt-4': {
+-     id: 'gpt-4',
+-     name: 'GPT-4',
+-     inputPrice: 30.0, // $0.03 per 1K tokens
+-     outputPrice: 60.0, // $0.06 per 1K tokens
+-     contextWindow: 8192,
+-     deprecated: false,
+-     category: 'gpt4',
+-   },
+-   'gpt-4-turbo': {
+-     id: 'gpt-4-turbo',
+-     name: 'GPT-4 Turbo',
+-     inputPrice: 10.0, // $0.01 per 1K tokens
+-     outputPrice: 30.0, // $0.03 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'gpt4',
+-   },
+-   'gpt-4-vision': {
+-     id: 'gpt-4-vision',
+-     name: 'GPT-4 Vision',
+-     inputPrice: 10.0, // $0.01 per 1K tokens
+-     outputPrice: 30.0, // $0.03 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'gpt4',
+-   },
+- 
+-   // O1 Models - newest models
+-   o1: {
+-     id: 'o1',
+-     name: 'o1',
+-     inputPrice: 50.0, // $0.05 per 1K tokens
+-     outputPrice: 150.0, // $0.15 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'o1',
+-   },
+-   'o1-mini': {
+-     id: 'o1-mini',
+-     name: 'o1 Mini',
+-     inputPrice: 25.0, // $0.025 per 1K tokens
+-     outputPrice: 75.0, // $0.075 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'o1',
+-   },
+-   'o1-preview': {
+-     id: 'o1-preview',
+-     name: 'o1 Preview',
+-     inputPrice: 50.0, // $0.05 per 1K tokens
+-     outputPrice: 150.0, // $0.15 per 1K tokens
+-     contextWindow: 128000,
+-     deprecated: false,
+-     category: 'o1',
+-   },
+- 
+-   // Newest GPT-4 o3
+-   o3: {
+-     id: 'o3',
+-     name: 'o3',
+-     inputPrice: 40.0, // $0.04 per 1K tokens
+-     outputPrice: 120.0, // $0.12 per 1K tokens
+-     contextWindow: 200000,
+-     deprecated: false,
+-     category: 'o1',
+-   },
+-   'o3-mini': {
+-     id: 'o3-mini',
+-     name: 'o3 Mini',
+-     inputPrice: 15.0, // $0.015 per 1K tokens
+-     outputPrice: 45.0, // $0.045 per 1K tokens
+-     contextWindow: 200000,
+-     deprecated: false,
+-     category: 'o1',
+-   },
+- 
+-   // GPT-3.5 Family
+-   'gpt-3.5-turbo': {
+-     id: 'gpt-3.5-turbo',
+-     name: 'GPT-3.5 Turbo',
+-     inputPrice: 0.5, // $0.0005 per 1K tokens
+-     outputPrice: 1.5, // $0.0015 per 1K tokens
+-     contextWindow: 16385,
+-     deprecated: false,
+-     category: 'gpt3.5',
+-   },
+-   'gpt-3.5-turbo-instruct': {
+-     id: 'gpt-3.5-turbo-instruct',
+-     name: 'GPT-3.5 Turbo Instruct',
+-     inputPrice: 1.5, // $0.0015 per 1K tokens
+-     outputPrice: 2.0, // $0.002 per 1K tokens
+-     contextWindow: 4096,
+-     deprecated: false,
+-     category: 'gpt3.5',
+-   },
+- 
+-   // Base models
+-   'davinci-002': {
+-     id: 'davinci-002',
+-     name: 'Davinci-002',
+-     inputPrice: 2.0, // $0.002 per 1K tokens
+-     outputPrice: 2.0, // $0.002 per 1K tokens
+-     contextWindow: 16384,
+-     deprecated: false,
+-     category: 'base',
+-   },
+-   'babbage-002': {
+-     id: 'babbage-002',
+-     name: 'Babbage-002',
+-     inputPrice: 0.4, // $0.0004 per 1K tokens
+-     outputPrice: 0.4, // $0.0004 per 1K tokens
+-     contextWindow: 16384,
+-     deprecated: false,
+-     category: 'base',
+-   },
+- };
++   category: string;
++ }
+  
+  /**
+   */
+  export async function getAvailableModels(apiKey: string): Promise<ModelPricing[]> {
++   if (!apiKey) {
++     return []; // Return empty array if no API key provided
++   }
++   
+    try {
+      // Initialize OpenAI client
+      // Get list of models
+      const response = await openai.models.list();
+-     const availableModelIds = new Set(response.data.map((model) => model.id));
+- 
+-     // Get known base models
+-     const baseModels = Object.values(DEFAULT_MODEL_PRICING);
+- 
+-     // Map to model pricing objects
+-     return baseModels.map((model) => ({
+-       ...model,
+-       available:
+-         availableModelIds.has(model.id) ||
+-         // Check for model family (e.g. if gpt-4-turbo is available, variant will be too)
+-         Array.from(availableModelIds).some(
+-           (id) =>
+-             id.startsWith(model.id) ||
+-             // Handle special cases for model families
+-             (model.id === 'gpt-4o' && id.startsWith('gpt-4o')) ||
+-             (model.id === 'gpt-4-turbo' && id.startsWith('gpt-4-turbo')) ||
+-             (model.id === 'gpt-3.5-turbo' && id.startsWith('gpt-3.5-turbo'))
+-         ),
+-     }));
++     
++     // Map to model pricing objects with inferred pricing based on model name patterns
++     return response.data.map((model) => {
++       const modelId = model.id;
++       const pricing = inferModelPricing(modelId);
++       
++       return {
++         id: modelId,
++         name: formatModelName(modelId),
++         inputPrice: pricing.inputPrice,
++         outputPrice: pricing.outputPrice,
++         contextWindow: inferContextWindow(modelId),
++         available: true,
++         deprecated: false,
++         category: inferModelCategory(modelId),
++       };
++     });
+    } catch (error) {
+      console.error('Error fetching available models:', error);
+-     // Return all models as potentially available if API call fails
+-     return Object.values(DEFAULT_MODEL_PRICING).map((model) => ({
+-       ...model,
+-       available: true,
+-     }));
+-   }
++     return []; // Return empty array on error, not defaults
++   }
++ }
++ 
++ /**
++  * Format model name for display
++  */
++ function formatModelName(modelId: string): string {
++   return modelId
++     .split('-')
++     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
++     .join(' ');
++ }
++ 
++ /**
++  * Infer model pricing based on name patterns
++  */
++ function inferModelPricing(modelId: string): { inputPrice: number; outputPrice: number } {
++   const modelLower = modelId.toLowerCase();
++   
++   // GPT-4 pricing tiers
++   if (modelLower.includes('gpt-4o')) {
++     if (modelLower.includes('mini')) {
++       return { inputPrice: 2.5, outputPrice: 7.5 }; // GPT-4o Mini pricing
++     }
++     return { inputPrice: 10.0, outputPrice: 30.0 }; // GPT-4o pricing
++   }
++   
++   if (modelLower.includes('gpt-4')) {
++     if (modelLower.includes('turbo') || modelLower.includes('vision')) {
++       return { inputPrice: 10.0, outputPrice: 30.0 }; // GPT-4 Turbo/Vision pricing
++     }
++     return { inputPrice: 30.0, outputPrice: 60.0 }; // GPT-4 base pricing
++   }
++   
++   // O1 & O3 pricing tiers
++   if (modelLower.startsWith('o3')) {
++     if (modelLower.includes('mini')) {
++       return { inputPrice: 15.0, outputPrice: 45.0 };
++     }
++     return { inputPrice: 40.0, outputPrice: 120.0 };
++   }
++   
++   if (modelLower.startsWith('o1')) {
++     if (modelLower.includes('mini')) {
++       return { inputPrice: 25.0, outputPrice: 75.0 };
++     }
++     return { inputPrice: 50.0, outputPrice: 150.0 };
++   }
++   
++   // GPT-3.5 pricing tiers
++   if (modelLower.includes('gpt-3.5')) {
++     if (modelLower.includes('instruct')) {
++       return { inputPrice: 1.5, outputPrice: 2.0 };
++     }
++     return { inputPrice: 0.5, outputPrice: 1.5 };
++   }
++   
++   // Base models
++   if (modelLower.includes('davinci')) {
++     return { inputPrice: 2.0, outputPrice: 2.0 };
++   }
++   
++   if (modelLower.includes('babbage')) {
++     return { inputPrice: 0.4, outputPrice: 0.4 };
++   }
++   
++   // Default fallback for unknown models
++   return { inputPrice: 5.0, outputPrice: 15.0 };
++ }
++ 
++ /**
++  * Infer context window size based on model name
++  */
++ function inferContextWindow(modelId: string): number {
++   const modelLower = modelId.toLowerCase();
++   
++   if (modelLower.includes('gpt-4o') || modelLower.includes('gpt-4-turbo') || modelLower.includes('o1')) {
++     return 128000; // Large context window models
++   }
++   
++   if (modelLower.includes('o3')) {
++     return 200000; // O3 has 200k context
++   }
++   
++   if (modelLower.includes('gpt-4') && !modelLower.includes('turbo')) {
++     return 8192; // Base GPT-4
++   }
++   
++   if (modelLower.includes('gpt-3.5-turbo')) {
++     return 16385; // GPT-3.5 Turbo
++   }
++   
++   if (modelLower.includes('gpt-3.5-turbo-instruct')) {
++     return 4096; // GPT-3.5 Turbo Instruct
++   }
++   
++   // Default for other models
++   return 16384;
++ }
++ 
++ /**
++  * Infer model category based on name
++  */
++ function inferModelCategory(modelId: string): string {
++   const modelLower = modelId.toLowerCase();
++   
++   if (modelLower.startsWith('o3')) return 'o3';
++   if (modelLower.startsWith('o1')) return 'o1';
++   if (modelLower.includes('gpt-4')) return 'gpt4';
++   if (modelLower.includes('gpt-3.5')) return 'gpt3.5';
++   if (modelLower.includes('davinci') || modelLower.includes('babbage')) return 'base';
++   
++   // For other models, try to extract category from name
++   const parts = modelLower.split('-');
++   if (parts.length > 0) return parts[0];
++   
++   return 'other';
+  }
+  
+   */
+  export function getModelPricing(modelId: string): ModelPricing | null {
+-   const pricing = DEFAULT_MODEL_PRICING[modelId];
+-   if (!pricing) return null;
++   if (!modelId) return null;
++   
++   const pricing = inferModelPricing(modelId);
+    
+    return {
+-     ...pricing,
+-     available: true, // Default to true if we don't have availability info
+-   };
+- }
+- 
+- /**
+-  * Get all known model IDs
+-  * @returns Array of model IDs
+-  */
+- export function getAllModelIds(): string[] {
+-   return Object.keys(DEFAULT_MODEL_PRICING);
++     id: modelId,
++     name: formatModelName(modelId),
++     inputPrice: pricing.inputPrice,
++     outputPrice: pricing.outputPrice,
++     contextWindow: inferContextWindow(modelId),
++     available: true, // We don't know availability without an API call
++     deprecated: false,
++     category: inferModelCategory(modelId),
++   };
+  }
+  
+   */
+  export function calculateCost(model: string, inputTokens: number, outputTokens: number): number {
+-   const pricing = DEFAULT_MODEL_PRICING[model];
++   const pricing = getModelPricing(model);
+    if (!pricing) return 0;
+  
+   */
+  export async function isModelAvailable(apiKey: string, modelId: string): Promise<boolean> {
++   if (!apiKey || !modelId) return false;
++   
+    try {
+      const models = await getAvailableModels(apiKey);
+-     return models.some((model) => model.id === modelId && model.available);
++     return models.some((model) => model.id === modelId);
+    } catch (error) {
+      console.error('Error checking model availability:', error);
+   * @param apiKey OpenAI API key
+   * @param preferredModel Preferred model ID
+-  * @returns Promise resolving to recommended model ID
++  * @returns Promise resolving to recommended model ID or an empty string if no model is available
+   */
+  export async function getRecommendedModel(apiKey: string, preferredModel: string): Promise<string> {
++   if (!apiKey) return '';
++   
+    try {
+      // Check if preferred model is available
+      const isAvailable = await isModelAvailable(apiKey, preferredModel);
+      if (isAvailable) return preferredModel;
+      
+-     // Fall back to models in this order: gpt-4o > gpt-4-turbo > gpt-3.5-turbo
+-     const fallbackModels = ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+- 
+-     for (const model of fallbackModels) {
+-       if (model !== preferredModel && (await isModelAvailable(apiKey, model))) {
+-         return model;
++     // Get all available models
++     const models = await getAvailableModels(apiKey);
++     if (models.length > 0) {
++       // Return first available model
++       return models[0].id;
+      }
+-     }
+- 
+-     // Ultimate fallback
+-     return 'gpt-3.5-turbo';
++     
++     return ''; // No models available
+    } catch (error) {
+      console.error('Error getting recommended model:', error);
+-     return 'gpt-3.5-turbo'; // Default fallback
++     return ''; // No default fallbacks
+    }
+  }
+```
+
+---
+
+Let's fix the linter errors in openai-models.ts:
+
+---
+
+```diff
+    // For other models, try to extract category from name
+    const parts = modelLower.split('-');
+-   if (parts.length > 0) return parts[0];
++   if (parts.length > 0 && parts[0]) {
++     return parts[0];
++   }
+    
+    return 'other';
+```
+
+---
+
+Let's try to fix the remaining linter errors:
+
+---
+
+
+
+---
+
+Let's check the exact errors:
+
+---
+
+Read file: packages/core/src/openai-models.ts
+
+---
+
+
+
+---
+
+Let's manually clean the imports:
+
+---
+
+```diff
+   */
+  import OpenAI from 'openai';
+- import { encoding_for_model } from 'tiktoken';
+- 
+- import type { AIModel } from '@obsidian-magic/types';
+  
+  /**
+```
+
+---
+
+Now let's check the rest of the errors:
+
+---
+
+Read file: packages/core/src/openai-models.ts
+
+---
+
+Now we'll fix the cost manager to use the updated function from the core package:
+
+---
+
+Read file: apps/cli/src/utils/cost-manager.ts
+
+---
+
+```diff
+  import * as path from 'path';
+  
+- import { CostLimitError, calculateCost } from '@obsidian-magic/core';
++ import { CostLimitError } from '@obsidian-magic/core';
++ import { calculateCost } from '@obsidian-magic/core/src/openai-models';
+  import * as fs from 'fs-extra';
+  
+```
+
+---
+
+Let's now update the model-manager.ts file:
+
+---
+
+```diff
+     */
+    public async getAvailableModels(apiKey: string, forceRefresh = false): Promise<ModelPricing[]> {
+-     // Return from cache if valid
++     if (!apiKey) {
++       return []; // Return empty array if no API key
++     }
++ 
++     // Return from cache if valid and API key matches
+      if (
+        !forceRefresh &&
+     */
+    public async getModelsByCategory(apiKey: string, availableOnly = true): Promise<Record<string, ModelPricing[]>> {
++     if (!apiKey) {
++       return {}; // Return empty object if no API key
++     }
++ 
+      const models = await this.getAvailableModels(apiKey);
+      const filteredModels = availableOnly ? models.filter((model) => model.available) : models;
+  
+      // Group by category
+      return filteredModels.reduce<Record<string, ModelPricing[]>>((acc, model) => {
+-       if (!acc[model.category]) {
+-         acc[model.category] = [];
++       const category = model.category || 'other';
++       if (!acc[category]) {
++         acc[category] = [];
+        }
+-       acc[model.category].push(model);
++       acc[category].push(model);
+        return acc;
+      }, {});
+     */
+    public async isModelAvailable(apiKey: string, modelId: string): Promise<boolean> {
++     if (!apiKey || !modelId) {
++       return false;
++     }
++     
+      const models = await this.getAvailableModels(apiKey);
+-     return models.some((model) => model.id === modelId && model.available);
++     return models.some((model) => model.id === modelId);
+    }
+  
+     * @param apiKey OpenAI API key
+     * @param preferredModel Preferred model ID
+-    * @returns Model ID of best available model
++    * @returns Model ID of best available model or empty string if none available
+     */
+    public async getBestAvailableModel(apiKey: string, preferredModel: string): Promise<string> {
++     if (!apiKey) {
++       return '';
++     }
++     
+      return getRecommendedModel(apiKey, preferredModel);
+    }
+     */
+    public async getModelPricing(modelId: string, apiKey?: string): Promise<ModelPricing | null> {
++     if (!modelId) {
++       return null;
++     }
++     
+      if (apiKey) {
+        const models = await this.getAvailableModels(apiKey);
+      }
+  
+-     // Fallback to static pricing
++     // Fallback to inferred pricing
+      return getModelPricing(modelId);
+    }
+```
+
+---
+
+Let's fix the model-manager.ts file linter errors:
+
+---
+
+```diff
+     */
+    public static getInstance(): ModelManager {
+-     if (!ModelManager.instance) {
+-       ModelManager.instance = new ModelManager();
+-     }
++     ModelManager.instance ??= new ModelManager();
+      return ModelManager.instance;
+    }
+```
+
+---
+
+
+
+Let's remove the unnecessary import:
+
+---
+
+
+
+---
+
+Let's fix the errors for getModelsByCategory using nullish coalescing:
+
+---
+
+```diff
+      // Group by category
+      return filteredModels.reduce<Record<string, ModelPricing[]>>((acc, model) => {
+-       const category = model.category;
++       const category = model.category || 'other';
+        acc[category] ??= [];
+        acc[category].push(model);
+```
+
+---
+
+Now let's check and fix the singleton getInstance pattern:
+
+---
+
+```diff
+     */
+    public static getInstance(): ModelManager {
++     if (!ModelManager.instance) {
+        ModelManager.instance = new ModelManager();
++     }
+      return ModelManager.instance;
+    }
+```
+
+---
+
+Let's check the ModelManager implementation more carefully to see why we're getting this error:
+
+---
+
+Read file: packages/core/src/model-manager.ts
+
+---
+
+The issue with the getInstance method is that TypeScript knows that `instance` will be undefined at first. Let's explicitly annotate it to fix the linter error:
+
+---
+
+```diff
+   */
+  export class ModelManager {
+-   private static instance: ModelManager;
++   private static instance: ModelManager | undefined;
+    private modelCache: ModelCache | null = null;
+    private cacheExpiryMs = 30 * 60 * 1000; // 30 minutes
+```
+
+---
+
+Let's try one more time with the nullish coalescing operator:
+
+---
+
+```diff
+     */
+    public static getInstance(): ModelManager {
+-     if (!ModelManager.instance) {
+-       ModelManager.instance = new ModelManager();
+-     }
++     ModelManager.instance ??= new ModelManager();
+      return ModelManager.instance;
+    }
+```
+
+---
+
+Now let's update the config-interactive.ts file to handle the dynamic model list:
+
+---
+
+Cancelled
+
+---
+
 
 
 ---

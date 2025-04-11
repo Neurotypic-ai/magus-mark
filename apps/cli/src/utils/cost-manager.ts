@@ -87,9 +87,7 @@ class CostManager {
    * Get singleton instance
    */
   public static getInstance(): CostManager {
-    if (!CostManager.instance) {
-      CostManager.instance = new CostManager();
-    }
+    CostManager.instance ??= new CostManager();
     return CostManager.instance;
   }
 
@@ -115,17 +113,14 @@ class CostManager {
     this.session.totalTokens += totalTokens;
 
     // Initialize model tracking if not exists
-    if (!this.session.models[model]) {
-      this.session.models[model] = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-    }
+    this.session.models[model] ??= { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
     // Update model-specific usage
     const modelUsage = this.session.models[model];
-    if (modelUsage) {
-      modelUsage.inputTokens += input;
-      modelUsage.outputTokens += output;
-      modelUsage.totalTokens += totalTokens;
-    }
+    // No need to check if modelUsage exists, it's guaranteed by the line above
+    modelUsage.inputTokens += input;
+    modelUsage.outputTokens += output;
+    modelUsage.totalTokens += totalTokens;
 
     // Record usage
     const record: UsageRecord = {
@@ -170,7 +165,8 @@ class CostManager {
 
     // Calculate costs per model
     for (const [model, usage] of Object.entries(this.session.models)) {
-      if (usage && usage.totalTokens > 0) {
+      // Since we're iterating through entries, usage will never be undefined
+      if (usage.totalTokens > 0) {
         modelBreakdown[model] = {
           tokens: { ...usage },
           cost: this.calculateCost(model as AIModel, usage.inputTokens, usage.outputTokens),
@@ -230,7 +226,7 @@ class CostManager {
   private loadUsageData(): void {
     try {
       if (fs.existsSync(this.dataFile)) {
-        const data = fs.readJSONSync(this.dataFile);
+        const data = fs.readJSONSync(this.dataFile) as unknown;
         // Validate that the loaded data is an array
         if (Array.isArray(data)) {
           this.usageData = data as UsageRecord[];

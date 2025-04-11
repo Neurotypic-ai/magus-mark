@@ -248,7 +248,7 @@ export async function getRecommendedModel(apiKey: string, preferredModel: string
     const models = await getAvailableModels(apiKey);
     if (models.length > 0) {
       // Return first available model
-      return models[0].id;
+      return models[0]?.id ?? '';
     }
 
     return ''; // No models available

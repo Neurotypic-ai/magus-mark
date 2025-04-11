@@ -19,7 +19,7 @@ interface ModelCache {
  * Class for managing model availability and selection
  */
 export class ModelManager {
-  private static instance: ModelManager;
+  private static instance: ModelManager | undefined;
   private modelCache: ModelCache | null = null;
   private cacheExpiryMs = 30 * 60 * 1000; // 30 minutes
 
@@ -34,7 +34,7 @@ export class ModelManager {
    * Get singleton instance
    */
   public static getInstance(): ModelManager {
-    ModelManager.instance = new ModelManager();
+    ModelManager.instance ??= new ModelManager();
     return ModelManager.instance;
   }
 
@@ -88,7 +88,7 @@ export class ModelManager {
 
     // Group by category
     return filteredModels.reduce<Record<string, ModelPricing[]>>((acc, model) => {
-      const category = model.category;
+      const category = model.category || 'other';
       acc[category] ??= [];
       acc[category].push(model);
       return acc;
