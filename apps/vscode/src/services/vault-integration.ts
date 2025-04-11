@@ -1,6 +1,7 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import * as vscode from 'vscode';
 
 /**
  * Interface for vault configuration
@@ -21,7 +22,7 @@ export enum SyncStatus {
   NewInVault = 'new-in-vault',
   NewInWorkspace = 'new-in-workspace',
   Conflict = 'conflict',
-  Deleted = 'deleted'
+  Deleted = 'deleted',
 }
 
 /**
@@ -43,17 +44,18 @@ export interface FileSyncInfo {
 export class VaultIntegrationService {
   private readonly _onVaultChanged = new vscode.EventEmitter<VaultConfig>();
   public readonly onVaultChanged = this._onVaultChanged.event;
-  
+
   private readonly _onFileSynced = new vscode.EventEmitter<FileSyncInfo>();
   public readonly onFileSynced = this._onFileSynced.event;
-  
+
   private vaults: VaultConfig[] = [];
   private syncStatus = new Map<string, FileSyncInfo>();
   private fileWatchers: vscode.FileSystemWatcher[] = [];
   private disposables: vscode.Disposable[] = [];
 
   constructor(private readonly context: vscode.ExtensionContext) {
-    this.initialize();
+    // Use void operator to mark intentional floating promise
+    void this.initialize();
   }
 
   /**
@@ -61,14 +63,14 @@ export class VaultIntegrationService {
    */
   private async initialize(): Promise<void> {
     // Load saved vaults from storage
-    await this.loadVaults();
-    
+    this.loadVaults();
+
     // Discover vaults in workspace
     await this.discoverVaults();
-    
+
     // Set up file watchers
     this.setupFileWatchers();
-    
+
     // Register commands
     this.registerCommands();
   }
@@ -76,11 +78,11 @@ export class VaultIntegrationService {
   /**
    * Load saved vaults from extension storage
    */
-  private async loadVaults(): Promise<void> {
+  private loadVaults(): void {
     const savedVaults = this.context.globalState.get<VaultConfig[]>('obsidianMagic.vaults', []);
-    this.vaults = savedVaults || [];
-    
-    console.log(`Loaded ${this.vaults.length} saved vaults`);
+    this.vaults = savedVaults;
+
+    console.log(`Loaded ${this.vaults.length.toString()} saved vaults`);
   }
 
   /**
@@ -97,10 +99,10 @@ export class VaultIntegrationService {
     if (!vscode.workspace.workspaceFolders) {
       return;
     }
-    
+
     for (const folder of vscode.workspace.workspaceFolders) {
       const obsidianDir = path.join(folder.uri.fsPath, '.obsidian');
-      
+
       try {
         const stats = await fs.promises.stat(obsidianDir);
         if (stats.isDirectory()) {
@@ -108,36 +110,37 @@ export class VaultIntegrationService {
           try {
             // Check for vault config file
             const configPath = path.join(obsidianDir, 'app.json');
-            const configExists = await fs.promises.access(configPath)
+            const configExists = await fs.promises
+              .access(configPath)
               .then(() => true)
               .catch(() => false);
-            
+
             if (configExists) {
               const configData = await fs.promises.readFile(configPath, 'utf8');
-              const config = JSON.parse(configData);
-              
+              const config = JSON.parse(configData) as { configVersion?: string };
+
               // Add vault if not already known
-              if (!this.vaults.some(v => v.path === folder.uri.fsPath)) {
+              if (!this.vaults.some((v) => v.path === folder.uri.fsPath)) {
                 const vault: VaultConfig = {
                   path: folder.uri.fsPath,
                   name: folder.name,
-                  configVersion: config.configVersion || '0',
-                  lastSync: new Date()
+                  configVersion: config.configVersion ?? '0',
+                  lastSync: new Date(),
                 };
-                
+
                 this.vaults.push(vault);
                 this._onVaultChanged.fire(vault);
-                
+
                 await this.saveVaults();
-                
+
                 vscode.window.showInformationMessage(`Discovered Obsidian vault: ${vault.name}`);
               }
             }
           } catch (err) {
-            console.error(`Error reading Obsidian vault config: ${err}`);
+            console.error(`Error reading Obsidian vault config: ${String(err)}`);
           }
         }
-      } catch (err) {
+      } catch {
         // Not an Obsidian vault, or can't access
       }
     }
@@ -152,27 +155,27 @@ export class VaultIntegrationService {
       watcher.dispose();
     }
     this.fileWatchers = [];
-    
+
     // Create new watchers for each vault
     for (const vault of this.vaults) {
       const markdownPattern = new vscode.RelativePattern(vault.path, '**/*.md');
       const watcher = vscode.workspace.createFileSystemWatcher(markdownPattern);
-      
+
       // Handle file changes
-      watcher.onDidChange(async uri => {
-        await this.handleFileChange(vault, uri);
+      watcher.onDidChange((uri) => {
+        this.handleFileChange(vault, uri);
       });
-      
+
       // Handle file creation
-      watcher.onDidCreate(async uri => {
-        await this.handleFileCreation(vault, uri);
+      watcher.onDidCreate((uri) => {
+        this.handleFileCreation(vault, uri);
       });
-      
+
       // Handle file deletion
-      watcher.onDidDelete(async uri => {
-        await this.handleFileDeletion(vault, uri);
+      watcher.onDidDelete((uri) => {
+        this.handleFileDeletion(vault, uri);
       });
-      
+
       this.fileWatchers.push(watcher);
       this.disposables.push(watcher);
     }
@@ -183,39 +186,39 @@ export class VaultIntegrationService {
    */
   private registerCommands(): void {
     // Command to manually sync with vault
-    const syncCommand = vscode.commands.registerCommand('obsidian-magic.syncVault', async () => {
-      await this.syncAllVaults();
+    const syncCommand = vscode.commands.registerCommand('obsidian-magic.syncVault', () => {
+      this.syncAllVaults();
     });
-    
+
     // Command to add a vault manually
     const addVaultCommand = vscode.commands.registerCommand('obsidian-magic.addVault', async () => {
       const folders = await vscode.window.showOpenDialog({
         canSelectFiles: false,
         canSelectFolders: true,
         canSelectMany: false,
-        openLabel: 'Select Obsidian Vault'
+        openLabel: 'Select Obsidian Vault',
       });
-      
+
       if (folders && folders.length > 0 && folders[0]) {
         const folderPath = folders[0].fsPath;
         await this.addVault(folderPath);
       }
     });
-    
+
     // Command to remove a vault
     const removeVaultCommand = vscode.commands.registerCommand('obsidian-magic.removeVault', async () => {
       if (this.vaults.length === 0) {
         vscode.window.showInformationMessage('No vaults to remove');
         return;
       }
-      
-      const vaultNames = this.vaults.map(v => v.name);
+
+      const vaultNames = this.vaults.map((v) => v.name);
       const selected = await vscode.window.showQuickPick(vaultNames, {
-        placeHolder: 'Select vault to remove'
+        placeHolder: 'Select vault to remove',
       });
-      
+
       if (selected) {
-        const vaultIndex = this.vaults.findIndex(v => v.name === selected);
+        const vaultIndex = this.vaults.findIndex((v) => v.name === selected);
         if (vaultIndex >= 0) {
           const removedVault = this.vaults[vaultIndex];
           if (removedVault) {
@@ -224,131 +227,136 @@ export class VaultIntegrationService {
         }
       }
     });
-    
+
     this.disposables.push(syncCommand, addVaultCommand, removeVaultCommand);
   }
 
   /**
    * Handle file change events
    */
-  private async handleFileChange(vault: VaultConfig, uri: vscode.Uri): Promise<void> {
+  private handleFileChange(vault: VaultConfig, uri: vscode.Uri): void {
     const relativePath = path.relative(vault.path, uri.fsPath);
-    
+
     // Update sync status
     const syncInfo: FileSyncInfo = {
       relativePath,
       vaultPath: uri.fsPath,
       workspacePath: uri.fsPath,
       status: SyncStatus.Modified,
-      lastModifiedWorkspace: new Date()
+      lastModifiedWorkspace: new Date(),
     };
-    
+
     this.syncStatus.set(relativePath, syncInfo);
     this._onFileSynced.fire(syncInfo);
-    
+
     console.log(`File changed: ${relativePath}`);
   }
 
   /**
    * Handle file creation events
    */
-  private async handleFileCreation(vault: VaultConfig, uri: vscode.Uri): Promise<void> {
+  private handleFileCreation(vault: VaultConfig, uri: vscode.Uri): void {
     const relativePath = path.relative(vault.path, uri.fsPath);
-    
+
     // Update sync status
     const syncInfo: FileSyncInfo = {
       relativePath,
       vaultPath: uri.fsPath,
       workspacePath: uri.fsPath,
       status: SyncStatus.NewInWorkspace,
-      lastModifiedWorkspace: new Date()
+      lastModifiedWorkspace: new Date(),
     };
-    
+
     this.syncStatus.set(relativePath, syncInfo);
     this._onFileSynced.fire(syncInfo);
-    
+
     console.log(`File created: ${relativePath}`);
   }
 
   /**
    * Handle file deletion events
    */
-  private async handleFileDeletion(vault: VaultConfig, uri: vscode.Uri): Promise<void> {
+  private handleFileDeletion(vault: VaultConfig, uri: vscode.Uri): void {
     const relativePath = path.relative(vault.path, uri.fsPath);
-    
+
     // Update sync status
     const syncInfo: FileSyncInfo = {
       relativePath,
       vaultPath: uri.fsPath,
       workspacePath: uri.fsPath,
-      status: SyncStatus.Deleted
+      status: SyncStatus.Deleted,
     };
-    
+
     this.syncStatus.set(relativePath, syncInfo);
     this._onFileSynced.fire(syncInfo);
-    
+
     console.log(`File deleted: ${relativePath}`);
   }
 
   /**
    * Sync all vaults
    */
-  public async syncAllVaults(token?: vscode.CancellationToken): Promise<void> {
+  public syncAllVaults(token?: vscode.CancellationToken): void {
     console.log('Syncing all vaults...');
-    vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: 'Syncing Obsidian vaults...',
-      cancellable: true
-    }, async (progress, progressToken) => {
-      // Use the provided token or the progress token
-      const cancellationToken = token || progressToken;
-      
-      try {
-        for (const vault of this.vaults) {
-          progress.report({ message: `Syncing ${vault.name}...` });
-          if (cancellationToken.isCancellationRequested) {
-            break;
+    vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Syncing Obsidian vaults...',
+        cancellable: true,
+      },
+      async (progress, progressToken) => {
+        // Use the provided token or the progress token
+        const cancellationToken = token ?? progressToken;
+
+        try {
+          for (const vault of this.vaults) {
+            progress.report({ message: `Syncing ${vault.name}...` });
+            if (cancellationToken.isCancellationRequested) {
+              break;
+            }
+            await this.syncVault(vault.path);
           }
-          await this.syncVault(vault.path, cancellationToken);
+
+          vscode.window.showInformationMessage('All vaults synchronized');
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Error syncing vaults: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
-        
-        vscode.window.showInformationMessage('All vaults synchronized');
-      } catch (error) {
-        vscode.window.showErrorMessage(`Error syncing vaults: ${error instanceof Error ? error.message : String(error)}`);
       }
-    });
+    );
   }
 
   /**
    * Sync a specific vault
    */
-  public async syncVault(vaultPath: string, token?: vscode.CancellationToken): Promise<void> {
-    const vault = this.vaults.find(v => v.path === vaultPath);
-    
+  public async syncVault(vaultPath: string): Promise<void> {
+    const vault = this.vaults.find((v) => v.path === vaultPath);
+
     if (!vault) {
       throw new Error(`Vault not found: ${vaultPath}`);
     }
-    
+
     // In a real implementation, this would:
     // 1. Scan vault for markdown files
     // 2. Scan workspace for markdown files
     // 3. Compare and resolve conflicts
     // 4. Sync tags and metadata
-    
+
     // For now, this is just a placeholder
     console.log(`Syncing vault: ${vaultPath}`);
-    
+
     // Simulate sync with a delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Update last sync time
     vault.lastSync = new Date();
     await this.saveVaults();
-    
+
     // Notify that the vault was synced
     this._onVaultChanged.fire(vault);
   }
-  
+
   /**
    * Get all registered vaults
    */
@@ -362,7 +370,7 @@ export class VaultIntegrationService {
   public getSyncStatus(): Map<string, FileSyncInfo> {
     return new Map(this.syncStatus);
   }
-  
+
   /**
    * Add a vault to the configuration
    * @param folderPath Path to the Obsidian vault folder
@@ -373,36 +381,36 @@ export class VaultIntegrationService {
       // Check if it's a valid Obsidian vault
       const obsidianDir = path.join(folderPath, '.obsidian');
       const stats = await fs.promises.stat(obsidianDir);
-      
+
       if (!stats.isDirectory()) {
         throw new Error('Not a valid Obsidian vault');
       }
-      
+
       // Check if vault already exists
-      if (this.vaults.some(v => v.path === folderPath)) {
+      if (this.vaults.some((v) => v.path === folderPath)) {
         return false;
       }
-      
+
       // Add the vault
       const vaultName = path.basename(folderPath);
       const newVault: VaultConfig = {
         path: folderPath,
         name: vaultName,
         configVersion: '1.0',
-        lastSync: new Date()
+        lastSync: new Date(),
       };
-      
+
       this.vaults.push(newVault);
       await this.saveVaults();
       this.setupFileWatchers();
-      
+
       // Notify that a vault was added
       this._onVaultChanged.fire(newVault);
-      
+
       return true;
     } catch (error) {
       console.error('Error adding vault:', error);
-      throw error;
+      throw new Error(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -412,22 +420,22 @@ export class VaultIntegrationService {
    * @returns Promise that resolves to true if successful
    */
   public async removeVault(vaultPath: string): Promise<boolean> {
-    const vaultIndex = this.vaults.findIndex(v => v.path === vaultPath);
-    
+    const vaultIndex = this.vaults.findIndex((v) => v.path === vaultPath);
+
     if (vaultIndex === -1) {
       return false;
     }
-    
+
     const removedVault = this.vaults[vaultIndex];
     this.vaults.splice(vaultIndex, 1);
     await this.saveVaults();
     this.setupFileWatchers();
-    
+
     // Notify that a vault was removed
     if (removedVault) {
       this._onVaultChanged.fire(removedVault);
     }
-    
+
     return true;
   }
 
@@ -440,80 +448,85 @@ export class VaultIntegrationService {
   public async applyTagsToDocument(filePath: string, tags: string[]): Promise<boolean> {
     try {
       // Check if file is in an Obsidian vault
-      const matchingVault = this.vaults.find(vault => filePath.startsWith(vault.path));
-      
+      const matchingVault = this.vaults.find((vault) => filePath.startsWith(vault.path));
+
       if (!matchingVault) {
         return false;
       }
-      
+
       // For a simple implementation, we add front matter tags to the file
       // Read file content
       const content = await fs.promises.readFile(filePath, 'utf8');
-      
+
       // Check if file already has front matter
       const frontMatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
       const frontMatterMatch = frontMatterRegex.exec(content);
-      
+
       let newContent: string;
-      
+
       if (frontMatterMatch) {
         // File already has front matter, parse it
-        const frontMatter = frontMatterMatch[1] || '';
-        
+        const frontMatter = frontMatterMatch[1] ?? '';
+
         // Check if it already has tags
         const tagRegex = /^tags:\s*(\[.*?\]|\S.*)/m;
         const tagMatch = tagRegex.exec(frontMatter);
-        
+
         if (tagMatch?.[1]) {
           // Extract existing tags
           let existingTags: string[] = [];
-          
+
           // Try to parse as YAML array [tag1, tag2]
           if (tagMatch[1].startsWith('[')) {
             try {
-              existingTags = JSON.parse(tagMatch[1].replace(/'/g, '"'));
+              existingTags = JSON.parse(tagMatch[1].replace(/'/g, '"')) as string[];
             } catch {
               // If parsing fails, assume comma-separated values
-              existingTags = tagMatch[1].replace(/[\[\]']/g, '').split(',').map(tag => tag.trim());
+              existingTags = tagMatch[1]
+                .replace(/[\[\]']/g, '')
+                .split(',')
+                .map((tag) => tag.trim());
             }
           } else {
             // Space-separated tags
             existingTags = tagMatch[1].split(/\s+/);
           }
-          
+
           // Merge existing and new tags, ensuring no duplicates
           const mergedTags = [...new Set([...existingTags, ...tags])];
-          
+
           // Replace tags in front matter
           const updatedFrontMatter = frontMatter.replace(
-            tagRegex, 
-            `tags: [${mergedTags.map(tag => `'${tag}'`).join(', ')}]`
+            tagRegex,
+            `tags: [${mergedTags.map((tag) => `'${tag}'`).join(', ')}]`
           );
-          
+
           newContent = content.replace(frontMatterMatch[0], `---\n${updatedFrontMatter}\n---\n`);
         } else {
           // No tags in front matter, add them
-          const updatedFrontMatter = `${frontMatter}\ntags: [${tags.map(tag => `'${tag}'`).join(', ')}]`;
+          const updatedFrontMatter = `${frontMatter}\ntags: [${tags.map((tag) => `'${tag}'`).join(', ')}]`;
           newContent = content.replace(frontMatterMatch[0], `---\n${updatedFrontMatter}\n---\n`);
         }
       } else {
         // No front matter, add it
-        newContent = `---\ntags: [${tags.map(tag => `'${tag}'`).join(', ')}]\n---\n\n${content}`;
+        newContent = `---\ntags: [${tags.map((tag) => `'${tag}'`).join(', ')}]\n---\n\n${content}`;
       }
-      
+
       // Write updated content back to file
       await fs.promises.writeFile(filePath, newContent, 'utf8');
-      
+
       // Update sync status if we're tracking this file
       const relativePath = path.relative(matchingVault.path, filePath);
       if (this.syncStatus.has(relativePath)) {
-        const syncInfo = this.syncStatus.get(relativePath)!;
-        syncInfo.status = SyncStatus.Modified;
-        syncInfo.lastModifiedWorkspace = new Date();
-        this.syncStatus.set(relativePath, syncInfo);
-        this._onFileSynced.fire(syncInfo);
+        const syncInfo = this.syncStatus.get(relativePath);
+        if (syncInfo) {
+          syncInfo.status = SyncStatus.Modified;
+          syncInfo.lastModifiedWorkspace = new Date();
+          this.syncStatus.set(relativePath, syncInfo);
+          this._onFileSynced.fire(syncInfo);
+        }
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error applying tags to document:', error);
@@ -528,12 +541,12 @@ export class VaultIntegrationService {
     for (const disposable of this.disposables) {
       disposable.dispose();
     }
-    
+
     for (const watcher of this.fileWatchers) {
       watcher.dispose();
     }
-    
+
     this.disposables = [];
     this.fileWatchers = [];
   }
-} 
+}
