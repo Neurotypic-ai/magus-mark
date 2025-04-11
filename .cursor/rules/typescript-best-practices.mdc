@@ -32,7 +32,7 @@ alwaysApply: true
 
 - Use type-only imports to avoid runtime overhead (`import type`)
 - Favor named exports over default exports for better intellisense
-- Apply barrel files (index.ts) for clean public APIs
+- **NO index.ts Files**: Avoid using index.ts files except at the root of an entire package. Instead, use descriptive filenames that clearly indicate their purpose (e.g., use `commands.ts` instead of `commands/index.ts`).
 - Use path mapping for internal module references
 - Enforce import sorting and grouping:
   1. External packages
@@ -68,6 +68,10 @@ alwaysApply: true
 - Use ESLint with TypeScript Parser for consistent code style
 - Run type-checking as part of the linting process
 - Configure per-directory rule overrides when necessary
+- **Enforce file naming conventions**: 
+  - Prohibit naming files as index.ts except at package roots
+  - Enforce consistent file naming patterns
+  - Use custom ESLint rules like `no-barrel-files` to prevent creation of nested index.ts files
 
 ## Workspace Dependencies
 
@@ -136,9 +140,24 @@ alwaysApply: true
 ## Code Organization
 
 - Keep types close to their usage
-- Use barrel files (index.ts) sparingly and only when it improves organization
+- **NO index.ts Files**: Never use index.ts for subdirectories or components. Use descriptive filenames instead (e.g., `model.ts` rather than `model/index.ts`).
+- Use barrel files only at the root of packages for export organization, but never in subdirectories
 - Prefer interfaces for public APIs and type aliases for internal types
 - Use discriminated unions for complex state management
+
+## File Organization & Naming
+
+- **Flat Over Nested**: Prefer flat file structures with descriptive filenames over nested directories with index.ts files
+- **Descriptive Filenames**: Use clear, descriptive filenames that indicate the module's purpose
+- **One Component Per File**: Each file should contain exactly one primary export (exception for tightly coupled helpers)
+- **Group By Feature**: Organize files by feature or domain, not by technical role
+- **NO index.ts In Subdirectories**: Never use index.ts in subdirectories - this creates maintenance challenges:
+  - Makes it harder to trace imports in code editors
+  - Causes confusion when viewing directories in source control
+  - Creates unnecessary nesting and obfuscates the file structure
+  - Results in longer import paths and harder-to-read import statements
+- **Explicit Exports**: Always use explicit, named exports from specific files rather than re-exporting through index files
+- **Module Boundary**: Use package.json `exports` field to define public API boundaries instead of index.ts
 
 ## Error Handling
 
