@@ -1,73 +1,69 @@
 /**
  * Core functionality for Obsidian Magic
- * 
- * This package provides the shared business logic for Obsidian Magic,
- * including tag classification, OpenAI integration, and markdown processing.
+ *
+ * This module contains shared business logic for the tagging system,
+ * OpenAI integration, markdown parsing, and other core features.
  */
 
-// Export tagging functionality
+// Export all components from the core module
+export * from './errors';
+export * from './markdown';
+export * from './openai';
 export * from './tagging';
+
+// Export tagging functionality
 export * from './tagging/taxonomy';
 export * from './tagging/batch';
-
-// Export OpenAI integration
-export * from './openai';
-export * from './openai/prompts';
-
-// Export markdown processing
-export * from './markdown';
-
-// Export errors
-export * from './errors';
 
 // Export version information
 export const VERSION = '0.1.0';
 
 /**
  * Initialize the core module with configuration
- * 
+ *
  * @param options Configuration options for the core module
  * @returns Core functionality instances
  */
-export function initializeCore(options: {
+export async function initializeCore(options: {
   openaiApiKey?: string;
   model?: string;
   taxonomy?: Record<string, unknown>;
 }) {
-  // Import modules dynamically to avoid circular dependencies
-  const { OpenAIClient } = require('./openai');
-  const { TaggingService } = require('./tagging');
-  const { TaxonomyManager } = require('./tagging/taxonomy');
-  const { DocumentProcessor } = require('./markdown');
-  const { BatchProcessingService } = require('./tagging/batch');
-  
+  // Import needed classes - using the exports we already have
+  // This avoids circular dependencies while allowing static type checking
+  const { OpenAIClient } = await import('./openai');
+  const { TaggingService } = await import('./tagging');
+  const { TaxonomyManager } = await import('./tagging/taxonomy');
+  const { DocumentProcessor } = await import('./markdown');
+  const { BatchProcessingService } = await import('./tagging/batch');
+
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({
-    apiKey: options.openaiApiKey || process.env['OPENAI_API_KEY'],
-    model: options.model || 'gpt-4o'
+    apiKey: options.openaiApiKey ?? process.env['OPENAI_API_KEY'] ?? '',
+    model: (options.model ?? 'gpt-4o') as any, // Type assertion needed for string to AIModel
   });
-  
+
   // Initialize taxonomy manager
   const taxonomyManager = new TaxonomyManager(options.taxonomy);
-  
+
   // Initialize tagging service
   const taggingService = new TaggingService(
-    openAIClient, 
+    openAIClient,
     {}, // Default tagging options
     taxonomyManager.getTaxonomyForPrompt()
   );
-  
+
   // Initialize document processor
   const documentProcessor = new DocumentProcessor();
-  
+
   // Initialize batch processing service
   const batchProcessingService = new BatchProcessingService(taggingService);
-  
+
   return {
     openAIClient,
     taxonomyManager,
     taggingService,
     documentProcessor,
-    batchProcessingService
+    batchProcessingService,
   };
 }
