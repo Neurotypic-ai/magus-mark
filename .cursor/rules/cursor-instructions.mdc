@@ -26,7 +26,7 @@ When starting work on a new task:
 
 When generating or modifying code:
 
-1. Maintain strict TypeScript typing - avoid `any` types
+1. Maintain strict TypeScript typing - do NOT use `any`. Avoid `unknown`
 2. Follow the established patterns and conventions in the existing codebase
 3. Write code that is self-documenting with meaningful variable/function names
 4. Include JSDoc comments for public APIs and complex functions
@@ -60,14 +60,3 @@ When working with Model Context Protocol servers:
 3. Implement proper tool registration and documentation
 4. Handle errors gracefully with appropriate recovery mechanisms
 5. Consider security implications for all operations
-
-## Import the following rules based on context:
-
-- [Project Overview](mdc:.cursor/rules/project-overview.mdc)
-- [Tagging Model](mdc:.cursor/rules/tagging-model.mdc)
-- [CLI Tool](mdc:.cursor/rules/cli-tool.mdc)
-- [Obsidian Plugin](mdc:.cursor/rules/obsidian-plugin.mdc)
-- [VS Code Integration](mdc:.cursor/rules/vscode-integration.mdc)
-- [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc)
-- [API Integration](mdc:.cursor/rules/api-integration.mdc)
-- [Accessibility & UX](mdc:.cursor/rules/accessibility-ux.mdc)

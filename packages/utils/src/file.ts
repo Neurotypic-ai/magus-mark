@@ -36,7 +36,7 @@ export async function readFile(filePath: string): Promise<string> {
 export async function readJsonFile<T>(filePath: string, schema: z.ZodType<T>): Promise<T> {
   try {
     const fileContent = await readFile(filePath);
-    const parsedData = JSON.parse(fileContent);
+    const parsedData = JSON.parse(fileContent) as T;
     return schema.parse(parsedData);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -45,7 +45,7 @@ export async function readJsonFile<T>(filePath: string, schema: z.ZodType<T>): P
     if (error instanceof SyntaxError) {
       throw new Error(`Invalid JSON in ${filePath}: ${error.message}`);
     }
-    throw error;
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -69,7 +69,7 @@ export async function writeFile(filePath: string, content: string): Promise<void
  * @param data - Data to write
  * @param pretty - Whether to format the JSON (default: true)
  */
-export async function writeJsonFile<T>(filePath: string, data: T, pretty = true): Promise<void> {
+export async function writeJsonFile(filePath: string, data: unknown, pretty = true): Promise<void> {
   const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
 
   await writeFile(filePath, content);
@@ -142,6 +142,6 @@ export async function safeDeleteFile(filePath: string): Promise<boolean> {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return false;
     }
-    throw error;
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }

@@ -81,7 +81,7 @@ The project follows a monorepo structure:
 - Use TypeScript's type system effectively
 - Prefer interfaces for public APIs
 - Use union types for closed sets of values
-- Minimize use of `any` type
+- Do not use the `any` type
 - Document public APIs with JSDoc comments
 - Follow existing naming conventions
 

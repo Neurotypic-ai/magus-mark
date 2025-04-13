@@ -1,15 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DocumentTagService } from '../../src/services/DocumentTagService';
-import { EditorView } from '@codemirror/view';
+import type { EditorView } from '@codemirror/view';
+import type { TFile } from 'obsidian';
+import type { Mock } from 'vitest';
+import type ObsidianMagicPlugin from '../../src/main';
+
+// Define interface for mocking the plugin
+interface MockObsidianMagicPlugin {
+  app: {
+    vault: {
+      read: Mock;
+      modify: Mock;
+      on: Mock;
+    };
+    workspace: {
+      on: Mock;
+    };
+  };
+  registerEditorExtension: Mock;
+  registerEvent: Mock;
+  settings: {
+    enableAutoSync: boolean;
+  };
+  taggingService: {
+    processFile: Mock;
+  };
+}
+
+// Define a mock file type
+interface MockTFile {
+  path: string;
+  extension?: string;
+}
 
 describe('DocumentTagService', () => {
   let documentTagService: DocumentTagService;
   
-  const mockPlugin = {
+  const mockPlugin: MockObsidianMagicPlugin = {
     app: {
       vault: {
         read: vi.fn().mockResolvedValue('# Test Document\nHello world with #tag1 and #tag2'),
-        modify: vi.fn().mockResolvedValue(undefined)
+        modify: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
       },
       workspace: {
         on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
@@ -26,7 +58,7 @@ describe('DocumentTagService', () => {
   };
 
   beforeEach(() => {
-    documentTagService = new DocumentTagService(mockPlugin as any);
+    documentTagService = new DocumentTagService(mockPlugin as unknown as ObsidianMagicPlugin);
     vi.clearAllMocks();
   });
 
@@ -56,8 +88,9 @@ describe('DocumentTagService', () => {
   });
 
   it('should add a tag to frontmatter when frontmatter exists with tags', async () => {
-    const fileWithFrontmatter = {
-      path: 'test.md'
+    const fileWithFrontmatter: MockTFile = {
+      path: 'test.md',
+      extension: 'md'
     };
     
     mockPlugin.app.vault.read.mockResolvedValueOnce(`---
@@ -66,16 +99,27 @@ tags: [existing]
 ---
 # Content`);
 
-    await documentTagService.addTagToFrontmatter(fileWithFrontmatter as any, 'newtag');
+    await documentTagService.addTagToFrontmatter(fileWithFrontmatter as unknown as TFile, 'newtag');
     
     expect(mockPlugin.app.vault.modify).toHaveBeenCalled();
-    const modifiedContent = mockPlugin.app.vault.modify.mock.calls[0][1];
-    expect(modifiedContent).toContain('tags: [existing, newtag]');
+    
+    // Type the calls array explicitly
+    const calls = mockPlugin.app.vault.modify.mock.calls as unknown[][];
+    expect(calls.length).toBeGreaterThan(0);
+    
+    // Safely access the content with type guard
+    const callArg = calls[0]?.[1];
+    if (typeof callArg !== 'string') {
+      throw new Error('Expected second argument to be a string');
+    }
+    
+    expect(callArg).toContain('tags: [existing, newtag]');
   });
   
   it('should add a tag to frontmatter when frontmatter exists without tags', async () => {
-    const fileWithFrontmatter = {
-      path: 'test.md'
+    const fileWithFrontmatter: MockTFile = {
+      path: 'test.md',
+      extension: 'md'
     };
     
     mockPlugin.app.vault.read.mockResolvedValueOnce(`---
@@ -83,24 +127,45 @@ title: Test
 ---
 # Content`);
 
-    await documentTagService.addTagToFrontmatter(fileWithFrontmatter as any, 'newtag');
+    await documentTagService.addTagToFrontmatter(fileWithFrontmatter as unknown as TFile, 'newtag');
     
     expect(mockPlugin.app.vault.modify).toHaveBeenCalled();
-    const modifiedContent = mockPlugin.app.vault.modify.mock.calls[0][1];
-    expect(modifiedContent).toContain('tags: [newtag]');
+    
+    // Type the calls array explicitly
+    const calls = mockPlugin.app.vault.modify.mock.calls as unknown[][];
+    expect(calls.length).toBeGreaterThan(0);
+    
+    // Safely access the content with type guard
+    const callArg = calls[0]?.[1];
+    if (typeof callArg !== 'string') {
+      throw new Error('Expected second argument to be a string');
+    }
+    
+    expect(callArg).toContain('tags: [newtag]');
   });
   
   it('should add frontmatter with tag when no frontmatter exists', async () => {
-    const fileWithoutFrontmatter = {
-      path: 'test.md'
+    const fileWithoutFrontmatter: MockTFile = {
+      path: 'test.md',
+      extension: 'md'
     };
     
     mockPlugin.app.vault.read.mockResolvedValueOnce('# Content without frontmatter');
 
-    await documentTagService.addTagToFrontmatter(fileWithoutFrontmatter as any, 'newtag');
+    await documentTagService.addTagToFrontmatter(fileWithoutFrontmatter as unknown as TFile, 'newtag');
     
     expect(mockPlugin.app.vault.modify).toHaveBeenCalled();
-    const modifiedContent = mockPlugin.app.vault.modify.mock.calls[0][1];
-    expect(modifiedContent).toContain('---\ntags: [newtag]\n---');
+    
+    // Type the calls array explicitly
+    const calls = mockPlugin.app.vault.modify.mock.calls as unknown[][];
+    expect(calls.length).toBeGreaterThan(0);
+    
+    // Safely access the content with type guard
+    const callArg = calls[0]?.[1];
+    if (typeof callArg !== 'string') {
+      throw new Error('Expected second argument to be a string');
+    }
+    
+    expect(callArg).toContain('---\ntags: [newtag]\n---');
   });
 }); 

@@ -1,9 +1,39 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WorkspaceLeaf, MetadataCache, Vault, Workspace } from 'obsidian';
+import type { Mock } from 'vitest';
 
 import { TagVisualizationView } from '../../src/ui/TagVisualizationView';
+import type ObsidianMagicPlugin from '../../src/main';
+
+interface MockedWorkspaceLeaf {
+  containerEl: {
+    children: {
+      empty?: () => void;
+      createEl?: (tagName: string, options?: Record<string, unknown>) => unknown;
+      createDiv?: (className?: string) => {
+        createEl: (tagName: string, options?: Record<string, unknown>) => { addEventListener: Mock };
+        createSpan: () => { setText: Mock; addClass: Mock };
+        setText: Mock;
+        addClass: Mock;
+      };
+    }[];
+  };
+}
+
+// Create a type for our test subject that exposes private methods for testing
+type TestableTagVisualizationView = TagVisualizationView & {
+  buildTagGraph: () => { 
+    nodes: { id: string; label: string; count: number }[]; 
+    links: { source: string; target: string; weight: number }[] 
+  };
+  setupVisualization: () => void;
+  getAllTags: () => { id: string; name: string; count: number; files: string[] }[];
+  filterVisualization: (filter: string) => void;
+  updateVisualization: () => void;
+};
 
 // Mock WorkspaceLeaf
-const mockLeaf = {
+const mockLeaf: Partial<MockedWorkspaceLeaf> = {
   containerEl: {
     children: [
       {}, // First child (typically header)
@@ -12,15 +42,12 @@ const mockLeaf = {
         empty: vi.fn(),
         createEl: vi.fn().mockReturnThis(),
         createDiv: vi.fn().mockReturnValue({
-          createEl: vi.fn().mockReturnThis(),
-          createDiv: vi.fn().mockReturnValue({
-            createEl: vi.fn().mockReturnValue({
-              addEventListener: vi.fn(),
-            }),
-            createSpan: vi.fn().mockReturnThis(),
-            setText: vi.fn(),
-            addClass: vi.fn().mockReturnThis(),
+          createEl: vi.fn().mockReturnValue({
+            addEventListener: vi.fn(),
           }),
+          createSpan: vi.fn().mockReturnThis(),
+          setText: vi.fn(),
+          addClass: vi.fn().mockReturnThis(),
         }),
       },
     ],
@@ -65,8 +92,9 @@ vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((contextI
 });
 
 describe('TagVisualizationView', () => {
-  let view: TagVisualizationView;
+  let view: TestableTagVisualizationView;
 
+  // Using Partial for the mocks
   const mockPlugin = {
     app: {
       metadataCache: {
@@ -75,19 +103,19 @@ describe('TagVisualizationView', () => {
           tags: [{ tag: '#inline-tag', position: { start: { line: 5 } } }],
         }),
         on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-      },
+      } as unknown as Partial<MetadataCache>,
       vault: {
         getMarkdownFiles: vi.fn().mockReturnValue([{ path: 'note1.md' }, { path: 'note2.md' }]),
-      },
+      } as unknown as Partial<Vault>,
       workspace: {
         on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-      },
+      } as unknown as Partial<Workspace>,
     },
-  };
+  } as unknown as ObsidianMagicPlugin;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    view = new TagVisualizationView(mockLeaf as any, mockPlugin as any);
+    view = new TagVisualizationView(mockLeaf as unknown as WorkspaceLeaf, mockPlugin) as TestableTagVisualizationView;
   });
 
   it('should return the correct view type', () => {
@@ -104,7 +132,7 @@ describe('TagVisualizationView', () => {
 
   it('should render the view on open', async () => {
     // Mock the visualization methods
-    vi.spyOn(view as any, 'buildTagGraph').mockReturnValue({
+    vi.spyOn(view, 'buildTagGraph').mockReturnValue({
       nodes: [
         { id: 'tag1', label: '#tag1', count: 3 },
         { id: 'tag2', label: '#tag2', count: 1 },
@@ -112,23 +140,28 @@ describe('TagVisualizationView', () => {
       links: [{ source: 'tag1', target: 'tag2', weight: 1 }],
     });
 
-    vi.spyOn(view as any, 'setupVisualization').mockImplementation(() => {});
+    vi.spyOn(view, 'setupVisualization').mockImplementation(() => {
+      // Empty implementation for the test
+      return;
+    });
 
     await view.onOpen();
 
-    const container = mockLeaf.containerEl.children[1];
-    expect(container.empty).toHaveBeenCalled();
-    expect(container.createEl).toHaveBeenCalledWith('h2', { text: 'Tag Visualization' });
+    const container = mockLeaf.containerEl?.children[1];
+    if (container) {
+      expect(container.empty).toHaveBeenCalled();
+      expect(container.createEl).toHaveBeenCalledWith('h2', { text: 'Tag Visualization' });
+    }
   });
 
   it('should build tag graph from vault data', () => {
     // Mock the getAllTags method
-    vi.spyOn(view as any, 'getAllTags').mockReturnValue([
+    vi.spyOn(view, 'getAllTags').mockReturnValue([
       { id: 'tag-1', name: '#tag1', count: 3, files: ['note1.md', 'note2.md'] },
       { id: 'tag-2', name: '#tag2', count: 1, files: ['note1.md'] },
     ]);
 
-    const graph = view['buildTagGraph']();
+    const graph = view.buildTagGraph();
 
     expect(graph).toHaveProperty('nodes');
     expect(graph).toHaveProperty('links');
@@ -137,7 +170,7 @@ describe('TagVisualizationView', () => {
 
   it('should handle filtering the visualization', () => {
     // Mock required methods
-    vi.spyOn(view as any, 'buildTagGraph').mockReturnValue({
+    vi.spyOn(view, 'buildTagGraph').mockReturnValue({
       nodes: [
         { id: 'tag1', label: '#tag1', count: 3 },
         { id: 'tag2', label: '#tag2', count: 1 },
@@ -145,12 +178,15 @@ describe('TagVisualizationView', () => {
       links: [{ source: 'tag1', target: 'tag2', weight: 1 }],
     });
 
-    vi.spyOn(view as any, 'updateVisualization').mockImplementation(() => {});
+    vi.spyOn(view, 'updateVisualization').mockImplementation(() => {
+      // Empty implementation for visualization update in tests
+      return;
+    });
 
     // Call the filter method
-    view['filterVisualization']('tag1');
+    view.filterVisualization('tag1');
 
     // Expect updateVisualization to be called with filtered data
-    expect(view['updateVisualization']).toHaveBeenCalled();
+    expect(view.updateVisualization).toHaveBeenCalled();
   });
 });

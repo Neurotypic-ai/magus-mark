@@ -184,17 +184,17 @@ The CLI handles errors during batch processing:
 ```typescript
 import { AppError, Result } from '@obsidian-magic/core';
 
-type BatchResult = {
+interface BatchResult {
   results: ProcessResult[];
-  errors: Array<{ file: string; error: AppError }>;
+  errors: { file: string; error: AppError }[];
   success: number;
   failed: number;
   total: number;
-};
+}
 
 async function processBatch(files: string[], options: ProcessOptions): Promise<BatchResult> {
   const results: ProcessResult[] = [];
-  const errors: Array<{ file: string; error: AppError }> = [];
+  const errors: { file: string; error: AppError }[] = [];
 
   for (const file of files) {
     const result = await safelyProcessFile(file, options);
@@ -270,11 +270,11 @@ import fs from 'fs-extra';
 
 interface SessionState {
   id: string;
-  queue: Array<{
+  queue: {
     file: string;
     status: 'pending' | 'processing' | 'completed' | 'failed';
     error?: string;
-  }>;
+  }[];
   startedAt: string;
   lastUpdated: string;
 }

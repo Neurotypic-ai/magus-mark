@@ -1,15 +1,4 @@
 {
-  "name": "@obsidian-magic/utils",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc -b",
-    "clean": "rm -rf dist",
-    "test": "vitest run"
-  },
   "dependencies": {
     "@obsidian-magic/types": "workspace:*",
     "fs-extra": "^11.3.0",
@@ -17,8 +6,19 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^22.14.0",
+    "@types/node": "^22.14.1",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
-  }
+  },
+  "main": "dist/index.js",
+  "name": "@obsidian-magic/utils",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "version": "0.1.0"
 }

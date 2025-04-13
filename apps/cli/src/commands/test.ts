@@ -80,7 +80,7 @@ export const testCommand: CommandModule = {
 
       // Parse models
       const modelsArg = (argv['models'] as string) ?? 'gpt-3.5-turbo';
-      const models = modelsArg.split(',').map((m) => m.trim()) as AIModel[];
+      const models = modelsArg.split(',').map((m) => m.trim());
 
       if (models.length === 0) {
         logger.error('No models specified. Use --models option to specify models to test.');

@@ -14,7 +14,7 @@ const config = {
   tabWidth: 2,
   trailingComma: 'es5',
   useTabs: false,
-  plugins: ['@ianvs/prettier-plugin-sort-imports', 'prettier-plugin-sql', 'prettier-plugin-tailwindcss'],
+  plugins: ['@ianvs/prettier-plugin-sort-imports'],
 
   // Import sorting configuration
   importOrder: [
@@ -24,7 +24,7 @@ const config = {
     '',
     '<THIRD_PARTY_MODULES>',
     '',
-    '^@neurotypicai/(.*)$',
+    '^@obsidian-magic/(.*)$',
     '',
     '^(#app|#tests|@/icon-name)(/.*)$',
     '',
@@ -40,12 +40,6 @@ const config = {
   importOrderCaseSensitive: true,
   importOrderParserPlugins: ['typescript', 'jsx', 'decorators-legacy'],
 
-  // SQL Plugin configuration
-  formatter: 'sql-formatter',
-  keywordCase: 'upper',
-  identifierCase: 'lower',
-  language: 'postgresql',
-
   overrides: [
     {
       files: ['*.json', '*.code-workspace'],
@@ -58,4 +52,3 @@ const config = {
   ],
 };
 export default config;
-

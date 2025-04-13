@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KeyManager } from '../../src/services/KeyManager';
+import type ObsidianMagicPlugin from '../../src/main';
 
 // Mock electron for testing secure storage
 vi.mock('electron', () => {
@@ -34,7 +35,7 @@ describe('KeyManager', () => {
   };
 
   beforeEach(() => {
-    keyManager = new KeyManager(mockPlugin as any);
+    keyManager = new KeyManager(mockPlugin as unknown as ObsidianMagicPlugin);
     vi.clearAllMocks();
   });
 

@@ -1,3 +1,105 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "eslint.codeActionsOnSave.mode": "problems",
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/.git": true,
+    "**/.hg": true,
+    "**/.svn": true,
+    "**/CVS": true,
+    "**/Thumbs.db": true
+  },
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/coverage/**": true,
+    "**/dist/**": true,
+    "**/documentation/**": true,
+    "**/node_modules/**": true,
+    "**/out/**": true,
+    "**/public/build/**": true
+  },
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "js/ts.implicitProjectConfig.experimentalDecorators": true,
+  "js/ts.implicitProjectConfig.module": "ESNext",
+  "js/ts.implicitProjectConfig.target": "ESNext",
+  "json.format.keepLines": true,
+  "json.schemas": [
+    {
+      "fileMatch": ["./nx.json"],
+      "url": "node_modules/nx/schemas/nx-schema.json"
+    },
+    {
+      "fileMatch": ["**/project.json"],
+      "url": "node_modules/nx/schemas/project-schema.json"
+    },
+    {
+      "fileMatch": ["**/tsconfig.*.json"],
+      "url": "https://json.schemastore.org/tsconfig"
+    }
+  ],
+  "search.exclude": {
+    "**/.*": true,
+    "**/bower_components": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/dist": true,
+    "**/documentation": true,
+    "**/node_modules": true
+  },
+  "typescript.check.npmIsInstalled": false,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "@radix-ui/**",
+    "node:console",
+    "node:stream/consumers",
+    "node:test",
+    "react-router-dom"
+  ],
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.surveys.enabled": false,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.tsserver.watchOptions": {
+    "excludeDirectories": [
+      "**/node_modules/**/*",
+      "**/build/**/*",
+      "**/dist/**/*",
+      "**/out/**/*",
+      "**/coverage/**/*",
+      "**/documentation/**/*",
+      "**/public/build/**/*"
+    ],
+    "watchDirectory": "useFsEvents",
+    "watchFile": "useFsEvents"
+  },
+  "typescript.workspaceSymbols.excludeLibrarySymbols": false,
+  "typescript.workspaceSymbols.scope": "allOpenProjects",
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#47395f",
+    "activityBar.background": "#47395f",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#000000",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#47395f",
+    "statusBar.background": "#2f263f",
+    "statusBar.debuggingBackground": "#363f26",
+    "statusBar.debuggingForeground": "#e7e7e7",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#47395f",
+    "statusBarItem.remoteBackground": "#2f263f",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#2f263f",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#2f263f99",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#2f263f",
+  "eslint.lintTask.enable": true,
+  "eslint.useESLintClass": true,
+  "eslint.useFlatConfig": true
 }

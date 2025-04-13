@@ -62,12 +62,17 @@ export class OpenAIClient {
    * Complete a prompt
    */
   public complete(prompt: string): Promise<{ choices: { message: { content: string } }[] }> {
-    // Mock implementation that uses the prompt parameter
+    // Validate API key is set
+    if (!this.apiKey) {
+      throw new Error('API key is not set');
+    }
+
+    // Include model info in mock response
     return Promise.resolve({
       choices: [
         {
           message: {
-            content: `This is a mock response for prompt: ${prompt.substring(0, 20)}...`,
+            content: `This is a mock response using ${String(this.model)} for prompt: ${prompt.substring(0, 20)}...`,
           },
         },
       ],
@@ -105,10 +110,15 @@ export class TaggingService {
       code: string;
       recoverable: boolean;
     };
+    modelUsed: AIModel;
   }> {
     try {
       // Simulate API call with delay
       await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Use the client to generate a prompt response
+      const prompt = `Tag the following content: ${document.content.substring(0, 50)}...`;
+      await this.client.complete(prompt);
 
       // Generate mock tags based on content
       const content = document.content.toLowerCase();
@@ -135,21 +145,30 @@ export class TaggingService {
         tags.push('general', 'misc');
       }
 
+      // Filter tags based on confidence threshold
+      const filteredTags = confidence >= this.minConfidence ? tags : [];
+
       // Merge with existing tags if appropriate
       if (this.behavior === 'merge' && document.existingTags) {
-        const allTags = new Set([...tags, ...document.existingTags]);
+        const allTags = new Set([...filteredTags, ...document.existingTags]);
         return {
           success: true,
           tags: Array.from(allTags),
           confidence,
+          modelUsed: this.model,
         };
       }
+
+      // Determine if review is needed based on threshold
+      const needsReview = confidence < this.reviewThreshold;
 
       // Return generated tags
       return {
         success: true,
-        tags,
+        tags: filteredTags,
         confidence,
+        modelUsed: this.model,
+        ...(needsReview ? { needsReview: true } : {}),
       };
     } catch (error) {
       return {
@@ -159,6 +178,7 @@ export class TaggingService {
           code: 'TAGGING_ERROR',
           recoverable: true,
         },
+        modelUsed: this.model,
       };
     }
   }

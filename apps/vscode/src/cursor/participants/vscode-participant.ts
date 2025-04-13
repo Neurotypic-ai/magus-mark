@@ -30,6 +30,12 @@ interface MetadataWithTitleCategory {
   category?: string | undefined;
 }
 
+// Storage keys
+const STORAGE_KEYS = {
+  SETTINGS_CACHE: 'vscodeParticipant.settingsCache',
+  COMMANDS_CACHE: 'vscodeParticipant.commandsCache',
+};
+
 /**
  * @vscode participant implementation for Obsidian Magic's Cursor integration
  * Based on Cursor's Model Context Protocol specification
@@ -38,15 +44,66 @@ export class VSCodeParticipant implements vscode.Disposable {
   private readonly tools = new Map<string, Tool>();
   private readonly settingsCache = new Map<string, SettingMetadata>();
   private readonly commandsCache = new Map<string, ExtendedCommand>();
-  private disposables: vscode.Disposable[] = [];
 
   constructor(
     // Used for context storage and to register disposables
     private readonly context: vscode.ExtensionContext
   ) {
     this.registerTools();
-    void this.cacheSettings();
-    void this.cacheCommands();
+    
+    // Try to restore cached data from storage
+    this.restoreCachedData();
+    
+    // Cache fresh data and store it
+    void this.cacheSettings().then(() => { this.storeCachedData(); });
+    void this.cacheCommands().then(() => { this.storeCachedData(); });
+    
+    // Register a disposable for the participant
+    this.context.subscriptions.push(this);
+  }
+
+  /**
+   * Store cached data in extension storage
+   */
+  private storeCachedData(): void {
+    try {
+      // Convert Map to serializable object
+      const settingsObj = Object.fromEntries(this.settingsCache.entries());
+      const commandsObj = Object.fromEntries(this.commandsCache.entries());
+      
+      // Store in global state (persists across sessions)
+      this.context.globalState.update(STORAGE_KEYS.SETTINGS_CACHE, settingsObj);
+      this.context.globalState.update(STORAGE_KEYS.COMMANDS_CACHE, commandsObj);
+    } catch (error) {
+      console.error('Failed to store cached data:', error);
+    }
+  }
+
+  /**
+   * Restore cached data from extension storage
+   */
+  private restoreCachedData(): void {
+    try {
+      // Get stored data
+      const storedSettings = this.context.globalState.get<Record<string, SettingMetadata>>(STORAGE_KEYS.SETTINGS_CACHE);
+      const storedCommands = this.context.globalState.get<Record<string, ExtendedCommand>>(STORAGE_KEYS.COMMANDS_CACHE);
+      
+      // Restore settings cache
+      if (storedSettings) {
+        Object.entries(storedSettings).forEach(([key, value]) => {
+          this.settingsCache.set(key, value);
+        });
+      }
+      
+      // Restore commands cache
+      if (storedCommands) {
+        Object.entries(storedCommands).forEach(([key, value]) => {
+          this.commandsCache.set(key, value);
+        });
+      }
+    } catch (error) {
+      console.error('Failed to restore cached data:', error);
+    }
   }
 
   /**
@@ -56,13 +113,6 @@ export class VSCodeParticipant implements vscode.Disposable {
     this.tools.set('vscodeSettings', this.createSettingsTool());
     this.tools.set('vscodeCommands', this.createCommandsTool());
     this.tools.set('vscodeDocumentation', this.createDocumentationTool());
-  }
-
-  /**
-   * Initialize all @vscode participant tools
-   */
-  private initializeTools(): void {
-    this.registerTools();
   }
 
   /**
@@ -112,9 +162,13 @@ export class VSCodeParticipant implements vscode.Disposable {
         // Sort by match score
         results.sort((a, b) => b.matchScore - a.matchScore);
 
-        // Return top matches, removing the matchScore property
+        // Return top matches, removing the matchScore property (used only for sorting)
         return Promise.resolve({
-          settings: results.slice(0, 10).map(({ matchScore, ...rest }) => rest),
+          settings: results.slice(0, 10).map(item => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { matchScore, ...rest } = item;
+            return rest;
+          }),
         });
       },
     };
@@ -181,9 +235,13 @@ export class VSCodeParticipant implements vscode.Disposable {
           }
         }
 
-        // Return results, removing matchScore property
+        // Return results, removing matchScore property (used only for sorting)
         return {
-          commands: results.slice(0, 10).map(({ matchScore, ...rest }) => rest),
+          commands: results.slice(0, 10).map(item => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { matchScore, ...rest } = item;
+            return rest;
+          }),
           executed,
         };
       },
@@ -321,7 +379,7 @@ export class VSCodeParticipant implements vscode.Disposable {
   private cacheCommands(): Promise<void> {
     try {
       // In a real implementation, we would get these from the VS Code API
-      // For now, we'll use a small set of common commands as an example
+      // using vscode.commands.getCommands() and then getting details
       const commonCommands = [
         {
           command: 'workbench.action.openSettings',
@@ -465,12 +523,10 @@ export class VSCodeParticipant implements vscode.Disposable {
    * Dispose of resources when extension is deactivated
    */
   public dispose(): void {
-    this.disposables.forEach((d) => {
-      d.dispose();
-    });
-    this.disposables = [];
-    this.settingsCache.clear();
-    this.commandsCache.clear();
+    // Store cached data before disposal
+    this.storeCachedData();
+    
+    // Nothing else to dispose as all disposables are handled by context.subscriptions
   }
 }
 

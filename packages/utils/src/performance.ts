@@ -8,9 +8,9 @@
  * @param args - Arguments to pass to the function
  * @returns Result of the function and time taken in milliseconds
  */
-export async function measureExecutionTime<T>(
-  fn: (...args: any[]) => Promise<T>,
-  ...args: any[]
+export async function measureExecutionTime<T, Args extends unknown[]>(
+  fn: (...args: Args) => Promise<T>,
+  ...args: Args
 ): Promise<{ result: T; timeTaken: number }> {
   const start = performance.now();
   const result = await fn(...args);
@@ -26,9 +26,9 @@ export async function measureExecutionTime<T>(
  * @param args - Arguments to pass to the function
  * @returns Result of the function and time taken in milliseconds
  */
-export function measureExecutionTimeSync<T>(
-  fn: (...args: any[]) => T,
-  ...args: any[]
+export function measureExecutionTimeSync<T, Args extends unknown[]>(
+  fn: (...args: Args) => T,
+  ...args: Args
 ): { result: T; timeTaken: number } {
   const start = performance.now();
   const result = fn(...args);
@@ -44,7 +44,10 @@ export function measureExecutionTimeSync<T>(
  * @param delay - Delay in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: unknown[]) => void>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout | null = null;
 
   return function (...args: Parameters<T>): void {
@@ -65,7 +68,10 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, delay: numbe
  * @param limit - Time limit in milliseconds
  * @returns Throttled function
  */
-export function throttle<T extends (...args: any[]) => void>(fn: T, limit: number): (...args: Parameters<T>) => void {
+export function throttle<T extends (...args: unknown[]) => void>(
+  fn: T,
+  limit: number
+): (...args: Parameters<T>) => void {
   let lastCall = 0;
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -75,8 +81,8 @@ export function throttle<T extends (...args: any[]) => void>(fn: T, limit: numbe
     if (now - lastCall >= limit) {
       fn(...args);
       lastCall = now;
-    } else if (!timeoutId) {
-      timeoutId = setTimeout(
+    } else {
+      timeoutId ??= setTimeout(
         () => {
           fn(...args);
           lastCall = Date.now();
@@ -93,17 +99,18 @@ export function throttle<T extends (...args: any[]) => void>(fn: T, limit: numbe
  * @param fn - Function to memoize
  * @returns Memoized function
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T): (...args: Parameters<T>) => ReturnType<T> {
+export function memoize<T extends (...args: unknown[]) => unknown>(fn: T): (...args: Parameters<T>) => ReturnType<T> {
   const cache = new Map<string, ReturnType<T>>();
 
   return function (...args: Parameters<T>): ReturnType<T> {
     const key = JSON.stringify(args);
 
-    if (cache.has(key)) {
-      return cache.get(key)!;
+    const cachedResult = cache.get(key);
+    if (cachedResult !== undefined) {
+      return cachedResult;
     }
 
-    const result = fn(...args);
+    const result = fn(...args) as ReturnType<T>;
     cache.set(key, result);
     return result;
   };
@@ -128,7 +135,8 @@ export async function runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], co
         results[taskIndex] = result;
       }
     } catch (error) {
-      results[taskIndex] = error as any;
+      // Store error in results array at the corresponding index
+      results[taskIndex] = error as T;
     }
   }
 
@@ -139,7 +147,7 @@ export async function runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], co
       inProgress.add(taskPromise);
 
       // Remove the task from in-progress when it completes
-      taskPromise.then(() => {
+      void taskPromise.then(() => {
         inProgress.delete(taskPromise);
       });
 
@@ -161,9 +169,9 @@ export async function runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], co
  * @param args - Arguments to pass to the function
  * @returns Result of the function and memory statistics
  */
-export async function measureMemoryUsage<T>(
-  fn: (...args: any[]) => Promise<T>,
-  ...args: any[]
+export async function measureMemoryUsage<T, Args extends unknown[]>(
+  fn: (...args: Args) => Promise<T>,
+  ...args: Args
 ): Promise<{
   result: T;
   memoryStats: { before: NodeJS.MemoryUsage; after: NodeJS.MemoryUsage; diff: Record<string, number> };

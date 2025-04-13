@@ -33,8 +33,8 @@ export function toKebabCase(text: string): string {
  */
 export function toCamelCase(text: string): string {
   return text
-    .replace(/[^a-zA-Z0-9]+(.)/g, (_, char) => char.toUpperCase())
-    .replace(/^[A-Z]/, (firstChar) => firstChar.toLowerCase());
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_match: string, char: string) => char.toUpperCase())
+    .replace(/^[A-Z]/, (firstChar: string) => firstChar.toLowerCase());
 }
 
 /**
@@ -129,14 +129,14 @@ export function formatDuration(ms: number): string {
   if (minutes < 60) {
     const fullMinutes = Math.floor(minutes);
     const remainingSeconds = seconds - fullMinutes * 60;
-    return `${fullMinutes}m ${remainingSeconds.toFixed(0)}s`;
+    return `${fullMinutes.toString()}m ${remainingSeconds.toFixed(0)}s`;
   }
 
   const hours = minutes / 60;
   const fullHours = Math.floor(hours);
   const remainingMinutes = Math.floor(minutes - fullHours * 60);
   const remainingSeconds = Math.floor(seconds - fullHours * 3600 - remainingMinutes * 60);
-  return `${fullHours}h ${remainingMinutes}m ${remainingSeconds}s`;
+  return `${fullHours.toString()}h ${remainingMinutes.toString()}m ${remainingSeconds.toString()}s`;
 }
 
 /**

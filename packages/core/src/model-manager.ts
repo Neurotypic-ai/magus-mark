@@ -7,6 +7,50 @@ import { getAvailableModels, getModelPricing, getRecommendedModel } from './open
 import type { ModelPricing } from './openai-models';
 
 /**
+ * Model validation options
+ */
+export interface ModelValidationOptions {
+  /**
+   * Whether to verify model availability with API
+   */
+  verifyWithApi?: boolean;
+  /**
+   * Whether to throw an error if validation fails
+   */
+  throwOnInvalid?: boolean;
+  /**
+   * Whether to return a fallback model if the requested one is not available
+   */
+  useFallback?: boolean;
+}
+
+/**
+ * Model validation result
+ */
+export interface ModelValidationResult {
+  /**
+   * Whether the model is valid
+   */
+  valid: boolean;
+  /**
+   * Model ID to use
+   */
+  modelId: string;
+  /**
+   * Error message if validation failed
+   */
+  errorMessage?: string;
+  /**
+   * Whether the model was checked against the API
+   */
+  verifiedWithApi: boolean;
+  /**
+   * Whether a fallback model was used
+   */
+  usedFallback: boolean;
+}
+
+/**
  * Cached model information to prevent repeated API calls
  */
 interface ModelCache {
@@ -36,6 +80,108 @@ export class ModelManager {
   public static getInstance(): ModelManager {
     ModelManager.instance ??= new ModelManager();
     return ModelManager.instance;
+  }
+
+  /**
+   * Validate a model ID
+   * @param modelId Model ID to validate
+   * @param apiKey OpenAI API key
+   * @param options Validation options
+   * @returns Validation result
+   */
+  public async validateModel(
+    modelId: string,
+    apiKey?: string,
+    options: ModelValidationOptions = {}
+  ): Promise<ModelValidationResult> {
+    const { verifyWithApi = true, throwOnInvalid = false, useFallback = true } = options;
+
+    // If no model specified, return invalid
+    if (!modelId) {
+      const result: ModelValidationResult = {
+        valid: false,
+        modelId: '',
+        errorMessage: 'No model ID provided',
+        verifiedWithApi: false,
+        usedFallback: false,
+      };
+
+      if (throwOnInvalid) {
+        throw new Error(result.errorMessage);
+      }
+
+      return result;
+    }
+
+    // If not verifying with API, return valid
+    if (!verifyWithApi || !apiKey) {
+      return {
+        valid: true,
+        modelId,
+        verifiedWithApi: false,
+        usedFallback: false,
+      };
+    }
+
+    try {
+      // Check if model is available
+      const isAvailable = await this.isModelAvailable(apiKey, modelId);
+
+      if (isAvailable) {
+        return {
+          valid: true,
+          modelId,
+          verifiedWithApi: true,
+          usedFallback: false,
+        };
+      }
+
+      // If model is not available, try to get a fallback
+      if (useFallback) {
+        const fallbackModel = await this.getBestAvailableModel(apiKey, modelId);
+
+        if (fallbackModel) {
+          return {
+            valid: true,
+            modelId: fallbackModel,
+            errorMessage: `Model '${modelId}' not available, using fallback model '${fallbackModel}'`,
+            verifiedWithApi: true,
+            usedFallback: true,
+          };
+        }
+      }
+
+      // No fallback available
+      const result: ModelValidationResult = {
+        valid: false,
+        modelId,
+        errorMessage: `Model '${modelId}' not available${useFallback ? ' and no fallback models available' : ''}`,
+        verifiedWithApi: true,
+        usedFallback: false,
+      };
+
+      if (throwOnInvalid) {
+        throw new Error(result.errorMessage);
+      }
+
+      return result;
+    } catch (error) {
+      // Error during validation
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const result: ModelValidationResult = {
+        valid: false,
+        modelId,
+        errorMessage: `Error validating model: ${errorMessage}`,
+        verifiedWithApi: false,
+        usedFallback: false,
+      };
+
+      if (throwOnInvalid) {
+        throw error instanceof Error ? error : new Error(errorMessage);
+      }
+
+      return result;
+    }
   }
 
   /**

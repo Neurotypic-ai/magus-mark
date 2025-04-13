@@ -1,36 +1,12 @@
 {
-  "name": "obsidian-magic",
-  "version": "0.1.0",
-  "private": true,
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
-  "author": "Kevin Hallmark <kevin.hallmark@littleblackhat.com>",
-  "license": "MIT",
-  "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
-  },
-  "type": "module",
-  "packageManager": "pnpm@10.8.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "build": "tsc -b",
-    "clean": "tsc -b --clean",
-    "dev": "tsc -b --watch",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "test": "pnpm -r test"
-  },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@eslint/markdown": "^6.3.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@types/eslint-plugin-jsx-a11y": "^6.10.0",
-    "@types/node": "^22.14.0",
-    "@types/update-notifier": "^6.0.8",
-    "@types/ws": "^8.18.1",
+    "@types/node": "^22.14.1",
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "@typescript-eslint/parser": "^8.29.1",
     "@typescript-eslint/utils": "^8.29.1",
@@ -44,14 +20,29 @@
     "eslint-plugin-testing-library": "^7.1.1",
     "globals": "^16.0.0",
     "prettier": "^3.5.3",
-    "prettier-plugin-sql": "^0.19.0",
-    "prettier-plugin-tailwindcss": "^0.6.11",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.29.1",
-    "update-notifier": "^7.3.1",
-    "ws": "^8.18.1"
+    "typescript-eslint": "^8.29.1"
   },
-  "dependencies": {
-    "@inquirer/prompts": "^7.4.1"
-  }
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "license": "MIT",
+  "name": "obsidian-magic",
+  "packageManager": "pnpm@10.8.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "dev": "tsc -b --watch",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "test": "pnpm -r test"
+  },
+  "type": "module",
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

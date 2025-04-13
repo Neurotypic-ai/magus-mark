@@ -1247,7 +1247,7 @@ For the tag configurations and domain hierarchies, use TypeScript for type safet
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Domain } from '@types/domains';
+import type { Domain } from '@types/domains';
 
 // src/types/domains.ts
 export interface Domain {
@@ -2047,7 +2047,7 @@ The MCP server enables sophisticated AI workflows that bridge development and kn
    // Example context window management
    class ContextWindowManager {
      private priorityQueue: ContextItem[] = [];
-     private tokenBudget: number = 16000;
+     private tokenBudget = 16000;
 
      addCodebaseContext(files: string[]) {
        // Add relevant code files with priority 1 (lowest)

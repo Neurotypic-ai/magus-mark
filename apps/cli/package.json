@@ -25,7 +25,7 @@
     "tagging",
     "cli"
   ],
-  "author": "Kevin Hallmark",
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
   "license": "MIT",
   "dependencies": {
     "@inquirer/prompts": "^7.4.1",
@@ -47,7 +47,7 @@
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^22.14.0",
+    "@types/node": "^22.14.1",
     "@types/update-notifier": "^6.0.8",
     "@types/yargs": "^17.0.33",
     "ts-node": "^10.9.2",
@@ -56,6 +56,6 @@
     "vitest": "^3.1.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22"
   }
 }

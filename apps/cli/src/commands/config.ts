@@ -1,3 +1,5 @@
+import { confirm } from '@inquirer/prompts';
+import { modelManager } from '@obsidian-magic/core/src/model-manager';
 import { fileExists, writeFile } from '@obsidian-magic/utils';
 
 import { config } from '../utils/config';
@@ -56,9 +58,14 @@ export const configCommand: CommandModule = {
               describe: 'Value to set',
               type: 'string',
               demandOption: true,
+            })
+            .option('validate', {
+              describe: 'Validate the value before setting (for models)',
+              type: 'boolean',
+              default: true,
             }),
-        handler: (argv) => {
-          const { key, value } = argv as { key: string; value: string };
+        handler: async (argv) => {
+          const { key, value, validate } = argv as { key: string; value: string; validate: boolean };
           try {
             // Try to parse the value as JSON
             let parsedValue: unknown;
@@ -69,8 +76,42 @@ export const configCommand: CommandModule = {
               parsedValue = value;
             }
 
+            // Special handling for model setting
+            if (key === 'defaultModel' && typeof parsedValue === 'string' && validate) {
+              const apiKey = config.get('apiKey');
+
+              if (apiKey) {
+                logger.info(`Validating model '${String(parsedValue)}'...`);
+                const validation = await modelManager.validateModel(parsedValue, apiKey, {
+                  verifyWithApi: true,
+                  throwOnInvalid: false,
+                  useFallback: false,
+                });
+
+                if (!validation.valid) {
+                  logger.warn(
+                    `Model '${String(parsedValue)}' may not be available: ${validation.errorMessage ?? 'Unknown error'}`
+                  );
+                  // Use @inquirer/prompts confirm
+                  const proceed = await confirm({
+                    message: 'Set this model anyway?',
+                    default: false,
+                  });
+
+                  if (!proceed) {
+                    logger.info('Operation cancelled.');
+                    return;
+                  }
+                } else {
+                  logger.success(`Model '${String(parsedValue)}' is valid and available.`);
+                }
+              } else {
+                logger.warn('No API key set, skipping model validation.');
+              }
+            }
+
             // Set the value
-            config.set(key as keyof typeof config.getAll, parsedValue as never);
+            await config.set(key as keyof typeof config.getAll, parsedValue as never);
 
             logger.info(`Set ${String(key)} = ${JSON.stringify(parsedValue)}`);
           } catch (error) {
@@ -136,9 +177,59 @@ export const configCommand: CommandModule = {
       .command({
         command: 'reset',
         describe: 'Reset configuration to defaults',
-        handler: () => {
-          config.clear();
+        handler: async () => {
+          await config.clear();
           logger.info('Configuration reset to defaults');
+        },
+      })
+      .command({
+        command: 'validate-model [model]',
+        describe: 'Validate if a model is available',
+        builder: (yargs) =>
+          yargs.positional('model', {
+            describe: 'Model ID to validate (uses defaultModel if not specified)',
+            type: 'string',
+          }),
+        handler: async (argv) => {
+          const { model } = argv as { model?: string };
+          const modelId = model ?? config.get('defaultModel');
+          const apiKey = config.get('apiKey');
+
+          if (!apiKey) {
+            logger.error('No API key configured. Please set an API key first.');
+            return;
+          }
+
+          if (!modelId) {
+            logger.error('No model specified and no default model configured.');
+            return;
+          }
+
+          logger.info(`Validating model: ${String(modelId)}`);
+
+          try {
+            const validation = await modelManager.validateModel(modelId, apiKey, {
+              verifyWithApi: true,
+              throwOnInvalid: false,
+              useFallback: true,
+            });
+
+            if (validation.valid) {
+              if (validation.usedFallback) {
+                logger.warn(`Model '${String(modelId)}' is not available. Using fallback: ${validation.modelId}`);
+              } else {
+                logger.success(`Model '${String(modelId)}' is valid and available.`);
+              }
+            } else {
+              logger.error(`Model validation failed: ${validation.errorMessage ?? 'Unknown error'}`);
+            }
+          } catch (error) {
+            if (error instanceof Error) {
+              logger.error(`Error validating model: ${error.message}`);
+            } else {
+              logger.error(`Error validating model: ${String(error)}`);
+            }
+          }
         },
       })
       .demandCommand(1, 'You must specify a command')

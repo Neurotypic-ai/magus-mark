@@ -9,7 +9,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { initializeCore } from '../src';
+import { initializeCore } from '..';
 
 import type { AIModel } from '@obsidian-magic/types';
 
@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 
 async function main() {
   // Get API key from environment
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env['OPENAI_API_KEY'];
   if (!apiKey) {
     console.error('Error: OPENAI_API_KEY environment variable is required.');
     process.exit(1);

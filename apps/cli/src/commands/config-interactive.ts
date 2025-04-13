@@ -16,10 +16,7 @@ import type { Config } from '../types/config';
 
 // Configuration types
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
-type TagMode = 'append' | 'replace' | 'merge';
-// Use AIModel instead of redefining ModelType
-// type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4o';
-
+type TagMode = 'append' | 'replace' | 'merge' | 'suggest';
 interface ConfigSettings {
   apiKey?: string;
   defaultModel: AIModel;
@@ -56,7 +53,7 @@ async function getModelChoices(apiKey?: string): Promise<{ value: AIModel; name:
 
     // Create a flat list of models
     return models.map((model: ModelPricing) => ({
-      value: model.id as AIModel,
+      value: model.id,
       name: `${model.name} - ${getPriceDescription(model)}`,
     }));
   } catch (error) {

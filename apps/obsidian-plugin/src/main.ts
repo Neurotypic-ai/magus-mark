@@ -434,8 +434,8 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           .addOption('babbage-002', 'Babbage-002 (Basic Legacy)')
           .setValue(this.plugin.settings.modelPreference)
           .onChange(async (value) => {
-            this.plugin.settings.modelPreference = value as AIModel;
-            this.plugin.taggingService.updateModel(value as AIModel);
+            this.plugin.settings.modelPreference = value;
+            this.plugin.taggingService.updateModel(value);
             await this.plugin.saveSettings();
           })
       );

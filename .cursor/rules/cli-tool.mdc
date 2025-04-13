@@ -11,7 +11,7 @@ alwaysApply: false
 The CLI tool uses carefully selected dependencies to balance functionality with maintainability:
 
 - **Core Technologies**: TypeScript, Node.js, OpenAI SDK
-- **Essential Dependencies**: yargs, dotenv, ora, cli-progress, chalk, boxen, conf, tokenizers, zod, inquirer, cosmiconfig, fs-extra
+- **Essential Dependencies**: yargs, dotenv, ora, cli-progress, chalk, boxen, conf, tokenizers, zod, @inquirer/prompts, cosmiconfig, fs-extra
 - **Development Dependencies**: tsx, vitest, typescript-eslint, prettier, tsup
 
 ## Intelligent Workflow Orchestration

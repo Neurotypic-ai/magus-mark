@@ -237,7 +237,7 @@ class ConfigImpl implements ConfigStorage {
       const fileExists = await fs.pathExists(this.configPath);
       if (fileExists) {
         const fileData = (await fs.readJson(this.configPath)) as Partial<Config>;
-        this.data = deepMerge(DEFAULT_CONFIG, fileData);
+        this.data = deepMerge(DEFAULT_CONFIG as Record<string, unknown>, fileData as Record<string, unknown>) as Config;
       } else {
         this.data = { ...DEFAULT_CONFIG };
         await this.save();
@@ -256,18 +256,7 @@ export const config = ConfigImpl.getInstance();
 export const configSchema = z.object({
   // Core settings
   apiKey: z.string().optional(),
-  defaultModel: z
-    .enum([
-      'gpt-4',
-      'gpt-4-turbo',
-      'gpt-4o',
-      'gpt-4-vision',
-      'gpt-3.5-turbo',
-      'gpt-3.5-turbo-instruct',
-      'davinci-002',
-      'babbage-002',
-    ])
-    .optional(),
+  defaultModel: z.string().optional(),
 
   // Processing parameters
   minConfidence: z.number().min(0).max(1).optional(),

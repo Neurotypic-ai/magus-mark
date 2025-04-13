@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TaggingService } from '../../src/services/TaggingService';
 import type { TFile } from 'obsidian';
+import type ObsidianMagicPlugin from '../../src/main';
 
 // Mock the Obsidian API and plugin
 const mockFile = {
@@ -55,19 +56,19 @@ describe('TaggingService', () => {
   let taggingService: TaggingService;
 
   beforeEach(() => {
-    taggingService = new TaggingService(mockPlugin as any);
+    taggingService = new TaggingService(mockPlugin as unknown as ObsidianMagicPlugin);
     vi.clearAllMocks();
   });
 
-  it('should initialize with API key', async () => {
+  it('should initialize with API key', () => {
     taggingService.updateApiKey('new-api-key');
-    expect(taggingService['apiKey']).toBe('new-api-key');
+    expect((taggingService as unknown as { apiKey: string }).apiKey).toBe('new-api-key');
   });
 
   it('should process a file successfully', async () => {
     const result = await taggingService.processFile(mockFile);
     
-    expect(result.success).toBe(true);
+    expect((result as unknown as { success: boolean }).success).toBe(true);
     expect(mockPlugin.app.vault.read).toHaveBeenCalledWith(mockFile);
     expect(mockPlugin.documentTagService.applyTags).toHaveBeenCalled();
   });
@@ -77,7 +78,7 @@ describe('TaggingService', () => {
     
     const result = await taggingService.processFile(mockFile);
     
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
+    expect((result as unknown as { success: boolean }).success).toBe(false);
+    expect((result as unknown as { error: unknown }).error).toBeDefined();
   });
 }); 

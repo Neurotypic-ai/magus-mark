@@ -9,7 +9,8 @@
  */
 export function extractFrontmatter(content: string): string | null {
   const match = /^---\n([\s\S]*?)\n---/.exec(content);
-  return match?.[1] ? match[1] : null;
+
+  return match?.[1] ?? null;
 }
 
 /**
@@ -70,15 +71,15 @@ export function formatFrontmatter(frontmatter: Record<string, unknown>): string 
         if (value.length === 0) {
           return `${key}: []`;
         } else if (value.length === 1) {
-          return `${key}: [${value[0]}]`;
+          return `${key}: [${String(value[0])}]`;
         } else {
-          return `${key}:\n${value.map((v) => `  - ${v}`).join('\n')}`;
+          return `${key}:\n${value.map((v) => `  - ${String(v)}`).join('\n')}`;
         }
       } else if (typeof value === 'object' && value !== null) {
         // Handle nested objects (simplified)
         return `${key}:\n  ${JSON.stringify(value)}`;
       } else {
-        return `${key}: ${value}`;
+        return `${key}: ${String(value)}`;
       }
     })
     .join('\n');

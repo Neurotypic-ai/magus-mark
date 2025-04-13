@@ -166,10 +166,14 @@ class CostManager {
     // Calculate costs per model
     for (const [model, usage] of Object.entries(this.session.models)) {
       // Since we're iterating through entries, usage will never be undefined
-      if (usage.totalTokens > 0) {
+      if (usage && usage.totalTokens > 0) {
         modelBreakdown[model] = {
-          tokens: { ...usage },
-          cost: this.calculateCost(model as AIModel, usage.inputTokens, usage.outputTokens),
+          tokens: {
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            totalTokens: usage.totalTokens,
+          },
+          cost: this.calculateCost(model, usage.inputTokens, usage.outputTokens),
         };
       }
     }

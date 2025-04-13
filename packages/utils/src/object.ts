@@ -18,7 +18,7 @@ export function isObject(value: unknown): boolean {
  * @param source - Source object to merge from
  * @returns A new object with merged properties
  */
-export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+export function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
   const output = { ...target };
 
   if (isObject(target) && isObject(source)) {
@@ -31,11 +31,11 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
           const targetValue = target[key as keyof typeof target];
           if (isObject(targetValue)) {
             output[key as keyof T] = deepMerge(
-              targetValue as Record<string, any>,
-              sourceValue as Record<string, any>
-            ) as any;
+              targetValue as Record<string, unknown>,
+              sourceValue as Record<string, unknown>
+            ) as T[keyof T];
           } else {
-            output[key as keyof T] = sourceValue as any;
+            output[key as keyof T] = sourceValue as T[keyof T];
           }
         }
       } else {
@@ -54,27 +54,24 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
  * @param path - Path to the property as string with dot notation
  * @param defaultValue - Default value to return if path doesn't exist
  * @returns The value at path or defaultValue if not found
+ * @template T Type of the return value
  */
-export function get<T, D = undefined>(
-  obj: Record<string, any> | undefined,
-  path: string,
-  defaultValue?: D
-): T | D | undefined {
+export function get<T = unknown>(obj: Record<string, unknown> | undefined, path: string, defaultValue?: T): T {
   if (!obj || typeof path !== 'string') {
-    return defaultValue;
+    return defaultValue as T;
   }
 
   const keys = path.split('.');
-  let result: any = obj;
+  let result: unknown = obj;
 
   for (const key of keys) {
-    if (result === undefined || result === null) {
-      return defaultValue;
+    if (result === undefined || result === null || !isObject(result)) {
+      return defaultValue as T;
     }
-    result = result[key];
+    result = (result as Record<string, unknown>)[key];
   }
 
-  return result === undefined ? defaultValue : result;
+  return (result === undefined ? defaultValue : result) as T;
 }
 
 /**

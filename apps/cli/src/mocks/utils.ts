@@ -1,6 +1,7 @@
 /**
  * Mock implementations of utility functions
  */
+import { exec as execCallback } from 'child_process';
 import * as path from 'path';
 import { promisify } from 'util';
 
@@ -12,7 +13,8 @@ import * as fs from 'fs-extra';
 export async function fileExists(filePath: string): Promise<boolean> {
   try {
     return await fs.pathExists(filePath);
-  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_error) {
     return false;
   }
 }
@@ -35,7 +37,8 @@ export async function findFiles(dir: string, pattern: string): Promise<string[]>
         return file.includes(pattern);
       })
       .map((file) => path.join(dir, file));
-  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_error) {
     return [];
   }
 }
@@ -127,7 +130,7 @@ export function formatDuration(ms: number): string {
 
   const minutes = Math.floor(ms / 60000);
   const seconds = ((ms % 60000) / 1000).toFixed(1);
-  return `${minutes}m ${seconds}s`;
+  return `${String(minutes)}m ${seconds}s`;
 }
 
 /**
@@ -147,8 +150,9 @@ export function getFileSize(filePath: string): string {
       unitIndex++;
     }
 
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-  } catch (error) {
+    return `${size.toFixed(1)} ${String(units[unitIndex])}`;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_error) {
     return 'Unknown';
   }
 }
@@ -157,18 +161,22 @@ export function getFileSize(filePath: string): string {
  * Execute a shell command
  */
 export async function executeCommand(command: string): Promise<{ stdout: string; stderr: string }> {
-  const exec = promisify(require('child_process').exec);
+  const exec = promisify(execCallback);
   try {
-    return await exec(command);
-  } catch (error: any) {
-    throw new Error(`Command failed: ${command}\n${error.stderr ?? error.message}`);
+    return (await exec(command)) as { stdout: string; stderr: string };
+  } catch (error) {
+    if (error instanceof Error) {
+      const cmdError = error as { stderr?: string; message: string };
+      throw new Error(`Command failed: ${command}\n${cmdError.stderr ?? cmdError.message}`);
+    }
+    throw new Error(`Command failed: ${command}\n${String(error)}`);
   }
 }
 
 /**
  * Deep merge objects
  */
-export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+export function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
   const output = { ...target };
 
   if (isObject(target) && isObject(source)) {
@@ -182,8 +190,12 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
           Object.assign(output, { [typedKey]: sourceValue });
         } else {
           const targetValue = target[typedKey];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          output[typedKey] = deepMerge(targetValue as Record<string, any>, sourceValue as Record<string, any>) as any;
+          if (isObject(targetValue)) {
+            output[typedKey] = deepMerge(
+              targetValue as Record<string, unknown>,
+              sourceValue as Record<string, unknown>
+            ) as unknown as T[keyof T];
+          }
         }
       } else {
         Object.assign(output, { [typedKey]: sourceValue });

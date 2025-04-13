@@ -16,7 +16,8 @@ The Obsidian Magic plugin provides seamless integration with Obsidian documents,
 
 ```typescript
 // Register a CodeMirror extension to detect and style frontmatter tags
-import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import type { EditorView, DecorationSet, ViewUpdate } from "@codemirror/view";
+import { Decoration, ViewPlugin } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { RangeSetBuilder } from "@codemirror/state";
 
@@ -208,7 +209,8 @@ this.registerEditorExtension(tagValidator);
 
 ```typescript
 // Register a custom autocomplete provider for tags
-import { autocompletion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import { autocompletion } from "@codemirror/autocomplete";
 import { syntaxTree } from "@codemirror/language";
 
 // Access to plugin's tag taxonomy 
@@ -476,7 +478,7 @@ extractFrontmatter(content: string) {
 
 ```typescript
 // Register a post-processor for Markdown that converts tag syntax into visual chips
-import { MarkdownPostProcessor } from "obsidian";
+import type { MarkdownPostProcessor } from "obsidian";
 
 // Create a post-processor for tags
 const tagChipProcessor: MarkdownPostProcessor = (el, ctx) => {
@@ -655,7 +657,8 @@ this.registerStyles(css);
 
 ```typescript
 // Implement tag tooltips with HoverParent API
-import { HoverParent, HoverPopover } from "obsidian";
+import type { HoverParent} from "obsidian";
+import { HoverPopover } from "obsidian";
 
 // Create hover provider for tag chips
 class TagTooltipProvider implements HoverParent {
@@ -1327,7 +1330,7 @@ this.addStyle(filterInteractivityCSS);
 
 ```typescript
 // Implement tag relation visualization with a mini-graph
-import { MarkdownPostProcessor } from "obsidian";
+import type { MarkdownPostProcessor } from "obsidian";
 import ForceGraph from 'force-graph';
 
 // Create a post-processor to add the relationship graph after the frontmatter

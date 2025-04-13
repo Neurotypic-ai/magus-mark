@@ -1,8 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ObsidianMagicPlugin from '../src/main';
+import type { App, Plugin } from 'obsidian';
+
+// Define interfaces for mocks
+interface Keymap {
+  pushScope: unknown;
+  popScope: unknown;
+}
+
+interface MockApp {
+  workspace: {
+    getActiveFile: ReturnType<typeof vi.fn>;
+    on: ReturnType<typeof vi.fn>;
+    detachLeavesOfType: ReturnType<typeof vi.fn>;
+    getLeaf: ReturnType<typeof vi.fn>;
+    rightSplit: {
+      collapsed: boolean;
+    };
+  };
+  vault: {
+    getMarkdownFiles: ReturnType<typeof vi.fn>;
+    read: ReturnType<typeof vi.fn>;
+    modify: ReturnType<typeof vi.fn>;
+  };
+  metadataCache: { on: ReturnType<typeof vi.fn> };
+  fileManager: { processFrontMatter: ReturnType<typeof vi.fn> };
+  keymap: Keymap;
+  scope: Record<string, unknown>;
+  // Required by App interface but not used in tests
+  lastEvent: null;
+  loadLocalStorage: () => string;
+  saveLocalStorage: () => void;
+}
 
 // Create mock App with all required properties
-const mockApp = {
+const mockApp: MockApp = {
   workspace: {
     getActiveFile: vi.fn(),
     on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
@@ -23,12 +55,29 @@ const mockApp = {
   // Add missing required App properties
   metadataCache: { on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }) },
   fileManager: { processFrontMatter: vi.fn() },
-  keymap: {},
+  keymap: {
+    pushScope: vi.fn(),
+    popScope: vi.fn()
+  },
   scope: {},
+  // Required by App interface but not used in tests
+  lastEvent: null,
+  loadLocalStorage: () => '',
+  saveLocalStorage: () => undefined,
 };
 
+interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  minAppVersion: string;
+  description: string;
+  author: string;
+  authorUrl: string;
+}
+
 // Mock plugin manifest with all required properties
-const mockManifest = {
+const mockManifest: PluginManifest = {
   id: 'obsidian-magic',
   name: 'Obsidian Magic',
   version: '0.1.0',
@@ -39,11 +88,11 @@ const mockManifest = {
 };
 
 // Create a proper Plugin base class mock
-class MockPlugin {
-  app: any;
-  manifest: any;
+class MockPlugin implements Partial<Plugin> {
+  app: App;
+  manifest: PluginManifest;
 
-  constructor(app: any, manifest: any) {
+  constructor(app: App, manifest: PluginManifest) {
     this.app = app;
     this.manifest = manifest;
   }
@@ -65,14 +114,14 @@ vi.mock('obsidian', () => {
     PluginSettingTab: vi.fn().mockImplementation(() => ({
       display: vi.fn()
     })),
-    TFile: vi.fn().mockImplementation((path) => ({
+    TFile: vi.fn().mockImplementation((path: string) => ({
       path,
-      basename: path.split('/').pop()?.split('.')[0] || '',
-      extension: path.split('.').pop() || '',
+      basename: path.split('/').pop()?.split('.')[0] ?? '',
+      extension: path.split('.').pop() ?? '',
     })),
-    TFolder: vi.fn().mockImplementation((path) => ({
+    TFolder: vi.fn().mockImplementation((path: string) => ({
       path,
-      name: path.split('/').pop() || '',
+      name: path.split('/').pop() ?? '',
       children: [],
     })),
     Notice: vi.fn(),
@@ -93,7 +142,7 @@ describe('ObsidianMagicPlugin', () => {
 
   beforeEach(() => {
     // Create a new plugin instance with the required constructor arguments
-    plugin = new ObsidianMagicPlugin(mockApp, mockManifest);
+    plugin = new ObsidianMagicPlugin(mockApp as unknown as App, mockManifest);
     
     // Reset mocks
     vi.clearAllMocks();
@@ -108,7 +157,7 @@ describe('ObsidianMagicPlugin', () => {
 
   it('should clean up on unload', async () => {
     await plugin.onload();
-    await plugin.onunload();
+    plugin.onunload();
     expect(mockApp.workspace.detachLeavesOfType).toHaveBeenCalledTimes(2);
   });
 

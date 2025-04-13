@@ -1,6 +1,7 @@
 # Configuration Reference
 
-The Obsidian Magic CLI provides a comprehensive configuration system with multiple layers and flexible options for customization.
+The Obsidian Magic CLI provides a comprehensive configuration system with multiple layers and flexible options for
+customization.
 
 ## Configuration System Architecture
 
@@ -80,13 +81,13 @@ module.exports = {
       '**/node_modules/**',
       '**/archive/**',
       // Dynamic pattern based on date
-      `**/${new Date().getFullYear() - 1}/**` // Exclude last year's content
-    ]
+      `**/${new Date().getFullYear() - 1}/**`, // Exclude last year's content
+    ],
   },
   // Function to determine tag mode based on file count
-  getTagMode: function(fileCount) {
+  getTagMode: function (fileCount) {
     return fileCount > 100 ? 'augment' : 'merge';
-  }
+  },
 };
 ```
 
@@ -94,17 +95,17 @@ module.exports = {
 
 The CLI supports configuration through environment variables:
 
-| Environment Variable | Description | Example |
-|----------------------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | `OPENAI_API_KEY=sk-...` |
-| `OPENAI_ORG_ID` | OpenAI organization ID | `OPENAI_ORG_ID=org-...` |
-| `TAG_CONVERSATIONS_CONFIG` | Path to config file | `TAG_CONVERSATIONS_CONFIG=./custom-config.json` |
-| `TAG_CONVERSATIONS_DEFAULT_MODEL` | Default model to use | `TAG_CONVERSATIONS_DEFAULT_MODEL=gpt-4` |
-| `TAG_CONVERSATIONS_MAX_COST` | Maximum cost per run | `TAG_CONVERSATIONS_MAX_COST=10.0` |
-| `TAG_CONVERSATIONS_CONCURRENCY` | Default concurrency | `TAG_CONVERSATIONS_CONCURRENCY=5` |
-| `TAG_CONVERSATIONS_LOG_LEVEL` | Logging level | `TAG_CONVERSATIONS_LOG_LEVEL=debug` |
-| `TAG_CONVERSATIONS_BACKUP` | Enable/disable backups | `TAG_CONVERSATIONS_BACKUP=true` |
-| `TAG_CONVERSATIONS_API_TIMEOUT` | API timeout in ms | `TAG_CONVERSATIONS_API_TIMEOUT=60000` |
+| Environment Variable              | Description            | Example                                         |
+| --------------------------------- | ---------------------- | ----------------------------------------------- |
+| `OPENAI_API_KEY`                  | OpenAI API key         | `OPENAI_API_KEY=sk-...`                         |
+| `OPENAI_ORG_ID`                   | OpenAI organization ID | `OPENAI_ORG_ID=org-...`                         |
+| `TAG_CONVERSATIONS_CONFIG`        | Path to config file    | `TAG_CONVERSATIONS_CONFIG=./custom-config.json` |
+| `TAG_CONVERSATIONS_DEFAULT_MODEL` | Default model to use   | `TAG_CONVERSATIONS_DEFAULT_MODEL=gpt-4`         |
+| `TAG_CONVERSATIONS_MAX_COST`      | Maximum cost per run   | `TAG_CONVERSATIONS_MAX_COST=10.0`               |
+| `TAG_CONVERSATIONS_CONCURRENCY`   | Default concurrency    | `TAG_CONVERSATIONS_CONCURRENCY=5`               |
+| `TAG_CONVERSATIONS_LOG_LEVEL`     | Logging level          | `TAG_CONVERSATIONS_LOG_LEVEL=debug`             |
+| `TAG_CONVERSATIONS_BACKUP`        | Enable/disable backups | `TAG_CONVERSATIONS_BACKUP=true`                 |
+| `TAG_CONVERSATIONS_API_TIMEOUT`   | API timeout in ms      | `TAG_CONVERSATIONS_API_TIMEOUT=60000`           |
 
 Environment variables can be loaded from a `.env` file in the current directory:
 
@@ -224,21 +225,27 @@ const configSchema = z.object({
   maxCost: z.number().positive().default(5.0),
   concurrency: z.number().int().positive().default(3),
   backupFiles: z.boolean().default(true),
-  api: z.object({
-    baseUrl: z.string().url().default('https://api.openai.com/v1'),
-    timeout: z.number().int().positive().default(30000)
-  }).default({}),
-  tagSettings: z.object({
-    minConfidence: z.number().min(0).max(1).default(0.7),
-    maxTags: z.number().int().positive().default(10),
-    tagMode: z.enum(['overwrite', 'merge', 'augment']).default('merge')
-  }).default({}),
-  processing: z.object({
-    defaultMode: z.enum(['auto', 'interactive', 'differential']).default('differential'),
-    skipExistingTags: z.boolean().default(true),
-    includePatterns: z.array(z.string()).default(['**/*.md']),
-    excludePatterns: z.array(z.string()).default(['**/node_modules/**', '**/archive/**'])
-  }).default({})
+  api: z
+    .object({
+      baseUrl: z.string().url().default('https://api.openai.com/v1'),
+      timeout: z.number().int().positive().default(30000),
+    })
+    .default({}),
+  tagSettings: z
+    .object({
+      minConfidence: z.number().min(0).max(1).default(0.7),
+      maxTags: z.number().int().positive().default(10),
+      tagMode: z.enum(['overwrite', 'merge', 'augment']).default('merge'),
+    })
+    .default({}),
+  processing: z
+    .object({
+      defaultMode: z.enum(['auto', 'interactive', 'differential']).default('differential'),
+      skipExistingTags: z.boolean().default(true),
+      includePatterns: z.array(z.string()).default(['**/*.md']),
+      excludePatterns: z.array(z.string()).default(['**/node_modules/**', '**/archive/**']),
+    })
+    .default({}),
 });
 
 // Type definition for strongly typed configuration access
@@ -250,7 +257,7 @@ type ConfigSchema = z.infer<typeof configSchema>;
 The CLI provides a programmatic API for working with configuration:
 
 ```typescript
-import { getConfig, setConfig, resetConfig } from '@obsidian-magic/cli';
+import { getConfig, resetConfig, setConfig } from '@obsidian-magic/cli';
 
 // Get full configuration
 const config = getConfig();
@@ -274,64 +281,64 @@ resetConfig();
 
 The CLI includes sensible defaults for all configuration options:
 
-```javascript
+```typescript
 // Default configuration values
 const defaults = {
   // Model settings
   defaultModel: 'gpt-3.5-turbo',
   fallbackModel: 'gpt-3.5-turbo',
-  
+
   // Cost management
   maxCost: 5.0,
   onCostLimit: 'pause',
-  
+
   // Processing settings
   concurrency: 3,
   backupFiles: true,
-  
+
   // API settings
   api: {
     baseUrl: 'https://api.openai.com/v1',
     timeout: 30000,
     maxRetries: 3,
-    retryDelay: 1000
+    retryDelay: 1000,
   },
-  
+
   // Tag settings
   tagSettings: {
     minConfidence: 0.7,
     maxTags: 10,
-    tagMode: 'merge'
+    tagMode: 'merge',
   },
-  
+
   // Processing settings
   processing: {
     defaultMode: 'differential',
     skipExistingTags: true,
     includePatterns: ['**/*.md'],
-    excludePatterns: ['**/node_modules/**', '**/archive/**']
+    excludePatterns: ['**/node_modules/**', '**/archive/**'],
   },
-  
+
   // UI settings
   ui: {
     showSpinners: true,
     colorOutput: true,
     progressBars: true,
-    verbosity: 'normal'
+    verbosity: 'normal',
   },
-  
+
   // Output settings
   output: {
     format: 'pretty',
-    timestamps: false
+    timestamps: false,
   },
-  
+
   // System settings
   system: {
     tempDir: os.tmpdir(),
     cacheDir: path.join(os.homedir(), '.tag-conversations', 'cache'),
-    logFile: path.join(os.homedir(), '.tag-conversations', 'logs', 'cli.log')
-  }
+    logFile: path.join(os.homedir(), '.tag-conversations', 'logs', 'cli.log'),
+  },
 };
 ```
 
@@ -370,26 +377,26 @@ Use JavaScript configuration for dynamic settings:
 // tag-conversations.config.js
 module.exports = {
   // Determine model based on file count
-  getModel: function(files) {
+  getModel: function (files) {
     return files.length > 100 ? 'gpt-3.5-turbo' : 'gpt-4';
   },
-  
+
   // Determine concurrency based on system resources
-  getConcurrency: function() {
+  getConcurrency: function () {
     const cpus = require('os').cpus().length;
     const memory = require('os').totalmem() / 1024 / 1024 / 1024; // GB
-    
+
     // Adjust concurrency based on available resources
     if (memory < 4) return 1; // Low memory system
     if (memory < 8) return Math.min(2, cpus - 1); // Medium memory
     return Math.min(5, cpus - 1); // High memory system
   },
-  
+
   // Customize API timeouts based on model
-  getApiTimeout: function(model) {
+  getApiTimeout: function (model) {
     if (model.includes('gpt-4')) return 60000; // 60 seconds for GPT-4
     return 30000; // 30 seconds for other models
-  }
+  },
 };
 ```
 
@@ -406,13 +413,15 @@ project/
 └── .tag-conversationsrc      # Project-wide default configuration
 ```
 
-When running the CLI in a subdirectory, it will merge configurations from all parent directories, with closer directories taking precedence.
+When running the CLI in a subdirectory, it will merge configurations from all parent directories, with closer
+directories taking precedence.
 
 ## Configuration Best Practices
 
 1. **Use Project Configuration**: Store project-specific settings in a version-controlled configuration file
-2. **Use Environment Variables**: Store sensitive information like API keys in environment variables or .env files (excluded from version control)
+2. **Use Environment Variables**: Store sensitive information like API keys in environment variables or .env files
+   (excluded from version control)
 3. **Create Profiles**: Define profiles for common use cases to simplify command execution
 4. **Validate Settings**: Always validate custom configuration to catch errors early
 5. **Document Changes**: Comment configuration files to explain non-obvious settings
-6. **Version Control**: Include example configuration files in version control for easy onboarding 
+6. **Version Control**: Include example configuration files in version control for easy onboarding

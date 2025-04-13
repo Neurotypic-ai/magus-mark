@@ -60,7 +60,7 @@ const jsConfig = {
   },
   settings: {
     react: {
-      version: 'detect',
+      version: '19',
     },
     formComponents: ['Form'],
     linkComponents: [
@@ -71,8 +71,7 @@ const jsConfig = {
 };
 
 // TypeScript base configuration
-const tsBase = tseslint.configs.base ?? undefined;
-const tsRecommendedTypeChecked = tseslint.configs.strictTypeChecked[2] ?? undefined; // Get the actual recommended rules
+const tsStrictTypeChecked = tseslint.configs.strictTypeChecked[2] ?? undefined; // Get the actual recommended rules
 const tsStylisticTypeChecked = tseslint.configs.stylisticTypeChecked[2] ?? undefined; // Get the actual stylistic rules
 
 // TypeScript configuration
@@ -95,7 +94,7 @@ const tsConfig = {
   },
   settings: {
     react: {
-      version: 'detect',
+      version: '19',
     },
     'import-x/resolver': {
       typescript: true,
@@ -112,8 +111,7 @@ const tsConfig = {
     ...reactHooksPlugin.configs.recommended.rules,
     ...jsxA11yPlugin.flatConfigs.recommended.rules,
 
-    ...(tsBase?.rules || {}),
-    ...(tsRecommendedTypeChecked?.rules || {}),
+    ...(tsStrictTypeChecked?.rules || {}),
     ...(tsStylisticTypeChecked?.rules || {}),
 
     'import-x/order': 'off',
@@ -135,6 +133,26 @@ const tsConfig = {
         allowThrowingUnknown: false,
       },
     ],
+  },
+};
+
+// Markdown TypeScript configuration
+/** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config} */
+const markdownTsConfig = {
+  files: ['**/*.md/**/*.{ts,tsx}'],
+  languageOptions: {
+    parser: tseslint.parser,
+    parserOptions: {
+      // Explicitly disable project for markdown code blocks
+      project: null,
+      projectService: false,
+    },
+  },
+  rules: {
+    ...tseslint.configs.base.rules,
+    ...tseslint.configs.disableTypeChecked.rules,
+    '@typescript-eslint/no-unused-vars': 'off',
+    'import-x/no-unresolved': 'off',
   },
 };
 
@@ -200,19 +218,30 @@ const nodeConfig = {
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config} */
 const ignoresConfig = {
   ignores: [
-    '**/node_modules/*',
+    '**/node_modules/**/*', // Ensure all node_modules are ignored
     '**/build/*',
     '**/public/build/*',
     '**/dist/*',
     '**/dist-server/*',
     '**/coverage/*',
     '.specstory/*',
+    '**/examples/*',
   ],
 };
 
 // Export the complete config using typescript-eslint's config function
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
-const configs = [baseConfig, jsConfig, tsConfig, markdownConfig, testConfig, e2eConfig, nodeConfig, ignoresConfig];
+const configs = [
+  baseConfig,
+  jsConfig,
+  tsConfig,
+  markdownTsConfig,
+  markdownConfig,
+  testConfig,
+  e2eConfig,
+  nodeConfig,
+  ignoresConfig,
+];
 
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
 const combinedConfig = tseslint.config(...configs);

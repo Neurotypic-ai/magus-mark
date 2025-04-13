@@ -1,20 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FolderTagModal } from '../../src/ui/FolderTagModal';
 
+// Simplified mock interfaces
+interface MockPlugin {
+  app: {
+    vault: {
+      getFiles: () => { path: string; extension: string }[];
+    };
+  };
+  taggingService: {
+    processFile: (file: unknown) => Promise<{ success: boolean }>;
+  };
+  tagFolder: (folder: unknown, includeSubfolders: boolean) => Promise<void>;
+}
+
+// Type for createEl options to properly handle access
+interface CreateElOptions {
+  text?: string;
+  type?: string;
+  callback?: () => void;
+  [key: string]: unknown;
+}
+
 describe('FolderTagModal', () => {
   let modal: FolderTagModal;
   
+  // Use simple objects with the required properties
   const mockFolder = {
     path: 'test-folder',
     name: 'Test Folder',
     children: [
       { path: 'test-folder/note1.md', extension: 'md' },
       { path: 'test-folder/note2.md', extension: 'md' },
-      { path: 'test-folder/subdir', children: [] }
+      { path: 'test-folder/subdir', children: [], name: 'subdir' }
     ]
   };
   
-  const mockPlugin = {
+  const mockPlugin: MockPlugin = {
     app: {
       vault: {
         getFiles: vi.fn().mockReturnValue([
@@ -29,32 +51,37 @@ describe('FolderTagModal', () => {
     tagFolder: vi.fn().mockResolvedValue(undefined)
   };
   
-  // Mock modal elements
+  // Create a simple mock with the minimum required structure
+  const createMockFunction = () => vi.fn().mockReturnThis();
+  
+  // Mock element with simpler structure
   const mockContentEl = {
-    createEl: vi.fn().mockReturnThis(),
+    createEl: createMockFunction(),
     createDiv: vi.fn().mockReturnValue({
-      createEl: vi.fn().mockReturnThis(),
+      createEl: createMockFunction(),
       createDiv: vi.fn().mockReturnValue({
-        createEl: vi.fn().mockReturnValue({
-          type: '',
-          addEventListener: vi.fn(),
-          addClass: vi.fn(),
-          createSpan: vi.fn()
-        }),
-        setText: vi.fn(),
-        createSpan: vi.fn()
+        createEl: createMockFunction(),
+        setText: createMockFunction(),
+        createSpan: createMockFunction()
       }),
-      setText: vi.fn(),
-      createSpan: vi.fn()
+      setText: createMockFunction(),
+      createSpan: createMockFunction()
     }),
-    addClass: vi.fn(),
-    appendChild: vi.fn()
+    addClass: createMockFunction(),
+    appendChild: createMockFunction(),
+    setText: createMockFunction(),
+    createSpan: createMockFunction(),
+    addEventListener: createMockFunction()
   };
   
   beforeEach(() => {
     vi.clearAllMocks();
-    modal = new FolderTagModal(mockPlugin as any, mockFolder as any);
-    // @ts-ignore - Directly set contentEl for testing
+    
+    // Cast with explicit typing for the FolderTagModal constructor
+    // @ts-expect-error - Using mocks for plugin and folder
+    modal = new FolderTagModal(mockPlugin, mockFolder);
+    
+    // @ts-expect-error - Directly set contentEl for testing
     modal.contentEl = mockContentEl;
   });
   
@@ -62,46 +89,87 @@ describe('FolderTagModal', () => {
     modal.onOpen();
     
     expect(mockContentEl.createEl).toHaveBeenCalledWith('h2', { 
-      text: expect.stringContaining('Test Folder') 
+      text: expect.stringContaining('Test Folder') as unknown as string
     });
   });
   
   it('should create checkbox for including subfolders', () => {
     modal.onOpen();
     
-    const createElCalls = mockContentEl.createDiv().createEl.mock.calls;
-    expect(createElCalls.some(call => 
-      call[0] === 'input' && call[1]?.type === 'checkbox'
-    )).toBe(true);
+    // Mock the specific behavior we need for this test
+    const createElMock = vi.fn();
+    const checkboxMock = {
+      type: 'checkbox',
+      addEventListener: vi.fn()
+    };
+    createElMock.mockReturnValue(checkboxMock);
+    
+    // Test that the modal's behavior would add a checkbox input
+    const formWrapperMock = { createEl: createElMock };
+    
+    // Override the createDiv implementation for this test
+    mockContentEl.createDiv = vi.fn().mockReturnValue(formWrapperMock);
+    
+    // Re-run onOpen with our new mocks
+    modal.onOpen();
+    
+    expect(createElMock).toHaveBeenCalledWith('input', expect.objectContaining({ 
+      type: 'checkbox' 
+    }));
   });
   
   it('should create submit button', () => {
     modal.onOpen();
     
-    const createElCalls = mockContentEl.createDiv().createEl.mock.calls;
-    expect(createElCalls.some(call => 
-      call[0] === 'button' && call[1]?.text === 'Start Tagging'
-    )).toBe(true);
+    // Mock the specific behavior we need for this test
+    const createElMock = vi.fn();
+    createElMock.mockReturnThis();
+    
+    // Test that the modal's behavior would add a start button
+    const formWrapperMock = { createEl: createElMock };
+    
+    // Override the createDiv implementation for this test
+    mockContentEl.createDiv = vi.fn().mockReturnValue(formWrapperMock);
+    
+    // Re-run onOpen with our new mocks
+    modal.onOpen();
+    
+    expect(createElMock).toHaveBeenCalledWith('button', expect.objectContaining({ 
+      text: 'Start Tagging' 
+    }));
   });
   
   it('should call tagFolder when form is submitted', () => {
-    // Mock form submission
+    // Mock the specific behavior we need for this test
+    const buttonCallback = vi.fn();
+    const createElMock = vi.fn();
+    createElMock.mockImplementation((type: string, options?: CreateElOptions) => {
+      if (type === 'button' && options && options.text === 'Start Tagging') {
+        // When the callback is assigned, capture and call it
+        if (options.callback) {
+          buttonCallback.mockImplementation(options.callback);
+        }
+      }
+      return { type, addEventListener: vi.fn() };
+    });
+    
+    // Test that the modal's behavior would add a start button with callback
+    const formWrapperMock = { createEl: createElMock };
+    
+    // Override the createDiv implementation for this test
+    mockContentEl.createDiv = vi.fn().mockReturnValue(formWrapperMock);
+    
+    // Run onOpen with our new mocks
     modal.onOpen();
     
-    // Simulate clicking the button
-    const buttonClickHandler = mockContentEl.createDiv().createEl.mock.calls
-      .find(call => call[0] === 'button' && call[1]?.text === 'Start Tagging')?.[1]?.callback;
-      
-    if (buttonClickHandler) {
-      buttonClickHandler();
-      expect(mockPlugin.tagFolder).toHaveBeenCalledWith(
-        mockFolder,
-        expect.any(Boolean)
-      );
-    } else {
-      // If we couldn't find the click handler, we'll fail the test
-      expect(buttonClickHandler).toBeDefined();
-    }
+    // Simulate button click by calling the callback
+    buttonCallback();
+    
+    // Verify tagFolder was called
+    expect(mockPlugin.tagFolder).toHaveBeenCalledWith(
+      mockFolder,
+      expect.any(Boolean)
+    );
   });
   
   it('should clean up on close', () => {
@@ -110,6 +178,8 @@ describe('FolderTagModal', () => {
     
     // Typically would verify that event listeners are removed
     // but since we're mocking extensively, we'll just ensure it doesn't throw
-    expect(() => modal.onClose()).not.toThrow();
+    expect(() => { 
+      modal.onClose(); 
+    }).not.toThrow();
   });
 }); 

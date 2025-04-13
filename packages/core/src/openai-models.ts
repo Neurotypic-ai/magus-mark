@@ -18,6 +18,56 @@ export interface ModelPricing {
 }
 
 /**
+ * External pricing configuration for models
+ */
+export interface PricingConfig {
+  /**
+   * Custom pricing map for known models
+   * Maps model ID to input and output pricing
+   */
+  customPricing?: Record<string, { inputPrice: number; outputPrice: number }>;
+  /**
+   * Default input price for unknown models (per 1M tokens)
+   */
+  defaultInputPrice?: number;
+  /**
+   * Default output price for unknown models (per 1M tokens)
+   */
+  defaultOutputPrice?: number;
+}
+
+// Default pricing config
+const DEFAULT_PRICING: PricingConfig = {
+  defaultInputPrice: 5.0,
+  defaultOutputPrice: 15.0,
+};
+
+// Global pricing configuration that can be updated at runtime
+let pricingConfig: PricingConfig = { ...DEFAULT_PRICING };
+
+/**
+ * Configure pricing information
+ * @param config Pricing configuration
+ */
+export function configurePricing(config: PricingConfig): void {
+  pricingConfig = {
+    ...DEFAULT_PRICING,
+    ...config,
+    customPricing: {
+      ...pricingConfig.customPricing,
+      ...config.customPricing,
+    },
+  };
+}
+
+/**
+ * Reset pricing to defaults
+ */
+export function resetPricing(): void {
+  pricingConfig = { ...DEFAULT_PRICING };
+}
+
+/**
  * Get available models from OpenAI API
  * @param apiKey OpenAI API key
  * @returns Array of available model IDs and their properties
@@ -72,6 +122,11 @@ function formatModelName(modelId: string): string {
  * Infer model pricing based on name patterns
  */
 function inferModelPricing(modelId: string): { inputPrice: number; outputPrice: number } {
+  // First check if we have a custom pricing for this model
+  if (pricingConfig.customPricing?.[modelId]) {
+    return pricingConfig.customPricing[modelId];
+  }
+
   const modelLower = modelId.toLowerCase();
 
   // GPT-4 pricing tiers
@@ -122,7 +177,10 @@ function inferModelPricing(modelId: string): { inputPrice: number; outputPrice: 
   }
 
   // Default fallback for unknown models
-  return { inputPrice: 5.0, outputPrice: 15.0 };
+  return {
+    inputPrice: pricingConfig.defaultInputPrice ?? 5.0,
+    outputPrice: pricingConfig.defaultOutputPrice ?? 15.0,
+  };
 }
 
 /**
