@@ -5,7 +5,7 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "files": ["./vitest.config.ts"],
-  "include": ["src/**/*", "tests/**/*"],
+  "files": ["./vitest.config.ts", "src/markdown/frontmatter-processor.ts", "src/markdown/document-processor.ts"],
+  "include": ["src/**/*", "tests/**/*", "../types/src/models/markdown-frontmatter.ts"],
   "references": [{ "path": "../types" }, { "path": "../utils" }]
 }

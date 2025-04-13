@@ -9,10 +9,18 @@ export * from './models/plugin';
 export * from './models/cli';
 export * from './models/vscode';
 export * from './models/taxonomy';
+export * from './models/markdown-frontmatter';
 
-// Export all validators
-export * from './validators/tags';
-export * from './validators/api';
+// Export config types with explicit naming to avoid conflicts
+export type {
+  CoreConfig,
+  ObsidianPluginConfig,
+  VSCodeConfig,
+  LogLevel,
+  OutputFormat,
+  OnLimitReached,
+  CLIConfig as ConfigCLI
+} from './models/config';
 
 // Re-export constants for direct access
 export {

@@ -12,15 +12,23 @@ import type { AIModel } from '@obsidian-magic/types';
 
 // Export all components from the core module
 export * from './errors';
-export * from './markdown';
-export * from './openai';
-export * from './tagging';
+export * from './openai-client';
+export * from './tagging-service';
 export * from './openai-models';
 export * from './model-manager';
-
+  
 // Export tagging functionality
-export * from './tagging/taxonomy';
-export * from './tagging/batch';
+export * from './markdown/frontmatter-processor';
+export * from './markdown/document-processor';
+export * from './tagging/taxonomy-manager';
+export * from './tagging/batch-processing-service';
+
+// Export validators
+export * from './validators/api-validators';
+export * from './validators/tags';
+
+// Export openai utilities
+export * from './openai/prompts';
 
 // Export version information
 export const VERSION = '0.1.0';
@@ -40,11 +48,11 @@ export async function initializeCore(options: {
 }) {
   // Import needed classes - using the exports we already have
   // This avoids circular dependencies while allowing static type checking
-  const { OpenAIClient } = await import('./openai');
-  const { TaggingService } = await import('./tagging');
-  const { TaxonomyManager } = await import('./tagging/taxonomy');
-  const { DocumentProcessor } = await import('./markdown');
-  const { BatchProcessingService } = await import('./tagging/batch');
+  const { OpenAIClient } = await import('./openai-client');
+  const { TaggingService } = await import('./tagging-service');
+  const { TaxonomyManager } = await import('./tagging/taxonomy-manager');
+  const { DocumentProcessor } = await import('./markdown/document-processor');
+  const { BatchProcessingService } = await import('./tagging/batch-processing-service');
 
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({
