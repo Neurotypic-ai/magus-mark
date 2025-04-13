@@ -446,7 +446,7 @@ this.registerEvent(
 );
 
 // Helper to extract frontmatter from document content
-extractFrontmatter(content: string) {
+function extractFrontmatter(content: string): Record<string, unknown> | null {
   const fmRegex = /^---\n([\s\S]*?\n)---/;
   const match = content.match(fmRegex);
   

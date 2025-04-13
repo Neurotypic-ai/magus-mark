@@ -97,11 +97,7 @@ The Model Context Protocol (MCP) is an open standard that allows AI models to in
 interface ToolDefinition {
   name: string;
   description: string;
-  parameters: {
-    type: 'object';
-    properties: Record<string, ParameterDefinition>;
-    required: string[];
-  };
+  parameters: Record<string, string | number | boolean | null | Record<string, unknown> | unknown[]>;
   returns?: {
     type: string;
     description: string;
@@ -112,7 +108,7 @@ interface ParameterDefinition {
   type: string;
   description: string;
   enum?: string[];
-  default?: any;
+  default?: string | number | boolean | null | Record<string, unknown> | unknown[];
 }
 ```
 
@@ -121,16 +117,16 @@ interface ParameterDefinition {
 ```typescript
 interface FunctionCall {
   name: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null | Record<string, unknown> | unknown[]>;
 }
 
 interface FunctionResponse {
   status: 'success' | 'error';
-  result?: any;
+  result?: unknown;
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 ```
@@ -172,7 +168,12 @@ const tagSearchTool: ToolDefinition = {
 };
 
 // Function executor implementation
-async function executeTagSearch(params: any): Promise<FunctionResponse> {
+async function executeTagSearch(params: {
+  query: string;
+  limit?: number;
+  offset?: number;
+  sort?: 'name' | 'created' | 'usage';
+}): Promise<FunctionResponse> {
   try {
     const tags = await tagSystem.search(params);
     return {

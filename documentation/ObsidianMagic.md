@@ -1272,9 +1272,9 @@ export function loadDomains(filepath: string): Domain[] {
   }
 }
 
-function validateDomains(domains: any[]): Domain[] {
+function validateDomains(domains: unknown[]): Domain[] {
   // Validation logic here
-  return domains;
+  return domains as Domain[];
 }
 ```
 
@@ -1918,8 +1918,7 @@ capabilities with seamless access to your knowledge base.
    - Custom Cursor commands for tag management
 
 3. **Rules System Integration**:
-   ```typescript
-   // Example .cursorrules entry
+   ```json
    {
      "rules": [
        {

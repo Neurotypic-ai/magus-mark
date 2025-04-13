@@ -112,7 +112,7 @@ interface TagCommandOptions {
 const tagCommand = {
   command: 'tag [paths..]',
   describe: 'Tag conversations in the provided paths',
-  builder: (yargs: Argv<{}>): Argv<TagCommandOptions> => {
+  builder: (yargs: Argv<Record<string, unknown>>): Argv<TagCommandOptions> => {
     return yargs
       .positional('paths', {
         describe: 'Files or directories to process',
@@ -297,7 +297,7 @@ The CLI implements custom error handling for Yargs:
 
 ```typescript
 // Custom error handler
-const handleFailure = (msg: string, err: Error, yargs: any) => {
+const handleFailure = (msg: string, err: Error, yargs: Argv) => {
   if (err) {
     if (process.env.DEBUG) {
       console.error(chalk.red('Error:'), err);

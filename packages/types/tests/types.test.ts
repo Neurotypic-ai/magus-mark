@@ -1,30 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-  // Tag types
-  YearTag,
-  LifeAreaTag,
-  DomainTag,
-  SubdomainTag,
-  ContextualTag,
-  ConversationTypeTag,
-  TopicalTag,
-  TagConfidence,
-  TagSet,
-  TagBehavior,
-  
-  // API types
-  AIModel,
-  APIKeyStorage,
-  TaggingResult,
-  TaggingOptions,
-  Document,
-  
   // Validators
   yearTagSchema,
   lifeAreaTagSchema,
   domainTagSchema,
-  subdomainTagSchema,
-  contextualTagSchema,
   conversationTypeTagSchema,
   confidenceScoreSchema,
   topicalTagSchema,
@@ -37,6 +16,24 @@ import {
   taggingResultSchema,
   taggingOptionsSchema,
   documentSchema
+} from '../src';
+
+import type {
+  // Tag types
+  YearTag,
+  LifeAreaTag,
+  DomainTag,
+  ConversationTypeTag,
+  TopicalTag,
+  TagConfidence,
+  TagSet,
+  
+  // API types
+  AIModel,
+  APIKeyStorage,
+  TaggingResult,
+  TaggingOptions,
+  Document
 } from '../src';
 
 describe('Tag Types Validation', () => {
