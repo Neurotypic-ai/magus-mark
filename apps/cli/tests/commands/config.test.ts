@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { configCommand } from '../../src/commands/config';
-import { logger } from '../../src/utils/logger';
-import { config } from '../../src/utils/config';
-import { fileExists, writeFile } from '@obsidian-magic/utils';
+import type { Argv } from 'yargs';
 
 // Mock dependencies
 vi.mock('../../src/utils/logger', () => ({
@@ -44,13 +42,16 @@ describe('configCommand', () => {
   });
 
   it('should have subcommands in builder', () => {
+    // Create a mock that satisfies the Argv interface requirements
     const yargsInstance = {
       command: vi.fn().mockReturnThis(),
       demandCommand: vi.fn().mockReturnThis(),
       help: vi.fn().mockReturnThis()
     };
     
-    configCommand.builder(yargsInstance as any);
+    // Use type assertion to properly satisfy the yargs.Argv interface
+    const builder = configCommand.builder as (yargs: Argv) => Argv;
+    builder(yargsInstance as unknown as Argv);
     
     // Should register get, set, import, export, and reset commands
     expect(yargsInstance.command).toHaveBeenCalledTimes(5);
@@ -60,19 +61,23 @@ describe('configCommand', () => {
   // For example:
   
   describe('get subcommand', () => {
-    it('should display a specific config value when key is provided', async () => {
+    it('should display a specific config value when key is provided', () => {
       // Simulate the get command handler
-      const getHandler = configCommand.builder({
-        command: vi.fn().mockImplementation((cmd, desc, opts) => {
+      const mockYargsInstance = {
+        command: vi.fn().mockImplementation((cmd: string, _desc: string, opts: { handler: unknown }) => {
           if (cmd === 'get [key]') {
             return opts.handler;
           }
           return null;
         })
-      } as any) as any;
+      };
+      
+      // Use type assertion to properly satisfy the yargs.Argv interface
+      const builder = configCommand.builder as (yargs: Argv) => Argv;
+      builder(mockYargsInstance as unknown as Argv);
       
       // This is a simplified test - actual implementation would be more complex
-      // and would need to call the handler directly
+      // and would need to call the handler directly with proper implementation
     });
   });
 }); 

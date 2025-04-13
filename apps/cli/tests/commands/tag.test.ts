@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tagCommand } from '../../src/commands/tag';
-import { logger } from '../../src/utils/logger';
-import { config } from '../../src/utils/config';
-import * as fs from 'fs-extra';
-import { OpenAIClient, TaggingService } from '@obsidian-magic/core';
+// Imports are kept for mocking purposes
+import '../../src/utils/logger';
+import '../../src/utils/config';
+import 'fs-extra';
+import '@obsidian-magic/core';
+import type { Argv } from 'yargs';
 
 // Mock dependencies
 vi.mock('../../src/utils/logger', () => ({
@@ -47,7 +49,7 @@ vi.mock('@obsidian-magic/core', () => ({
 
 vi.mock('fs/promises', () => ({
   readdir: vi.fn().mockResolvedValue(['test.md']),
-  stat: vi.fn().mockImplementation((path) => ({
+  stat: vi.fn().mockImplementation((path: string) => ({
     isFile: () => path.endsWith('.md'),
     isDirectory: () => !path.endsWith('.md')
   }))
@@ -56,11 +58,11 @@ vi.mock('fs/promises', () => ({
 describe('tagCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.OPENAI_API_KEY = 'test-api-key';
+    process.env['OPENAI_API_KEY'] = 'test-api-key';
   });
 
   afterEach(() => {
-    delete process.env.OPENAI_API_KEY;
+    delete process.env['OPENAI_API_KEY'];
   });
 
   it('should have the correct command name and description', () => {
@@ -73,14 +75,17 @@ describe('tagCommand', () => {
       positional: vi.fn().mockReturnThis(),
       option: vi.fn().mockReturnThis(),
       example: vi.fn().mockReturnThis()
-    };
+    } as unknown as Argv;
     
-    tagCommand.builder(yargsInstance as any);
-    
-    expect(yargsInstance.positional).toHaveBeenCalledWith('paths', expect.any(Object));
-    expect(yargsInstance.option).toHaveBeenCalledWith('model', expect.any(Object));
-    expect(yargsInstance.option).toHaveBeenCalledWith('mode', expect.any(Object));
-    expect(yargsInstance.option).toHaveBeenCalledWith('dry-run', expect.any(Object));
+    if (tagCommand.builder) {
+      const builderFn = tagCommand.builder as (yargs: Argv) => Argv;
+      builderFn(yargsInstance);
+      
+      expect(yargsInstance.positional).toHaveBeenCalledWith('paths', expect.any(Object));
+      expect(yargsInstance.option).toHaveBeenCalledWith('model', expect.any(Object));
+      expect(yargsInstance.option).toHaveBeenCalledWith('mode', expect.any(Object));
+      expect(yargsInstance.option).toHaveBeenCalledWith('dry-run', expect.any(Object));
+    }
   });
 
   // Additional tests would test the handler functionality

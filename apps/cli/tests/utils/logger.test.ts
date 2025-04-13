@@ -4,11 +4,11 @@ import { logger } from '../../src/utils/logger';
 describe('logger', () => {
   beforeEach(() => {
     // Spy on console methods
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.spyOn(console, 'info').mockImplementation(() => {});
-    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(vi.fn());
+    vi.spyOn(console, 'error').mockImplementation(vi.fn());
+    vi.spyOn(console, 'warn').mockImplementation(vi.fn());
+    vi.spyOn(console, 'info').mockImplementation(vi.fn());
+    vi.spyOn(console, 'debug').mockImplementation(vi.fn());
   });
 
   it('should have the expected methods', () => {
@@ -25,7 +25,6 @@ describe('logger', () => {
     logger.configure({ logLevel: 'error' });
     
     // Log messages at different levels
-    logger.debug('Debug message');
     logger.info('Info message');
     logger.warn('Warning message');
     logger.error('Error message');

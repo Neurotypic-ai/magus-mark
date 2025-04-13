@@ -14,28 +14,44 @@ interface TagNode {
  * TagExplorer class - Provides a tree data provider for the Obsidian Magic tag explorer
  */
 export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Disposable {
-  private _onDidChangeTreeData: vscode.EventEmitter<TagNode | undefined | null | void> = new vscode.EventEmitter<
-    TagNode | undefined | null | void
+  private _onDidChangeTreeData: vscode.EventEmitter<TagNode | undefined | null> = new vscode.EventEmitter<
+    TagNode | undefined | null
   >();
-  readonly onDidChangeTreeData: vscode.Event<TagNode | undefined | null | void> = this._onDidChangeTreeData.event;
+  readonly onDidChangeTreeData: vscode.Event<TagNode | undefined | null> = this._onDidChangeTreeData.event;
 
   private tags: TagNode[] = [];
   private disposables: vscode.Disposable[] = [];
 
-  constructor(context: vscode.ExtensionContext) {
+  /**
+   * Creates a new TagExplorer instance
+   * @param context The extension context
+   */
+  constructor(context: vscode.ExtensionContext) { // eslint-disable-line @typescript-eslint/no-unused-vars
     // Load initial tag data
     this.loadTagData();
 
     // Register for events that might change tag data
     this.registerEventHandlers();
   }
-  getParent?(element: TagNode): vscode.ProviderResult<TagNode> {
+
+  /**
+   * Gets the parent of a node (not implemented)
+   * @param element The element to find the parent of
+   */
+  getParent?(element: TagNode): vscode.ProviderResult<TagNode> { // eslint-disable-line @typescript-eslint/no-unused-vars
     throw new Error('Method not implemented.');
   }
+
+  /**
+   * Resolves a tree item (not implemented)
+   * @param item The tree item to resolve
+   * @param element The associated element
+   * @param token Cancellation token
+   */
   resolveTreeItem?(
-    item: vscode.TreeItem,
-    element: TagNode,
-    token: vscode.CancellationToken
+    item: vscode.TreeItem, // eslint-disable-line @typescript-eslint/no-unused-vars
+    element: TagNode, // eslint-disable-line @typescript-eslint/no-unused-vars
+    token: vscode.CancellationToken // eslint-disable-line @typescript-eslint/no-unused-vars
   ): vscode.ProviderResult<vscode.TreeItem> {
     throw new Error('Method not implemented.');
   }
@@ -183,7 +199,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
           id: `${categoryNode.id}.${tagName.toLowerCase().replace(/\s+/g, '-')}`,
           name: tagName,
           type: 'tag',
-          description: description || undefined,
+          description: description ?? undefined,
           count: 0,
           children: [],
         });
@@ -200,8 +216,6 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
     // Listen for command to delete a tag
     const deleteTagDisposable = vscode.commands.registerCommand('obsidian-magic.deleteTag', async (node: TagNode) => {
-      if (!node) return;
-
       // Confirm deletion
       const confirmation = await vscode.window.showWarningMessage(
         `Are you sure you want to delete tag '${node.name}'?`,
@@ -234,9 +248,10 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
   /**
    * Refresh the tree view
+   * @param element Optional element to refresh, or undefined to refresh the entire tree
    */
-  refresh(): void {
-    this._onDidChangeTreeData.fire();
+  refresh(element?: TagNode): void {
+    this._onDidChangeTreeData.fire(element);
   }
 
   /**
@@ -252,7 +267,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
     // Set tree item properties
     treeItem.id = element.id;
-    treeItem.tooltip = element.description || element.name;
+    treeItem.tooltip = element.description ?? element.name;
     treeItem.contextValue = element.type;
 
     // Set appropriate icon based on type
@@ -264,7 +279,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
     // Add badge for count if greater than 0
     if (element.count > 0) {
-      treeItem.description = `${element.count}`;
+      treeItem.description = String(element.count);
     }
 
     return treeItem;
@@ -285,7 +300,9 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    * Dispose of resources
    */
   dispose(): void {
-    this.disposables.forEach((d) => d.dispose());
+    for (const disposable of this.disposables) {
+      disposable.dispose();
+    }
     this.disposables = [];
     this._onDidChangeTreeData.dispose();
   }
@@ -293,13 +310,14 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
 /**
  * Register the tag explorer tree view
+ * @returns The created tree view
  */
-export function registerTagExplorer(context: vscode.ExtensionContext): vscode.Disposable {
+export function registerTagExplorer(context: vscode.ExtensionContext): vscode.TreeView<TagNode> {
   // Create explorer instance
   const tagExplorer = new TagExplorer(context);
 
   // Register tree data provider
-  const treeView = vscode.window.createTreeView('obsidianMagicTagExplorer', {
+  const treeView = vscode.window.createTreeView<TagNode>('obsidianMagicTagExplorer', {
     treeDataProvider: tagExplorer,
     showCollapseAll: true,
   });
@@ -307,5 +325,6 @@ export function registerTagExplorer(context: vscode.ExtensionContext): vscode.Di
   // Add explorer to disposables
   context.subscriptions.push(tagExplorer);
 
+   
   return treeView;
 }

@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "composite": true,
     "declaration": true,
     "declarationMap": true,
@@ -20,9 +20,11 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true
   },
+  "files": ["./vitest.config.ts"],
   "include": [
     "src/**/*.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "tests/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { logger } from '../src/utils/logger';
 import { costManager } from '../src/utils/cost-manager';
 
@@ -78,11 +78,18 @@ describe('CLI Application', () => {
   
   // Testing error handling would be important in real tests
   it('should handle errors correctly', () => {
-    // Simulate an error
-    const error = new Error('Test error');
-    const errorHandler = process.listeners('uncaughtException')[0];
+    // Verify error handler is registered
+    const errorHandlers = process.listeners('uncaughtException');
+    expect(errorHandlers.length).toBeGreaterThan(0);
     
-    // This would be a more complex test in real implementation
-    // We'd verify that error handling works as expected
+    // Mock error logging for verification
+    const mockErrorLog = vi.spyOn(logger, 'error');
+    
+    // In a real test we would trigger the error handler
+    // and verify error handling behavior
+    
+    // For now we're just verifying the logger is available
+    logger.error('Test error log');
+    expect(mockErrorLog).toHaveBeenCalledWith('Test error log');
   });
 }); 
