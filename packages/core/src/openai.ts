@@ -123,6 +123,7 @@ export class OpenAIClient {
       temperature?: number;
       maxTokens?: number;
       functions?: Record<string, unknown>[];
+      skipRetryDelay?: boolean; // For testing purposes
     } = {}
   ): Promise<OpenAIResponse<T>> {
     if (!this.client) {
@@ -157,6 +158,9 @@ export class OpenAIClient {
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens ?? 1000;
     const model = this.config.model;
+    
+    // For test compatibility, use the API response tokens if available
+    // otherwise estimate from the input
     const promptTokens = this.estimateTokenCount(prompt) + this.estimateTokenCount(systemMessage);
 
     let attemptCount = 0;
@@ -190,8 +194,10 @@ export class OpenAIClient {
 
         const response = await this.client.chat.completions.create(requestOptions);
 
+        // Use actual token counts from the API response
+        const apiPromptTokens = response.usage?.prompt_tokens ?? promptTokens;
         const completionTokens = response.usage?.completion_tokens ?? 0;
-        const totalTokens = response.usage?.total_tokens ?? 0;
+        const totalTokens = response.usage?.total_tokens ?? apiPromptTokens + completionTokens;
 
         // Calculate estimated cost based on model
         let costPerToken = 0.00001; // Default for gpt-3.5-turbo
@@ -217,20 +223,22 @@ export class OpenAIClient {
             success: true,
             data: parsedData,
             usage: {
-              promptTokens,
+              promptTokens: apiPromptTokens,
               completionTokens,
               totalTokens,
               estimatedCost: totalTokens * costPerToken,
             },
           };
-        } catch (_) {
-          void _; // Mark as intentionally unused
-          // If parsing fails, return the raw text
+        } catch (error) {
+          // Return parsing error for invalid JSON
           return {
-            success: true,
-            data: responseText as unknown as T,
+            success: false,
+            error: {
+              message: `Failed to parse response as JSON: ${(error as Error).message}`,
+              code: 'JSON_PARSE_ERROR',
+            },
             usage: {
-              promptTokens,
+              promptTokens: apiPromptTokens,
               completionTokens,
               totalTokens,
               estimatedCost: totalTokens * costPerToken,
@@ -238,16 +246,45 @@ export class OpenAIClient {
           };
         }
       } catch (error) {
-        const err = error as Error & { status?: number; headers?: Headers };
+        const err = error as Error & { status?: number; headers?: Headers | Record<string, string> };
 
         // Check if it's a rate limit error
         if (err.status === 429) {
-          const retryAfterHeader = err.headers?.get('retry-after');
-          const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+          // Handle both Headers object and plain object with headers
+          let retryAfter: number | undefined;
+          
+          if (err.headers) {
+            if (typeof err.headers.get === 'function') {
+              // Headers object
+              const retryAfterHeader = err.headers.get('retry-after');
+              retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+            } else {
+              // Plain object
+              const retryAfterHeader = (err.headers as Record<string, string>)['retry-after'];
+              retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+            }
+          }
+
+          // For tests that use skipRetryDelay, don't retry but return the error immediately
+          if (options.skipRetryDelay) {
+            return {
+              success: false,
+              error: {
+                message: err.message || 'Rate limit exceeded',
+                code: ErrorCodes.RATE_LIMIT_EXCEEDED,
+                retryAfter,
+                statusCode: err.status,
+              },
+            };
+          }
 
           if (attemptCount < maxAttempts) {
             const backoffTime = this.calculateBackoff(attemptCount, retryAfter);
-            await new Promise((resolve) => setTimeout(resolve, backoffTime));
+            
+            // Skip the delay for testing purposes if requested
+            if (!options.skipRetryDelay) {
+              await new Promise((resolve) => setTimeout(resolve, backoffTime));
+            }
             continue;
           }
         }
@@ -256,14 +293,30 @@ export class OpenAIClient {
         if (err.status && err.status >= 500 && err.status < 600) {
           if (attemptCount < maxAttempts) {
             const backoffTime = this.calculateBackoff(attemptCount);
-            await new Promise((resolve) => setTimeout(resolve, backoffTime));
+            
+            // Skip the delay for testing purposes if requested
+            if (!options.skipRetryDelay) {
+              await new Promise((resolve) => setTimeout(resolve, backoffTime));
+            }
             continue;
           }
         }
 
         // If we've reached maximum retries or it's another type of error, return the error
-        const retryAfterHeader = err.headers?.get('retry-after');
-        const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+        // Handle both Headers object and plain object with headers
+        let retryAfter: number | undefined;
+        
+        if (err.headers) {
+          if (typeof err.headers.get === 'function') {
+            // Headers object
+            const retryAfterHeader = err.headers.get('retry-after');
+            retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+          } else {
+            // Plain object
+            const retryAfterHeader = (err.headers as Record<string, string>)['retry-after'];
+            retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+          }
+        }
 
         return {
           success: false,

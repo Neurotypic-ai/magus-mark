@@ -1,176 +1,479 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ObsidianMagicPlugin from '../src/main';
-import type { App, Plugin } from 'obsidian';
+import { TagManagementView, TAG_MANAGEMENT_VIEW_TYPE } from '../src/ui/TagManagementView';
+import { TagVisualizationView, TAG_VISUALIZATION_VIEW_TYPE } from '../src/ui/TagVisualizationView';
+import { FolderTagModal } from '../src/ui/FolderTagModal';
+import { DocumentTagService } from '../src/services/DocumentTagService';
+import { KeyManager } from '../src/services/KeyManager';
+import { TaggingService } from '../src/services/TaggingService';
+import type { App, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 
-// Define interfaces for mocks
-interface Keymap {
-  pushScope: unknown;
-  popScope: unknown;
-}
-
-interface MockApp {
-  workspace: {
-    getActiveFile: ReturnType<typeof vi.fn>;
-    on: ReturnType<typeof vi.fn>;
-    detachLeavesOfType: ReturnType<typeof vi.fn>;
-    getLeaf: ReturnType<typeof vi.fn>;
-    rightSplit: {
-      collapsed: boolean;
-    };
-  };
-  vault: {
-    getMarkdownFiles: ReturnType<typeof vi.fn>;
-    read: ReturnType<typeof vi.fn>;
-    modify: ReturnType<typeof vi.fn>;
-  };
-  metadataCache: { on: ReturnType<typeof vi.fn> };
-  fileManager: { processFrontMatter: ReturnType<typeof vi.fn> };
-  keymap: Keymap;
-  scope: Record<string, unknown>;
-  // Required by App interface but not used in tests
-  lastEvent: null;
-  loadLocalStorage: () => string;
-  saveLocalStorage: () => void;
-}
-
-// Create mock App with all required properties
-const mockApp: MockApp = {
-  workspace: {
-    getActiveFile: vi.fn(),
-    on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-    detachLeavesOfType: vi.fn(),
-    getLeaf: vi.fn().mockReturnValue({
-      setViewState: vi.fn().mockResolvedValue(undefined),
-      getViewState: vi.fn().mockReturnValue({}),
-    }),
-    rightSplit: {
-      collapsed: false,
-    },
-  },
-  vault: {
-    getMarkdownFiles: vi.fn().mockReturnValue([]),
-    read: vi.fn().mockResolvedValue(''),
-    modify: vi.fn().mockResolvedValue(undefined),
-  },
-  // Add missing required App properties
-  metadataCache: { on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }) },
-  fileManager: { processFrontMatter: vi.fn() },
-  keymap: {
-    pushScope: vi.fn(),
-    popScope: vi.fn()
-  },
-  scope: {},
-  // Required by App interface but not used in tests
-  lastEvent: null,
-  loadLocalStorage: () => '',
-  saveLocalStorage: () => undefined,
-};
-
-interface PluginManifest {
-  id: string;
-  name: string;
-  version: string;
-  minAppVersion: string;
-  description: string;
-  author: string;
-  authorUrl: string;
-}
-
-// Mock plugin manifest with all required properties
-const mockManifest: PluginManifest = {
-  id: 'obsidian-magic',
-  name: 'Obsidian Magic',
-  version: '0.1.0',
-  minAppVersion: '1.5.0',
-  description: 'AI-powered tagging system for organizing AI chat history in Obsidian',
-  author: 'Obsidian Magic Team',
-  authorUrl: 'https://github.com/obsidian-magic/obsidian-magic',
-};
-
-// Create a proper Plugin base class mock
-class MockPlugin implements Partial<Plugin> {
-  app: App;
-  manifest: PluginManifest;
-
-  constructor(app: App, manifest: PluginManifest) {
-    this.app = app;
-    this.manifest = manifest;
-  }
-
-  addRibbonIcon = vi.fn().mockReturnValue({ remove: vi.fn() });
-  addStatusBarItem = vi.fn().mockReturnValue({ remove: vi.fn(), setText: vi.fn(), addClass: vi.fn() });
-  addCommand = vi.fn().mockReturnValue({ remove: vi.fn() });
-  registerView = vi.fn().mockReturnValue({ remove: vi.fn() });
-  addSettingTab = vi.fn().mockReturnValue({ remove: vi.fn() });
-  registerEvent = vi.fn().mockReturnValue({ remove: vi.fn() });
-  loadData = vi.fn().mockResolvedValue({});
-  saveData = vi.fn().mockResolvedValue(undefined);
-}
-
-// Mock the Obsidian API
+// Mock Obsidian API
 vi.mock('obsidian', () => {
+  const mockApp = {
+    workspace: {
+      onLayoutReady: vi.fn().mockImplementation((callback) => {
+        callback();
+        return { unsubscribe: vi.fn() };
+      }),
+      on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
+      getLeavesOfType: vi.fn().mockReturnValue([]),
+      detachLeavesOfType: vi.fn(),
+      getRightLeaf: vi.fn().mockReturnValue({
+        setViewState: vi.fn().mockResolvedValue(undefined)
+      }),
+      revealLeaf: vi.fn(),
+      getActiveFile: vi.fn().mockReturnValue({
+        path: 'test/document.md',
+        basename: 'document',
+        extension: 'md'
+      })
+    },
+    vault: {
+      on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
+      getMarkdownFiles: vi.fn().mockReturnValue([
+        {
+          path: 'file1.md',
+          basename: 'file1',
+          extension: 'md'
+        },
+        {
+          path: 'file2.md',
+          basename: 'file2',
+          extension: 'md'
+        }
+      ])
+    },
+    metadataCache: {
+      on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
+    }
+  };
+
   return {
-    Plugin: MockPlugin,
-    PluginSettingTab: vi.fn().mockImplementation(() => ({
-      display: vi.fn()
-    })),
-    TFile: vi.fn().mockImplementation((path: string) => ({
-      path,
-      basename: path.split('/').pop()?.split('.')[0] ?? '',
-      extension: path.split('.').pop() ?? '',
-    })),
-    TFolder: vi.fn().mockImplementation((path: string) => ({
-      path,
-      name: path.split('/').pop() ?? '',
-      children: [],
-    })),
-    Notice: vi.fn(),
-    Setting: vi.fn().mockImplementation(() => ({
-      setName: vi.fn().mockReturnThis(),
-      setDesc: vi.fn().mockReturnThis(),
-      addText: vi.fn().mockReturnThis(),
-      addDropdown: vi.fn().mockReturnThis(),
-      addToggle: vi.fn().mockReturnThis(),
-      addButton: vi.fn().mockReturnThis(),
-    })),
     App: vi.fn().mockImplementation(() => mockApp),
+    Plugin: vi.fn().mockImplementation(function() {
+      this.addRibbonIcon = vi.fn().mockReturnValue(document.createElement('div'));
+      this.addStatusBarItem = vi.fn().mockReturnValue(document.createElement('div'));
+      this.addCommand = vi.fn();
+      this.registerView = vi.fn();
+      this.addSettingTab = vi.fn();
+      this.loadData = vi.fn().mockResolvedValue({});
+      this.saveData = vi.fn().mockResolvedValue(undefined);
+      this.app = mockApp;
+      this.registerEvent = vi.fn().mockImplementation((event) => event);
+    }),
+    PluginSettingTab: vi.fn().mockImplementation(function() {
+      this.display = vi.fn();
+      this.containerEl = {
+        empty: vi.fn(),
+        createEl: vi.fn(),
+        addEventListener: vi.fn()
+      };
+    }),
+    Setting: vi.fn().mockImplementation(function() {
+      return {
+        setName: vi.fn().mockReturnThis(),
+        setDesc: vi.fn().mockReturnThis(),
+        addText: vi.fn().mockImplementation((cb) => {
+          cb({
+            setValue: vi.fn(),
+            inputEl: document.createElement('input'),
+            onChange: vi.fn().mockReturnThis()
+          });
+          return this;
+        }),
+        addDropdown: vi.fn().mockImplementation((cb) => {
+          cb({
+            setValue: vi.fn(),
+            onChange: vi.fn().mockReturnThis()
+          });
+          return this;
+        }),
+        addToggle: vi.fn().mockImplementation((cb) => {
+          cb({
+            setValue: vi.fn(),
+            onChange: vi.fn().mockReturnThis()
+          });
+          return this;
+        }),
+        then: vi.fn().mockImplementation((cb) => {
+          cb(this);
+          return this;
+        })
+      };
+    }),
+    Notice: vi.fn(),
+    TFile: vi.fn(),
+    TFolder: vi.fn()
   };
 });
+
+// Mock service modules
+vi.mock('../src/services/DocumentTagService', () => ({
+  DocumentTagService: vi.fn().mockImplementation(() => ({
+    processEditorChanges: vi.fn(),
+    applyTags: vi.fn().mockResolvedValue(true),
+    extractExistingTags: vi.fn().mockReturnValue({})
+  }))
+}));
+
+vi.mock('../src/services/KeyManager', () => ({
+  KeyManager: vi.fn().mockImplementation(() => ({
+    loadKey: vi.fn().mockResolvedValue('test-api-key'),
+    saveKey: vi.fn().mockResolvedValue(undefined),
+    deleteKey: vi.fn().mockResolvedValue(undefined)
+  }))
+}));
+
+vi.mock('../src/services/TaggingService', () => ({
+  TaggingService: vi.fn().mockImplementation(() => ({
+    updateApiKey: vi.fn(),
+    processFile: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        domain: 'software-development',
+        subdomains: ['coding', 'documentation'],
+        lifeAreas: ['learning'],
+        conversationType: 'tutorial',
+        contextualTags: ['obsidian-plugin', 'markdown'],
+        year: '2023'
+      }
+    }),
+    processFiles: vi.fn().mockImplementation((files) => 
+      Promise.all(files.map(() => ({
+        success: true,
+        data: {
+          domain: 'software-development',
+          subdomains: ['coding', 'documentation']
+        }
+      })))
+    ),
+    updateModelPreference: vi.fn()
+  }))
+}));
+
+vi.mock('../src/ui/TagManagementView', () => ({
+  TAG_MANAGEMENT_VIEW_TYPE: 'tag-management-view',
+  TagManagementView: vi.fn().mockImplementation(() => ({
+    onOpen: vi.fn(),
+    onClose: vi.fn()
+  }))
+}));
+
+vi.mock('../src/ui/TagVisualizationView', () => ({
+  TAG_VISUALIZATION_VIEW_TYPE: 'tag-visualization-view',
+  TagVisualizationView: vi.fn().mockImplementation(() => ({
+    onOpen: vi.fn(),
+    onClose: vi.fn()
+  }))
+}));
+
+vi.mock('../src/ui/FolderTagModal', () => ({
+  FolderTagModal: vi.fn().mockImplementation(() => ({
+    open: vi.fn(),
+    onClose: vi.fn(),
+    onSubmit: vi.fn()
+  }))
+}));
 
 describe('ObsidianMagicPlugin', () => {
   let plugin: ObsidianMagicPlugin;
 
   beforeEach(() => {
-    // Create a new plugin instance with the required constructor arguments
-    plugin = new ObsidianMagicPlugin(mockApp as unknown as App, mockManifest);
-    
-    // Reset mocks
     vi.clearAllMocks();
+    plugin = new ObsidianMagicPlugin();
   });
 
-  it('should initialize properly', async () => {
-    await plugin.onload();
-    expect(plugin.taggingService).toBeDefined();
-    expect(plugin.documentTagService).toBeDefined();
-    expect(plugin.keyManager).toBeDefined();
+  afterEach(() => {
+    vi.resetAllMocks();
   });
 
-  it('should clean up on unload', async () => {
-    await plugin.onload();
-    plugin.onunload();
-    expect(mockApp.workspace.detachLeavesOfType).toHaveBeenCalledTimes(2);
+  describe('onload', () => {
+    it('should initialize the plugin correctly', async () => {
+      await plugin.onload();
+
+      // Check that services are initialized
+      expect(KeyManager).toHaveBeenCalledWith(plugin);
+      expect(TaggingService).toHaveBeenCalledWith(plugin);
+      expect(DocumentTagService).toHaveBeenCalledWith(plugin);
+
+      // Check that views are registered
+      expect(plugin.registerView).toHaveBeenCalledWith(
+        TAG_MANAGEMENT_VIEW_TYPE,
+        expect.any(Function)
+      );
+      expect(plugin.registerView).toHaveBeenCalledWith(
+        TAG_VISUALIZATION_VIEW_TYPE,
+        expect.any(Function)
+      );
+
+      // Check that commands are added
+      expect(plugin.addCommand).toHaveBeenCalledTimes(4);
+
+      // Check that ribbon icon is added (default setting is true)
+      expect(plugin.addRibbonIcon).toHaveBeenCalled();
+
+      // Check that status bar is added (default setting is 'always')
+      expect(plugin.addStatusBarItem).toHaveBeenCalled();
+    });
+
+    it('should load settings correctly', async () => {
+      // Mock custom settings data
+      plugin.loadData = vi.fn().mockResolvedValue({
+        apiKey: 'custom-api-key',
+        modelPreference: 'gpt-3.5-turbo',
+        showRibbonIcon: false,
+        statusBarDisplay: 'never'
+      });
+
+      await plugin.onload();
+
+      // Check that settings are loaded
+      expect(plugin.loadData).toHaveBeenCalled();
+      expect(plugin.settings.apiKey).toBe('custom-api-key');
+      expect(plugin.settings.modelPreference).toBe('gpt-3.5-turbo');
+      expect(plugin.settings.showRibbonIcon).toBe(false);
+      expect(plugin.settings.statusBarDisplay).toBe('never');
+
+      // Check that ribbon icon is not added when setting is false
+      expect(plugin.addRibbonIcon).not.toHaveBeenCalled();
+
+      // Check that status bar is not added when setting is 'never'
+      expect(plugin.addStatusBarItem).not.toHaveBeenCalled();
+    });
   });
 
-  it('should save and load settings', async () => {
-    await plugin.loadSettings();
-    await plugin.saveSettings();
-    expect(plugin.loadData).toHaveBeenCalled();
-    expect(plugin.saveData).toHaveBeenCalledWith(plugin.settings);
+  describe('onunload', () => {
+    it('should clean up resources on unload', async () => {
+      await plugin.onload();
+      plugin.onunload();
+
+      // Check that views are detached
+      expect(plugin.app.workspace.detachLeavesOfType).toHaveBeenCalledWith(TAG_MANAGEMENT_VIEW_TYPE);
+      expect(plugin.app.workspace.detachLeavesOfType).toHaveBeenCalledWith(TAG_VISUALIZATION_VIEW_TYPE);
+    });
   });
 
-  it('should activate tag management view', async () => {
-    await plugin.onload();
-    await plugin.activateTagManagementView();
-    expect(mockApp.workspace.getLeaf).toHaveBeenCalled();
+  describe('settings management', () => {
+    it('should save settings correctly', async () => {
+      await plugin.onload();
+      await plugin.saveSettings();
+
+      expect(plugin.saveData).toHaveBeenCalledWith(plugin.settings);
+    });
+
+    it('should update API key correctly', async () => {
+      await plugin.onload();
+
+      // Change API key
+      plugin.settings.apiKey = 'new-api-key';
+      await plugin.saveSettings();
+
+      expect(plugin.saveData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: 'new-api-key'
+        })
+      );
+    });
+  });
+
+  describe('view management', () => {
+    it('should activate tag management view correctly', async () => {
+      await plugin.onload();
+
+      // Mock getLeavesOfType to return empty array first (no existing view)
+      plugin.app.workspace.getLeavesOfType = vi.fn().mockReturnValue([]);
+
+      await plugin.activateTagManagementView();
+
+      // Check that right leaf is used
+      expect(plugin.app.workspace.getRightLeaf).toHaveBeenCalledWith(false);
+      
+      // Check that view state is set correctly
+      expect(plugin.app.workspace.getRightLeaf().setViewState).toHaveBeenCalledWith({
+        type: TAG_MANAGEMENT_VIEW_TYPE,
+        active: true
+      });
+    });
+
+    it('should use existing leaf if tag management view is already open', async () => {
+      await plugin.onload();
+
+      // Mock existing view
+      const mockLeaf = { id: 'existing-leaf' };
+      plugin.app.workspace.getLeavesOfType = vi.fn().mockReturnValue([mockLeaf]);
+
+      await plugin.activateTagManagementView();
+
+      // Check that existing leaf is revealed
+      expect(plugin.app.workspace.revealLeaf).toHaveBeenCalledWith(mockLeaf);
+      
+      // Check that new leaf is not created
+      expect(plugin.app.workspace.getRightLeaf).not.toHaveBeenCalled();
+    });
+
+    it('should activate tag visualization view correctly', async () => {
+      await plugin.onload();
+
+      // Mock getLeavesOfType to return empty array first (no existing view)
+      plugin.app.workspace.getLeavesOfType = vi.fn().mockReturnValue([]);
+
+      await plugin.activateTagVisualizationView();
+
+      // Check that right leaf is used
+      expect(plugin.app.workspace.getRightLeaf).toHaveBeenCalledWith(false);
+      
+      // Check that view state is set correctly
+      expect(plugin.app.workspace.getRightLeaf().setViewState).toHaveBeenCalledWith({
+        type: TAG_VISUALIZATION_VIEW_TYPE,
+        active: true
+      });
+    });
+  });
+
+  describe('tagging operations', () => {
+    it('should tag current file correctly', async () => {
+      await plugin.onload();
+
+      // Mock active file
+      const mockFile = {
+        path: 'test/document.md',
+        basename: 'document',
+        extension: 'md'
+      } as TFile;
+      plugin.app.workspace.getActiveFile = vi.fn().mockReturnValue(mockFile);
+
+      await plugin.tagCurrentFile();
+
+      // Check that tagging service is called
+      expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockFile);
+    });
+
+    it('should open folder tag modal correctly', async () => {
+      await plugin.onload();
+
+      plugin.openFolderTagModal();
+
+      // Check that modal is created and opened
+      expect(FolderTagModal).toHaveBeenCalledWith(plugin.app, plugin);
+      expect(FolderTagModal.mock.results[0].value.open).toHaveBeenCalled();
+    });
+
+    it('should tag folder correctly', async () => {
+      await plugin.onload();
+
+      // Mock folder with files
+      const mockFolder = {
+        path: 'test',
+        name: 'test',
+        isFolder: () => true
+      } as unknown as TFolder;
+
+      // Mock files in the folder
+      const mockFiles = [
+        { path: 'test/file1.md', extension: 'md' },
+        { path: 'test/file2.md', extension: 'md' }
+      ] as TFile[];
+      plugin.app.vault.getMarkdownFiles = vi.fn().mockReturnValue(mockFiles);
+
+      await plugin.tagFolder(mockFolder);
+
+      // Check that tagging service is called for each file
+      expect(plugin.taggingService.processFiles).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'test/file1.md' }),
+          expect.objectContaining({ path: 'test/file2.md' })
+        ]),
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('context menu', () => {
+    it('should register file context menu correctly', async () => {
+      await plugin.onload();
+
+      // Get the file-menu callback
+      const callback = plugin.app.workspace.on.mock.calls.find(
+        call => call[0] === 'file-menu'
+      )[1];
+
+      // Create mock menu and file
+      const mockMenu = {
+        addItem: vi.fn().mockImplementation(cb => {
+          const mockItem = {
+            setTitle: vi.fn().mockReturnThis(),
+            setIcon: vi.fn().mockReturnThis(),
+            onClick: vi.fn().mockReturnThis()
+          };
+          cb(mockItem);
+          return mockItem;
+        })
+      };
+
+      // Test with markdown file
+      const mockFile = { extension: 'md' };
+      callback(mockMenu, mockFile);
+
+      // Check that menu item is added
+      expect(mockMenu.addItem).toHaveBeenCalled();
+      const menuItem = mockMenu.addItem.mock.results[0].value;
+      expect(menuItem.setTitle).toHaveBeenCalledWith('Tag with Obsidian Magic');
+      expect(menuItem.setIcon).toHaveBeenCalledWith('tag');
+
+      // Test with folder
+      const mockFolder = { isFolder: () => true };
+      vi.clearAllMocks();
+      callback(mockMenu, mockFolder);
+
+      // Check that menu item is added
+      expect(mockMenu.addItem).toHaveBeenCalled();
+      const folderMenuItem = mockMenu.addItem.mock.results[0].value;
+      expect(folderMenuItem.setTitle).toHaveBeenCalledWith('Tag folder with Obsidian Magic');
+    });
+
+    it('should register editor context menu correctly', async () => {
+      await plugin.onload();
+
+      // Get the editor-menu callback
+      const callback = plugin.app.workspace.on.mock.calls.find(
+        call => call[0] === 'editor-menu'
+      )[1];
+
+      // Create mock menu, editor, and view
+      const mockMenu = {
+        addItem: vi.fn().mockImplementation(cb => {
+          const mockItem = {
+            setTitle: vi.fn().mockReturnThis(),
+            setIcon: vi.fn().mockReturnThis(),
+            onClick: vi.fn().mockReturnThis()
+          };
+          cb(mockItem);
+          return mockItem;
+        })
+      };
+      const mockEditor = {};
+      const mockView = {
+        file: {
+          path: 'test/document.md',
+          extension: 'md'
+        }
+      };
+
+      callback(mockMenu, mockEditor, mockView);
+
+      // Check that menu item is added
+      expect(mockMenu.addItem).toHaveBeenCalled();
+      const menuItem = mockMenu.addItem.mock.results[0].value;
+      expect(menuItem.setTitle).toHaveBeenCalledWith('Tag with Obsidian Magic');
+      expect(menuItem.setIcon).toHaveBeenCalledWith('tag');
+
+      // Test onClick handler
+      const onClickHandler = menuItem.onClick.mock.calls[0][0];
+      onClickHandler();
+
+      // Check that tagging service is called
+      expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockView.file);
+    });
   });
 }); 
