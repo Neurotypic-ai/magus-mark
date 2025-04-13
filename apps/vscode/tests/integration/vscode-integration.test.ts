@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as vscode from 'vscode';
 import { activate, deactivate } from '../../src/extension';
 import { MCPServer } from '../../src/cursor/mcp-server';
-import { TagExplorer } from '../../src/views/tag-explorer';
 
 // Mock VS Code API
 vi.mock('vscode', () => ({
@@ -28,7 +27,7 @@ vi.mock('vscode', () => ({
   },
   workspace: {
     getConfiguration: vi.fn(() => ({
-      get: vi.fn((key: string, defaultValue: any) => defaultValue),
+      get: vi.fn((key: string, defaultValue: unknown) => defaultValue),
     })),
     onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
   },
@@ -36,7 +35,7 @@ vi.mock('vscode', () => ({
     appName: 'Visual Studio Code',
   },
   ExtensionContext: class {
-    subscriptions: any[] = [];
+    subscriptions: { dispose(): void }[] = [];
     extensionPath = '/test/extension/path';
     globalState = {
       get: vi.fn(),
@@ -66,14 +65,13 @@ vi.mock('vscode', () => ({
     iconPath = undefined;
   },
   ThemeIcon: class {
-    constructor(public id: string, public color?: any) {}
+    constructor(public id: string, public color?: string) {}
   },
 }));
 
 // Mock WebSocket
 vi.mock('websocket', () => ({
   server: class {
-    constructor() {}
     on = vi.fn();
     mount = vi.fn();
   },
@@ -87,7 +85,10 @@ vi.mock('websocket', () => ({
 // Mock HTTP
 vi.mock('http', () => ({
   createServer: vi.fn(() => ({
-    listen: vi.fn((port, callback) => callback()),
+    listen: vi.fn((port: number, callback: () => void) => {
+      callback();
+      return undefined;
+    }),
     close: vi.fn(),
   })),
 }));
@@ -96,7 +97,8 @@ describe('VS Code Integration', () => {
   let context: vscode.ExtensionContext;
 
   beforeEach(() => {
-    context = new (vscode as any).ExtensionContext();
+    // We know this is our mocked ExtensionContext from the mock above
+    context = new (vscode as unknown as { ExtensionContext: new () => vscode.ExtensionContext }).ExtensionContext();
     vi.clearAllMocks();
   });
 
@@ -111,11 +113,13 @@ describe('VS Code Integration', () => {
   });
 
   it('should detect and handle Cursor environment', () => {
-    (vscode.env as any).appName = 'Cursor';
+    // Cast to appropriate type to modify the mock
+    const mockedEnv = vscode.env as { appName: string };
+    mockedEnv.appName = 'Cursor';
     activate(context);
     expect(vscode.window.createStatusBarItem).toHaveBeenCalledTimes(3);
     // Reset environment
-    (vscode.env as any).appName = 'Visual Studio Code';
+    mockedEnv.appName = 'Visual Studio Code';
   });
 
   it('should register tag explorer view', () => {
@@ -139,13 +143,15 @@ describe('VS Code Integration', () => {
   });
 
   it('should initialize MCP server in Cursor environment', () => {
-    (vscode.env as any).appName = 'Cursor';
+    // Cast to appropriate type to modify the mock
+    const mockedEnv = vscode.env as { appName: string };
+    mockedEnv.appName = 'Cursor';
     activate(context);
     // Check if MCPServer was initialized
     expect(context.subscriptions.some(item => 
       item instanceof MCPServer
     )).toBe(true);
     // Reset environment
-    (vscode.env as any).appName = 'Visual Studio Code';
+    mockedEnv.appName = 'Visual Studio Code';
   });
 }); 

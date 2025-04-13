@@ -6,7 +6,7 @@
     "outDir": "dist",
     "lib": ["DOM", "ES2022"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
   "references": [
     { "path": "../../packages/types" },
     { "path": "../../packages/utils" },

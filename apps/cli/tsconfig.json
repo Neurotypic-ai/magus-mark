@@ -20,7 +20,7 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true
   },
-  "files": ["./vitest.config.ts"],
+  "files": ["./vitest.config.ts", "./package.json"],
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",

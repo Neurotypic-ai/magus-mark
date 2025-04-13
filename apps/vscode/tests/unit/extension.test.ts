@@ -1,13 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as vscode from 'vscode';
-
-// Import extension module
-import * as extension from '../../src/extension';
 
 // Mock VS Code API
 vi.mock('vscode', () => ({
 	extensions: {
-		getExtension: vi.fn().mockImplementation((extensionId) => ({
+		getExtension: vi.fn().mockImplementation((extensionId: string) => ({
 			id: extensionId,
 			isActive: true,
 			activate: vi.fn().mockResolvedValue(undefined),
