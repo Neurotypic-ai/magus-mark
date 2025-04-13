@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@obsidian-magic/core": "workspace:*",
     "@obsidian-magic/types": "workspace:*",
     "@obsidian-magic/utils": "workspace:*"
   },
