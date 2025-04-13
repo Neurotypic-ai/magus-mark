@@ -131,7 +131,7 @@ describe('Error Handling System', () => {
       const error = new Error('Failed');
       const result = Result.ok(5)
         .andThen(() => Result.fail(error))
-        .andThen((x) => Result.ok(x + 1));
+        .andThen((x) => Result.ok((x as number) + 1));
 
       expect(result.isFail()).toBe(true);
       expect(result.getError()).toBe(error);
@@ -198,10 +198,8 @@ describe('Error Handling System', () => {
     });
 
     it('should wrap async functions with tryCatch', async () => {
-      const successFn = async () => 'success';
-      const failFn = async () => {
-        throw new Error('Failed');
-      };
+      const successFn = () => Promise.resolve('success');
+      const failFn = () => Promise.reject(new Error('Failed'));
 
       const successResult = await tryCatch(successFn);
       expect(successResult.isOk()).toBe(true);
@@ -213,10 +211,8 @@ describe('Error Handling System', () => {
     });
 
     it('should wrap async functions with tryOrNull', async () => {
-      const successFn = async () => 'success';
-      const failFn = async () => {
-        throw new Error('Failed');
-      };
+      const successFn = () => Promise.resolve('success');
+      const failFn = () => Promise.reject(new Error('Failed'));
 
       const successResult = await tryOrNull(successFn);
       expect(successResult).toBe('success');

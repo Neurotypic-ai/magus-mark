@@ -1100,6 +1100,121 @@ Your Humble Servant, Sebastien
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Invalid type "number" of template literal expression.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, the linter requires explicit string conversion when using numbers in template literals. Use String() to make the conversions explicit:
+
+```typescript
+logger.info(`Starting workflow with ${String(this.queue.length)} tasks and concurrency ${String(this.options.concurrency)}`);
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unnecessary conditional, value is always falsy.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, the issue is that TypeScript doesn't recognize the singleton initialization pattern correctly. Initialize the static property explicitly:
+
+```typescript
+private static instance: Logger | null = null;
+
+public static getInstance(): Logger {
+  if (!Logger.instance) {
+    Logger.instance = new Logger();
+  }
+  return Logger.instance;
+}
+```
+
+This tells TypeScript that the instance starts as null and will be initialized later, resolving the "always falsy" warning.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unexpected any. Specify a different type.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, replace the `any` type with `unknown` to maintain type safety:
+
+```typescript
+public table(data: Record<string, unknown>[], columns?: string[]): void {
+```
+
+This satisfies TypeScript's strict typing requirements while still allowing flexible data types in your table function.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unnecessary conditional, value is always truthy.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, the error occurs because TypeScript knows `err` is always of type `Error` (non-nullable), making the check redundant. Update the parameter types to reflect that `err` might be optional:
+
+```typescript
+.fail((msg: string, err?: Error) => {
+  if (err) {
+    // Handle custom errors
+    if (err instanceof AppError) {
+```
+
+This properly types the error parameter as
+
+---
+
 
 
 ---

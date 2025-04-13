@@ -1085,6 +1085,105 @@ Your Humble Servant, Sebastien
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Unsafe assignment of an `any` value.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, replace the `any` type with a proper type definition for the update-notifier module:
+
+---
+
+```diff
+  
+  // Import update-notifier dynamically to avoid linter errors
+- let updateNotifier: any;
++ interface UpdateNotifier {
++   (options: { pkg: { name: string; version: string } }): { notify(): void };
++ }
++ 
+  try {
+-   updateNotifier = require('update-notifier');
++   // Import dynamically and type correctly
++   const updateNotifier = require('update-notifier') as UpdateNotifier;
+    updateNotifier({ pkg }).notify();
+- } catch (error) {
++ } catch (_error) {
+    logger.debug('Update notifier not available');
+  }
+```
+
+---
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+A `require()` style import is forbidden.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, use dynamic ES module import syntax to replace `require()`:
+
+---
+
+```diff
+  
+  // Import update-notifier dynamically to avoid linter errors
+- type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => { notify(): void };
++ interface UpdateNotifier {
++   (options: { pkg: { name: string; version: string } }): { notify(): void };
++ }
+  
++ // Check for updates asynchronously
++ (async () => {
+    try {
+-   // Import dynamically and type correctly
+-   const updateNotifier = require('update-notifier') as UpdateNotifier;
++     // Import dynamically using ES module syntax
++     const updateNotifierModule = await import('update-notifier');
++     const updateNotifier = updateNotifierModule.default as UpdateNotifier;
+      updateNotifier({ pkg }).notify();
+- } catch (_error) {
++   } catch {
+      logger.debug('Update notifier not available');
+    }
++ })().catch(() => {
++   // Ignore any errors from the update check
++ });
+  
+  // Load environment variables from .env file
+```
+
+---
+
+Your Humble Servant, Sebastien
+
+---
+
 
 
 ---

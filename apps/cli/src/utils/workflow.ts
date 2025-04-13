@@ -115,18 +115,18 @@ export class Workflow<T> extends EventEmitter {
       return {};
     }
     
-    logger.info(`Starting workflow with ${this.queue.length} tasks and concurrency ${this.options.concurrency}`);
+    logger.info(`Starting workflow with ${String(this.queue.length)} tasks and concurrency ${String(this.options.concurrency)}`);
     
     // Start initial batch of tasks based on concurrency
     this.processNextBatch();
     
     // Wait for all tasks to complete
-    return new Promise((resolve, reject) => {
-      this.on('workflowComplete', (results) => {
+    return new Promise<Record<string, T>>((resolve, reject) => {
+      this.on('workflowComplete', (results: Record<string, T>) => {
         resolve(results);
       });
       
-      this.on('workflowError', (error) => {
+      this.on('workflowError', (error: Error) => {
         reject(error);
       });
     });
@@ -216,7 +216,7 @@ export class Workflow<T> extends EventEmitter {
     if (available <= 0) return;
     
     // Get the next batch of tasks
-    const batchSize = Math.min(available, this.options.batchSize || available);
+    const batchSize = Math.min(available, this.options.batchSize ?? available);
     const batch = this.queue.splice(0, batchSize);
     
     if (batch.length === 0) {
@@ -229,7 +229,9 @@ export class Workflow<T> extends EventEmitter {
     }
     
     // Process each task in the batch
-    batch.forEach((taskId) => this.processTask(taskId));
+    for (const taskId of batch) {
+      void this.processTask(taskId);
+    }
   }
   
   /**

@@ -1,6 +1,17 @@
 import type { TagSet } from '@obsidian-magic/types';
 
 /**
+ * Type definitions for frontmatter data
+ * Using a recursive type definition that can handle arbitrary data
+ */
+interface FrontmatterObject {
+  [key: string]: FrontmatterValue;
+}
+
+type FrontmatterPrimitive = string | number | boolean | null;
+type FrontmatterValue = FrontmatterPrimitive | FrontmatterObject | FrontmatterValue[];
+
+/**
  * Regular expression to extract frontmatter from markdown
  * Matches content between --- delimiters at the start of the file
  */
@@ -9,7 +20,7 @@ const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 /**
  * Extract frontmatter from markdown content into a simple object
  */
-export function extractFrontmatter(content: string): { frontmatter: Record<string, any> | null; content: string } {
+export function extractFrontmatter(content: string): { frontmatter: FrontmatterObject | null; content: string } {
   const match = FRONTMATTER_REGEX.exec(content);
 
   if (!match?.[1]) {
@@ -20,7 +31,7 @@ export function extractFrontmatter(content: string): { frontmatter: Record<strin
     // Use JSON parsing as a safe fallback - convert YAML-like to JSON
     const frontmatterText = match[1];
     const jsonLike = simplifyFrontmatter(frontmatterText);
-    const frontmatter = JSON.parse(jsonLike);
+    const frontmatter = JSON.parse(jsonLike) as FrontmatterObject;
 
     return {
       frontmatter,
@@ -38,10 +49,10 @@ export function extractFrontmatter(content: string): { frontmatter: Record<strin
 function simplifyFrontmatter(text: string): string {
   // Simple YAML to JSON conversion - handles only basic cases
   const lines = text.split('\n');
-  const result: Record<string, any> = {};
+  const result: FrontmatterObject = {};
 
   let currentObj = result;
-  const stack: [Record<string, any>, string][] = [];
+  const stack: [FrontmatterObject, string][] = [];
   let lastIndent = 0;
 
   for (const line of lines) {
@@ -73,7 +84,7 @@ function simplifyFrontmatter(text: string): string {
 
       // Handle nested objects
       if (!value) {
-        const newObj: Record<string, any> = {};
+        const newObj: FrontmatterObject = {};
         currentObj[key] = newObj;
         stack.push([currentObj, ' '.repeat(indent)]);
         currentObj = newObj;
@@ -106,7 +117,7 @@ function simplifyFrontmatter(text: string): string {
 /**
  * Add frontmatter to markdown content
  */
-export function addFrontmatter(content: string, data: Record<string, any>): string {
+export function addFrontmatter(content: string, data: FrontmatterObject): string {
   const yaml = convertToYaml(data);
   return `---\n${yaml}\n---\n\n${content}`;
 }
@@ -114,12 +125,12 @@ export function addFrontmatter(content: string, data: Record<string, any>): stri
 /**
  * Very simple object to YAML converter
  */
-function convertToYaml(obj: Record<string, any>, level = 0): string {
+function convertToYaml(obj: FrontmatterObject, level = 0): string {
   const indent = ' '.repeat(level);
   const lines: string[] = [];
 
   for (const [key, value] of Object.entries(obj)) {
-    if (value === undefined || value === null) {
+    if (value === null) {
       lines.push(`${indent}${key}:`);
     } else if (typeof value === 'string') {
       // Quote strings that might cause issues in YAML
@@ -134,20 +145,23 @@ function convertToYaml(obj: Record<string, any>, level = 0): string {
       } else {
         lines.push(`${indent}${key}: ${value}`);
       }
-    } else if (typeof value === 'number' || typeof value === 'boolean') {
-      lines.push(`${indent}${key}: ${value}`);
+    } else if (typeof value === 'number') {
+      lines.push(`${indent}${key}: ${String(value)}`);
+    } else if (typeof value === 'boolean') {
+      lines.push(`${indent}${key}: ${String(value)}`);
     } else if (Array.isArray(value)) {
       if (value.length === 0) {
         lines.push(`${indent}${key}: []`);
       } else {
         lines.push(`${indent}${key}:`);
         for (const item of value) {
-          const itemStr = typeof item === 'object' ? JSON.stringify(item) : String(item);
+          const itemStr = item !== null && typeof item === 'object' ? JSON.stringify(item) : String(item);
           lines.push(`${indent}  - ${itemStr}`);
         }
       }
     } else if (typeof value === 'object') {
       lines.push(`${indent}${key}:`);
+      // Safe because we've already checked typeof value === 'object' and value !== null
       lines.push(convertToYaml(value, level + 2));
     }
   }
@@ -158,7 +172,7 @@ function convertToYaml(obj: Record<string, any>, level = 0): string {
 /**
  * Update frontmatter in markdown content
  */
-export function updateFrontmatter(content: string, newData: Record<string, any>): string {
+export function updateFrontmatter(content: string, newData: FrontmatterObject): string {
   const { frontmatter, content: contentWithoutFrontmatter } = extractFrontmatter(content);
 
   const updatedFrontmatter = {
@@ -170,18 +184,29 @@ export function updateFrontmatter(content: string, newData: Record<string, any>)
 }
 
 /**
+ * Type guard to check if an object might contain obsidianMagic tags
+ */
+function isTagsObject(obj: unknown): obj is { obsidianMagic: unknown } {
+  return typeof obj === 'object' && 
+         obj !== null && 
+         'obsidianMagic' in obj;
+}
+
+/**
  * Extract tags from frontmatter
  */
 export function extractTagsFromFrontmatter(content: string): TagSet | undefined {
   const { frontmatter } = extractFrontmatter(content);
 
-  if (!frontmatter || typeof frontmatter !== 'object') {
+  if (!frontmatter) {
     return undefined;
   }
 
   try {
     const tags = frontmatter['tags'];
-    if (tags && typeof tags === 'object' && tags.obsidianMagic) {
+    if (tags && typeof tags === 'object' && isTagsObject(tags)) {
+      // We've verified the object has an obsidianMagic property
+      // We trust that it's a TagSet
       return tags.obsidianMagic as TagSet;
     }
   } catch (error) {
@@ -198,13 +223,19 @@ export function updateTagsInFrontmatter(content: string, tags: TagSet): string {
   const { frontmatter, content: contentWithoutFrontmatter } = extractFrontmatter(content);
 
   // Get existing tags, if any
-  const existingTags = frontmatter?.['tags'] && typeof frontmatter['tags'] === 'object' ? frontmatter['tags'] : {};
+  const existingTagsObj = frontmatter?.['tags'];
+  const existingTags: Record<string, unknown> = 
+    existingTagsObj && typeof existingTagsObj === 'object'
+      ? existingTagsObj as Record<string, unknown>
+      : {};
 
-  const updatedFrontmatter = {
+  // Create updated frontmatter
+  const updatedFrontmatter: FrontmatterObject = {
     ...(frontmatter ?? {}),
     tags: {
       ...existingTags,
-      obsidianMagic: tags,
+      // TagSet will be treated as an opaque object in the frontmatter
+      obsidianMagic: tags as unknown as FrontmatterValue,
     },
   };
 

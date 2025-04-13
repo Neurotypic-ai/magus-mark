@@ -23,19 +23,19 @@ const DEFAULT_CONFIG: LoggerConfig = {
  * Logger utility
  */
 class Logger {
-  private static instance: Logger;
+  private static instance: Logger | null = null;
   private config: LoggerConfig = DEFAULT_CONFIG;
   private spinners = new Map<string, Ora>();
   
-  private constructor() {}
+  private constructor() {
+    // empty
+  }
   
   /**
    * Get singleton instance
    */
   public static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
-    }
+    Logger.instance ??= new Logger();
     return Logger.instance;
   }
   
@@ -117,7 +117,7 @@ class Logger {
   /**
    * Display a table
    */
-  public table(data: Record<string, any>[], columns?: string[]): void {
+  public table(data: Record<string, unknown>[], columns?: string[]): void {
     if (this.config.outputFormat === 'silent') return;
     
     if (this.config.outputFormat === 'json') {

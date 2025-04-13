@@ -195,7 +195,7 @@ export const tagCommand: CommandModule = {
         // Calculate rough cost estimate
         // Assuming ~2000 tokens per file on average
         const tokenEstimate = filesToProcess.length * 2000;
-        const modelName = model!;
+        const modelName = model ?? 'gpt-4o';
         const isGpt4Model = modelName === 'gpt-4' || modelName === 'gpt-4o';
         // GPT-4 models cost roughly $0.01 per 1K tokens, GPT-3.5 around $0.002
         const costEstimate = isGpt4Model ? (tokenEstimate / 1000) * 0.01 : (tokenEstimate / 1000) * 0.002;

@@ -1,16 +1,17 @@
 /**
  * Integration tests for Obsidian Magic core functionality
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { initializeCore, OpenAIClient, TaggingService, DocumentProcessor, BatchProcessingService } from '../src';
-import type { Document, TagSet } from '@obsidian-magic/types';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
+import type { OpenAIClient, TaggingService, DocumentProcessor, BatchProcessingService, TaxonomyManager } from '../src';
+import { initializeCore } from '../src';
+import type { Document } from '@obsidian-magic/types';
 
 // Mock the OpenAI API client to avoid actual API calls
 vi.mock('../src/openai', () => {
   return {
     OpenAIClient: vi.fn().mockImplementation(() => {
       return {
-        makeRequest: vi.fn().mockImplementation(async () => {
+        makeRequest: vi.fn().mockImplementation(() => {
           return {
             success: true,
             data: {
@@ -100,14 +101,25 @@ function DataFetcher() {
   );
 }
 \`\`\`
-    `
+    `,
+    metadata: {
+      created: '2023-01-01',
+      modified: '2023-01-02',
+      source: 'test',
+    }
   };
   
-  let core: ReturnType<typeof initializeCore>;
+  let core: {
+    openAIClient: OpenAIClient;
+    taxonomyManager: TaxonomyManager;
+    taggingService: TaggingService;
+    documentProcessor: DocumentProcessor;
+    batchProcessingService: BatchProcessingService;
+  };
   
-  beforeAll(() => {
+  beforeAll(async () => {
     // Initialize the core module with mock API key
-    core = initializeCore({
+    core = await initializeCore({
       openaiApiKey: 'mock-api-key',
       model: 'gpt-4o'
     });
@@ -132,15 +144,18 @@ function DataFetcher() {
     
     if (result.success && result.tags) {
       // Verify tag structure
-      const tags = result.tags as TagSet;
+      const tags = result.tags;
       expect(tags.year).toBe("2023");
       expect(tags.life_area).toBe("learning");
       expect(tags.conversation_type).toBe("practical");
       
       // Verify topical tags
-      expect(tags.topical_tags.length).toBeGreaterThan(0);
-      expect(tags.topical_tags[0].domain).toBe("software-development");
-      expect(tags.topical_tags[0].subdomain).toBe("frontend");
+      const topicalTags = tags.topical_tags;
+      expect(topicalTags.length).toBeGreaterThan(0);
+      
+      // Assert that the first element exists and has the expected properties
+      expect(topicalTags[0]?.domain).toBe("software-development");
+      expect(topicalTags[0]?.subdomain).toBe("frontend");
       
       // Verify confidence scores
       expect(tags.confidence.overall).toBeGreaterThan(0.9);

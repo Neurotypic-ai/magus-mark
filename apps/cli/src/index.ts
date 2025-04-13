@@ -16,13 +16,21 @@ import { costManager } from './utils/cost-manager';
 import { logger } from './utils/logger';
 
 // Import update-notifier dynamically to avoid linter errors
-let updateNotifier: any;
-try {
-  updateNotifier = require('update-notifier');
-  updateNotifier({ pkg }).notify();
-} catch (error) {
-  logger.debug('Update notifier not available');
-}
+type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => { notify(): void };
+
+// Check for updates asynchronously
+(async () => {
+  try {
+    // Import dynamically using ES module syntax
+    const updateNotifierModule = await import('update-notifier');
+    const updateNotifier = updateNotifierModule.default as UpdateNotifier;
+    updateNotifier({ pkg }).notify();
+  } catch {
+    logger.debug('Update notifier not available');
+  }
+})().catch(() => {
+  // Ignore any errors from the update check
+});
 
 // Load environment variables from .env file
 dotenvConfig();
@@ -35,13 +43,13 @@ process.on('uncaughtException', (error) => {
     logger.error(error.format());
   } else {
     logger.error(`Uncaught exception: ${error.message}`);
-    logger.debug(error.stack || '');
+    logger.debug(error.stack ?? '');
   }
 
   // Save any usage data before exiting
   try {
     costManager.saveUsageData();
-  } catch (e) {
+  } catch {
     // Ignore errors during cleanup
   }
 
@@ -56,7 +64,7 @@ process.on('unhandledRejection', (reason) => {
     logger.error(reason.format());
   } else if (reason instanceof Error) {
     logger.error(`Unhandled rejection: ${reason.message}`);
-    logger.debug(reason.stack || '');
+    logger.debug(reason.stack ?? '');
   } else {
     logger.error(`Unhandled rejection: ${String(reason)}`);
   }
@@ -64,7 +72,7 @@ process.on('unhandledRejection', (reason) => {
   // Save any usage data before exiting
   try {
     costManager.saveUsageData();
-  } catch (e) {
+  } catch {
     // Ignore errors during cleanup
   }
 
@@ -86,18 +94,14 @@ async function main() {
       .alias('v', 'version')
       .wrap(120)
       .fail((msg: string, err: Error) => {
-        if (err) {
-          // Handle custom errors
-          if (err instanceof AppError) {
-            logger.error(err.format());
-            if (err.recoverable) {
-              logger.info('Try running with --verbose for more details');
-            }
-          } else {
-            logger.error(msg || err.message);
+        // Handle custom errors
+        if (err instanceof AppError) {
+          logger.error(err.format());
+          if (err.recoverable) {
+            logger.info('Try running with --verbose for more details');
           }
         } else {
-          logger.error(msg);
+          logger.error(msg || err.message);
         }
         process.exit(1);
       });
@@ -152,7 +156,11 @@ async function main() {
     await cli.parse();
 
     // Save any usage data before exiting successfully
-    costManager.saveUsageData();
+    try {
+      costManager.saveUsageData();
+    } catch {
+      // Ignore errors during cleanup
+    }
   } catch (error) {
     if (error instanceof AppError) {
       logger.error(error.format());
@@ -166,7 +174,7 @@ async function main() {
     // Save any usage data before exiting with error
     try {
       costManager.saveUsageData();
-    } catch (e) {
+    } catch {
       // Ignore errors during cleanup
     }
 
@@ -174,4 +182,14 @@ async function main() {
   }
 }
 
-main();
+main().catch((error: unknown) => {
+  if (error instanceof AppError) {
+    logger.error(error.format());
+  } else {
+    logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    if (error instanceof Error && error.stack) {
+      logger.debug(error.stack);
+    }
+  }
+  process.exit(1);
+});

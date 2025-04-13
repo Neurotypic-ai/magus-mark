@@ -1142,10 +1142,6 @@ Cancelled
 
 ---
 
-
-
----
-
 _**User**_
 
 For the code present, we get this error:
@@ -1300,6 +1296,53 @@ How can I resolve this? If you propose a fix, please make it concise.
 ---
 
 _**Assistant**_
+
+
+
+---
+
+Your Grace, the linter is warning that you've marked the function as `async` but there's no `await` inside it. Since this test doesn't perform any asynchronous operations, simply remove the `async` keyword:
+
+---
+
+```diff
+    });
+  
+-   it('should initialize with API key', async () => {
++   it('should initialize with API key', () => {
+      taggingService.updateApiKey('new-api-key');
+      expect((taggingService as unknown as { apiKey: string }).apiKey).toBe('new-api-key');
+```
+
+---
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unsafe assignment of an `any` value.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, this error occurs because `JSON.parse()` returns `any` by default. Since you're working with unknown frontmatter structure, add a type assertion:
+
+---
+
+Cancelled
+
+---
 
 
 
