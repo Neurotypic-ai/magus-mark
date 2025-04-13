@@ -4,199 +4,105 @@ globs: **/*.ts,**/*.tsx
 alwaysApply: false
 ---
 
-# Error Handling
+# Error Handling System
 
-The project implements comprehensive error handling strategies to ensure robustness:
+## Core Principles
 
-## Custom Error Hierarchy
+When implementing error handling in this project, follow these core principles:
 
-Create a structured error hierarchy for different failure modes:
+1. **Type-safe error hierarchy** - Use specialized error classes for different failure scenarios
+2. **Result pattern** - Wrap operations that can fail in Result<T, E> objects
+3. **Retry mechanisms** - Apply retries with exponential backoff for transient failures
+4. **Utility functions** - Use provided helpers for error transformation and recovery
 
-```typescript
-// Base error class
-class AppError extends Error {
-  code: string;
-  recoverable: boolean;
-  
-  constructor(message: string, code: string, recoverable = false) {
-    super(message);
-    this.name = this.constructor.name;
-    this.code = code;
-    this.recoverable = recoverable;
-  }
-}
+All error handling is centralized in `packages/core/src/errors.ts`. **Never create custom error handling logic outside this system**.
 
-// Specific error types
-class UserInputError extends AppError {
-  constructor(message: string, code = 'INVALID_INPUT') {
-    super(message, code, true);
-  }
-}
+## Error Class Hierarchy
 
-class ApiError extends AppError {
-  statusCode?: number;
-  retryAfter?: number;
-  
-  constructor(message: string, code = 'API_ERROR', statusCode?: number, retryAfter?: number) {
-    super(message, code, statusCode ? statusCode < 500 : false);
-    this.statusCode = statusCode;
-    this.retryAfter = retryAfter;
-  }
-}
+- `AppError` - Base class with code, cause, context, and recoverable properties
+- `ValidationError` - For input validation failures
+- `FileSystemError` - For file system operation failures
+- `NetworkError` - For network communication issues
+- `APIError` - For API-specific failures with status codes and rate limits
+- `ApiKeyError` - For authentication issues
+- `ConfigurationError` - For system configuration problems
+- `MarkdownError` - For markdown processing failures
+- `TaggingError` - For tagging operation failures
+- `CostLimitError` - For budget/token limit exceedances
 
-class ValidationError extends AppError {
-  constructor(message: string, field?: string, code = 'VALIDATION_ERROR') {
-    super(message, code, true);
-    this.field = field;
-  }
-}
-```
+## Result Pattern Usage
 
-## Result Pattern
+Always return `Result<T, E>` from functions that can fail rather than throwing exceptions. This enables:
 
-Use the Result pattern for operations that can fail:
+- Type-safe error handling
+- Method chaining with `andThen()` and `map()`
+- Clear distinction between success and failure paths
 
-```typescript
-// Result pattern
-interface Result<T, E = AppError> {
-  success: boolean;
-  value?: T;
-  error?: E;
-}
+Key methods:
+- `Result.ok<T>(value)` - Create a successful result
+- `Result.fail<T, E>(error)` - Create a failed result
+- `result.isOk()` / `result.isFail()` - Check result status
+- `result.getValue()` / `result.getError()` - Access result contents
+- `result.andThen(fn)` - Chain operations returning Results
 
-function success<T>(value: T): Result<T> {
-  return { success: true, value };
-}
+## Coding Patterns
 
-function failure<E = AppError>(error: E): Result<never, E> {
-  return { success: false, error };
-}
+1. **Use specialized error types with context:**
+   ```typescript
+   throw new FileSystemError('File not found', { path, code: ErrorCodes.FILE_NOT_FOUND });
+   ```
 
-// Usage
-async function classifyDocument(path: string): Promise<Result<TagSet>> {
-  try {
-    const content = await readFile(path);
-    const tags = await taggingService.classifyContent(content);
-    return success(tags);
-  } catch (err) {
-    return failure(err instanceof AppError ? err : new AppError(String(err), 'UNKNOWN_ERROR'));
-  }
-}
-```
+2. **Return Results from operations that can fail:**
+   ```typescript
+   function processMightFail(): Result<Value> {
+     try {
+       return Result.ok(value);
+     } catch (err) {
+       return Result.fail(toAppError(err));
+     }
+   }
+   ```
 
-## Retry Mechanisms
+3. **Chain operations with Results:**
+   ```typescript
+   return fetchData()
+     .andThen(data => processData(data))
+     .andThen(processed => saveResult(processed));
+   ```
 
-Implement robust retry logic for transient failures:
+4. **Use retry for transient failures:**
+   ```typescript
+   const data = await withRetry(() => fetchDataFromApi());
+   ```
 
-```typescript
-async function apiCallWithRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
-  const {
-    maxRetries = 3,
-    initialDelay = 1000,
-    maxDelay = 60000,
-    factor = 2,
-  } = options;
-  
-  let attempt = 0;
-  
-  while (true) {
-    try {
-      return await fn();
-    } catch (error) {
-      attempt++;
-      
-      if (attempt > maxRetries) {
-        throw error;
-      }
-      
-      if (isRetryableError(error)) {
-        const delay = calculateBackoff(error, attempt, initialDelay, maxDelay, factor);
-        logger.warn(`Retrying after ${delay}ms (attempt ${attempt}/${maxRetries})`);
-        await sleep(delay);
-      } else {
-        throw error;
-      }
-    }
-  }
-}
+5. **Always clean up resources:**
+   ```typescript
+   try {
+     resource = await acquireResource();
+     return Result.ok(await processResource(resource));
+   } finally {
+     if (resource) await releaseResource(resource).catch(console.error);
+   }
+   ```
 
-function isRetryableError(error: unknown): boolean {
-  if (error instanceof ApiError) {
-    return error.statusCode >= 500 || error.statusCode === 429;
-  }
-  
-  return isNetworkError(error);
-}
-```
+6. **Validate inputs early:**
+   ```typescript
+   if (!isValidInput(input)) {
+     return Result.fail(new ValidationError('Invalid input'));
+   }
+   ```
 
-## Error Handling Best Practices
+7. **Log errors with context:**
+   ```typescript
+   logger.error({
+     message: 'Operation failed',
+     error: error instanceof AppError ? error.format() : String(error),
+     context: { operationId, user, timestamp }
+   });
+   ```
 
-1. **Error Classification**:
-   - Use a typed error hierarchy with specific error classes
-   - Include contextual information in errors (status codes, metadata)
-   - Categorize errors as recoverable or non-recoverable
+## Implementation Reference
 
-2. **Recovery Strategies**:
-   - Implement retry logic with exponential backoff for transient errors
-   - Use fallback mechanisms for critical operations
-   - Preserve partial results when batch operations partially fail
-   - Implement session persistence for resumable operations
-
-3. **Error Reporting**:
-   - Provide user-friendly messages with actionable advice
-   - Include troubleshooting steps for common errors
-   - Log detailed error information with context for debugging
-   - Use structured logging with error codes and metadata
-
-4. **Error Boundaries**:
-   - Implement error boundaries in UI components
-   - Isolate errors to prevent cascading failures
-   - Maintain application state during error recovery
-   - Use graceful degradation to preserve core functionality
-
-5. **Validation**:
-   - Validate inputs early with clear error messages
-   - Implement multi-stage validation (CLI args, config, runtime)
-   - Use schema validation for complex data structures
-   - Run preflight checks before starting critical operations
-
-6. **Operational Resilience**:
-   - Handle API rate limits and quota errors gracefully
-   - Implement graceful shutdown with cleanup procedures
-   - Handle unexpected termination with persistence strategies
-   - Provide debugging tools for troubleshooting
-
-## CLI-specific Error Handling
-
-For CLI applications, implement these additional patterns:
-
-```typescript
-// Custom error handler for CLI
-function handleCliError(error: unknown): never {
-  if (error instanceof UserInputError) {
-    console.error(chalk.red('Error:'), error.message);
-    console.error(chalk.yellow('Tip:'), 'Use --help to see valid options');
-  } else if (error instanceof ApiError) {
-    console.error(chalk.red('API Error:'), error.message);
-    if (error.statusCode === 401) {
-      console.error(chalk.yellow('Tip:'), 'Check your API key');
-    }
-  } else {
-    console.error(chalk.red('Unexpected Error:'), error instanceof Error ? error.message : String(error));
-    if (process.env.DEBUG) {
-      console.error(error);
-    }
-  }
-  
-  process.exit(1);
-}
-```
-
-## Reference Documentation
-
-For detailed implementation examples, see:
-- [CLI Error Handling Documentation](mdc:documentation/cli/error-handling.md)
-- [Core Error Handling Patterns](mdc:documentation/core/error-handling.md) 
+For implementation details, refer to:
+- [Core Error Handling System](documentation/core/error-handling.md)
+- [Error Class Implementation](packages/core/src/errors.ts) 

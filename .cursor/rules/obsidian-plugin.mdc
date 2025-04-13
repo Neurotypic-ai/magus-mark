@@ -53,6 +53,7 @@ The plugin provides robust security and configuration options:
 3. **Privacy Controls**: Data minimization and local processing options
 4. **Cost Management**: Budget controls and usage tracking
 5. **Enterprise Features**: Team management, audit logs, and centralized configuration
+6. **Error Handling**: Leverages the unified error system from the core package for robust error handling and recovery
 
 ## Ecosystem Integration
 
@@ -73,6 +74,7 @@ The plugin uses modern TypeScript and Obsidian API practices:
 3. **Component Lifecycle Management**: Structured onload/onunload flows
 4. **Accessibility-first Design**: WCAG compliance with keyboard navigation
 5. **Performance Optimization**: Efficient rendering for large documents
+6. **Unified Error Handling**: Using the core package's Result pattern and error classes for consistent error management
 
 ## Documentation Links
 

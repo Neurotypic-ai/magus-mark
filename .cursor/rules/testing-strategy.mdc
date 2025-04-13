@@ -1,6 +1,6 @@
 ---
 description: Testing strategies and approaches for Obsidian Magic
-globs: **/tests/**/*.ts,**/jest.config.js,**/*.test.ts,**/*.spec.ts
+globs: **/*.test.ts,**/*.spec.ts,**/vitest.config.*
 alwaysApply: false
 ---
 
@@ -10,22 +10,85 @@ The project implements a comprehensive testing strategy using Vitest, a Vite-nat
 
 ## Test Organization
 
-Tests are co-located with the code they test, rather than using a centralized test directory:
+We use co-located tests, placing test files directly alongside the source code they test:
 
 ```
-apps/cli/
-├── src/
-│   ├── commands/
-│   │   ├── tag-command.ts
-│   │   └── tag-command.test.ts     # Test alongside code
-packages/core/
-├── src/
-│   ├── tagging/
-│   │   ├── classifier.ts
-│   │   ├── classifier.test.ts      # Simple unit test
-│   │   └── __tests__/              # Complex test suites
-│   │       ├── fixtures/
-│   │       └── integration.test.ts
+obsidian-magic/
+├── apps/
+│   ├── cli/
+│   │   └── src/
+│   │       └── commands/
+│   │           ├── tag-command.ts
+│   │           └── tag-command.test.ts    # Test alongside implementation
+│   ├── obsidian-plugin/
+│   │   └── src/
+│   │       ├── services/
+│   │       │   ├── tagging-service.ts
+│   │       │   └── tagging-service.test.ts
+│   │       └── ui/
+│   │           ├── components/
+│   │           │   ├── TagEditor.tsx
+│   │           │   └── TagEditor.test.tsx
+├── packages/
+│   ├── core/
+│   │   └── src/
+│   │       ├── tagging/
+│   │       │   ├── classifier.ts
+│   │       │   └── classifier.test.ts     # Test alongside code
+│   │       ├── openai/
+│   │       │   ├── client.ts
+│   │       │   └── client.test.ts
+│   │       └── integration.test.ts        # Integration tests near related code
+│   ├── testing/ # Shared testing utilities
+│   ├── types/
+│   └── utils/
+└── vitest.workspace.js # Workspace configuration
+```
+
+## VS Code Integration
+
+We use VS Code file nesting to keep the explorer view clean while maintaining the co-location approach:
+
+```json
+"explorer.fileNesting.enabled": true,
+"explorer.fileNesting.patterns": {
+  "*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.d.ts"
+}
+```
+
+This visually groups test files with their source files in the explorer.
+
+## Vitest Setup
+
+We use Vitest workspace mode for efficient test running across packages:
+
+```javascript
+// vitest.workspace.js
+import { defineWorkspace } from 'vitest/config'
+
+export default defineWorkspace([
+  "./packages/*/vitest.config.ts",
+  "./apps/*/vitest.config.ts",
+])
+```
+
+Each package and app has its own `vitest.config.ts` with specific configurations:
+
+```typescript
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    include: ['**/*.{test,spec}.{ts,tsx}'], // Find all test files
+    globals: true,
+    coverage: {
+      provider: 'istanbul',
+      reporter: ['text', 'json', 'html'],
+      reportsDirectory: './coverage'
+    }
+  }
+});
 ```
 
 ## Unit Tests
@@ -33,66 +96,121 @@ packages/core/
 - Component-level tests with Vitest
 - Mocked dependencies via `vi.mock()` and `vi.spyOn()`
 - High coverage of core business logic
-- Snapshot testing for UI components
+- Consistent use of `describe`/`it` blocks for organization
+- Type-safe testing with TypeScript
 
 ## Integration Tests
 
 - Cross-component integration testing
-- API interaction testing with MSW
-- File system operation testing with memfs
-- CLI execution testing with execa
+- API interaction testing with mocked responses
+- File system operation testing with fs-extra mocks
+- Testing service composition and interaction
 
 ## End-to-End Tests
 
 - CLI workflow testing
 - Plugin installation and operation testing
 - Extension activation and operation testing
-- Real OpenAI API testing (with controlled inputs)
-
-## Performance Testing
-
-- Token usage optimization testing
-- Processing time benchmarking
-- Memory usage profiling
-- Load testing for concurrent operations
+- Controlled API testing
 
 ## Mocking Strategy
 
-- Service Mocks: Use dependency injection to inject mock services
-- API Mocks: Use MSW (Mock Service Worker) for external API calls
-- File System Mocks: Use memfs for CLI tests that interact with the file system
+### Module Mocking
 
-## Fixture Management
+We use Vitest's mocking capabilities to mock modules:
 
-- Factory Functions: Create reusable factory functions for test data
-- Test Data Files: Store larger test fixtures as JSON or Markdown files
-- Snapshot Testing: Use snapshots for complex output validation
+```typescript
+// Mock fs-extra module
+vi.mock('fs-extra', () => ({
+  ensureDir: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  access: vi.fn(),
+  readdir: vi.fn(),
+  stat: vi.fn(),
+  unlink: vi.fn()
+}));
+
+// Mock a custom module
+vi.mock('../logger', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    configure: vi.fn()
+  }
+}));
+```
+
+### Service Mocking
+
+We use dependency injection and the shared testing package for consistent mocks:
+
+```typescript
+import { createMockTagSet, createMockOpenAIConfig } from '@obsidian-magic/testing';
+
+// Create consistent mock data
+const mockTagSet = createMockTagSet({
+  year: '2024',
+  conversation_type: 'theoretical'
+});
+
+// Create service with mocked dependencies
+const service = createTaggingService({
+  openAIConfig: createMockOpenAIConfig(),
+  // Other dependencies
+});
+```
+
+## Shared Testing Utilities
+
+We maintain a dedicated `@obsidian-magic/testing` package for:
+
+- Factory functions for test data
+- Mock service implementations
+- Utility functions for test setup
+- Shared fixtures and helpers
+
+This promotes consistency and reduces duplication across tests.
 
 ## Testing Best Practices
 
-1. **Coverage Goals**:
+1. **Structure and Organization**:
+   - Use descriptive test names that explain behavior
+   - Follow AAA pattern (Arrange, Act, Assert)
+   - Group related tests in `describe` blocks
+   - Keep tests independent and idempotent
+   - Co-locate tests with the code they test
+
+2. **Mocking Strategy**:
+   - Use `vi.mock()` for module-level mocks
+   - Use `vi.spyOn()` for specific function mocks
+   - Reset mocks between tests with `beforeEach(vi.clearAllMocks)`
+   - Use the testing package for consistent mock data
+
+3. **Assertions**:
+   - Write focused assertions for specific behaviors
+   - Test edge cases and error conditions
+   - Use type-safe assertions with TypeScript
+   - Avoid testing implementation details when possible
+
+4. **Test Performance**:
+   - Keep tests fast and efficient
+   - Minimize unnecessary setup/teardown
+   - Use mocks instead of real APIs for faster tests
+   - Isolate slow tests when necessary
+
+5. **Coverage Goals**:
    - Aim for >80% coverage of core business logic
    - Prioritize critical path coverage
-   - Include edge cases and error conditions
+   - Track coverage over time in CI
 
-2. **Test Organization**:
-   - Co-locate tests with the code they test
-   - Follow AAA pattern (Arrange, Act, Assert)
-   - Use descriptive test names that read as specifications
+## Running Tests
 
-3. **Test Data Management**:
-   - Use factory functions for consistent test data
-   - Store complex fixtures as separate files
-   - Leverage TypeScript for type-safe test data
+To run tests:
 
-4. **Mocking Strategy**:
-   - Use dependency injection for easier mocking
-   - Create reusable mock factories
-   - Mock external services consistently
-   - Prefer interface mocking over implementation mocking
-
-5. **CI Integration**:
-   - Run tests on all pull requests
-   - Include performance benchmarks
-   - Track coverage over time
-   - Use test matrices for different environments 
+- All tests: `pnpm test` (runs tests in all packages)
+- Single package: `pnpm --filter @obsidian-magic/core test`
+- Watch mode: `pnpm --filter @obsidian-magic/core test -- --watch`
+- Coverage: `pnpm --filter @obsidian-magic/core test -- --coverage` 

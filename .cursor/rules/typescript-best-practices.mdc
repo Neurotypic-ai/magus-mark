@@ -6,376 +6,372 @@ alwaysApply: true
 
 # TypeScript Best Practices
 
-## Type System Configuration
+## Project Configuration
 
-- Leverage TypeScript 5.8.3 features fully (discriminated unions, template literal types, etc.)
-- Use explicit typing for function parameters and returns
-- Apply discriminated unions for type-safe pattern matching
-- Leverage TypeScript's utility types (Pick, Omit, Partial, Required, etc.)
-- Never use `any` - prefer `unknown` with proper type narrowing
-- Use const assertions for literal types (`as const`)
-- Apply template literal types for string manipulation
+This project uses:
+- TypeScript 5.8+ with strict settings
+- ESLint flat config with typescript-eslint
+- Prettier with import sorting
+- React with JSX (react-jsx transform)
 
-## Project References & Workspace Structure
+Always follow these configurations when generating code.
 
-- Use TypeScript project references for efficient builds and proper type checking
-- Maintain a hierarchical tsconfig structure:
-  - `tsconfig.base.json` for common settings
-  - Per-package/app configs that extend the base
-  - Solution-level `tsconfig.json` with references
-- Set `composite: true` in referenced project tsconfig files
-- Use `declarationMap: true` for better source mapping
-- Structure imports consistently with clear layering
-- Organize by domain concepts with meaningful directory structures
+## Code Style Requirements
 
-## Module & Import Best Practices
+1. **Formatting**:
+   - 120 character line width
+   - 2-space indentation
+   - Single quotes for strings
+   - Semicolons required
+   - Trailing commas in multiline objects/arrays
+   - No tabs, only spaces
 
-- Use type-only imports to avoid runtime overhead (`import type`)
-- Favor named exports over default exports for better intellisense
-- **NO index.ts Files**: Avoid using index.ts files except at the root of an entire package. Instead, use descriptive filenames that clearly indicate their purpose (e.g., use `commands.ts` instead of `commands/index.ts`).
-- Use path mapping for internal module references
-- Enforce import sorting and grouping:
-  1. External packages
-  2. Internal shared modules
-  3. Relative imports
-  4. Type imports
-- Leverage `exports` field in package.json for subpath exports
+2. **Import Organization**:
+   - Sort imports in this order:
+     1. Node.js built-ins (`node:*`)
+     2. React imports
+     3. Third-party modules
+     4. Project modules (`@obsidian-magic/*`)
+     5. Relative imports (`./*`, `../*`)
+     6. Type imports
+   - Use type-only imports: `import type { MyType } from './types';`
+   - Always use named imports (avoid default imports)
 
-## Type Declarations
-
-- Define interfaces for public APIs and contracts
-- Use type aliases for complex types, unions, and compound structures
-- Maintain separate declaration files for large type definitions
-- Apply namespace augmentation correctly for extending third-party types
-- Create self-documenting types with descriptive names
-- Use mapped types for object transformations
-- Never use `Object`, `Function`, or `{}` - be specific
-- Leverage branded types for nominal typing when needed
-
-## Functional Programming Patterns
-
-- Prefer immutable data structures and pure functions
-- Use array methods (map, filter, reduce) instead of imperative loops
-- Apply function composition for complex operations
-- Implement proper error handling with typed errors
-- Use optional chaining (?.) and nullish coalescing (??) for safer code
-- Leverage async/await with proper type-safe error handling
-
-## ESLint Integration
-
-- Enforce consistent type imports
-- Disallow explicit any
-- Use ESLint with TypeScript Parser for consistent code style
-- Run type-checking as part of the linting process
-- Configure per-directory rule overrides when necessary
-- **Enforce file naming conventions**: 
-  - Prohibit naming files as index.ts except at package roots
-  - Enforce consistent file naming patterns
-  - Use custom ESLint rules like `no-barrel-files` to prevent creation of nested index.ts files
-
-## TypeScript ESLint Rules
-
-We use `@typescript-eslint` with strict rules. Here's how to properly follow the most common ones:
-
-### Type Safety Rules
-
-#### `no-explicit-any`
-- ❌ **Incorrect**: `function process(data: any) { return data.value; }`
-- ✅ **Correct**: `function process(data: unknown) { if (typeof data === 'object' && data && 'value' in data) return data.value; }`
-- **Why**: The `any` type circumvents TypeScript's type checking. Use `unknown` and proper type guards instead.
-
-#### `no-unsafe-assignment`
-- ❌ **Incorrect**: `const typedValue: string = JSON.parse(input);`
-- ✅ **Correct**: 
-  ```typescript
-  const data = JSON.parse(input);
-  if (typeof data === 'string') {
-    const typedValue: string = data;
-  }
-  ```
-- **Why**: Direct assignments from untyped sources bypass type checking. Always verify types before assignment.
-
-#### `no-unsafe-member-access`
-- ❌ **Incorrect**: `const value = unknownObject.property;`
-- ✅ **Correct**:
-  ```typescript
-  if (typeof unknownObject === 'object' && unknownObject && 'property' in unknownObject) {
-    const value = unknownObject.property;
-  }
-  ```
-- **Why**: Accessing properties on untyped objects can cause runtime errors. Always check structure first.
-
-#### `no-unsafe-call`
-- ❌ **Incorrect**: `unknownFunction();`
-- ✅ **Correct**:
-  ```typescript
-  if (typeof unknownFunction === 'function') {
-    unknownFunction();
-  }
-  ```
-- **Why**: Calling untyped functions can cause runtime errors. Verify callable first.
-
-#### `restrict-template-expressions`
-- ❌ **Incorrect**: `const message = `User: ${user.id} logged in`;`
-- ✅ **Correct**: `const message = `User: ${String(user.id)} logged in`;`
-- **Why**: Template expressions should handle potential undefined/null values. Use explicit conversion.
-
-### Nullish Handling
-
-#### `prefer-nullish-coalescing`
-- ❌ **Incorrect**: `const value = someValue || defaultValue;`
-- ✅ **Correct**: `const value = someValue ?? defaultValue;`
-- **Why**: The `||` operator treats empty strings and 0 as falsy. Use `??` to check only for null/undefined.
-
-#### `no-unnecessary-condition`
-- ❌ **Incorrect**: `if (someString) { ... }` (when `someString` is typed as string)
-- ✅ **Correct**: `if (someString !== '') { ... }`
-- **Why**: Checking non-nullable types for existence is redundant. Be explicit about what you're checking.
-
-### Async Code
-
-#### `require-await`
-- ❌ **Incorrect**: `async function noAsyncOperation() { return 'value'; }`
-- ✅ **Correct**: `function noAsyncOperation() { return 'value'; }` or `async function withAwait() { return await asyncOperation(); }`
-- **Why**: Async functions without await are usually a mistake. If no awaits are used, the function probably shouldn't be async.
-
-### Code Cleanliness
-
-#### `no-unused-vars`
-- ❌ **Incorrect**: `function process(unusedParam, usedParam) { return usedParam * 2; }`
-- ✅ **Correct**: 
-  ```typescript
-  function process(_unusedParam, usedParam) { return usedParam * 2; }
-  // Or even better:
-  function process(usedParam) { return usedParam * 2; }
-  ```
-- **Why**: Unused variables indicate potential bugs or leftover code. Prefix with underscore if intentional.
-
-### Type Assertion Best Practices
-
-#### Avoid Unsafe Type Assertions
-- ❌ **Incorrect**: `const value = data as ExpectedType;`
-- ✅ **Correct**:
-  ```typescript
-  if (isExpectedType(data)) {
-    const value: ExpectedType = data;
-  }
-  ```
-- **Why**: Type assertions bypass TypeScript's type checking. Create proper type guards instead.
-
-#### Use Type Guards
-- ❌ **Incorrect**: `(user as Admin).adminPermissions.doSomething();`
-- ✅ **Correct**:
-  ```typescript
-  function isAdmin(user: User): user is Admin {
-    return 'adminPermissions' in user;
-  }
-  
-  if (isAdmin(user)) {
-    user.adminPermissions.doSomething();
-  }
-  ```
-- **Why**: Type guards allow TypeScript to understand your runtime checks.
-
-### Working With Arrays and Objects
-
-#### Use Array/Object Types Explicitly
-- ❌ **Incorrect**: `const items = [];`
-- ✅ **Correct**: `const items: string[] = [];` or `const items = [] as string[];`
-- **Why**: Empty arrays/objects start as `any[]` or `{}`, causing type issues later.
-
-#### Use Record for Index Signatures
-- ❌ **Incorrect**: `interface Config { [key: string]: string; }`
-- ✅ **Correct**: `type Config = Record<string, string>;`
-- **Why**: Record is more concise and communicates intent better.
-
-## Workspace Dependencies
-
-- Reference shared packages with workspace protocol (`workspace:*`)
-- Maintain consistent versioning across workspace
-- Keep dependencies scoped to appropriate app/package
-- Share common dev dependencies in root package.json
-- Use strict versioning for external dependencies
-- Audit dependencies regularly
-
-## Performance Optimizations
-
-- Leverage incremental builds with `composite: true`
-- Use skipLibCheck for faster type-checking
-- Apply isolatedModules for module boundary optimization
-- Consider lazy loading for heavy dependencies
-- Use memoization for expensive calculations
-- Profile and optimize critical type operations
-- Be cautious with closures that capture large objects
-
-## Testing Approach
-
-- Write unit tests with strong typing
-- Use TypeScript for test files
-- Mock external dependencies appropriately
-- Test with strict type checking
-- Apply generics for type-safe test fixtures and factories
-- Co-locate tests with the implementation files
-
-## Code Style & Documentation
-
-- Apply consistent naming conventions:
-  - PascalCase for types, interfaces, and classes
-  - camelCase for variables, functions, and methods
-  - UPPER_CASE for constants
-- Use JSDoc comments with TypeScript-aware annotations
-- Maintain meaningful comments for complex type manipulations
-- Document function parameters and return types
-- Apply consistent formatting (via Prettier)
-- Use semantic versioning for packages
-
-## Advanced Type Patterns
-
-- Implement higher-order types for complex transformations
-- Use conditional types for branching type logic
-- Apply template literal types for string manipulation
-- Leverage indexed access types for property type extraction
-- Use infer for type inference in conditional types
-- Apply intersection types for type composition
-- Use mapped types to transform object structures
-
-## Module Resolution
-
-- **NO TypeScript Paths**: We explicitly avoid using TypeScript's path mapping feature (`paths` in tsconfig) as it can lead to confusion and make the codebase harder to navigate. Instead, we use relative imports and workspace package references.
+3. **Naming Conventions**:
+   - PascalCase for types, interfaces, classes, React components
+   - camelCase for variables, functions, properties, methods
+   - UPPER_CASE for constants
+   - Avoid Hungarian notation
+   - **NO index.ts files** except at package roots
 
 ## Type Safety
 
-- Use strict TypeScript configuration
-- Enable all strict type checking options
-- No use of `any` type
-- No non-null assertions
-- Explicit return types on functions
-- Prefer type imports over value imports
-- Use branded types for type safety when needed
+1. **Type Declarations**:
+   ```typescript
+   // ❌ NEVER use `any`
+   function processItem(item: any): any { /* ... */ }
+   
+   // ✅ Use specific types or `unknown` with narrowing
+   function processItem(item: unknown): Result<ProcessedItem> {
+     if (!isValidItem(item)) {
+       return Result.fail(new ValidationError('Invalid item'));
+     }
+     // Now TypeScript knows item is ValidItem
+     return Result.ok(process(item));
+   }
+   ```
 
-## Code Organization
+2. **Type Guards**:
+   ```typescript
+   // ✅ Create proper type guards 
+   function isValidItem(item: unknown): item is ValidItem {
+     return (
+       typeof item === 'object' && 
+       item !== null && 
+       'id' in item && 
+       typeof item.id === 'string'
+     );
+   }
+   ```
 
-- Keep types close to their usage
-- **NO index.ts Files**: Never use index.ts for subdirectories or components. Use descriptive filenames instead (e.g., `model.ts` rather than `model/index.ts`).
-- Use barrel files only at the root of packages for export organization, but never in subdirectories
-- Prefer interfaces for public APIs and type aliases for internal types
-- Use discriminated unions for complex state management
+3. **Nullability**:
+   ```typescript
+   // ❌ NEVER use non-null assertions (!)
+   const value = maybeUndefined!.property;
+   
+   // ✅ Use optional chaining and nullish coalescing
+   const value = maybeUndefined?.property ?? defaultValue;
+   
+   // ✅ Use early returns with type narrowing
+   if (maybeUndefined === undefined) {
+     return Result.fail(new Error('Value is undefined'));
+   }
+   const value = maybeUndefined.property;
+   ```
 
-## File Organization & Naming
+4. **Discriminated Unions**:
+   ```typescript
+   // ✅ Use discriminated unions for state
+   type RequestState<T> = 
+     | { status: 'idle' }
+     | { status: 'loading' }
+     | { status: 'error'; error: Error }
+     | { status: 'success'; data: T };
+   
+   // ✅ Use exhaustive checking with switch
+   function handleState<T>(state: RequestState<T>) {
+     switch(state.status) {
+       case 'idle': return renderIdle();
+       case 'loading': return renderLoading();
+       case 'error': return renderError(state.error);
+       case 'success': return renderSuccess(state.data);
+       default: {
+         // Exhaustiveness check
+         const _exhaustiveCheck: never = state;
+         return null;
+       }
+     }
+   }
+   ```
 
-- **Flat Over Nested**: Prefer flat file structures with descriptive filenames over nested directories with index.ts files
-- **Descriptive Filenames**: Use clear, descriptive filenames that indicate the module's purpose
-- **One Component Per File**: Each file should contain exactly one primary export (exception for tightly coupled helpers)
-- **Group By Feature**: Organize files by feature or domain, not by technical role
-- **NO index.ts In Subdirectories**: Never use index.ts in subdirectories - this creates maintenance challenges:
-  - Makes it harder to trace imports in code editors
-  - Causes confusion when viewing directories in source control
-  - Creates unnecessary nesting and obfuscates the file structure
-  - Results in longer import paths and harder-to-read import statements
-- **Explicit Exports**: Always use explicit, named exports from specific files rather than re-exporting through index files
-- **Module Boundary**: Use package.json `exports` field to define public API boundaries instead of index.ts
+5. **Handling Error Types Safely**:
+   ```typescript
+   // ❌ AVOID: Unsafe member access on error types
+   try {
+     // something
+   } catch (err) {
+     console.log(err.message); // Unsafe member access
+   }
+   
+   // ✅ USE: Proper error type narrowing
+   try {
+     // something
+   } catch (err) {
+     const error = toAppError(err);
+     console.log(error.message);
+   }
+   
+   // ✅ BETTER: Use Result pattern to avoid exception handling
+   const result = doSomething();
+   if (result.isErr()) {
+     const error = result.error;
+     console.log(error.message);
+   }
+   ```
+
+6. **Variable Declaration and Usage**:
+   ```typescript
+   // ❌ AVOID: Unused variables
+   function process(data: Data) {
+     const helper = new Helper(); // ESLint: 'helper' is defined but never used
+     return data.value;
+   }
+   
+   // ✅ USE: Only declare variables you need
+   function process(data: Data) {
+     return data.value;
+   }
+   
+   // If you must keep the variable for future use:
+   function process(data: Data) {
+     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     const helper = new Helper(); // Will be used in future implementation
+     return data.value;
+   }
+   ```
 
 ## Error Handling
 
-- Use custom error classes
-- Handle all possible error cases
-- Avoid throwing non-Error objects
-- Use Result types for operations that can fail
+Always use the Result pattern for operations that can fail:
 
-## Testing
+```typescript
+import { Result, ValidationError, toAppError } from '@obsidian-magic/core';
 
-- Write tests in TypeScript
-- Use type-safe test utilities
-- Test type definitions where appropriate
-- Use test fixtures with proper types
+// ✅ Return Result instead of throwing
+function processData(input: unknown): Result<ProcessedData> {
+  // Validate input first
+  if (!isValidInput(input)) {
+    return Result.fail(new ValidationError('Invalid input', { field: 'input' }));
+  }
+  
+  try {
+    const processed = process(input as ValidInput);
+    return Result.ok(processed);
+  } catch (err) {
+    return Result.fail(toAppError(err));
+  }
+}
 
-## Documentation
+// ✅ Chain Results using andThen
+async function processThenSave(input: unknown): Promise<Result<SavedData>> {
+  return processData(input)
+    .andThen(data => saveData(data))
+    .andThen(savedId => loadSavedData(savedId));
+}
+```
 
-- Document public APIs with TSDoc comments
-- Include examples in documentation
-- Document complex type parameters
-- Keep documentation up to date with code changes
+## React Patterns
 
-## Performance
+```typescript
+// ✅ Proper React component with typed props
+interface ButtonProps {
+  label: string;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+}
 
-- Use const assertions where appropriate
-- Avoid type assertions unless absolutely necessary
-- Be mindful of type inference performance
-- Use `satisfies` operator for better type checking
+// Use React.FC only when needed for generic components
+function Button({ 
+  label, 
+  onClick, 
+  variant = 'primary', 
+  disabled = false 
+}: ButtonProps) {
+  return (
+    <button
+      className={`btn btn-${variant}`}
+      onClick={onClick}
+      disabled={disabled}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
 
-## Naming Conventions
+// ✅ Use type inference with useState when possible
+function Counter() {
+  // Type inference works fine here
+  const [count, setCount] = useState(0);
+  
+  // Explicitly type complex state
+  const [state, setState] = useState<RequestState<Data>>({ status: 'idle' });
 
-- Use PascalCase for types, interfaces, and classes
-- Use camelCase for variables, functions, and methods
-- Use UPPER_CASE for constants
-- Prefix interfaces with 'I' only when there's a class implementation
-- Suffix type parameters with 'Type' (e.g., TDataType)
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(prev => prev + 1)}>Increment</button>
+    </div>
+  );
+}
+```
 
-## Code Style
+## Testing Patterns
 
-- Consistent use of quotes (single)
-- Consistent use of semicolons
-- Proper spacing and indentation
-- Clear and descriptive naming
+When writing tests, follow these patterns:
 
-## Imports/Exports
+```typescript
+// ✅ Import appropriate testing libraries
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
-- Use named exports over default exports
-- Group imports logically
-- Use type imports for type-only imports
-- Avoid side effects in imports
+// ✅ Properly type mocks
+const mockFn = vi.fn<[string], number>();
+const mockService = {
+  getData: vi.fn<[], Promise<Data>>().mockResolvedValue({ id: '1' }),
+};
 
-## Error Messages
+// ✅ Use proper assertions
+describe('Component', () => {
+  it('renders correctly', () => {
+    render(<Component prop="value" />);
+    
+    expect(screen.getByText('Expected Text')).toBeInTheDocument();
+    expect(screen.queryByText('Should Not Exist')).not.toBeInTheDocument();
+  });
+  
+  it('handles async operations', async () => {
+    render(<AsyncComponent />);
+    
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Data Loaded')).toBeInTheDocument();
+    });
+    
+    expect(mockService.getData).toHaveBeenCalledTimes(1);
+  });
+});
+```
 
-- Use template literals for dynamic error messages
-- Include relevant context in error messages
-- Use consistent error message formatting
-- Document error conditions
+## Common Mistakes to Avoid
 
-## Generics
+1. **Empty Arrays/Objects**:
+   ```typescript
+   // ❌ AVOID: Untyped empty arrays
+   const items = [];
+   
+   // ✅ USE: Explicitly typed empty arrays
+   const items: string[] = [];
+   ```
 
-- Use meaningful generic names
-- Constrain generics appropriately
-- Document generic parameters
-- Use generic constraints effectively
+2. **Promises**:
+   ```typescript
+   // ❌ AVOID: Unhandled promises
+   async function getData() {
+     const data = await fetchData();
+     return data.value; // What if fetchData throws?
+   }
+   
+   // ✅ USE: Proper error handling with try/catch or Result
+   async function getData(): Promise<Result<Value>> {
+     try {
+       const data = await fetchData();
+       return Result.ok(data.value);
+     } catch (err) {
+       return Result.fail(toAppError(err));
+     }
+   }
+   ```
 
-## Async Code
+3. **React Hooks**:
+   ```typescript
+   // ❌ AVOID: useState without appropriate typing
+   const [data, setData] = useState();
+   
+   // ✅ USE: Explicitly typed state
+   const [data, setData] = useState<Data | null>(null);
+   ```
 
-- Use async/await over raw promises
-- Handle promise rejections
-- Type async function returns properly
-- Use proper error handling in async code
+4. **Test-Specific Issues**:
+   ```typescript
+   // ❌ AVOID: Untyped test mocks
+   const mockFn = vi.fn(); // Type is () => any
+   
+   // ✅ USE: Properly typed mocks
+   const mockFn = vi.fn<[string], number>(); // Takes string, returns number
+   
+   // ❌ AVOID: Accessing properties on error objects directly
+   expect(mockFn).toHaveBeenCalledWith(error.someProperty);
+   
+   // ✅ USE: Type-safe error handling in tests
+   if (result.isErr()) {
+     const error = result.error;
+     expect(error).toBeInstanceOf(ValidationError);
+     expect(mockFn).toHaveBeenCalledWith(error.message);
+   }
+   ```
 
-## Type Guards
+5. **Unsafe Member Access**:
+   ```typescript
+   // ❌ AVOID: Unsafe member access on unknown objects
+   function process(obj: unknown) {
+     console.log(obj.property); // Error: obj is of type 'unknown'
+   }
+   
+   // ✅ USE: Type guards before accessing properties
+   function process(obj: unknown) {
+     if (isValidObject(obj)) {
+       // TypeScript now knows obj has property
+       console.log(obj.property);
+     }
+   }
+   ```
 
-- Use type predicates
-- Create reusable type guards
-- Document type guard assumptions
-- Test type guards thoroughly
+6. **Floating Promises**:
+   ```typescript
+   // ❌ AVOID: Unhandled promise (floating promise)
+   function handleClick() {
+     fetchData(); // Promise not awaited or caught
+   }
+   
+   // ✅ USE: Properly handled promises
+   async function handleClick() {
+     try {
+       await fetchData();
+     } catch (err) {
+       handleError(err);
+     }
+   }
+   
+   // Or if you intentionally don't want to wait:
+   function handleClick() {
+     void fetchData().catch(handleError);
+   }
+   ```
 
-## Enums
-
-- Use const enums for better performance
-- Document enum values
-- Use string enums for better debugging
-- Consider union types instead of enums
-
-## Null/Undefined Handling
-
-- Use undefined for optional values
-- Use null when explicitly setting to no value
-- Use optional chaining
-- Use nullish coalescing
-
-## Type Inference
-
-- Let TypeScript infer types when obvious
-- Explicitly type complex objects
-- Use type inference in loops
-- Document when inference is important
-
-## Related Documentation
-
-- [Project Structure](mdc:documentation/implementation/project-structure.md)
-- [Testing Strategy](mdc:.cursor/rules/testing-strategy.mdc)
-- [Build System](mdc:.cursor/rules/build-system.mdc)
+Reference the project configurations:
+- [TypeScript Config](mdc:tsconfig.base.json)
+- [ESLint Config](mdc:eslint.config.js)
+- [Prettier Config](mdc:prettier.config.js)
