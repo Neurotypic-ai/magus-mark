@@ -140,10 +140,18 @@ export async function loadConfig(configPath = getDefaultConfigPath()): Promise<C
   try {
     const fileUtils = new FileUtils(configPath);
     if (await fileUtils.fileExists(configPath)) {
-      return await fileUtils.readJsonFile(configPath, configSchema);
+      try {
+        const result = await fileUtils.readJsonFile(configPath, configSchema);
+        if (result.isOk()) {
+          return result.getValue();
+        }
+        console.warn(`Error parsing config: ${result.getError().message}`);
+      } catch (error) {
+        console.warn(`Error reading config: ${(error as Error).message}`);
+      }
     }
 
-    // Config file doesn't exist, create with defaults
+    // Use defaults if file doesn't exist or has errors
     const config = DEFAULT_CONFIG;
     await fileUtils.writeJsonFile(configPath, config);
     return config;

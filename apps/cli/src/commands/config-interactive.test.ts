@@ -1,12 +1,11 @@
 import * as inquirerPrompts from '@inquirer/prompts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { logger, modelManager } from '@obsidian-magic/core';
-
 import { config } from '../utils/config';
 import { configInteractiveCommand } from './config-interactive';
 
-import type { AIModel, ModelPricing } from '@obsidian-magic/core';
+import type { ModelPricing } from '@obsidian-magic/core/src/OpenAIClient';
+import type { AIModel } from '@obsidian-magic/core/src/models/api';
 import type { Argv } from 'yargs';
 
 import type { LogLevel } from '../types/commands';

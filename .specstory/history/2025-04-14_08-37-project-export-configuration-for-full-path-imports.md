@@ -814,6 +814,1115 @@ khallmark in obsidian-magic …                                                 
 
 ---
 
+```bash
+grep -r "export.*Logger" packages/core/src/Logger.ts | cat
+```
+
+```
+packages/core/src/Logger.ts:export interface LoggerConfig {
+packages/core/src/Logger.ts:export class Logger {
+khallmark in obsidian-magic …                                                                     04:46:48 at Voyager 
+➜
+```
+
+---
+
+```bash
+grep -r "export.*AIModelName" packages/core/src/models/api.ts | cat
+```
+
+```
+khallmark in obsidian-magic …
+
+```
+
+---
+
+```bash
+grep -r "export.*Tag" packages/core/src/models/tags.ts | cat
+```
+
+```
+packages/core/src/models/tags.ts:export type YearTag = `${number}`;
+packages/core/src/models/tags.ts:export type LifeAreaTag = (typeof LIFE_AREA_TAGS)[number];
+packages/core/src/models/tags.ts:export type PredefinedDomainTag = (typeof DOMAIN_TAGS)[number];
+packages/core/src/models/tags.ts:export type DomainTag = PredefinedDomainTag | (string & {});
+packages/core/src/models/tags.ts:export type SubdomainTag = string;
+packages/core/src/models/tags.ts:export type PredefinedContextualTag = (typeof CONTEXTUAL_TAGS)[number];
+packages/core/src/models/tags.ts:export type ContextualTag = PredefinedContextualTag | (string & {});
+packages/core/src/models/tags.ts:export type ConversationTypeTag = (typeof CONVERSATION_TYPE_TAGS)[number];
+packages/core/src/models/tags.ts:export interface TopicalTag {
+packages/core/src/models/tags.ts:export interface TagConfidence {
+packages/core/src/models/tags.ts:export interface TagSet {
+packages/core/src/models/tags.ts:export type TagBehavior = 'append' | 'replace' | 'merge' | 'suggest';
+khallmark in obsidian-magic …                                                                     04:47:00 at Voyager 
+➜
+```
+
+---
+
+```diff
+  
+  // Explicit imports with full paths to avoid barrel files
++ import type { AIModel } from './models/api';
+  import { OpenAIClient } from './OpenAIClient';
+  import { TaggingService } from './TaggingService';
++ import { TaxonomyManager } from './tagging/TaxonomyManager';
+  import { DocumentProcessor } from './markdown/DocumentProcessor';
+  import { BatchProcessingService } from './tagging/BatchProcessingService';
+- import { TaxonomyManager } from './tagging/TaxonomyManager';
+- 
+- import type { AIModel } from './models/api';
+  
+  // Export from explicit paths
+- export {
+-   AppError,
+-   ValidationError,
+-   FileSystemError,
+-   NetworkError,
+-   APIError,
+-   ApiKeyError,
+-   ConfigurationError,
+-   MarkdownError,
+-   TaggingError,
+-   CostLimitError,
+-   Result,
+-   type ResultObject,
+-   success,
+-   failure,
+-   tryCatch,
+-   tryOrNull,
+-   toAppError,
+-   normalizeError,
+-   withRetry,
+-   type ErrorCode,
+- } from './errors/errors';
++ export { AppError, ValidationError, FileSystemError, NetworkError, APIError, ApiKeyError, 
++          ConfigurationError, MarkdownError, TaggingError, CostLimitError, Result, 
++          type ResultObject, success, failure, tryCatch, tryOrNull, toAppError, 
++          normalizeError, withRetry, type ErrorCode } from './errors/errors';
+  
+  // Export OpenAI integration with explicit paths
+  
+  // Export configuration with explicit paths
+- export {
+-   DEFAULT_CONFIG,
+-   configSchema,
+-   type Config,
+-   getDefaultConfigPath,
+-   loadConfig,
+-   saveConfig,
+-   updateConfig,
+-   getApiKey,
+-   setApiKey,
+- } from './config';
++ export { DEFAULT_CONFIG, configSchema, type Config, getDefaultConfigPath, 
++          loadConfig, saveConfig, updateConfig, getApiKey, setApiKey } from './config';
+  
+  // Export logger with explicit paths
+- export { Logger, type LogLevel, type LoggerConfig } from './Logger';
++ export { type LogLevel, type LoggerConfig } from './Logger';
+  
+  // Export markdown processing with explicit paths
+  
+  // Export validators with explicit paths
+- export {
+-   aiModelSchema,
+-   apiKeyStorageSchema,
+-   taggingResultSchema,
+-   taggingOptionsSchema,
+-   documentSchema,
+-   rateLimitInfoSchema,
+-   apiErrorSchema,
+-   apiUsageStatsSchema,
+-   apiRequestTrackingSchema,
+-   apiConfigSchema,
+-   batchTaggingJobSchema,
+-   type AIModelSchema,
+-   type APIKeyStorageSchema,
+-   type TaggingResultSchema,
+-   type TaggingOptionsSchema,
+-   type DocumentSchema,
+-   type RateLimitInfoSchema,
+-   type APIErrorSchema,
+-   type APIUsageStatsSchema,
+-   type APIRequestTrackingSchema,
+-   type APIConfigSchema,
+-   type BatchTaggingJobSchema,
+- } from './validators/api-validators';
++ export { aiModelSchema, apiKeyStorageSchema, taggingResultSchema, taggingOptionsSchema,
++          documentSchema, rateLimitInfoSchema, apiErrorSchema, apiUsageStatsSchema,
++          apiRequestTrackingSchema, apiConfigSchema, batchTaggingJobSchema,
++          type AIModelSchema, type APIKeyStorageSchema, type TaggingResultSchema,
++          type TaggingOptionsSchema, type DocumentSchema, type RateLimitInfoSchema,
++          type APIErrorSchema, type APIUsageStatsSchema, type APIRequestTrackingSchema,
++          type APIConfigSchema, type BatchTaggingJobSchema } from './validators/api-validators';
+  
+  // Export tag validators with explicit paths
+- export {
+-   yearTagSchema,
+-   lifeAreaTagSchema,
+-   domainTagSchema,
+-   subdomainTagSchema,
+-   contextualTagSchema,
+-   conversationTypeTagSchema,
+-   confidenceScoreSchema,
+-   topicalTagSchema,
+-   tagConfidenceSchema,
+-   tagSetSchema,
+-   tagBehaviorSchema,
+-   type YearTagSchema,
+-   type LifeAreaTagSchema,
+-   type DomainTagSchema,
+-   type SubdomainTagSchema,
+-   type ContextualTagSchema,
+-   type ConversationTypeTagSchema,
+-   type ConfidenceScoreSchema,
+-   type TopicalTagSchema,
+-   type TagConfidenceSchema,
+-   type TagSetSchema,
+-   type TagBehaviorSchema,
+- } from './validators/tags-validators';
++ export { yearTagSchema, lifeAreaTagSchema, domainTagSchema, subdomainTagSchema,
++          contextualTagSchema, conversationTypeTagSchema, confidenceScoreSchema,
++          topicalTagSchema, tagConfidenceSchema, tagSetSchema, tagBehaviorSchema,
++          type YearTagSchema, type LifeAreaTagSchema, type DomainTagSchema,
++          type SubdomainTagSchema, type ContextualTagSchema, type ConversationTypeTagSchema,
++          type ConfidenceScoreSchema, type TopicalTagSchema, type TagConfidenceSchema,
++          type TagSetSchema, type TagBehaviorSchema } from './validators/tags-validators';
+  
+  // Export models with explicit paths
+  export { type AIModel } from './models/api';
+- export { type TagConfidence } from './models/tags';
+- export { type Taxonomy } from './models/taxonomy';
+- export { type FrontmatterOptions } from './markdown/frontmatter-options';
++ export { type YearTag, type LifeAreaTag, type DomainTag, type SubdomainTag,
++          type ContextualTag, type ConversationTypeTag, type TopicalTag,
++          type TagConfidence, type TagSet, type TagBehavior } from './models/tags';
++ export { type Taxonomy, type TaxonomyNode } from './models/taxonomy';
++ export { type FrontmatterOptions } from './models/frontmatter-options';
+  
+  // Export basic types with explicit paths
+  export { type TypedEventEmitter } from './types/TypedEventEmitter';
+  
++ // Export utilities with explicit paths
++ export { parseFile, saveFile, ensureDir, removeDir, dirExists, fileExists, 
++          type FileContents, type WriteOptions } from './utils/FileUtils';
++ export { capitalize, truncate, stripMarkdown, removeEmojis, extractUrls, 
++          slugify, camelCase, pascalCase, kebabCase, snakeCase } from './utils/string';
+  export { deepMerge } from './utils/DeepMerge';
++ export { parseDate, formatDate, getDaysBetween, getMonthsBetween, getYearsBetween, 
++          isLeapYear, getLocalTimezoneOffset } from './utils/Chrono';
++ export { validate, validateObject, parseStringEnum, parseBoolean, 
++          parseNumber, parseString, parseArray } from './utils/validation';
++ export { formatTag, parseTag, mergeTagSets, normalizeTag, 
++          getTagsFromText, parseTagRecord } from './utils/tag';
++ export { generatePromptWithTokenCount, truncateContentToFitTokens } from './utils/prompt';
+  
+  // Export version information
+   * @returns Core functionality instances
+   */
+- export function initializeCore(options: {
++ export async function initializeCore(options: {
+    openaiApiKey?: string;
+    model?: AIModel;
+```
+
+---
+
+```bash
+find packages/core/src -name "FileUtils.ts" | xargs grep -l "export" | cat
+```
+
+```
+packages/core/src/utils/FileUtils.ts
+khallmark in obsidian-magic …                                                                     04:48:07 at Voyager 
+➜
+```
+
+---
+
+Read file: packages/core/src/utils/FileUtils.ts
+
+---
+
+```bash
+find packages/core/src -name "taxonomy.ts" | xargs grep -l "export" | cat
+```
+
+```
+packages/core/src/models/taxonomy.ts
+khallmark in obsidian-magic …                                                                     04:48:20 at Voyager 
+➜
+```
+
+---
+
+Read file: packages/core/src/models/taxonomy.ts
+
+---
+
+```diff
+  
+  // Explicit imports with full paths to avoid barrel files
++ import type { AIModel } from './models/api';
+  import { OpenAIClient } from './OpenAIClient';
+  import { TaggingService } from './TaggingService';
++ import { TaxonomyManager } from './tagging/TaxonomyManager';
+  import { DocumentProcessor } from './markdown/DocumentProcessor';
+  import { BatchProcessingService } from './tagging/BatchProcessingService';
+- import { TaxonomyManager } from './tagging/TaxonomyManager';
+- 
+- import type { AIModel } from './models/api';
+  
+  // Export from explicit paths
+- export {
+-   AppError,
+-   ValidationError,
+-   FileSystemError,
+-   NetworkError,
+-   APIError,
+-   ApiKeyError,
+-   ConfigurationError,
+-   MarkdownError,
+-   TaggingError,
+-   CostLimitError,
+-   Result,
+-   type ResultObject,
+-   success,
+-   failure,
+-   tryCatch,
+-   tryOrNull,
+-   toAppError,
+-   normalizeError,
+-   withRetry,
+-   type ErrorCode,
+- } from './errors/errors';
++ export { AppError, ValidationError, FileSystemError, NetworkError, APIError, ApiKeyError, 
++          ConfigurationError, MarkdownError, TaggingError, CostLimitError, Result, 
++          type ResultObject, success, failure, tryCatch, tryOrNull, toAppError, 
++          normalizeError, withRetry, type ErrorCode } from './errors/errors';
+  
+  // Export OpenAI integration with explicit paths
+  
+  // Export configuration with explicit paths
+- export {
+-   DEFAULT_CONFIG,
+-   configSchema,
+-   type Config,
+-   getDefaultConfigPath,
+-   loadConfig,
+-   saveConfig,
+-   updateConfig,
+-   getApiKey,
+-   setApiKey,
+- } from './config';
++ export { DEFAULT_CONFIG, configSchema, type Config, getDefaultConfigPath, 
++          loadConfig, saveConfig, updateConfig, getApiKey, setApiKey } from './config';
+  
+  // Export logger with explicit paths
+  
+  // Export validators with explicit paths
+- export {
+-   aiModelSchema,
+-   apiKeyStorageSchema,
+-   taggingResultSchema,
+-   taggingOptionsSchema,
+-   documentSchema,
+-   rateLimitInfoSchema,
+-   apiErrorSchema,
+-   apiUsageStatsSchema,
+-   apiRequestTrackingSchema,
+-   apiConfigSchema,
+-   batchTaggingJobSchema,
+-   type AIModelSchema,
+-   type APIKeyStorageSchema,
+-   type TaggingResultSchema,
+-   type TaggingOptionsSchema,
+-   type DocumentSchema,
+-   type RateLimitInfoSchema,
+-   type APIErrorSchema,
+-   type APIUsageStatsSchema,
+-   type APIRequestTrackingSchema,
+-   type APIConfigSchema,
+-   type BatchTaggingJobSchema,
+- } from './validators/api-validators';
++ export { aiModelSchema, apiKeyStorageSchema, taggingResultSchema, taggingOptionsSchema,
++          documentSchema, rateLimitInfoSchema, apiErrorSchema, apiUsageStatsSchema,
++          apiRequestTrackingSchema, apiConfigSchema, batchTaggingJobSchema,
++          type AIModelSchema, type APIKeyStorageSchema, type TaggingResultSchema,
++          type TaggingOptionsSchema, type DocumentSchema, type RateLimitInfoSchema,
++          type APIErrorSchema, type APIUsageStatsSchema, type APIRequestTrackingSchema,
++          type APIConfigSchema, type BatchTaggingJobSchema } from './validators/api-validators';
+  
+  // Export tag validators with explicit paths
+- export {
+-   yearTagSchema,
+-   lifeAreaTagSchema,
+-   domainTagSchema,
+-   subdomainTagSchema,
+-   contextualTagSchema,
+-   conversationTypeTagSchema,
+-   confidenceScoreSchema,
+-   topicalTagSchema,
+-   tagConfidenceSchema,
+-   tagSetSchema,
+-   tagBehaviorSchema,
+-   type YearTagSchema,
+-   type LifeAreaTagSchema,
+-   type DomainTagSchema,
+-   type SubdomainTagSchema,
+-   type ContextualTagSchema,
+-   type ConversationTypeTagSchema,
+-   type ConfidenceScoreSchema,
+-   type TopicalTagSchema,
+-   type TagConfidenceSchema,
+-   type TagSetSchema,
+-   type TagBehaviorSchema,
+- } from './validators/tags-validators';
++ export { yearTagSchema, lifeAreaTagSchema, domainTagSchema, subdomainTagSchema,
++          contextualTagSchema, conversationTypeTagSchema, confidenceScoreSchema,
++          topicalTagSchema, tagConfidenceSchema, tagSetSchema, tagBehaviorSchema,
++          type YearTagSchema, type LifeAreaTagSchema, type DomainTagSchema,
++          type SubdomainTagSchema, type ContextualTagSchema, type ConversationTypeTagSchema,
++          type ConfidenceScoreSchema, type TopicalTagSchema, type TagConfidenceSchema,
++          type TagSetSchema, type TagBehaviorSchema } from './validators/tags-validators';
+  
+  // Export models with explicit paths
+  export { type AIModel } from './models/api';
+- export {
+-   type YearTag,
+-   type LifeAreaTag,
+-   type DomainTag,
+-   type SubdomainTag,
+-   type ContextualTag,
+-   type ConversationTypeTag,
+-   type TopicalTag,
+-   type TagConfidence,
+-   type TagSet,
+-   type TagBehavior,
+- } from './models/tags';
+- export { type Taxonomy, type TaxonomyNode } from './models/taxonomy';
++ export { type YearTag, type LifeAreaTag, type DomainTag, type SubdomainTag,
++          type ContextualTag, type ConversationTypeTag, type TopicalTag,
++          type TagConfidence, type TagSet, type TagBehavior } from './models/tags';
++ export { type Taxonomy } from './models/taxonomy';
+  export { type FrontmatterOptions } from './models/frontmatter-options';
+  
+  
+  // Export utilities with explicit paths
+- export {
+-   parseFile,
+-   saveFile,
+-   ensureDir,
+-   removeDir,
+-   dirExists,
+-   fileExists,
+-   type FileContents,
+-   type WriteOptions,
+- } from './utils/FileUtils';
+- export {
+-   capitalize,
+-   truncate,
+-   stripMarkdown,
+-   removeEmojis,
+-   extractUrls,
+-   slugify,
+-   camelCase,
+-   pascalCase,
+-   kebabCase,
+-   snakeCase,
+- } from './utils/string';
++ export { FileUtils } from './utils/FileUtils';
++ export { capitalize, truncate, stripMarkdown, removeEmojis, extractUrls, 
++          slugify, camelCase, pascalCase, kebabCase, snakeCase } from './utils/string';
+  export { deepMerge } from './utils/DeepMerge';
+- export {
+-   parseDate,
+-   formatDate,
+-   getDaysBetween,
+-   getMonthsBetween,
+-   getYearsBetween,
+-   isLeapYear,
+-   getLocalTimezoneOffset,
+- } from './utils/Chrono';
+- export {
+-   validate,
+-   validateObject,
+-   parseStringEnum,
+-   parseBoolean,
+-   parseNumber,
+-   parseString,
+-   parseArray,
+- } from './utils/validation';
+- export { formatTag, parseTag, mergeTagSets, normalizeTag, getTagsFromText, parseTagRecord } from './utils/tag';
++ export { parseDate, formatDate, getDaysBetween, getMonthsBetween, getYearsBetween, 
++          isLeapYear, getLocalTimezoneOffset } from './utils/Chrono';
++ export { validate, validateObject, parseStringEnum, parseBoolean, 
++          parseNumber, parseString, parseArray } from './utils/validation';
++ export { formatTag, parseTag, mergeTagSets, normalizeTag, 
++          getTagsFromText, parseTagRecord } from './utils/tag';
+  export { generatePromptWithTokenCount, truncateContentToFitTokens } from './utils/prompt';
+  
+```
+
+---
+
+```bash
+find packages/core/src -name "string.ts" | xargs grep -l "export" | cat
+```
+
+```
+packages/core/src/utils/string.ts
+khallmark in obsidian-magic …                                                                     04:49:07 at Voyager 
+➜
+```
+
+---
+
+Read file: packages/core/src/utils/string.ts
+
+---
+
+```bash
+find packages/core/src -name "Chrono.ts" | xargs grep -l "export" | cat
+```
+
+```
+packages/core/src/utils/Chrono.ts
+khallmark in obsidian-magic …                                                                     04:49:20 at Voyager 
+➜
+```
+
+---
+
+Read file: packages/core/src/utils/Chrono.ts
+
+---
+
+```diff
+  
+  // Explicit imports with full paths to avoid barrel files
++ import type { AIModel } from './models/api';
+  import { OpenAIClient } from './OpenAIClient';
+  import { TaggingService } from './TaggingService';
++ import { TaxonomyManager } from './tagging/TaxonomyManager';
+  import { DocumentProcessor } from './markdown/DocumentProcessor';
+  import { BatchProcessingService } from './tagging/BatchProcessingService';
+- import { TaxonomyManager } from './tagging/TaxonomyManager';
+- 
+- import type { AIModel } from './models/api';
+  
+  // Export from explicit paths
+- export {
+-   AppError,
+-   ValidationError,
+-   FileSystemError,
+-   NetworkError,
+-   APIError,
+-   ApiKeyError,
+-   ConfigurationError,
+-   MarkdownError,
+-   TaggingError,
+-   CostLimitError,
+-   Result,
+-   type ResultObject,
+-   success,
+-   failure,
+-   tryCatch,
+-   tryOrNull,
+-   toAppError,
+-   normalizeError,
+-   withRetry,
+-   type ErrorCode,
+- } from './errors/errors';
++ export { AppError, ValidationError, FileSystemError, NetworkError, APIError, ApiKeyError, 
++          ConfigurationError, MarkdownError, TaggingError, CostLimitError, Result, 
++          type ResultObject, success, failure, tryCatch, tryOrNull, toAppError, 
++          normalizeError, withRetry, type ErrorCode } from './errors/errors';
+  
+  // Export OpenAI integration with explicit paths
+  
+  // Export configuration with explicit paths
+- export {
+-   DEFAULT_CONFIG,
+-   configSchema,
+-   type Config,
+-   getDefaultConfigPath,
+-   loadConfig,
+-   saveConfig,
+-   updateConfig,
+-   getApiKey,
+-   setApiKey,
+- } from './config';
++ export { DEFAULT_CONFIG, configSchema, type Config, getDefaultConfigPath, 
++          loadConfig, saveConfig, updateConfig, getApiKey, setApiKey } from './config';
+  
+  // Export logger with explicit paths
+  
+  // Export validators with explicit paths
+- export {
+-   aiModelSchema,
+-   apiKeyStorageSchema,
+-   taggingResultSchema,
+-   taggingOptionsSchema,
+-   documentSchema,
+-   rateLimitInfoSchema,
+-   apiErrorSchema,
+-   apiUsageStatsSchema,
+-   apiRequestTrackingSchema,
+-   apiConfigSchema,
+-   batchTaggingJobSchema,
+-   type AIModelSchema,
+-   type APIKeyStorageSchema,
+-   type TaggingResultSchema,
+-   type TaggingOptionsSchema,
+-   type DocumentSchema,
+-   type RateLimitInfoSchema,
+-   type APIErrorSchema,
+-   type APIUsageStatsSchema,
+-   type APIRequestTrackingSchema,
+-   type APIConfigSchema,
+-   type BatchTaggingJobSchema,
+- } from './validators/api-validators';
++ export { aiModelSchema, apiKeyStorageSchema, taggingResultSchema, taggingOptionsSchema,
++          documentSchema, rateLimitInfoSchema, apiErrorSchema, apiUsageStatsSchema,
++          apiRequestTrackingSchema, apiConfigSchema, batchTaggingJobSchema,
++          type AIModelSchema, type APIKeyStorageSchema, type TaggingResultSchema,
++          type TaggingOptionsSchema, type DocumentSchema, type RateLimitInfoSchema,
++          type APIErrorSchema, type APIUsageStatsSchema, type APIRequestTrackingSchema,
++          type APIConfigSchema, type BatchTaggingJobSchema } from './validators/api-validators';
+  
+  // Export tag validators with explicit paths
+- export {
+-   yearTagSchema,
+-   lifeAreaTagSchema,
+-   domainTagSchema,
+-   subdomainTagSchema,
+-   contextualTagSchema,
+-   conversationTypeTagSchema,
+-   confidenceScoreSchema,
+-   topicalTagSchema,
+-   tagConfidenceSchema,
+-   tagSetSchema,
+-   tagBehaviorSchema,
+-   type YearTagSchema,
+-   type LifeAreaTagSchema,
+-   type DomainTagSchema,
+-   type SubdomainTagSchema,
+-   type ContextualTagSchema,
+-   type ConversationTypeTagSchema,
+-   type ConfidenceScoreSchema,
+-   type TopicalTagSchema,
+-   type TagConfidenceSchema,
+-   type TagSetSchema,
+-   type TagBehaviorSchema,
+- } from './validators/tags-validators';
++ export { yearTagSchema, lifeAreaTagSchema, domainTagSchema, subdomainTagSchema,
++          contextualTagSchema, conversationTypeTagSchema, confidenceScoreSchema,
++          topicalTagSchema, tagConfidenceSchema, tagSetSchema, tagBehaviorSchema,
++          type YearTagSchema, type LifeAreaTagSchema, type DomainTagSchema,
++          type SubdomainTagSchema, type ContextualTagSchema, type ConversationTypeTagSchema,
++          type ConfidenceScoreSchema, type TopicalTagSchema, type TagConfidenceSchema,
++          type TagSetSchema, type TagBehaviorSchema } from './validators/tags-validators';
+  
+  // Export models with explicit paths
+  export { type AIModel } from './models/api';
+- export {
+-   type YearTag,
+-   type LifeAreaTag,
+-   type DomainTag,
+-   type SubdomainTag,
+-   type ContextualTag,
+-   type ConversationTypeTag,
+-   type TopicalTag,
+-   type TagConfidence,
+-   type TagSet,
+-   type TagBehavior,
+- } from './models/tags';
++ export { type YearTag, type LifeAreaTag, type DomainTag, type SubdomainTag,
++          type ContextualTag, type ConversationTypeTag, type TopicalTag,
++          type TagConfidence, type TagSet, type TagBehavior } from './models/tags';
+  export { type Taxonomy } from './models/taxonomy';
+- export { type FrontmatterOptions } from './markdown/FrontmatterProcessor';
+  
+  // Export basic types with explicit paths
+  // Export utilities with explicit paths
+  export { FileUtils } from './utils/FileUtils';
++ export { truncate, toKebabCase, toCamelCase, toPascalCase, slugify,
++          normalizeLineEndings, escapeRegExp, sanitizeHtml, randomString,
++          formatDuration, formatCurrency } from './utils/string';
+  export { deepMerge } from './utils/DeepMerge';
+- export {
+-   getLocalTimezoneOffset,
+- } from './utils/Chrono';
+- export {
+-   validate,
+-   validateObject,
+-   parseStringEnum,
+-   parseBoolean,
+-   parseNumber,
+-   parseString,
+-   parseArray,
+- } from './utils/validation';
+- export { formatTag, parseTag, mergeTagSets, normalizeTag, getTagsFromText, parseTagRecord } from './utils/tag';
++ export { Chrono } from './utils/Chrono';
++ export { validate, validateObject, parseStringEnum, parseBoolean, 
++          parseNumber, parseString, parseArray } from './utils/validation';
++ export { formatTag, parseTag, mergeTagSets, normalizeTag, 
++          getTagsFromText, parseTagRecord } from './utils/tag';
+  export { generatePromptWithTokenCount, truncateContentToFitTokens } from './utils/prompt';
+  
+```
+
+---
+
+```bash
+find packages/core/src -name "validation.ts" | xargs grep -l "export" | cat
+```
+
+```
+➜ find packages/core/src -name "validation.ts" | xargs grep -l "export" | cat
+packages/core/src/utils/validation.ts
+khallmark in obsidian-magic …                                                                     04:49:56 at Voyager 
+➜
+```
+
+---
+
+Read file: packages/core/src/utils/validation.ts
+
+---
+
+```bash
+find packages/core/src -name "tag.ts" | xargs grep -l "export" | cat
+```
+
+```
+➜ find packages/core/src -name "tag.ts" | xargs grep -l "export" | cat
+packages/core/src/utils/tag.ts
+khallmark in obsidian-magic …                                                                     04:50:01 at Voyager 
+➜
+```
+
+---
+
+Read file: packages/core/src/utils/tag.ts
+
+---
+
+```diff
+  
+  // Explicit imports with full paths to avoid barrel files
++ import type { AIModel } from './models/api';
+  import { OpenAIClient } from './OpenAIClient';
+  import { TaggingService } from './TaggingService';
++ import { TaxonomyManager } from './tagging/TaxonomyManager';
+  import { DocumentProcessor } from './markdown/DocumentProcessor';
+  import { BatchProcessingService } from './tagging/BatchProcessingService';
+- import { TaxonomyManager } from './tagging/TaxonomyManager';
+- 
+- import type { AIModel } from './models/api';
+  
+  // Export from explicit paths
+- export {
+-   AppError,
+-   ValidationError,
+-   FileSystemError,
+-   NetworkError,
+-   APIError,
+-   ApiKeyError,
+-   ConfigurationError,
+-   MarkdownError,
+-   TaggingError,
+-   CostLimitError,
+-   Result,
+-   type ResultObject,
+-   success,
+-   failure,
+-   tryCatch,
+-   tryOrNull,
+-   toAppError,
+-   normalizeError,
+-   withRetry,
+-   type ErrorCode,
+- } from './errors/errors';
++ export { AppError, ValidationError, FileSystemError, NetworkError, APIError, ApiKeyError, 
++          ConfigurationError, MarkdownError, TaggingError, CostLimitError, Result, 
++          type ResultObject, success, failure, tryCatch, tryOrNull, toAppError, 
++          normalizeError, withRetry, type ErrorCode } from './errors/errors';
+  
+  // Export OpenAI integration with explicit paths
+  
+  // Export configuration with explicit paths
+- export {
+-   DEFAULT_CONFIG,
+-   configSchema,
+-   type Config,
+-   getDefaultConfigPath,
+-   loadConfig,
+-   saveConfig,
+-   updateConfig,
+-   getApiKey,
+-   setApiKey,
+- } from './config';
++ export { DEFAULT_CONFIG, configSchema, type Config, getDefaultConfigPath, 
++          loadConfig, saveConfig, updateConfig, getApiKey, setApiKey } from './config';
+  
+  // Export logger with explicit paths
+  
+  // Export validators with explicit paths
+- export {
+-   aiModelSchema,
+-   apiKeyStorageSchema,
+-   taggingResultSchema,
+-   taggingOptionsSchema,
+-   documentSchema,
+-   rateLimitInfoSchema,
+-   apiErrorSchema,
+-   apiUsageStatsSchema,
+-   apiRequestTrackingSchema,
+-   apiConfigSchema,
+-   batchTaggingJobSchema,
+-   type AIModelSchema,
+-   type APIKeyStorageSchema,
+-   type TaggingResultSchema,
+-   type TaggingOptionsSchema,
+-   type DocumentSchema,
+-   type RateLimitInfoSchema,
+-   type APIErrorSchema,
+-   type APIUsageStatsSchema,
+-   type APIRequestTrackingSchema,
+-   type APIConfigSchema,
+-   type BatchTaggingJobSchema,
+- } from './validators/api-validators';
++ export { aiModelSchema, apiKeyStorageSchema, taggingResultSchema, taggingOptionsSchema,
++          documentSchema, rateLimitInfoSchema, apiErrorSchema, apiUsageStatsSchema,
++          apiRequestTrackingSchema, apiConfigSchema, batchTaggingJobSchema,
++          type AIModelSchema, type APIKeyStorageSchema, type TaggingResultSchema,
++          type TaggingOptionsSchema, type DocumentSchema, type RateLimitInfoSchema,
++          type APIErrorSchema, type APIUsageStatsSchema, type APIRequestTrackingSchema,
++          type APIConfigSchema, type BatchTaggingJobSchema } from './validators/api-validators';
+  
+  // Export tag validators with explicit paths
+- export {
+-   yearTagSchema,
+-   lifeAreaTagSchema,
+-   domainTagSchema,
+-   subdomainTagSchema,
+-   contextualTagSchema,
+-   conversationTypeTagSchema,
+-   confidenceScoreSchema,
+-   topicalTagSchema,
+-   tagConfidenceSchema,
+-   tagSetSchema,
+-   tagBehaviorSchema,
+-   type YearTagSchema,
+-   type LifeAreaTagSchema,
+-   type DomainTagSchema,
+-   type SubdomainTagSchema,
+-   type ContextualTagSchema,
+-   type ConversationTypeTagSchema,
+-   type ConfidenceScoreSchema,
+-   type TopicalTagSchema,
+-   type TagConfidenceSchema,
+-   type TagSetSchema,
+-   type TagBehaviorSchema,
+- } from './validators/tags-validators';
++ export { yearTagSchema, lifeAreaTagSchema, domainTagSchema, subdomainTagSchema,
++          contextualTagSchema, conversationTypeTagSchema, confidenceScoreSchema,
++          topicalTagSchema, tagConfidenceSchema, tagSetSchema, tagBehaviorSchema,
++          type YearTagSchema, type LifeAreaTagSchema, type DomainTagSchema,
++          type SubdomainTagSchema, type ContextualTagSchema, type ConversationTypeTagSchema,
++          type ConfidenceScoreSchema, type TopicalTagSchema, type TagConfidenceSchema,
++          type TagSetSchema, type TagBehaviorSchema } from './validators/tags-validators';
+  
+  // Export models with explicit paths
+  export { type AIModel } from './models/api';
+- export {
+-   type YearTag,
+-   type LifeAreaTag,
+-   type DomainTag,
+-   type SubdomainTag,
+-   type ContextualTag,
+-   type ConversationTypeTag,
+-   type TopicalTag,
+-   type TagConfidence,
+-   type TagSet,
+-   type TagBehavior,
+- } from './models/tags';
++ export { type YearTag, type LifeAreaTag, type DomainTag, type SubdomainTag,
++          type ContextualTag, type ConversationTypeTag, type TopicalTag,
++          type TagConfidence, type TagSet, type TagBehavior } from './models/tags';
+  export { type Taxonomy } from './models/taxonomy';
+  
+  // Export utilities with explicit paths
+  export { FileUtils } from './utils/FileUtils';
+- export {
+-   truncate,
+-   toKebabCase,
+-   toCamelCase,
+-   toPascalCase,
+-   slugify,
+-   normalizeLineEndings,
+-   escapeRegExp,
+-   sanitizeHtml,
+-   randomString,
+-   formatDuration,
+-   formatCurrency,
+- } from './utils/string';
++ export { truncate, toKebabCase, toCamelCase, toPascalCase, slugify,
++          normalizeLineEndings, escapeRegExp, sanitizeHtml, randomString,
++          formatDuration, formatCurrency } from './utils/string';
+  export { deepMerge } from './utils/DeepMerge';
+  export { Chrono } from './utils/Chrono';
+- export { formatTag, mergeTagSets } from './utils/tag';
++ export { clamp, isDomainWithSubdomain, validateTagSet, getSubdomainsForDomain,
++          isValidDomain, isValidLifeArea, isValidConversationType } from './utils/validation';
++ export { formatTag, createHierarchicalTag, extractDomain, extractSubdomain,
++          formatTagSetForFrontmatter, createConfidence, mergeTagSets,
++          getOverallConfidence, needsReview, getAllDomains, getAllSubdomains,
++          getAllContextualTags } from './utils/tag';
++ export { generatePromptWithTokenCount, truncateContentToFitTokens } from './utils/prompt';
+  
+  // Export version information
+```
+
+---
+
+Your Grace, I notice that there are a few linter errors to address. Let me check the prompt utilities to see what's available.
+
+---
+
+<details>
+            <summary>Grep search for "export.*generatePromptWithTokenCount|export.*truncateContentToFitTokens" • **2** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/index.ts` | L188 | `export { generatePromptWithTokenCount, truncateContentToFitTokens } from './utils/prompt';` |
+| `file:///Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/index.ts` | L188 | `export { generatePromptWithTokenCount, truncateContentToFitTokens } from './utils/prompt';` |
+
+</details>
+
+---
+
+Let me check the actual prompt utility file to see what functions are available.
+
+---
+
+Read file: packages/core/src/utils/prompt.ts
+
+---
+
+Your Grace, I notice that the functions `generatePromptWithTokenCount` and `truncateContentToFitTokens` that were causing linter errors are not actually defined in the prompt utilities file. Let me check the index file where they were being exported to understand the issue better.
+
+---
+
+Read file: packages/core/src/index.ts
+
+---
+
+Let me also check the prompt utilities file again to see its full contents:
+
+---
+
+Read file: packages/core/src/utils/prompt.ts
+
+---
+
+Your Grace, I see the issue now. The functions `generatePromptWithTokenCount` and `truncateContentToFitTokens` are indeed not defined in the prompt utilities file. However, I notice that there are similar functions that provide the same functionality:
+
+1. Instead of `generatePromptWithTokenCount`, we have `combinePromptComponents` which handles combining system prompts, user content, and context while managing token counts.
+2. Instead of `truncateContentToFitTokens`, we have `truncateToTokenLimit` which handles truncating text to fit within a token limit.
+
+Let me search the codebase to see if these function names are referenced elsewhere:
+
+---
+
+<details>
+            <summary>Grep search for "generatePromptWithTokenCount|truncateContentToFitTokens" • **0** files</summary>
+        
+No results found
+</details>
+
+---
+
+Let me also do a semantic search to find any related code:
+
+---
+
+<details>
+            <summary>Searched codebase "Generate prompt with token count and truncate content to fit token limits" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `packages/core/src/utils/prompt.ts` | L26-53 |
+| `packages/core/src/utils/prompt.ts` | L95-135 |
+| `packages/core/src/utils/prompt.ts` | L82-95 |
+| `packages/core/src/openai/prompts.ts` | L190-221 |
+| `packages/core/src/openai/prompts.ts` | L221-251 |
+| `packages/core/src/openai/prompts.ts` | L38-82 |
+| `packages/core/src/utils/prompt.ts` | L1-10 |
+| `packages/core/src/OpenAIClient.ts` | L967-1035 |
+| `packages/core/src/OpenAIClient.ts` | L1081-1109 |
+| `packages/core/src/OpenAIClient.ts` | L837-908 |
+| `packages/core/src/utils/prompt.ts` | L17-26 |
+| `packages/core/src/TaggingService.ts` | L111-127 |
+| `packages/core/src/OpenAIClient.ts` | L1035-1081 |
+| `packages/core/src/openai/prompts.ts` | L28-38 |
+| `packages/core/src/utils/prompt.ts` | L10-16 |
+| `packages/core/src/utils/prompt.ts` | L16-17 |
+| `apps/vscode/src/extension.ts` | L412-432 |
+| `packages/core/src/OpenAIClient.ts` | L741-763 |
+| `packages/core/src/OpenAIClient.ts` | L432-485 |
+| `packages/core/src/openai/prompts.ts` | L1-28 |
+| `apps/vscode/src/extension.ts` | L187-217 |
+| `apps/vscode/src/cursor/language-model-api.ts` | L65-110 |
+| `packages/core/src/OpenAIClient.ts` | L703-723 |
+| `apps/vscode/src/cursor/mcp-server.ts` | L186-236 |
+| `packages/core/src/OpenAIClient.ts` | L485-527 |
+
+</details>
+
+---
+
+Your Grace, based on my analysis of the codebase, I can see that the functions `generatePromptWithTokenCount` and `truncateContentToFitTokens` are not defined, but there are several existing functions that handle similar functionality:
+
+1. For prompt generation and token counting:
+- `combinePromptComponents` in `packages/core/src/utils/prompt.ts` - Combines system prompt, user content, and context while respecting token limits
+- `estimateTokenCount` in `packages/core/src/utils/prompt.ts` - Estimates token count for text
+- `OpenAIClient.calculateTokenUsage` - Calculates token usage for requests
+- `OpenAIClient.estimateTokenCount` - More accurate token counting using tiktoken
+
+2. For content truncation:
+- `truncateToTokenLimit` in `packages/core/src/utils/prompt.ts` - Truncates text to fit within token limits
+- `PromptEngineering.extractRelevantSections` - Intelligently extracts relevant sections from long content
+
+The closest equivalents to what you're looking for are:
+
+1. Instead of `generatePromptWithTokenCount`, use `combinePromptComponents` which handles:
+   - System prompt inclusion
+   - User content
+   - Optional context
+   - Token limit enforcement
+   - Returns the combined prompt
+
+2. Instead of `truncateContentToFitTokens`, use `truncateToTokenLimit` which:
+   - Takes text and max token count
+   - Estimates tokens using character count
+   - Tries to truncate at sentence boundaries
+   - Returns truncated text
+
+Would you like me to show you how to use these existing functions, or would you prefer me to implement the missing functions you originally asked about?
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unsafe construction of a(n) `error` type typed value.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace, looking at the error and the TypeScript best practices from the project rules, this is a type safety issue with error construction. The issue stems from using untyped errors in the `FileSystemError` constructor.
+
+Let me search for the error definition to ensure we implement the fix correctly:
+
+---
+
+<details>
+            <summary>Searched codebase "FileSystemError class definition and error types" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `packages/core/src/errors/FileSystemError.ts` | L1-20 |
+| `packages/core/src/errors/FileSystemError.test.ts` | L1-26 |
+| `packages/core/src/errors/ResultObject.ts` | L1-12 |
+| `packages/core/src/utils/FileUtils.ts` | L249-273 |
+| `packages/core/src/utils/FileUtils.ts` | L57-76 |
+| `packages/core/src/utils/FileUtils.ts` | L39-57 |
+| `packages/core/src/errors/ResultObject.ts` | L12-49 |
+| `packages/core/src/utils/FileUtils.ts` | L118-144 |
+| `packages/core/src/utils/FileUtils.ts` | L219-249 |
+| `packages/core/src/errors/ErrorCodes.ts` | L1-43 |
+| `packages/core/src/utils/FileUtils.ts` | L1-30 |
+| `packages/core/src/utils/FileUtils.ts` | L169-206 |
+| `packages/core/src/utils/FileUtils.ts` | L76-118 |
+| `apps/obsidian-plugin/src/services/TaggingService.ts` | L1-31 |
+| `packages/core/src/utils/FileUtils.ts` | L206-219 |
+| `packages/core/src/errors/MarkdownError.ts` | L1-20 |
+| `packages/core/src/utils/FileUtils.test.ts` | L180-224 |
+| `packages/core/src/utils/FileUtils.test.ts` | L141-180 |
+| `packages/core/src/utils/FileUtils.test.ts` | L1-31 |
+| `packages/core/src/utils/FileUtils.test.ts` | L277-311 |
+| `documentation/core/error-handling.md` | L1-72 |
+| `packages/core/src/utils/FileUtils.test.ts` | L346-383 |
+| `packages/core/src/utils/FileUtils.test.ts` | L311-346 |
+| `packages/core/src/errors/ConfigurationError.ts` | L1-17 |
+| `packages/core/src/errors/types.ts` | L1-9 |
+
+</details>
+
+---
+
+Let me check the error types:
+
+---
+
+<details>
+            <summary>Searched codebase "AppError class definition and toAppError function" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `packages/core/src/errors/utils.ts` | L25-40 |
+| `packages/core/src/errors/AppError.ts` | L1-42 |
+| `packages/core/src/errors/AppError.test.ts` | L1-57 |
+| `packages/core/src/errors/utils.ts` | L1-14 |
+| `packages/core/src/errors/utils.ts` | L40-47 |
+| `packages/core/src/errors/NetworkError.ts` | L1-17 |
+| `packages/core/src/errors/APIError.ts` | L1-63 |
+| `packages/core/src/errors/ApiKeyError.ts` | L1-17 |
+| `packages/core/src/errors/ValidationError.ts` | L1-28 |
+| `packages/core/src/errors/ConfigurationError.ts` | L1-17 |
+| `packages/core/src/errors/ResultObject.ts` | L12-49 |
+| `packages/core/src/errors/FileSystemError.ts` | L1-20 |
+| `packages/core/src/errors/TaggingError.ts` | L1-20 |
+| `packages/core/src/errors/MarkdownError.ts` | L1-20 |
+| `packages/core/src/errors/ResultObject.ts` | L1-12 |
+| `packages/core/src/errors/CostLimitError.ts` | L1-26 |
+| `packages/core/src/errors/ValidationError.test.ts` | L1-42 |
+| `packages/core/src/errors/APIError.test.ts` | L1-49 |
+| `documentation/core/error-handling.md` | L1-72 |
+| `packages/core/src/errors/types.ts` | L1-9 |
+| `documentation/core/error-handling.md` | L72-152 |
+| `apps/cli/src/index.ts` | L138-152 |
+| `packages/core/src/errors/ErrorCodes.ts` | L1-43 |
+| `packages/core/src/utils/FileUtils.ts` | L76-118 |
+| `packages/core/src/utils/FileUtils.ts` | L57-76 |
+
+</details>
+
+---
+
+Based on the codebase analysis, I can see that the issue is with type safety in error handling. Let me propose a fix:
+
+---
+
+Cancelled
+
+---
+
+
+
+---
+
 
 
 ---

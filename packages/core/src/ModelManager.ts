@@ -297,6 +297,3 @@ export class ModelManager {
     this.modelCache = null;
   }
 }
-
-// Export singleton instance
-export const modelManager = ModelManager.getInstance();

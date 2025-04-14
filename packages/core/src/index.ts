@@ -36,7 +36,7 @@ export {
   normalizeError,
   withRetry,
   type ErrorCode,
-} from './errors/errors';
+} from './errors';
 
 // Export OpenAI integration with explicit paths
 export { OpenAIClient, type ModelPricing, type PricingConfig } from './OpenAIClient';
@@ -59,7 +59,7 @@ export {
 } from './config';
 
 // Export logger with explicit paths
-export { Logger, type LogLevel, type LoggerConfig } from './Logger';
+export { type LogLevel, type LoggerConfig } from './Logger';
 
 // Export markdown processing with explicit paths
 export { FrontmatterProcessor } from './markdown/FrontmatterProcessor';
@@ -124,9 +124,19 @@ export {
 
 // Export models with explicit paths
 export { type AIModel } from './models/api';
-export { type TagConfidence } from './models/tags';
+export {
+  type YearTag,
+  type LifeAreaTag,
+  type DomainTag,
+  type SubdomainTag,
+  type ContextualTag,
+  type ConversationTypeTag,
+  type TopicalTag,
+  type TagConfidence,
+  type TagSet,
+  type TagBehavior,
+} from './models/tags';
 export { type Taxonomy } from './models/taxonomy';
-export { type FrontmatterOptions } from './markdown/frontmatter-options';
 
 // Export basic types with explicit paths
 export { type AsyncState } from './types/AsyncState';
@@ -136,7 +146,46 @@ export { type QueryOptions } from './types/QueryOptions';
 export { type StringRecord } from './types/StringRecord';
 export { type TypedEventEmitter } from './types/TypedEventEmitter';
 
+// Export utilities with explicit paths
+export { FileUtils } from './utils/FileUtils';
+export {
+  truncate,
+  toKebabCase,
+  toCamelCase,
+  toPascalCase,
+  slugify,
+  normalizeLineEndings,
+  escapeRegExp,
+  sanitizeHtml,
+  randomString,
+  formatDuration,
+  formatCurrency,
+} from './utils/string';
 export { deepMerge } from './utils/DeepMerge';
+export { Chrono } from './utils/Chrono';
+export {
+  clamp,
+  isDomainWithSubdomain,
+  validateTagSet,
+  getSubdomainsForDomain,
+  isValidDomain,
+  isValidLifeArea,
+  isValidConversationType,
+} from './utils/validation';
+export {
+  formatTag,
+  createHierarchicalTag,
+  extractDomain,
+  extractSubdomain,
+  formatTagSetForFrontmatter,
+  createConfidence,
+  mergeTagSets,
+  getOverallConfidence,
+  needsReview,
+  getAllDomains,
+  getAllSubdomains,
+  getAllContextualTags,
+} from './utils/tag';
 
 // Export version information
 export const VERSION = '0.1.0';

@@ -6,7 +6,9 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { z } from 'zod';
 
-import { FileSystemError, Result, toAppError } from '../errors/errors';
+import { FileSystemError } from '../errors/FileSystemError';
+import { Result } from '../errors/Result';
+import { toAppError } from '../errors/utils';
 
 /**
  * Class providing file system utility methods for Obsidian Magic
@@ -46,7 +48,7 @@ export class FileUtils {
     try {
       await fs.ensureDir(this.resolvePath(dirPath));
       return Result.ok(undefined);
-    } catch (err) {
+    } catch (err: unknown) {
       return Result.fail(
         new FileSystemError(`Failed to create directory at ${dirPath}`, {
           cause: toAppError(err),
@@ -65,7 +67,7 @@ export class FileUtils {
     try {
       const content = await fs.readFile(this.resolvePath(filePath), 'utf-8');
       return Result.ok(content);
-    } catch (err) {
+    } catch (err: unknown) {
       return Result.fail(
         new FileSystemError(`Failed to read file at ${filePath}`, {
           cause: toAppError(err),
@@ -91,7 +93,7 @@ export class FileUtils {
     try {
       const parsedData = JSON.parse(fileResult.getValue()) as T;
       return Result.ok(schema.parse(parsedData));
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof z.ZodError) {
         return Result.fail(
           new FileSystemError(`Invalid JSON schema in ${filePath}`, {
@@ -133,7 +135,7 @@ export class FileUtils {
 
       await fs.writeFile(resolvedPath, content, 'utf-8');
       return Result.ok(undefined);
-    } catch (err) {
+    } catch (err: unknown) {
       return Result.fail(
         new FileSystemError(`Failed to write file at ${filePath}`, {
           cause: toAppError(err),
@@ -195,7 +197,7 @@ export class FileUtils {
 
       await scan(resolvedDirPath);
       return Result.ok(results);
-    } catch (err) {
+    } catch (err: unknown) {
       return Result.fail(
         new FileSystemError(`Failed to find files in ${dirPath}`, {
           cause: toAppError(err),
@@ -238,7 +240,7 @@ export class FileUtils {
       }
 
       return Result.ok(`${size.toFixed(1)} ${String(units[unitIndex])}`);
-    } catch (err) {
+    } catch (err: unknown) {
       return Result.fail(
         new FileSystemError(`Failed to get file size for ${filePath}`, {
           cause: toAppError(err),
@@ -257,7 +259,7 @@ export class FileUtils {
     try {
       await fs.unlink(this.resolvePath(filePath));
       return Result.ok(true);
-    } catch (err) {
+    } catch (err: unknown) {
       const nodeError = err as NodeJS.ErrnoException;
       if (nodeError.code === 'ENOENT') {
         return Result.ok(false);

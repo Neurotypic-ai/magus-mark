@@ -4,7 +4,8 @@
 import OpenAI from 'openai';
 import { encoding_for_model } from 'tiktoken';
 
-import { APIError, ErrorCodes, normalizeError } from './errors/errors';
+import { APIError, normalizeError } from './errors';
+import { ErrorCodes } from './errors/ErrorCodes';
 
 import type { AIModel } from './models/api';
 
