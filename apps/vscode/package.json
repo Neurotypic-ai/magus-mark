@@ -104,9 +104,6 @@
   },
   "dependencies": {
     "@obsidian-magic/core": "workspace:*",
-    "@obsidian-magic/logger": "workspace:*",
-    "@obsidian-magic/types": "workspace:*",
-    "@obsidian-magic/utils": "workspace:*",
     "ws": "^8.18.1"
   },
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
