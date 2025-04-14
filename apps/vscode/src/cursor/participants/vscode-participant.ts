@@ -169,7 +169,6 @@ export class VSCodeParticipant implements vscode.Disposable {
         // Return top matches, removing the matchScore property (used only for sorting)
         return Promise.resolve({
           settings: results.slice(0, 10).map((item) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { matchScore, ...rest } = item;
             return rest;
           }),
@@ -242,7 +241,6 @@ export class VSCodeParticipant implements vscode.Disposable {
         // Return results, removing matchScore property (used only for sorting)
         return {
           commands: results.slice(0, 10).map((item) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { matchScore, ...rest } = item;
             return rest;
           }),

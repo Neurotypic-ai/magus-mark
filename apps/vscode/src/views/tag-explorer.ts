@@ -27,7 +27,6 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    * @param context The extension context
    */
   constructor(context: vscode.ExtensionContext) {
-    // eslint-disable-line @typescript-eslint/no-unused-vars
     // Load initial tag data
     this.loadTagData();
 
@@ -40,7 +39,6 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    * @param element The element to find the parent of
    */
   getParent?(element: TagNode): vscode.ProviderResult<TagNode> {
-    // eslint-disable-line @typescript-eslint/no-unused-vars
     throw new Error('Method not implemented.');
   }
 
@@ -51,9 +49,9 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    * @param token Cancellation token
    */
   resolveTreeItem?(
-    item: vscode.TreeItem, // eslint-disable-line @typescript-eslint/no-unused-vars
-    element: TagNode, // eslint-disable-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken // eslint-disable-line @typescript-eslint/no-unused-vars
+    item: vscode.TreeItem,
+    element: TagNode,
+    token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.TreeItem> {
     throw new Error('Method not implemented.');
   }

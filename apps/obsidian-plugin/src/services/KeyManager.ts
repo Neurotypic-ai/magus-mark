@@ -1,6 +1,9 @@
 import { Notice, Platform } from 'obsidian';
 
-import { APIError, AppError, FileSystemError, Result } from '@obsidian-magic/core';
+import { APIError } from '@obsidian-magic/core/errors/APIError';
+import { AppError } from '@obsidian-magic/core/errors/AppError';
+import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
+import { Result } from '@obsidian-magic/core/errors/Result';
 
 import type * as Electron from 'electron';
 

@@ -199,7 +199,6 @@ class ConfigImpl implements ConfigStorage {
   public async delete(key: keyof Config): Promise<void> {
     // Copy data, then delete to avoid dynamic delete
     const newData = { ...this.data };
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete newData[key];
     this.data = newData;
     await this.save();
@@ -327,7 +326,6 @@ function loadEnvironmentConfig(): Record<string, unknown> {
 const configInstance = new Conf({
   projectName: 'obsidian-magic',
   // Provide a placeholder schema that will be compatible
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
   schema: undefined as any, // Required due to Conf's Schema type complexity
   defaults: {
     ...defaultConfig,

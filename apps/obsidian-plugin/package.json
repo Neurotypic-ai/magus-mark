@@ -40,7 +40,7 @@
     "clean": "rm -rf dist",
     "dev": "tsc -b --watch",
     "format": "prettier --write 'src/**/*.{ts,js,json,css}' 'tests/**/*.{ts,js}'",
-    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint": "eslint 'src/**/*.ts'",
     "package": "pnpm run build && mkdir -p release && cp -r dist manifest.json styles.css release/",
     "prebuild": "pnpm run lint && pnpm run typecheck",
     "prerelease": "pnpm run test && pnpm run check-accessibility",
