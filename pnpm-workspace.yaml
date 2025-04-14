@@ -3,5 +3,9 @@ packages:
   - packages/*
 
 onlyBuiltDependencies:
+  - '@vscode/vsce-sign'
+  - electron
   - esbuild
+  - keytar
   - nx
+  - puppeteer

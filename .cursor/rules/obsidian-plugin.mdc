@@ -1,6 +1,6 @@
 ---
 description: Obsidian plugin architecture and integration for Obsidian Magic
-globs: **/obsidian/**/*.ts,**/plugin/**/*.ts,**/obsidian-plugin/**/*.ts
+globs: **/obsidian-plugin/**/*.ts
 alwaysApply: false
 ---
 

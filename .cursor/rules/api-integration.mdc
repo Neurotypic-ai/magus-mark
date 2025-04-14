@@ -1,6 +1,6 @@
 ---
 description: API integration best practices for OpenAI and other external services
-globs: **/api/**/*.ts,**/openai/**/*.ts,**/services/**/*.ts,**/mcp/**/*.ts
+globs: **/openai/**/*.ts,**/services/**/*.ts
 alwaysApply: false
 ---
 
@@ -124,6 +124,6 @@ The project uses OpenAI's API for content analysis and tagging:
 ## Documentation Links
 
 - [OpenAI Integration](mdc:documentation/core/openai-integration.md)
-- [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering)
-- [OpenAI Safety Best Practices](https://platform.openai.com/docs/guides/safety-best-practices)
+- [OpenAI Prompt Engineering Guide](mdc:https:/platform.openai.com/docs/guides/prompt-engineering)
+- [OpenAI Safety Best Practices](mdc:https:/platform.openai.com/docs/guides/safety-best-practices)
 - [MCP Server Implementation](mdc:documentation/vscode-integration/mcp-server.md)
