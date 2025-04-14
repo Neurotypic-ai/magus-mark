@@ -5,6 +5,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.5",
     "@obsidian-magic/core": "workspace:*",
+    "@obsidian-magic/logger": "workspace:*",
     "@obsidian-magic/types": "workspace:*",
     "@obsidian-magic/utils": "workspace:*"
   },

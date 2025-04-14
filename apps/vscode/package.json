@@ -1,23 +1,9 @@
 {
-  "name": "obsidian-magic-vscode",
-  "displayName": "Obsidian Magic",
-  "version": "0.1.0",
-  "private": true,
-  "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
-  "main": "./dist/extension.js",
-  "publisher": "YourName",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/obsidian-magic.git"
-  },
-  "engines": {
-    "vscode": "^1.99.0"
-  },
-  "categories": [
-    "Other"
-  ],
   "activationEvents": [
     "onStartupFinished"
+  ],
+  "categories": [
+    "Other"
   ],
   "contributes": {
     "commands": [
@@ -66,6 +52,47 @@
         "title": "Obsidian Magic: Sync Vaults"
       }
     ],
+    "configuration": {
+      "properties": {
+        "obsidianMagic.cursorFeatures.enabled": {
+          "default": true,
+          "description": "Enable Cursor-specific features like @vscode participant",
+          "type": "boolean"
+        },
+        "obsidianMagic.cursorFeatures.mcpServerPort": {
+          "default": 9876,
+          "description": "Port for the Model Context Protocol server",
+          "type": "number"
+        },
+        "obsidianMagic.vault.autoDetect": {
+          "default": true,
+          "description": "Automatically detect Obsidian vaults in workspace",
+          "type": "boolean"
+        },
+        "obsidianMagic.vault.autoSync": {
+          "default": true,
+          "description": "Automatically sync with Obsidian vaults on startup",
+          "type": "boolean"
+        }
+      },
+      "title": "Obsidian Magic"
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "obsidian-magic.deleteTag",
+          "group": "inline",
+          "when": "view == obsidianMagicTagExplorer && viewItem == tag"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "obsidian-magic.addTag",
+          "group": "navigation",
+          "when": "view == obsidianMagicTagExplorer"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
@@ -73,62 +100,16 @@
           "name": "Obsidian Magic Tags"
         }
       ]
-    },
-    "menus": {
-      "view/title": [
-        {
-          "command": "obsidian-magic.addTag",
-          "when": "view == obsidianMagicTagExplorer",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "obsidian-magic.deleteTag",
-          "when": "view == obsidianMagicTagExplorer && viewItem == tag",
-          "group": "inline"
-        }
-      ]
-    },
-    "configuration": {
-      "title": "Obsidian Magic",
-      "properties": {
-        "obsidianMagic.cursorFeatures.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Cursor-specific features like @vscode participant"
-        },
-        "obsidianMagic.cursorFeatures.mcpServerPort": {
-          "type": "number",
-          "default": 9876,
-          "description": "Port for the Model Context Protocol server"
-        },
-        "obsidianMagic.vault.autoSync": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically sync with Obsidian vaults on startup"
-        },
-        "obsidianMagic.vault.autoDetect": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically detect Obsidian vaults in workspace"
-        }
-      }
     }
-  },
-  "scripts": {
-    "build": "tsc -b",
-    "clean": "rm -rf dist",
-    "vscode:prepublish": "echo 'Skipping build for packaging'",
-    "package": "vsce package --no-dependencies",
-    "test": "vitest run"
   },
   "dependencies": {
     "@obsidian-magic/core": "workspace:*",
+    "@obsidian-magic/logger": "workspace:*",
     "@obsidian-magic/types": "workspace:*",
     "@obsidian-magic/utils": "workspace:*",
     "ws": "^8.18.1"
   },
+  "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
   "devDependencies": {
     "@types/node": "^22.14.1",
     "@types/vscode": "^1.99.1",
@@ -137,5 +118,25 @@
     "@vscode/vsce": "^3.3.2",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
-  }
+  },
+  "displayName": "Obsidian Magic",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "main": "./dist/extension.js",
+  "name": "obsidian-magic-vscode",
+  "private": true,
+  "publisher": "YourName",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/obsidian-magic.git"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "package": "vsce package --no-dependencies",
+    "test": "vitest run",
+    "vscode:prepublish": "echo 'Skipping build for packaging'"
+  },
+  "version": "0.1.0"
 }

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@obsidian-magic/types": "workspace:*",
+    "@obsidian-magic/logger": "workspace:*",
     "@obsidian-magic/utils": "workspace:*",
     "openai": "^4.93.0",
     "tiktoken": "^1.0.20",

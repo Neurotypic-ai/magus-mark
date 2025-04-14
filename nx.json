@@ -2,76 +2,48 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "{projectRoot}/dist"
-      ],
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ],
+      "dependsOn": ["^lint"],
       "cache": true
     },
     "test": {
-      "dependsOn": [
-        "^test"
-      ],
-      "outputs": [
-        "{projectRoot}/coverage"
-      ],
+      "dependsOn": ["^test"],
+      "outputs": ["{projectRoot}/coverage"],
       "cache": true
     },
     "bundle-analysis": {
-      "dependsOn": [
-        "^bundle-analysis"
-      ],
+      "dependsOn": ["^bundle-analysis"],
       "cache": true
     },
     "check-accessibility": {
-      "dependsOn": [
-        "^check-accessibility"
-      ],
+      "dependsOn": ["^check-accessibility"],
       "cache": true
     },
     "package": {
-      "dependsOn": [
-        "^package"
-      ],
+      "dependsOn": ["^package"],
       "cache": true
     },
     "prebuild": {
-      "dependsOn": [
-        "^prebuild"
-      ]
+      "dependsOn": ["^prebuild"]
     },
     "prerelease": {
-      "dependsOn": [
-        "^prerelease"
-      ]
+      "dependsOn": ["^prerelease"]
     },
     "test:coverage": {
-      "dependsOn": [
-        "^test:coverage"
-      ],
+      "dependsOn": ["^test:coverage"],
       "cache": true
     },
     "typecheck": {
-      "dependsOn": [
-        "^typecheck"
-      ],
-      "outputs": [
-        "{projectRoot}/dist"
-      ],
+      "dependsOn": ["^typecheck"],
+      "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
     "vscode:prepublish": {
-      "dependsOn": [
-        "^vscode:prepublish"
-      ]
+      "dependsOn": ["^vscode:prepublish"]
     },
     "clean": {
       "cache": true
@@ -102,5 +74,9 @@
       }
     }
   ],
-  "nxCloudId": "67fc673de94071427fe19ac7"
+  "nxCloudId": "67fc673de94071427fe19ac7",
+  "namedInputs": {
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"],
+    "default": ["sharedGlobals"]
+  }
 }
