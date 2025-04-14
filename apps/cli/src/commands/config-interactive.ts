@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 
 import { config } from '../utils/config';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 
 import type { ModelPricing } from '@obsidian-magic/core/src/openai-models';
 import type { AIModel } from '@obsidian-magic/types';

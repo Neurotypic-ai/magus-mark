@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import { logger } from '@obsidian-magic/logger';
 import { EventEmitter } from 'events';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { testCommand } from './test';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 import type { ArgumentsCamelCase, Argv  } from 'yargs';
 
 // Mock dependencies

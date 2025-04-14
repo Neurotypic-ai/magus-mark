@@ -5,7 +5,7 @@ import { calculateCost } from '@obsidian-magic/core/src/openai-models';
 import * as fs from 'fs-extra';
 
 import { config } from './config';
-import { logger } from './logger';
+import { logger } from '@obsidian-magic/logger';
 
 import type { AIModel } from '@obsidian-magic/types';
 

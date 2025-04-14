@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { taxonomyCommand } from './taxonomy';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 import { config } from '../utils/config';
 import type { Argv } from 'yargs';
 import fs from 'fs-extra';

@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 
 import { formatCurrency, formatDuration } from '../mocks/utils';
 import { benchmark } from '../utils/benchmark';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 
 import type { AIModel } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';

@@ -3,7 +3,7 @@ import chalk from 'chalk';
 
 // Import a local mock instead since the actual module may not exist
 import { taxonomy as taxonomyService } from '../mocks/core';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 
 import type { CommandModule } from 'yargs';
 

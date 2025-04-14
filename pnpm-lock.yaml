@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      vitest:
-        specifier: ^3.1.1
-        version: 3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)
     devDependencies:
       '@eslint/js':
         specifier: ^9.24.0
@@ -72,6 +68,9 @@ importers:
       typescript-eslint:
         specifier: ^8.29.1
         version: 8.29.1(eslint@9.24.0)(typescript@5.8.3)
+      vitest:
+        specifier: ^3.1.1
+        version: 3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)
 
   apps/cli:
     dependencies:
@@ -81,6 +80,9 @@ importers:
       '@obsidian-magic/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@obsidian-magic/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@obsidian-magic/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -255,6 +257,28 @@ importers:
       zod:
         specifier: ^3.24.2
         version: 3.24.2
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.1
+        version: 3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)
+
+  packages/logger:
+    dependencies:
+      '@obsidian-magic/types':
+        specifier: workspace:*
+        version: link:../types
+      boxen:
+        specifier: ^8.0.1
+        version: 8.0.1
+      chalk:
+        specifier: ^5.4.1
+        version: 5.4.1
+      ora:
+        specifier: ^8.2.0
+        version: 8.2.0
     devDependencies:
       typescript:
         specifier: ^5.8.3

@@ -2,27 +2,22 @@
  * Core type definitions for Obsidian Magic
  */
 
-// Export all model types
+// Export all model types with specific imports to avoid conflicts
 export * from './models/tags';
 export * from './models/api';
 export * from './models/plugin';
-export * from './models/cli';
 export * from './models/vscode';
 export * from './models/taxonomy';
 export * from './models/markdown-frontmatter';
+export * from './models/config';
 
-// Export config types with explicit naming to avoid conflicts
-export type {
-  CoreConfig,
-  ObsidianPluginConfig,
-  VSCodeConfig,
-  LogLevel,
-  OutputFormat,
-  OnLimitReached,
-  CLIConfig as ConfigCLI
-} from './models/config';
+// Explicitly export CLI types to avoid name conflicts
+import * as cliTypes from './models/cli';
+export { cliTypes };
+// Renamed export for backward compatibility
+export type { CLIConfig as ConfigCLI } from './models/cli';
 
-// Re-export constants for direct access
+// Re-export constants
 export {
   DOMAINS,
   LIFE_AREAS,
@@ -31,9 +26,6 @@ export {
   SUBDOMAINS_MAP,
   DEFAULT_TAXONOMY,
 } from './models/taxonomy';
-
-// Re-export types for direct access
-export type { Taxonomy } from './models/taxonomy';
 
 /**
  * Utility type for deep partial objects
@@ -44,6 +36,27 @@ export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T
  * Utility type for mapped record types
  */
 export type StringRecord<T> = Record<string, T>;
+
+/**
+ * Pagination parameters
+ */
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+  totalItems?: number;
+  totalPages?: number;
+}
+
+// Common types
+export type * from './models/config';
+export type * from './models/plugin';
+export type * from './models/tags';
+export type * from './models/vscode';
+
+// Utility types
+
+// Re-export types for direct access
+export type { Taxonomy } from './models/taxonomy';
 
 /**
  * Result type for operations that can fail
@@ -62,16 +75,6 @@ export interface AsyncState<T, E = Error> {
   status: AsyncStatus;
   data?: T;
   error?: E;
-}
-
-/**
- * Pagination parameters
- */
-export interface PaginationParams {
-  page: number;
-  pageSize: number;
-  totalItems?: number;
-  totalPages?: number;
 }
 
 /**

@@ -9,7 +9,7 @@ import fs from 'fs-extra';
 
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 
 import type { AIModel, Document, TagBehavior, TagSet } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';

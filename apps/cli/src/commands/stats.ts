@@ -5,7 +5,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 
 import { costManager } from '../utils/cost-manager';
-import { logger } from '../utils/logger';
+import { logger } from '@obsidian-magic/logger';
 
 import type { CommandModule } from 'yargs';
 

@@ -64,7 +64,7 @@ describe('statsCommand', () => {
   });
 
   it('should display usage statistics', async () => {
-    const { logger } = await import('../utils/logger');
+    const { logger } = await import('@obsidian-magic/logger');
     const { costManager } = await import('../utils/cost-manager');
     
     // Call the handler with mock arguments
@@ -102,7 +102,7 @@ describe('statsCommand', () => {
   });
 
   it('should output JSON format when specified', async () => {
-    const { logger } = await import('../utils/logger');
+    const { logger } = await import('@obsidian-magic/logger');
     
     // Call the handler with JSON format
     const handlerFn = statsCommand.handler;

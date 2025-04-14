@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tagCommand } from './tag';
 // Imports are kept for mocking purposes
-import '../utils/logger';
+import '@obsidian-magic/logger';
 import '../utils/config';
 import 'fs-extra';
 import '@obsidian-magic/core';
