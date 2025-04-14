@@ -1,0 +1,106 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "targetDefaults": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "outputs": [
+        "{projectRoot}/coverage"
+      ],
+      "cache": true
+    },
+    "bundle-analysis": {
+      "dependsOn": [
+        "^bundle-analysis"
+      ],
+      "cache": true
+    },
+    "check-accessibility": {
+      "dependsOn": [
+        "^check-accessibility"
+      ],
+      "cache": true
+    },
+    "package": {
+      "dependsOn": [
+        "^package"
+      ],
+      "cache": true
+    },
+    "prebuild": {
+      "dependsOn": [
+        "^prebuild"
+      ]
+    },
+    "prerelease": {
+      "dependsOn": [
+        "^prerelease"
+      ]
+    },
+    "test:coverage": {
+      "dependsOn": [
+        "^test:coverage"
+      ],
+      "cache": true
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
+      "cache": true
+    },
+    "vscode:prepublish": {
+      "dependsOn": [
+        "^vscode:prepublish"
+      ]
+    },
+    "clean": {
+      "cache": true
+    },
+    "format": {
+      "cache": true
+    }
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "eslint:lint"
+      }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "testTargetName": "vite:test",
+        "serveTargetName": "serve",
+        "devTargetName": "dev",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "typecheckTargetName": "typecheck",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
+    }
+  ],
+  "nxCloudId": "67fc673de94071427fe19ac7"
+}
