@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { deepMerge, get, has, isObject } from './object';
+import { deepMerge, get, has, isObject } from './1Object';
 
 describe('Object Utilities', () => {
   describe('isObject', () => {

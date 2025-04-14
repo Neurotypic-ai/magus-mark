@@ -1,14 +1,42 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  extractFrontmatter,
-  formatFrontmatter,
-  parseFrontmatter,
-  removeFrontmatter,
-  updateFrontmatter,
-} from './markdown';
+import { MarkdownProcessor } from './MarkdownProcessor';
 
 describe('Markdown Utilities', () => {
+  const processor = MarkdownProcessor.getInstance();
+
+  describe('MarkdownProcessor class', () => {
+    it('should extract frontmatter from markdown content', () => {
+      const markdown = `---
+title: Test Document
+date: 2023-01-01
+tags: [test, markdown]
+---
+
+# Title
+
+Content here.`;
+
+      const frontmatter = processor.extractFrontmatter(markdown);
+      expect(frontmatter).toBe(`title: Test Document
+date: 2023-01-01
+tags: [test, markdown]`);
+    });
+
+    it('should parse frontmatter into object', () => {
+      const frontmatter = `title: Test Document
+date: 2023-01-01
+tags: [test, markdown]`;
+
+      const result = processor.parseFrontmatter(frontmatter);
+      expect(result).toEqual({
+        title: 'Test Document',
+        date: '2023-01-01',
+        tags: ['test', 'markdown'],
+      });
+    });
+  });
+
   describe('extractFrontmatter', () => {
     it('should extract frontmatter from markdown content', () => {
       const markdown = `---
@@ -21,7 +49,7 @@ tags: [test, markdown]
 
 Content here.`;
 
-      const frontmatter = extractFrontmatter(markdown);
+      const frontmatter = processor.extractFrontmatter(markdown);
       expect(frontmatter).toBe(`title: Test Document
 date: 2023-01-01
 tags: [test, markdown]`);
@@ -32,7 +60,7 @@ tags: [test, markdown]`);
 
 Content here.`;
 
-      const frontmatter = extractFrontmatter(markdown);
+      const frontmatter = processor.extractFrontmatter(markdown);
       expect(frontmatter).toBeNull();
     });
 
@@ -42,7 +70,7 @@ Content here.`;
 
 # Title`;
 
-      const frontmatter = extractFrontmatter(markdown);
+      const frontmatter = processor.extractFrontmatter(markdown);
       expect(frontmatter).toBe('');
     });
   });
@@ -58,7 +86,7 @@ date: 2023-01-01
 
 Content here.`;
 
-      const result = removeFrontmatter(markdown);
+      const result = processor.removeFrontmatter(markdown);
       expect(result).toBe(`
 
 # Title
@@ -71,7 +99,7 @@ Content here.`);
 
 Content here.`;
 
-      const result = removeFrontmatter(markdown);
+      const result = processor.removeFrontmatter(markdown);
       expect(result).toBe(markdown);
     });
   });
@@ -82,7 +110,7 @@ Content here.`;
 date: 2023-01-01
 tags: [test, markdown]`;
 
-      const result = parseFrontmatter(frontmatter);
+      const result = processor.parseFrontmatter(frontmatter);
       expect(result).toEqual({
         title: 'Test Document',
         date: '2023-01-01',
@@ -91,7 +119,7 @@ tags: [test, markdown]`;
     });
 
     it('should handle empty frontmatter', () => {
-      const result = parseFrontmatter('');
+      const result = processor.parseFrontmatter('');
       expect(result).toEqual({});
     });
 
@@ -100,7 +128,7 @@ tags: [test, markdown]`;
 invalid
 date: 2023-01-01`;
 
-      const result = parseFrontmatter(malformed);
+      const result = processor.parseFrontmatter(malformed);
       expect(result).toEqual({
         title: 'Test Document',
         date: '2023-01-01',
@@ -116,7 +144,7 @@ date: 2023-01-01`;
         tags: ['test', 'markdown'],
       };
 
-      const result = formatFrontmatter(frontmatterObj);
+      const result = processor.formatFrontmatter(frontmatterObj);
       expect(result).toContain('title: Test Document');
       expect(result).toContain('date: 2023-01-01');
       expect(result).toContain('tags:');
@@ -130,7 +158,7 @@ date: 2023-01-01`;
         tags: [],
       };
 
-      const result = formatFrontmatter(frontmatterObj);
+      const result = processor.formatFrontmatter(frontmatterObj);
       expect(result).toContain('title: Test Document');
       expect(result).toContain('tags: []');
     });
@@ -141,7 +169,7 @@ date: 2023-01-01`;
         tags: ['test'],
       };
 
-      const result = formatFrontmatter(frontmatterObj);
+      const result = processor.formatFrontmatter(frontmatterObj);
       expect(result).toContain('title: Test Document');
       expect(result).toContain('tags: [test]');
     });
@@ -152,7 +180,7 @@ date: 2023-01-01`;
         meta: { author: 'John Doe' },
       };
 
-      const result = formatFrontmatter(frontmatterObj);
+      const result = processor.formatFrontmatter(frontmatterObj);
       expect(result).toContain('title: Test Document');
       expect(result).toContain('meta:');
       expect(result).toContain('{"author":"John Doe"}');
@@ -170,7 +198,7 @@ Content here.`;
         date: '2023-01-01',
       };
 
-      const result = updateFrontmatter(markdown, frontmatter);
+      const result = processor.updateFrontmatter(markdown, frontmatter);
       expect(result).toContain('---');
       expect(result).toContain('title: New Title');
       expect(result).toContain('date: 2023-01-01');
@@ -191,7 +219,7 @@ date: 2022-01-01
         tags: ['test'],
       };
 
-      const result = updateFrontmatter(markdown, frontmatter);
+      const result = processor.updateFrontmatter(markdown, frontmatter);
       expect(result).toContain('title: New Title');
       expect(result).toContain('date: 2022-01-01');
       expect(result).toContain('tags: [test]');
@@ -209,7 +237,7 @@ title: Old Title
         title: 'New Title',
       };
 
-      const result = updateFrontmatter(markdown, frontmatter);
+      const result = processor.updateFrontmatter(markdown, frontmatter);
       expect(result).toContain('title: New Title');
       expect(result).toContain('# Content with *markdown*');
     });
@@ -232,7 +260,7 @@ malformed-frontmatter
       };
 
       // Should return original content if error occurs
-      const result = updateFrontmatter(markdown, frontmatter);
+      const result = processor.updateFrontmatter(markdown, frontmatter);
       expect(result).toBe(markdown);
 
       // Restore console.error
