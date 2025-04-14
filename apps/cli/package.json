@@ -30,6 +30,7 @@
   "dependencies": {
     "@inquirer/prompts": "^7.4.1",
     "@obsidian-magic/core": "workspace:*",
+    "@obsidian-magic/logger": "workspace:*",
     "@obsidian-magic/types": "workspace:*",
     "@obsidian-magic/utils": "workspace:*",
     "boxen": "^8.0.1",

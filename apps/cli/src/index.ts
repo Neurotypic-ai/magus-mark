@@ -4,6 +4,7 @@
  * A command-line tool for analyzing and tagging AI conversations
  */
 import { AppError } from '@obsidian-magic/core';
+import { logger } from '@obsidian-magic/logger';
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
@@ -13,7 +14,6 @@ import pkg from '../package.json';
 import { getAllCommands } from './commands/commands';
 import { config } from './utils/config';
 import { costManager } from './utils/cost-manager';
-import { logger } from './utils/logger';
 
 // Import update-notifier dynamically to avoid linter errors
 type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => { notify(): void };
@@ -32,52 +32,34 @@ type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => {
   // Ignore any errors from the update check
 });
 
-// Load environment variables from .env file
+// Initialize the CLI tool
 dotenvConfig();
 
-/**
- * Handle uncaught exceptions
- */
-process.on('uncaughtException', (error) => {
-  if (error instanceof AppError) {
-    logger.error(error.format());
-  } else {
-    logger.error(`Uncaught exception: ${error.message}`);
-    logger.debug(error.stack ?? '');
-  }
+// Set log level from environment variable or config
+const logLevel = process.env.LOG_LEVEL || config.get('logLevel') || 'info';
+const outputFormat = process.env.OUTPUT_FORMAT || config.get('outputFormat') || 'pretty';
 
-  // Save any usage data before exiting
-  try {
-    costManager.saveUsageData();
-  } catch {
-    // Ignore errors during cleanup
-  }
-
-  process.exit(1);
+// Configure logger
+logger.configure({
+  logLevel: logLevel as 'error' | 'warn' | 'info' | 'debug',
+  outputFormat: outputFormat as 'pretty' | 'json' | 'silent'
 });
 
 /**
- * Handle unhandled promise rejections
+ * Banner function
  */
-process.on('unhandledRejection', (reason) => {
-  if (reason instanceof AppError) {
-    logger.error(reason.format());
-  } else if (reason instanceof Error) {
-    logger.error(`Unhandled rejection: ${reason.message}`);
-    logger.debug(reason.stack ?? '');
-  } else {
-    logger.error(`Unhandled rejection: ${String(reason)}`);
+function showBanner() {
+  if (outputFormat !== 'silent') {
+    logger.box(
+      `Obsidian Magic v${pkg.version}\n` +
+      `Current cost limit: ${logger.formatCost(costManager.getCostLimit())}`,
+      'CLI Tool'
+    );
   }
+}
 
-  // Save any usage data before exiting
-  try {
-    costManager.saveUsageData();
-  } catch {
-    // Ignore errors during cleanup
-  }
-
-  process.exit(1);
-});
+// Display banner and welcome message
+showBanner();
 
 /**
  * Main CLI application
@@ -154,42 +136,25 @@ async function main() {
 
     // Parse the arguments
     await cli.parse();
-
-    // Save any usage data before exiting successfully
-    try {
-      costManager.saveUsageData();
-    } catch {
-      // Ignore errors during cleanup
-    }
   } catch (error) {
+    // Handle uncaught errors
     if (error instanceof AppError) {
       logger.error(error.format());
-    } else {
-      logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-      if (error instanceof Error && error.stack) {
-        logger.debug(error.stack);
+    } else if (error instanceof Error) {
+      logger.error(`Unexpected error: ${error.message}`);
+      if (logLevel === 'debug') {
+        console.error(error);
       }
+    } else {
+      logger.error(`Unknown error: ${String(error)}`);
     }
-
-    // Save any usage data before exiting with error
-    try {
-      costManager.saveUsageData();
-    } catch {
-      // Ignore errors during cleanup
-    }
-
     process.exit(1);
   }
 }
 
-main().catch((error: unknown) => {
-  if (error instanceof AppError) {
-    logger.error(error.format());
-  } else {
-    logger.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    if (error instanceof Error && error.stack) {
-      logger.debug(error.stack);
-    }
-  }
+// Run the application
+main().catch((err) => {
+  // This should never happen as main() already catches errors
+  console.error('Critical error:', err);
   process.exit(1);
 });

@@ -24,6 +24,7 @@
     { "path": "packages/types" },
     { "path": "packages/utils" },
     { "path": "packages/core" },
+    { "path": "packages/logger" },
     { "path": "apps/cli" },
     { "path": "apps/obsidian-plugin" },
     { "path": "apps/vscode" }

@@ -1,6 +1,16 @@
 # Testing Strategy
 
-The project implements a comprehensive testing strategy using Vitest, a Vite-native test runner:
+This document outlines the testing strategy, frameworks, and best practices for Obsidian Magic to ensure reliable, maintainable, and high-quality code.
+
+## Testing Philosophy
+
+Our testing approach is guided by the following principles:
+
+1. **Test Behavior, Not Implementation**: Focus on testing the behavior and outcomes rather than implementation details.
+2. **Appropriate Test Coverage**: Ensure critical paths and complex logic have thorough test coverage.
+3. **Fast Feedback Loops**: Tests should run quickly to provide immediate feedback during development.
+4. **Maintainable Tests**: Tests should be easy to understand and maintain.
+5. **Realistic Testing**: Tests should reflect real-world usage scenarios.
 
 ## Test Framework: Vitest
 
@@ -12,7 +22,7 @@ We've chosen Vitest as our testing framework for several advantages:
 - Native TypeScript support without additional configuration
 - Integrated code coverage via istanbul
 
-## Test Organization
+## Test Types and Organization
 
 We use co-located tests, placing test files directly alongside the source code they test:
 
@@ -51,61 +61,133 @@ obsidian-magic/
 
 ## VS Code Integration
 
-We use VS Code file nesting to keep the explorer view clean while maintaining the co-location approach:
+We use VS Code file nesting to keep the explorer view clean while maintaining the co-location approach. See [VS Code workspace settings](../../.vscode/settings.json) for configuration details.
 
-```json
-"explorer.fileNesting.enabled": true,
-"explorer.fileNesting.patterns": {
-  "*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.d.ts"
-}
-```
+### Unit Tests
 
-This visually groups test files with their source files in the explorer, maintaining a clean view while benefiting from co-location.
+Unit tests focus on testing individual functions, classes, and components in isolation.
 
-## Vitest Workspace Setup
+#### Writing Unit Tests
 
-We use Vitest workspace mode for efficient test running across packages:
-
-```javascript
-// vitest.workspace.js
-import { defineWorkspace } from 'vitest/config'
-
-export default defineWorkspace([
-  "./packages/*/vitest.config.ts",
-  "./apps/*/vitest.config.ts",
-])
-```
-
-Each package and app has its own `vitest.config.ts` with consistent configuration:
+Example unit test for a utility function:
 
 ```typescript
-import { defineConfig } from 'vitest/config';
+// string.test.ts
+import { describe, it, expect } from 'vitest';
+import { capitalize } from './string';
 
-export default defineConfig({
-  test: {
-    environment: 'node',
-    include: ['**/*.{test,spec}.{ts,tsx}'], // Find all test files
-    globals: true,
-    coverage: {
-      provider: 'istanbul',
-      reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage'
-    }
-  }
+describe('string utils', () => {
+  describe('capitalize', () => {
+    it('should capitalize the first letter of a string', () => {
+      expect(capitalize('hello')).toBe('Hello');
+    });
+
+    it('should handle empty strings', () => {
+      expect(capitalize('')).toBe('');
+    });
+
+    it('should not change already capitalized strings', () => {
+      expect(capitalize('Hello')).toBe('Hello');
+    });
+  });
 });
 ```
 
-## Unit Tests
+### Integration Tests
 
-- Component-level tests using Vitest
-- Mocked dependencies via `vi.mock()` and `vi.spyOn()`
-- High coverage of core business logic
-- Consistent use of `describe`/`it` blocks for organization
-- Type-safe testing with TypeScript
+Integration tests verify that multiple units work together correctly.
 
-## Mocking Strategy
+#### Writing Integration Tests
 
-### Module Mocking
+Example integration test for interacting services:
+
+```typescript
+// parsing-classification.integration.test.ts
+import { describe, it, expect } from 'vitest';
+import { parseMarkdown } from '../src/services/parser';
+import { classifyContent } from '../src/services/classifier';
+
+describe('parsing and classification integration', () => {
+  it('should parse markdown and classify content correctly', () => {
+    const markdown = '# Task\nFinish the project by tomorrow';
+    const parsed = parseMarkdown(markdown);
+    const classified = classifyContent(parsed);
+    
+    expect(classified.type).toBe('task');
+    expect(classified.dueDate).toBeDefined();
+  });
+});
+```
+
+### End-to-End Tests
+
+End-to-end tests verify that the entire application works as expected from the user's perspective.
+
+#### Writing E2E Tests
+
+We use Playwright for end-to-end testing. See [Playwright configuration](../../e2e/playwright.config.ts) for setup details.
+
+Example E2E test for the Obsidian plugin:
+
+```typescript
+// note-creation.test.ts
+import { test, expect } from '@playwright/test';
+import { ObsidianTestEnvironment } from '../setup/test-environment';
+
+test.describe('Note Creation', () => {
+  let env: ObsidianTestEnvironment;
+
+  test.beforeEach(async ({ page }) => {
+    env = new ObsidianTestEnvironment(page);
+    await env.setup();
+  });
+
+  test('should create a new note with automatic tagging', async () => {
+    await env.createNewNote();
+    await env.typeInEditor('# Meeting Notes\nDiscussion about project timeline');
+    await env.saveNote();
+    
+    // Verify tags were automatically applied
+    const tags = await env.getNoteTags();
+    expect(tags).toContain('#meeting');
+  });
+});
+```
+
+## Testing Frameworks and Tools
+
+### Core Testing Technologies
+
+1. **Vitest**: Primary test runner and assertion library for unit and integration tests
+2. **Testing Library**: For testing UI components (React)
+3. **Playwright**: For end-to-end testing
+4. **MSW (Mock Service Worker)**: For mocking HTTP requests
+
+## Testing Best Practices
+
+### General Testing Guidelines
+
+1. **Arrange-Act-Assert**: Structure tests with clear setup, action, and verification phases
+2. **Single Responsibility**: Each test should verify one specific behavior
+3. **Descriptive Names**: Use descriptive test names that explain the expected behavior
+4. **Avoid Test Interdependence**: Tests should be able to run independently
+5. **Clean Setup and Teardown**: Properly initialize and clean up test environments
+
+### Writing Testable Code
+
+1. **Dependency Injection**: Use dependency injection to make components testable
+2. **Pure Functions**: Prefer pure functions that are easy to test
+3. **Interface-Based Design**: Design with interfaces that can be mocked
+4. **Separation of Concerns**: Keep components focused on single responsibilities
+
+### Mocking Strategies
+
+1. **Explicit Mocks**: Create explicit mocks rather than using global mock functions
+2. **Minimal Mocking**: Mock only what is necessary for the test
+3. **Realistic Mocks**: Make mocks behave realistically
+4. **Mock Boundaries**: Mock at architectural boundaries (API calls, file system, etc.)
+
+#### Module Mocking
 
 We use Vitest's mocking capabilities to mock modules:
 
@@ -133,7 +215,7 @@ vi.mock('../logger', () => ({
 }));
 ```
 
-### Service Mocking
+#### Service Mocking
 
 We use dependency injection and the shared testing package for consistent mocks:
 
@@ -153,84 +235,50 @@ const service = createTaggingService({
 });
 ```
 
-## Shared Testing Utilities
+### Shared Testing Utilities
 
 We maintain a dedicated `@obsidian-magic/testing` package for:
 
-- Factory functions for test data:
-  ```typescript
-  // packages/testing/src/mocks.ts
-  export function createMockTagSet(overrides: Partial<TagSet> = {}): TagSet {
-    return {
-      year: '2023',
-      life_area: 'projects',
-      topical_tags: [
-        { domain: 'software-development', subdomain: 'frontend' }, 
-        { domain: 'performance', contextual: 'performance' }
-      ],
-      conversation_type: 'practical',
-      confidence: {
-        overall: 0.95,
-        // ...other confidence values
-      },
-      explanations: {
-        domain: 'This conversation is about optimizing React performance.',
-        // ...other explanations
-      },
-      ...overrides,
-    };
-  }
-  ```
-
+- Factory functions for test data
 - Mock service implementations
 - Utility functions for test setup
 - Shared fixtures and helpers
 
-## Integration Tests
+## Test-Driven Development
 
-- Cross-component integration testing
-- API interaction testing with mocked responses
-- File system operation testing with fs-extra mocks
-- Testing service composition and interaction
+We encourage a test-driven development (TDD) approach for complex features:
 
-## End-to-End Tests
+1. **Write a Failing Test**: Start by writing a test that defines the expected behavior
+2. **Implement the Minimal Code**: Write the minimum code needed to make the test pass
+3. **Refactor**: Improve the code while keeping the tests passing
 
-- CLI workflow testing
-- Plugin installation and operation testing
-- Extension activation and operation testing
-- Controlled API testing with sanitized inputs
+## Testing in CI/CD Pipeline
 
-## Testing Best Practices
+Our CI pipeline executes tests at different levels. See our [CI workflow configuration](../../.github/workflows/ci.yml) for details.
 
-1. **Structure and Organization**:
-   - Use descriptive test names that explain behavior
-   - Follow AAA pattern (Arrange, Act, Assert)
-   - Group related tests in `describe` blocks
-   - Keep tests independent and idempotent
-   - Co-locate tests with the code they test
+### Pre-release Testing
 
-2. **Mocking Strategy**:
-   - Use `vi.mock()` for module-level mocks
-   - Use `vi.spyOn()` for specific function mocks
-   - Reset mocks between tests with `beforeEach(vi.clearAllMocks)`
-   - Use the testing package for consistent mock data
+Before each release, we run a comprehensive test suite that includes:
 
-3. **Assertions**:
-   - Write focused assertions for specific behaviors
-   - Test edge cases and error conditions
-   - Use type-safe assertions with TypeScript
-   - Avoid testing implementation details when possible
+1. Unit and integration tests across all packages
+2. End-to-end tests covering critical user flows
+3. Manual testing of new features and fixed bugs
 
-4. **Test Performance**:
-   - Keep tests fast and efficient
-   - Minimize unnecessary setup/teardown
-   - Use mocks instead of real APIs for faster tests
-   - Isolate slow tests when necessary
+## Test Coverage Goals
 
-5. **Coverage Goals**:
-   - Aim for >80% coverage of core business logic
-   - Prioritize critical path coverage
-   - Track coverage over time in CI
+We aim for the following test coverage targets:
+
+| Package Type | Coverage Target | Critical Path Coverage |
+|--------------|-----------------|------------------------|
+| Core libraries | 90%+ | 100% |
+| UI components | 80%+ | 100% |
+| Applications | 70%+ | 90%+ |
+
+Coverage is monitored through:
+
+1. CI pipeline reports
+2. Pull request reviews
+3. Regular coverage audits
 
 ## Running Tests
 
@@ -239,4 +287,90 @@ To run tests:
 - All tests: `pnpm test` (runs tests in all packages)
 - Single package: `pnpm --filter @obsidian-magic/core test`
 - Watch mode: `pnpm --filter @obsidian-magic/core test -- --watch`
-- Coverage: `pnpm --filter @obsidian-magic/core test -- --coverage` 
+- Coverage: `pnpm --filter @obsidian-magic/core test -- --coverage`
+
+## Snapshot Testing
+
+For UI components and serialized data structures, we use snapshot testing:
+
+```typescript
+// tag-picker.test.tsx
+import { render } from '@testing-library/react';
+import { expect, it } from 'vitest';
+import { TagPicker } from './tag-picker';
+
+it('should render the tag picker correctly', () => {
+  const { asFragment } = render(
+    <TagPicker 
+      tags={['meeting', 'task', 'idea']} 
+      selectedTags={['meeting']} 
+      onTagSelect={() => {}} 
+    />
+  );
+  
+  expect(asFragment()).toMatchSnapshot();
+});
+```
+
+Snapshot update guidelines:
+
+1. Review snapshot diffs carefully before updating
+2. Only update snapshots when the UI change is intentional
+3. Include snapshot changes in code reviews
+
+## Performance Testing
+
+For critical performance paths, we include performance tests:
+
+```typescript
+// parser.performance.test.ts
+import { describe, it, expect, bench } from 'vitest';
+import { parseMarkdown } from './parser';
+import fs from 'fs';
+
+const largeMarkdown = fs.readFileSync('./test-fixtures/large-document.md', 'utf-8');
+
+describe('parser performance', () => {
+  bench('should parse large markdown document quickly', () => {
+    parseMarkdown(largeMarkdown);
+  }, { time: 1000 });
+});
+```
+
+## Accessibility Testing
+
+For UI components, we include accessibility tests using jest-axe. See our [accessibility guidelines](./accessibility-ux.md) for more details.
+
+## Test Documentation
+
+### Test Documentation Standards
+
+1. **Clear Purpose**: Document the purpose of complex test suites
+2. **Test Data Explanation**: Explain non-obvious test data
+3. **Mock Behavior Documentation**: Document expected behavior of mocks
+
+Example of well-documented test:
+
+```typescript
+/**
+ * Tests the document processor's ability to handle various edge cases
+ * including malformed input, nested structures, and special characters.
+ * 
+ * The test data includes:
+ * - Empty documents
+ * - Documents with only metadata
+ * - Deeply nested lists (10+ levels)
+ * - Special Unicode characters
+ */
+describe('DocumentProcessor edge cases', () => {
+  // Test cases...
+});
+```
+
+## Continuous Improvement
+
+We regularly review and improve our testing practices through:
+
+1. **Test Retrospectives**: Regular reviews of test effectiveness
+2. **Test Refactoring**: Periodic refactoring of test code
+3. **New Tool Evaluation**: Evaluation of new testing tools and approaches 

@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 
-import { tagSetSchema } from '@obsidian-magic/types/src/validators/tags';
+import { tagSetSchema } from '@obsidian-magic/types';
 
 // Basic API validators
 export const aiModelSchema = z.string();
