@@ -14,30 +14,6 @@ import { TaxonomyManager } from './tagging/TaxonomyManager';
 
 import type { AIModel } from './models/api';
 
-// Export from explicit paths
-export {
-  AppError,
-  ValidationError,
-  FileSystemError,
-  NetworkError,
-  APIError,
-  ApiKeyError,
-  ConfigurationError,
-  MarkdownError,
-  TaggingError,
-  CostLimitError,
-  Result,
-  type ResultObject,
-  success,
-  failure,
-  tryCatch,
-  tryOrNull,
-  toAppError,
-  normalizeError,
-  withRetry,
-  type ErrorCode,
-} from './errors';
-
 // Export OpenAI integration with explicit paths
 export { OpenAIClient, type ModelPricing, type PricingConfig } from './OpenAIClient';
 

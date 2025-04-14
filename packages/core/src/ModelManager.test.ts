@@ -99,32 +99,33 @@ describe('ModelManager', () => {
 
   describe('getModelsByCategory', () => {
     it('should group models by category', async () => {
-      const mockModels: ModelPricing[] = [
-        {
-          id: 'gpt-4',
-          name: 'GPT 4',
-          inputPrice: 30.0,
-          outputPrice: 60.0,
-          contextWindow: 8192,
-          available: true,
-          deprecated: false,
-          category: 'gpt4',
-        },
-        {
-          id: 'gpt-3.5-turbo',
-          name: 'GPT 3.5 Turbo',
-          inputPrice: 0.5,
-          outputPrice: 1.5,
-          contextWindow: 16385,
-          available: true,
-          deprecated: false,
-          category: 'gpt3.5',
-        },
-      ];
+      const gpt4Model: ModelPricing = {
+        id: 'gpt-4',
+        name: 'GPT 4',
+        inputPrice: 30.0,
+        outputPrice: 60.0,
+        contextWindow: 8192,
+        available: true,
+        deprecated: false,
+        category: 'gpt4',
+      };
+
+      const gpt35Model: ModelPricing = {
+        id: 'gpt-3.5-turbo',
+        name: 'GPT 3.5 Turbo',
+        inputPrice: 0.5,
+        outputPrice: 1.5,
+        contextWindow: 16385,
+        available: true,
+        deprecated: false,
+        category: 'gpt3.5',
+      };
+
+      const mockModels: ModelPricing[] = [gpt4Model, gpt35Model];
 
       const mockCategorized: Record<string, ModelPricing[]> = {
-        gpt4: [mockModels[0]],
-        'gpt3.5': [mockModels[1]],
+        gpt4: [gpt4Model],
+        'gpt3.5': [gpt35Model],
       };
 
       vi.spyOn(manager, 'getAvailableModels').mockResolvedValue(mockModels);
@@ -135,7 +136,10 @@ describe('ModelManager', () => {
 
       expect(Object.keys(groupedModels)).toContain('gpt4');
       expect(Object.keys(groupedModels)).toContain('gpt3.5');
-      expect(groupedModels['gpt4']?.[0]?.id).toBe('gpt-4');
+
+      const gpt4Models = groupedModels['gpt4'];
+      expect(gpt4Models).toBeDefined();
+      expect(gpt4Models?.[0]?.id).toBe('gpt-4');
     });
   });
 

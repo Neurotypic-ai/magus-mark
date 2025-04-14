@@ -87,6 +87,74 @@ Would you like me to make any other improvements to the test file?
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Unable to resolve path to module './errors'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace, let me search for the errors module to understand its correct location.
+
+---
+
+<details>
+            <summary>Searched codebase "errors.ts" • **10** results</summary>
+        
+| File |
+|------|
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+| `undefined` |
+
+</details>
+
+---
+
+I see that the error-related files are in the `errors` directory. Let me check if there's an index file there.
+
+---
+
+<details>
+            <summary>Searched codebase "errors/index.ts" • **0** results</summary>
+        
+No results found
+</details>
+
+---
+
+Let me edit the import path to point to the correct location:
+
+---
+
+```diff
+  import { encoding_for_model } from 'tiktoken';
+  
+- import { APIError, normalizeError } from './errors';
++ import { APIError } from './errors/APIError';
++ import { normalizeError } from './errors/utils';
+  import { ErrorCodes } from './errors/ErrorCodes';
+  
+```
+
+---
+
+Let me verify if the utils file exists:
+
+---
+
 
 
 ---
