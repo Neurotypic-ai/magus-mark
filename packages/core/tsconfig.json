@@ -1,11 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist"
   },
-  "files": ["./vitest.config.ts", "src/markdown/frontmatter-processor.ts", "src/markdown/document-processor.ts"],
-  "include": ["src/**/*", "tests/**/*", "../types/src/models/markdown-frontmatter.ts"],
+  "include": ["src/**/*"],
   "references": [{ "path": "../types" }, { "path": "../utils" }]
 }

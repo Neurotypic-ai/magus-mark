@@ -18,12 +18,12 @@ export function isObject(value: unknown): boolean {
  * @param source - Source object to merge from
  * @returns A new object with merged properties
  */
-export function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
+export function deepMerge<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>): T {
   const output = { ...target };
 
   if (isObject(target) && isObject(source)) {
     Object.keys(source).forEach((key) => {
-      const sourceValue = source[key as keyof typeof source];
+      const sourceValue = source[key];
       if (isObject(sourceValue)) {
         if (!(key in target)) {
           Object.assign(output, { [key]: sourceValue });

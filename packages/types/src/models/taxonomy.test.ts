@@ -13,8 +13,7 @@ import {
   type DomainTag,
   type LifeAreaTag,
   type ConversationTypeTag,
-  type ContextualTag,
-  type SubdomainMap
+  type ContextualTag
 } from '..';
 
 describe('Taxonomy Constants', () => {

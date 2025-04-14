@@ -282,9 +282,7 @@ export class OpenAIClient {
             const backoffTime = this.calculateBackoff(attemptCount, retryAfter);
             
             // Skip the delay for testing purposes if requested
-            if (!options.skipRetryDelay) {
-              await new Promise((resolve) => setTimeout(resolve, backoffTime));
-            }
+            await new Promise((resolve) => setTimeout(resolve, backoffTime));
             continue;
           }
         }

@@ -1,8 +1,19 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { OpenAIClient, DEFAULT_OPENAI_CONFIG } from './openai-client';
-import type { OpenAIResponse, ModerationResult } from './openai-client';
 import type { AIModel } from '@obsidian-magic/types';
 import OpenAI from 'openai';
+
+// Define a type for our mocked OpenAI client
+interface MockedOpenAIClient {
+  chat: {
+    completions: {
+      create: ReturnType<typeof vi.fn>;
+    };
+  };
+  moderations: {
+    create: ReturnType<typeof vi.fn>;
+  };
+}
 
 // Mock the OpenAI library and encoding
 vi.mock('openai', () => {
@@ -155,11 +166,11 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       const result = await client.makeRequest<{ key: string }>(prompt, systemMessage);
       
-      expect(mockedClient.chat?.completions?.create).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockedClient.chat.completions.create).toHaveBeenCalledWith(expect.objectContaining({
         model: DEFAULT_OPENAI_CONFIG.model,
         messages: [
           { role: 'system', content: systemMessage },
@@ -180,14 +191,12 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       // Mock an API error
-      if (mockedClient.chat?.completions?.create) {
-        (mockedClient.chat.completions.create as jest.Mock).mockRejectedValueOnce(
-          new Error('Rate limit exceeded')
-        );
-      }
+      mockedClient.chat.completions.create.mockRejectedValueOnce(
+        new Error('Rate limit exceeded')
+      );
       
       const result = await client.makeRequest<{ key: string }>(prompt, systemMessage);
       
@@ -200,7 +209,7 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       // Mock a rate limit error with retry-after
       const rateLimitError = new Error('Rate limit exceeded') as Error & { status?: number; headers?: Record<string, string> };
@@ -209,9 +218,7 @@ describe('OpenAIClient', () => {
         'retry-after': '30'
       };
       
-      if (mockedClient.chat?.completions?.create) {
-        (mockedClient.chat.completions.create as jest.Mock).mockRejectedValueOnce(rateLimitError);
-      }
+      mockedClient.chat.completions.create.mockRejectedValueOnce(rateLimitError);
       
       const result = await client.makeRequest<{ key: string }>(prompt, systemMessage, {
         skipRetryDelay: true // Skip delay for testing
@@ -226,28 +233,26 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       // Mock an invalid JSON response
-      if (mockedClient.chat?.completions?.create) {
-        (mockedClient.chat.completions.create as jest.Mock).mockResolvedValueOnce({
-          id: 'chat-123',
-          choices: [
-            {
-              message: {
-                content: '{invalid json}'
-              },
-              index: 0,
-              finish_reason: 'stop'
-            }
-          ],
-          usage: {
-            prompt_tokens: 500,
-            completion_tokens: 200,
-            total_tokens: 700
+      mockedClient.chat.completions.create.mockResolvedValueOnce({
+        id: 'chat-123',
+        choices: [
+          {
+            message: {
+              content: '{invalid json}'
+            },
+            index: 0,
+            finish_reason: 'stop'
           }
-        });
-      }
+        ],
+        usage: {
+          prompt_tokens: 500,
+          completion_tokens: 200,
+          total_tokens: 700
+        }
+      });
       
       const result = await client.makeRequest<{ key: string }>(prompt, systemMessage);
       
@@ -259,28 +264,26 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       await client.makeRequest<{ key: string }>(prompt, systemMessage, {
         temperature: 0.2,
         maxTokens: 500
       });
       
-      if (mockedClient.chat?.completions?.create) {
-        expect(mockedClient.chat.completions.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            temperature: 0.2,
-            max_tokens: 500
-          })
-        );
-      }
+      expect(mockedClient.chat.completions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          temperature: 0.2,
+          max_tokens: 500
+        })
+      );
     });
 
     it('should add function tools when provided', async () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       const functions = [
         {
@@ -299,27 +302,25 @@ describe('OpenAIClient', () => {
         functions
       });
       
-      if (mockedClient.chat?.completions?.create) {
-        expect(mockedClient.chat.completions.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            tools: [
-              {
-                type: 'function',
-                function: {
-                  name: 'test_function',
-                  description: 'A test function',
-                  parameters: {
-                    type: 'object',
-                    properties: {
-                      param1: { type: 'string' }
-                    }
+      expect(mockedClient.chat.completions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'test_function',
+                description: 'A test function',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    param1: { type: 'string' }
                   }
                 }
               }
-            ]
-          })
-        );
-      }
+            }
+          ]
+        })
+      );
     });
   });
 
@@ -328,16 +329,14 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       const text = 'Sample text for moderation';
       const result = await client.moderateContent(text);
       
-      if (mockedClient.moderations?.create) {
-        expect(mockedClient.moderations.create).toHaveBeenCalledWith({
-          input: text
-        });
-      }
+      expect(mockedClient.moderations.create).toHaveBeenCalledWith({
+        input: text
+      });
       
       expect(result.flagged).toBe(false);
       expect(result.categories).toBeDefined();
@@ -349,38 +348,36 @@ describe('OpenAIClient', () => {
       const client = new OpenAIClient({ apiKey: 'test-key' });
       const mockResults = vi.mocked(OpenAI).mock.results;
       if (mockResults[0] === undefined) throw new Error('Mock results not available');
-      const mockedClient = mockResults[0].value;
+      const mockedClient = mockResults[0].value as MockedOpenAIClient;
       
       // Mock flagged content
-      if (mockedClient.moderations?.create) {
-        (mockedClient.moderations.create as jest.Mock).mockResolvedValueOnce({
-          results: [
-            {
-              flagged: true,
-              categories: {
-                hate: true,
-                'hate/threatening': false,
-                harassment: false,
-                'self-harm': false,
-                sexual: false,
-                'sexual/minors': false,
-                violence: false,
-                'violence/graphic': false
-              },
-              category_scores: {
-                hate: 0.8,
-                'hate/threatening': 0.1,
-                harassment: 0.1,
-                'self-harm': 0.1,
-                sexual: 0.1,
-                'sexual/minors': 0.1,
-                violence: 0.1,
-                'violence/graphic': 0.1
-              }
+      mockedClient.moderations.create.mockResolvedValueOnce({
+        results: [
+          {
+            flagged: true,
+            categories: {
+              hate: true,
+              'hate/threatening': false,
+              harassment: false,
+              'self-harm': false,
+              sexual: false,
+              'sexual/minors': false,
+              violence: false,
+              'violence/graphic': false
+            },
+            category_scores: {
+              hate: 0.8,
+              'hate/threatening': 0.1,
+              harassment: 0.1,
+              'self-harm': 0.1,
+              sexual: 0.1,
+              'sexual/minors': 0.1,
+              violence: 0.1,
+              'violence/graphic': 0.1
             }
-          ]
-        });
-      }
+          }
+        ]
+      });
       
       const text = 'Sample text for moderation';
       const result = await client.moderateContent(text);

@@ -18,7 +18,7 @@ import type { CommandModule } from 'yargs';
  */
 export function getAllCommands(): CommandModule[] {
   // Import commands
-  const commands: CommandModule[] = [
+  return [
     tagCommand,
     testCommand,
     statsCommand,
@@ -26,11 +26,6 @@ export function getAllCommands(): CommandModule[] {
     configCommand,
     configInteractiveCommand,
   ];
-
-  // Setup command is not yet implemented
-  // if (setupCommand) commands.push(setupCommand);
-
-  return commands;
 }
 
 // Export all commands

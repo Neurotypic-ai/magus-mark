@@ -1,9 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*", "tests/**/*", "../core/src/validators/api-validators.ts", "../core/src/validators/tags.ts", "../core/src/validators/validators.test.ts"]
+  "include": ["src/**/*"]
 }

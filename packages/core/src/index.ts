@@ -25,7 +25,7 @@ export * from './tagging/batch-processing-service';
 
 // Export validators
 export * from './validators/api-validators';
-export * from './validators/tags';
+export * from './validators/tags-validators';
 
 // Export openai utilities
 export * from './openai/prompts';

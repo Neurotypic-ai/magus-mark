@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FRONTMATTER_OPTIONS } from '@obsidian-magic/types/src/models/markdown-frontmatter';
-import { FrontmatterProcessor } from 'packages/core/src/markdown/frontmatter-processor';
-import type { TagSet } from '@obsidian-magic/types';
+import { DEFAULT_FRONTMATTER_OPTIONS } from '@obsidian-magic/types';
+import { FrontmatterProcessor } from './frontmatter-processor';
+import type { TagSet, FrontmatterOptions } from '@obsidian-magic/types';
+
+// Replace the interface with this type
+interface TestFrontmatterProcessorType {
+  options: FrontmatterOptions;
+}
 
 describe('FrontmatterProcessor', () => {
   describe('constructor', () => {
     it('should initialize with default options', () => {
       const processor = new FrontmatterProcessor();
-      // Using any here to access private property for testing
-      expect((processor as any).options).toEqual(DEFAULT_FRONTMATTER_OPTIONS);
+      // Cast to our test interface to access private properties
+      const testProcessor = processor as unknown as TestFrontmatterProcessorType;
+      expect(testProcessor.options).toEqual(DEFAULT_FRONTMATTER_OPTIONS);
     });
 
     it('should merge provided options with defaults', () => {
@@ -16,9 +22,10 @@ describe('FrontmatterProcessor', () => {
         preserveExistingTags: false, 
         tagsKey: 'keywords' 
       });
-      expect((processor as any).options.preserveExistingTags).toBe(false);
-      expect((processor as any).options.tagsKey).toBe('keywords');
-      expect((processor as any).options.useNestedKeys).toBe(DEFAULT_FRONTMATTER_OPTIONS.useNestedKeys);
+      const testProcessor = processor as unknown as TestFrontmatterProcessorType;
+      expect(testProcessor.options.preserveExistingTags).toBe(false);
+      expect(testProcessor.options.tagsKey).toBe('keywords');
+      expect(testProcessor.options.useNestedKeys).toBe(DEFAULT_FRONTMATTER_OPTIONS.useNestedKeys);
     });
   });
 
@@ -117,7 +124,7 @@ tags: [unclosed array
       const processor = new FrontmatterProcessor();
       const frontmatter = processor.tagsToFrontmatter(sampleTagSet);
       
-      expect(frontmatter.tags).toEqual([
+      expect(frontmatter['tags']).toEqual([
         '#year/2023',
         '#learning',
         '#software-development/frontend',
@@ -133,7 +140,7 @@ tags: [unclosed array
       
       const frontmatter = processor.tagsToFrontmatter(sampleTagSet);
       
-      expect(frontmatter.tags).toEqual([
+      expect(frontmatter['tags']).toEqual([
         'year/2023',
         'learning',
         'software-development/frontend',

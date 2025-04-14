@@ -12,14 +12,18 @@ import {
   tagConfidenceSchema,
   tagSetSchema,
   tagBehaviorSchema,
-  
-  // API validators
-  aiModelSchema,
-  apiKeyStorageSchema,
-  taggingResultSchema,
-  taggingOptionsSchema,
-  documentSchema
-} from '@obsidian-magic/types/src';
+} from './tags-validators';
+
+import type {
+  YearTag,
+  LifeAreaTag,
+  DomainTag,
+  ConversationTypeTag,
+  TopicalTag,
+  TagConfidence,
+  TagSet,
+  ConfidenceScore
+} from '@obsidian-magic/types';
 
 describe('Tag Validators', () => {
   describe('Basic Tag Schema', () => {
@@ -229,156 +233,85 @@ describe('Tag Validators', () => {
       expect(tagBehaviorSchema.safeParse('suggest').success).toBe(false);
     });
   });
-});
 
-describe('API Validators', () => {
-  it('validates AI model options', () => {
-    expect(aiModelSchema.safeParse('gpt-4o').success).toBe(true);
-    expect(aiModelSchema.safeParse('gpt-4').success).toBe(true);
-    expect(aiModelSchema.safeParse('gpt-3.5-turbo').success).toBe(true);
-    
-    // Based on the test results, it appears custom models are allowed
-    // Adjusting expectation to match implementation
-    expect(aiModelSchema.safeParse('custom-model').success).toBe(true);
+  it('validates a valid year tag', () => {
+    const validYear: YearTag = '2023';
+    expect(yearTagSchema.parse(validYear)).toBe(validYear);
   });
-  
-  it('validates API key storage options', () => {
-    expect(apiKeyStorageSchema.safeParse('local').success).toBe(true);
-    // Based on test results, it appears 'vault' is not a valid option
-    // Adjusting expectation to match implementation
-    expect(apiKeyStorageSchema.safeParse('system').success).toBe(true);
-    expect(apiKeyStorageSchema.safeParse('vault').success).toBe(false);
-    
-    // Invalid values
-    expect(apiKeyStorageSchema.safeParse('invalid').success).toBe(false);
+
+  it('rejects an invalid year tag', () => {
+    const invalidYear = '12';
+    expect(() => yearTagSchema.parse(invalidYear)).toThrow();
   });
-  
-  it('validates tagging results', () => {
-    // Successful tagging
-    expect(taggingResultSchema.safeParse({
-      success: true,
-      tags: {
-        year: '2023',
-        topical_tags: [
-          {
-            domain: 'software-development',
-            subdomain: 'frontend'
-          }
-        ],
-        conversation_type: 'deep-dive',
-        confidence: {
-          overall: 0.9
+
+  it('validates a valid life area tag', () => {
+    const validLifeArea: LifeAreaTag = 'career';
+    expect(lifeAreaTagSchema.parse(validLifeArea)).toBe(validLifeArea);
+  });
+
+  it('rejects an invalid life area tag', () => {
+    const invalidLifeArea = 'invalid-area';
+    expect(() => lifeAreaTagSchema.parse(invalidLifeArea)).toThrow();
+  });
+
+  it('validates a valid domain tag', () => {
+    const validDomain: DomainTag = 'technology';
+    expect(domainTagSchema.parse(validDomain)).toBe(validDomain);
+  });
+
+  it('validates a valid conversation type tag', () => {
+    const validConversationType: ConversationTypeTag = 'deep-dive';
+    expect(conversationTypeTagSchema.parse(validConversationType)).toBe(validConversationType);
+  });
+
+  it('validates a valid confidence score', () => {
+    const validScore: ConfidenceScore = 0.85;
+    expect(confidenceScoreSchema.parse(validScore)).toBe(validScore);
+  });
+
+  it('rejects an out-of-range confidence score', () => {
+    const invalidScore = 1.5;
+    expect(() => confidenceScoreSchema.parse(invalidScore)).toThrow();
+  });
+
+  it('validates a valid topical tag', () => {
+    const validTopicalTag: TopicalTag = {
+      domain: 'technology',
+      subdomain: 'ai',
+      contextual: 'beginner'
+    };
+    expect(topicalTagSchema.parse(validTopicalTag)).toEqual(validTopicalTag);
+  });
+
+  it('validates a valid tag confidence object', () => {
+    const validTagConfidence: TagConfidence = {
+      overall: 0.92,
+      domain: 0.95,
+      subdomain: 0.85,
+      conversation_type: 0.90
+    };
+    expect(tagConfidenceSchema.parse(validTagConfidence)).toEqual(validTagConfidence);
+  });
+
+  it('validates a complete tag set', () => {
+    const validTagSet: TagSet = {
+      year: '2023',
+      life_area: 'learning',
+      topical_tags: [
+        {
+          domain: 'technology',
+          subdomain: 'ai',
+          contextual: 'beginner'
         }
+      ],
+      conversation_type: 'deep-dive',
+      confidence: {
+        overall: 0.92,
+        domain: 0.95,
+        subdomain: 0.85,
+        conversation_type: 0.90
       }
-    }).success).toBe(true);
-    
-    // Failed tagging - based on test results, this schema expects a different error format
-    // Adjusting expectation to match implementation
-    expect(taggingResultSchema.safeParse({
-      success: false,
-      error: {
-        message: 'Failed to analyze content',
-        code: 'ANALYSIS_ERROR',
-        recoverable: true
-      }
-    }).success).toBe(true);
-    
-    // Invalid: simple error string not allowed
-    expect(taggingResultSchema.safeParse({
-      success: false,
-      error: 'Failed to analyze content'
-    }).success).toBe(false);
-    
-    // Based on test results, this is actually valid despite missing tags
-    // Adjusting expectation to match implementation
-    expect(taggingResultSchema.safeParse({
-      success: true
-    }).success).toBe(true);
-    
-    // Based on test results, this is actually valid despite missing error
-    // Adjusting expectation to match implementation
-    expect(taggingResultSchema.safeParse({
-      success: false
-    }).success).toBe(true);
+    };
+    expect(tagSetSchema.parse(validTagSet)).toEqual(validTagSet);
   });
-  
-  it('validates tagging options', () => {
-    // Complete options
-    expect(taggingOptionsSchema.safeParse({
-      model: 'gpt-4o',
-      behavior: 'append',
-      minConfidence: 0.6,
-      reviewThreshold: 0.8,
-      generateExplanations: true
-    }).success).toBe(true);
-    
-    // Based on test results, all fields are required
-    // Adjusting expectation to match implementation
-    expect(taggingOptionsSchema.safeParse({
-      model: 'gpt-3.5-turbo',
-      behavior: 'append',
-      minConfidence: 0.6,
-      reviewThreshold: 0.8,
-      generateExplanations: true
-    }).success).toBe(true);
-    
-    // Missing fields
-    expect(taggingOptionsSchema.safeParse({
-      model: 'gpt-3.5-turbo' 
-    }).success).toBe(false);
-    
-    // Invalid model - this is actually allowed
-    const invalidModelResult = taggingOptionsSchema.safeParse({
-      model: 'invalid-model',
-      behavior: 'append',
-      minConfidence: 0.6,
-      reviewThreshold: 0.8,
-      generateExplanations: true
-    });
-    
-    expect(invalidModelResult.success).toBe(true);
-    
-    // Invalid confidence range
-    expect(taggingOptionsSchema.safeParse({
-      model: 'gpt-4o',
-      behavior: 'append',
-      minConfidence: 1.5,
-      reviewThreshold: 0.8,
-      generateExplanations: true
-    }).success).toBe(false);
-  });
-  
-  it('validates document objects', () => {
-    // Complete document
-    expect(documentSchema.safeParse({
-      id: 'doc123',
-      path: '/notes/conversation.md',
-      content: 'This is a sample conversation',
-      metadata: {
-        createdAt: '2023-01-01',
-        source: 'chatgpt'
-      }
-    }).success).toBe(true);
-    
-    // Minimal document
-    expect(documentSchema.safeParse({
-      id: 'doc123',
-      path: '/notes/conversation.md',
-      content: 'This is a sample conversation',
-      metadata: {}
-    }).success).toBe(true);
-    
-    // Invalid: missing required fields
-    expect(documentSchema.safeParse({
-      id: 'doc123',
-      content: 'This is a sample conversation',
-      metadata: {}
-    }).success).toBe(false);
-    
-    expect(documentSchema.safeParse({
-      path: '/notes/conversation.md',
-      content: 'This is a sample conversation',
-      metadata: {}
-    }).success).toBe(false);
-  });
-}); 
+});

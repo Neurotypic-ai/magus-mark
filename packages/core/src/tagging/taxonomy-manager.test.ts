@@ -120,8 +120,8 @@ describe('TaxonomyManager', () => {
       
       // Check that the contextual tags exist but don't compare exact values
       // since the default taxonomy might differ from our test values
-      expect(Array.isArray(promptTaxonomy['contextual_tags'])).toBe(true);
-      expect(promptTaxonomy['contextual_tags'].length).toBeGreaterThan(0);
+      expect(Array.isArray(promptTaxonomy['contextual_tags'] as unknown[])).toBe(true);
+      expect((promptTaxonomy['contextual_tags'] as string[]).length).toBeGreaterThan(0);
       
       // For those defined in our test taxonomy, they should be included
       for (const tag of (defaultTaxonomy.contextualTags ?? [])) {
@@ -292,10 +292,13 @@ describe('TaxonomyManager', () => {
         const existingDomain = domains[0];
         const initialLength = manager.getTaxonomy().domains.length;
         
-        manager.addDomain(existingDomain);
-        const updatedLength = manager.getTaxonomy().domains.length;
-        
-        expect(updatedLength).toBe(initialLength);
+        // Add type guard to ensure the domain isn't undefined
+        if (existingDomain) {
+          manager.addDomain(existingDomain);
+          const updatedLength = manager.getTaxonomy().domains.length;
+          
+          expect(updatedLength).toBe(initialLength);
+        }
       }
     });
     
@@ -317,18 +320,19 @@ describe('TaxonomyManager', () => {
       const manager = new TaxonomyManager(defaultTaxonomy);
       const exported = manager.exportTaxonomy();
       
-      expect(exported).toEqual(expect.objectContaining({
-        domains: expect.any(Array) as unknown as string[],
-        lifeAreas: expect.any(Array) as unknown as string[],
-        subdomains: expect.any(Object) as unknown as Record<string, string[]>,
-        contextualTags: expect.any(Array) as unknown as string[],
-        conversationTypes: expect.any(Array) as unknown as string[],
-        custom: expect.objectContaining({
-          domains: expect.any(Array),
-          subdomains: expect.any(Object),
-          contextualTags: expect.any(Array)
-        })
-      }));
+      // Use bracket notation to access object properties to avoid index signature errors
+      expect(Array.isArray(exported['domains'])).toBe(true);
+      expect(Array.isArray(exported['lifeAreas'])).toBe(true);
+      expect(typeof exported['subdomains']).toBe('object');
+      expect(Array.isArray(exported['contextualTags'])).toBe(true);
+      expect(Array.isArray(exported['conversationTypes'])).toBe(true);
+      
+      // Check custom object structure with proper typings
+      const custom = exported['custom'] as Record<string, unknown>;
+      expect(custom).toBeDefined();
+      expect(Array.isArray(custom['domains'])).toBe(true);
+      expect(typeof custom['subdomains']).toBe('object');
+      expect(Array.isArray(custom['contextualTags'])).toBe(true);
     });
     
     it('should properly track and export custom elements', () => {
@@ -366,12 +370,19 @@ describe('TaxonomyManager', () => {
       // Safe handling of potentially undefined domains array
       const domainsToCheck = defaultTaxonomy.domains ?? [];
       
-      expect(imported.getTaxonomy()).toEqual(expect.objectContaining({
-        domains: expect.arrayContaining(domainsToCheck.map(d => d as string)),
-        lifeAreas: expect.any(Array) as unknown as string[],
-        contextualTags: expect.any(Array) as unknown as string[],
-        conversationTypes: expect.any(Array) as unknown as string[]
-      }));
+      // Verify taxonomy structure without complex matchers
+      const taxonomy = imported.getTaxonomy();
+      expect(Array.isArray(taxonomy.domains)).toBe(true);
+      expect(Array.isArray(taxonomy.lifeAreas)).toBe(true);
+      expect(Array.isArray(taxonomy.contextualTags)).toBe(true);
+      expect(Array.isArray(taxonomy.conversationTypes)).toBe(true);
+      
+      // Check that imported domains include all the domains from the original
+      for (const domain of domainsToCheck) {
+        if (domain) {
+          expect(taxonomy.domains).toContain(domain);
+        }
+      }
     });
     
     it('should handle missing data gracefully', () => {

@@ -1,20 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DocumentProcessor } from 'packages/core/src/markdown/document-processor';
-import { FrontmatterProcessor } from 'packages/core/src/markdown/frontmatter-processor';
+import { DocumentProcessor } from './document-processor';
+import { FrontmatterProcessor } from './frontmatter-processor';
 import type { Document, TagSet } from '@obsidian-magic/types';
 
+// Set up mocks
+const mockExtractFrontmatter = vi.fn().mockReturnValue({});
+const mockUpdateFrontmatter = vi.fn((content: string) => `UPDATED: ${content}`);
+const mockExtractTags = vi.fn().mockReturnValue([]);
+
 // Mock the FrontmatterProcessor class
-vi.mock('../../src/markdown', async (importOriginal) => {
-  const mod = await importOriginal();
-  return {
-    ...mod,
-    FrontmatterProcessor: vi.fn().mockImplementation(() => ({
-      extractFrontmatter: vi.fn().mockReturnValue({}),
-      updateFrontmatter: vi.fn((content) => `UPDATED: ${content}`),
-      extractTags: vi.fn().mockReturnValue([]),
-    })),
-  };
-});
+vi.mock('./frontmatter-processor', () => ({
+  FrontmatterProcessor: vi.fn().mockImplementation(() => ({
+    extractFrontmatter: mockExtractFrontmatter,
+    updateFrontmatter: mockUpdateFrontmatter,
+    extractTags: mockExtractTags,
+  })),
+}));
 
 describe('DocumentProcessor', () => {
   beforeEach(() => {
@@ -23,13 +24,13 @@ describe('DocumentProcessor', () => {
 
   describe('constructor', () => {
     it('should initialize with a FrontmatterProcessor', () => {
-      const processor = new DocumentProcessor();
+      new DocumentProcessor();
       expect(FrontmatterProcessor).toHaveBeenCalled();
     });
 
     it('should pass frontmatter options to FrontmatterProcessor', () => {
       const options = { preserveExistingTags: false, tagsKey: 'keywords' };
-      const processor = new DocumentProcessor(options);
+      new DocumentProcessor(options);
       expect(FrontmatterProcessor).toHaveBeenCalledWith(options);
     });
   });
@@ -47,39 +48,40 @@ describe('DocumentProcessor', () => {
         id,
         path,
         content,
+        metadata: {}
       });
     });
 
     it('should extract frontmatter from content', () => {
       const mockFrontmatter = { title: 'Test', tags: ['tag1'] };
-      vi.mocked(FrontmatterProcessor.prototype.extractFrontmatter).mockReturnValueOnce(mockFrontmatter);
+      mockExtractFrontmatter.mockReturnValueOnce(mockFrontmatter);
 
       const processor = new DocumentProcessor();
       const document = processor.parseDocument('id', 'path', 'content');
 
-      expect(FrontmatterProcessor.prototype.extractFrontmatter).toHaveBeenCalledWith('content');
-      expect(document.frontmatter).toEqual(mockFrontmatter);
+      expect(mockExtractFrontmatter).toHaveBeenCalledWith('content');
+      expect(document.metadata).toEqual(mockFrontmatter);
     });
 
     it('should extract existing tags from frontmatter', () => {
       const mockTags = ['tag1', 'tag2'];
-      vi.mocked(FrontmatterProcessor.prototype.extractTags).mockReturnValueOnce(mockTags);
+      mockExtractTags.mockReturnValueOnce(mockTags);
 
       const processor = new DocumentProcessor();
       const document = processor.parseDocument('id', 'path', 'content');
 
-      expect(FrontmatterProcessor.prototype.extractTags).toHaveBeenCalled();
+      expect(mockExtractTags).toHaveBeenCalled();
       expect(document.existingTags).toEqual(expect.any(Object));
     });
 
     it('should handle documents without frontmatter', () => {
-      vi.mocked(FrontmatterProcessor.prototype.extractFrontmatter).mockReturnValueOnce({});
-      vi.mocked(FrontmatterProcessor.prototype.extractTags).mockReturnValueOnce([]);
+      mockExtractFrontmatter.mockReturnValueOnce({});
+      mockExtractTags.mockReturnValueOnce([]);
 
       const processor = new DocumentProcessor();
       const document = processor.parseDocument('id', 'path', 'content');
 
-      expect(document.frontmatter).toEqual({});
+      expect(document.metadata).toEqual({});
       expect(document.existingTags).toBeUndefined();
     });
   });
@@ -98,12 +100,13 @@ describe('DocumentProcessor', () => {
         id: 'test-id',
         path: '/path/to/document.md',
         content: '# Test Document\nContent here',
+        metadata: {}
       };
 
       const processor = new DocumentProcessor();
       const updated = processor.updateDocument(document, sampleTagSet);
 
-      expect(FrontmatterProcessor.prototype.updateFrontmatter).toHaveBeenCalledWith(
+      expect(mockUpdateFrontmatter).toHaveBeenCalledWith(
         document.content,
         sampleTagSet
       );

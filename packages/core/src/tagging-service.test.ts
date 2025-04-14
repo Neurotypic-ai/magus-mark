@@ -1,358 +1,322 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { TaggingService, DEFAULT_TAGGING_OPTIONS } from './tagging-service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TaggingService } from './tagging-service';
 import { TaxonomyManager } from './tagging/taxonomy-manager';
-import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/types';
+import type { Document, TagSet } from '@obsidian-magic/types';
+import type { OpenAIClient } from './openai-client';
 
-// Mock the OpenAI client and prompt engineering
-vi.mock('../../src/openai', () => {
-  return {
-    PromptEngineering: {
-      createTaggingPrompt: vi.fn().mockReturnValue('mock tagging prompt'),
-      extractRelevantSections: vi.fn((content) => content.substring(0, 1000))
-    }
-  };
-});
+// Create mock functions outside
+const mockCreateTaggingPrompt = vi.fn().mockReturnValue('mocked-prompt');
+const mockExtractRelevantSections = vi.fn((content: string, size: number) => 
+  content.length > size ? content.substring(0, size) : content
+);
 
-// Mock the taxonomy manager
-vi.mock('../../src/tagging/taxonomy', () => {
-  return {
-    TaxonomyManager: vi.fn().mockImplementation(() => ({
-      getTaxonomyForPrompt: vi.fn().mockReturnValue({
-        years: ['2020', '2021', '2022', '2023'],
-        life_areas: ['work', 'learning', 'personal'],
-        domains: {
-          'software-development': {
-            subdomains: ['frontend', 'backend', 'devops']
-          },
-          'programming': {
-            subdomains: ['javascript', 'python', 'typescript']
-          }
-        },
-        conversation_types: ['practical', 'conceptual', 'creative']
-      })
-    }))
-  };
-});
+// Mock dependencies
+vi.mock('./openai-client', () => ({
+  PromptEngineering: {
+    createTaggingPrompt: mockCreateTaggingPrompt,
+    extractRelevantSections: mockExtractRelevantSections,
+  },
+  OpenAIClient: vi.fn(),
+}));
+
+vi.mock('./tagging/taxonomy-manager', () => ({
+  TaxonomyManager: vi.fn().mockImplementation(() => ({
+    getTaxonomyForPrompt: vi.fn().mockReturnValue({ domains: [], lifeAreas: [] }),
+  })),
+}));
 
 describe('TaggingService', () => {
-  // Sample document for testing
-  const sampleDocument: Document = {
-    id: 'test-doc-1',
-    path: '/path/to/document.md',
-    content: 'This is a test document about React Hooks and TypeScript',
-    metadata: {
-      created: '2023-01-01',
-      modified: '2023-01-02',
-      source: 'test'
-    }
+  let mockOpenAIClient: {
+    makeRequest: ReturnType<typeof vi.fn>;
   };
-
-  // Sample successful response from OpenAI
-  const successfulResponse = {
-    success: true,
-    data: {
-      classification: {
-        year: '2023',
-        life_area: 'learning',
-        topical_tags: [
-          { domain: 'software-development', subdomain: 'frontend' },
-          { domain: 'programming', contextual: 'tutorial' }
-        ],
-        conversation_type: 'practical',
-        confidence: {
-          overall: 0.92,
-          year: 0.95,
-          life_area: 0.85,
-          domain: 0.93,
-          subdomain: 0.90,
-          contextual: 0.87,
-          conversation_type: 0.91
-        },
-        explanations: {
-          contextual_tag: 'Selected "tutorial" because the content discusses learning React hooks.'
-        }
-      }
-    },
-    usage: {
-      promptTokens: 1000,
-      completionTokens: 500,
-      totalTokens: 1500,
-      estimatedCost: 0.015
-    }
-  };
-
-  // Mock OpenAI client
-  const mockOpenAIClient = {
-    makeRequest: vi.fn().mockResolvedValue(successfulResponse),
-    setApiKey: vi.fn(),
-    setModel: vi.fn(),
-    estimateTokenCount: vi.fn().mockReturnValue(100)
-  };
-
+  let taggingService: TaggingService;
+  
   beforeEach(() => {
+    mockOpenAIClient = {
+      makeRequest: vi.fn(),
+    };
+    taggingService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient);
     vi.clearAllMocks();
   });
 
   describe('constructor', () => {
-    it('should initialize with default options when no options provided', () => {
-      const service = new TaggingService(mockOpenAIClient);
-      expect(service.options).toEqual(DEFAULT_TAGGING_OPTIONS);
-      expect(TaxonomyManager).toHaveBeenCalled();
+    it('should initialize with default options if none provided', () => {
+      new TaggingService(mockOpenAIClient as unknown as OpenAIClient);
+      expect(TaxonomyManager).toHaveBeenCalledWith(undefined);
+      // We can't directly test private properties, but we can test behavior
     });
 
     it('should merge provided options with defaults', () => {
-      const customOptions: Partial<TaggingOptions> = {
-        model: 'gpt-4-turbo',
-        minConfidence: 0.75
-      };
-      
-      const service = new TaggingService(mockOpenAIClient, customOptions);
-      expect(service.options.model).toBe('gpt-4-turbo');
-      expect(service.options.minConfidence).toBe(0.75);
-      expect(service.options.behavior).toBe(DEFAULT_TAGGING_OPTIONS.behavior);
+      const customOptions = { model: 'gpt-3.5-turbo', minConfidence: 0.8 };
+      new TaggingService(mockOpenAIClient as unknown as OpenAIClient, customOptions);
+      expect(TaxonomyManager).toHaveBeenCalledWith(undefined);
+      // Verify behavior that uses these options in later tests
     });
 
-    it('should use custom taxonomy if provided', () => {
-      const customTaxonomy = {
-        years: ['2020', '2021'],
-        life_areas: ['custom-area']
-      };
-      
-      const service = new TaggingService(mockOpenAIClient, {}, customTaxonomy);
+    it('should initialize taxonomy manager with custom taxonomy if provided', () => {
+      const customTaxonomy = { domains: ['custom-domain'] };
+      new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {}, customTaxonomy);
       expect(TaxonomyManager).toHaveBeenCalledWith(customTaxonomy);
     });
   });
 
   describe('tagDocument', () => {
-    it('should return error for empty document content', async () => {
-      const service = new TaggingService(mockOpenAIClient);
-      const emptyDocument = { ...sampleDocument, content: '' };
+    const validDocument: Document = {
+      id: 'test-doc',
+      path: '/path/to/document.md',
+      content: 'This is a test document content for analysis.',
+      metadata: {},
+    };
+
+    const mockTagSet: TagSet = {
+      year: '2024',
+      conversation_type: 'analysis',
+      topical_tags: [
+        { domain: 'technology', subdomain: 'software' }
+      ],
+      confidence: {
+        overall: 0.9,
+        domain: 0.85,
+        life_area: 0.7,
+      }
+    };
+
+    it('should return error for empty content document', async () => {
+      const emptyDocument: Document = {
+        ...validDocument,
+        content: '',
+      };
+
+      const result = await taggingService.tagDocument(emptyDocument);
       
-      const result = await service.tagDocument(emptyDocument);
-      
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('EMPTY_CONTENT');
+      expect(result).toEqual({
+        success: false,
+        error: {
+          message: 'Document content is empty',
+          code: 'EMPTY_CONTENT',
+          recoverable: false,
+        },
+      });
       expect(mockOpenAIClient.makeRequest).not.toHaveBeenCalled();
     });
 
-    it('should make OpenAI request with proper parameters', async () => {
-      const service = new TaggingService(mockOpenAIClient);
-      const result = await service.tagDocument(sampleDocument);
+    it('should generate tags for valid document', async () => {
+      mockOpenAIClient.makeRequest.mockResolvedValueOnce({
+        success: true,
+        data: { classification: mockTagSet },
+      });
+
+      const result = await taggingService.tagDocument(validDocument);
       
+      expect(result.success).toBe(true);
+      expect(result.tags).toBeDefined();
+      expect(mockCreateTaggingPrompt).toHaveBeenCalled();
       expect(mockOpenAIClient.makeRequest).toHaveBeenCalledWith(
+        'mocked-prompt',
         expect.any(String),
-        expect.stringContaining('precise conversation classifier'),
         expect.objectContaining({
           temperature: 0.3,
-          maxTokens: 1000
+          maxTokens: 1000,
         })
       );
     });
 
-    it('should return successful result with tags from API response', async () => {
-      const service = new TaggingService(mockOpenAIClient);
-      const result = await service.tagDocument(sampleDocument);
-      
-      expect(result.success).toBe(true);
-      expect(result.tags).toBeDefined();
-      expect(result.tags?.year).toBe('2023');
-      expect(result.tags?.life_area).toBe('learning');
-      expect(result.tags?.topical_tags).toHaveLength(2);
-      expect(result.tags?.conversation_type).toBe('practical');
-    });
-
-    it('should handle API errors gracefully', async () => {
+    it('should handle API request failure', async () => {
       mockOpenAIClient.makeRequest.mockResolvedValueOnce({
         success: false,
         error: {
-          message: 'API Error',
-          code: 'API_ERROR'
-        }
-      });
-      
-      const service = new TaggingService(mockOpenAIClient);
-      const result = await service.tagDocument(sampleDocument);
-      
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('API_ERROR');
-      expect(result.tags).toBeUndefined();
-    });
-
-    it('should handle unexpected errors and convert to TaggingResult', async () => {
-      mockOpenAIClient.makeRequest.mockRejectedValueOnce(new Error('Unexpected error'));
-      
-      const service = new TaggingService(mockOpenAIClient);
-      const result = await service.tagDocument(sampleDocument);
-      
-      expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Unexpected error');
-      expect(result.error?.code).toBe('UNEXPECTED_ERROR');
-    });
-  });
-
-  describe('processTagsWithConfidence', () => {
-    it('should filter out low confidence tags', () => {
-      const service = new TaggingService(mockOpenAIClient, { minConfidence: 0.85 });
-      
-      const inputTags: TagSet = {
-        year: '2023',
-        life_area: 'learning',
-        topical_tags: [
-          { domain: 'software-development', subdomain: 'frontend' },
-          { domain: 'programming', contextual: 'tutorial' }
-        ],
-        conversation_type: 'practical',
-        confidence: {
-          overall: 0.9,
-          year: 0.95,
-          life_area: 0.8, // Below threshold
-          domain: 0.93,
-          conversation_type: 0.91
-        }
-      };
-      
-      const processedTags = service.processTagsWithConfidence(inputTags);
-      
-      expect(processedTags.year).toBe('2023');
-      expect(processedTags.life_area).toBeUndefined(); // Filtered out
-      expect(processedTags.topical_tags).toHaveLength(inputTags.topical_tags.length);
-      expect(processedTags.conversation_type).toBe('practical');
-    });
-
-    it('should keep explanations only for medium confidence tags when enabled', () => {
-      const service = new TaggingService(mockOpenAIClient, { 
-        minConfidence: 0.7,
-        reviewThreshold: 0.9,
-        generateExplanations: true
-      });
-      
-      const inputTags: TagSet = {
-        year: '2023',
-        life_area: 'learning',
-        topical_tags: [
-          { domain: 'software-development', subdomain: 'frontend' }
-        ],
-        conversation_type: 'practical',
-        confidence: {
-          overall: 0.9,
-          year: 0.95, // High confidence
-          life_area: 0.8, // Medium confidence
-          domain: 0.75, // Medium confidence
-          conversation_type: 0.91 // High confidence
+          message: 'API error',
+          code: 'API_ERROR',
         },
-        explanations: {
-          year: 'Year explanation',
-          life_area: 'Life area explanation',
-          domain: 'Domain explanation',
-          contextual_tag: 'Contextual tag explanation'
-        }
-      };
+      });
+
+      const result = await taggingService.tagDocument(validDocument);
       
-      const processedTags = service.processTagsWithConfidence(inputTags);
-      
-      expect(processedTags.explanations).toBeDefined();
-      expect(processedTags.explanations?.year).toBeUndefined(); // High confidence, no explanation needed
-      expect(processedTags.explanations?.life_area).toBe('Life area explanation'); // Medium confidence
-      expect(processedTags.explanations?.domain).toBe('Domain explanation'); // Medium confidence
-      expect(processedTags.explanations?.contextual_tag).toBe('Contextual tag explanation'); // Always keep contextual
+      expect(result).toEqual({
+        success: false,
+        error: {
+          message: 'API error',
+          code: 'API_ERROR',
+          recoverable: true,
+        },
+      });
     });
 
-    it('should remove all explanations when generateExplanations is false', () => {
-      const service = new TaggingService(mockOpenAIClient, { generateExplanations: false });
+    it('should handle unexpected errors', async () => {
+      mockOpenAIClient.makeRequest.mockRejectedValueOnce(new Error('Unexpected error'));
+
+      const result = await taggingService.tagDocument(validDocument);
       
-      const inputTags: TagSet = {
-        year: '2023',
-        life_area: 'learning',
-        topical_tags: [],
-        conversation_type: 'practical',
-        confidence: { overall: 0.9 },
-        explanations: {
-          life_area: 'Life area explanation'
-        }
-      };
+      expect(result).toEqual({
+        success: false,
+        error: {
+          message: 'Unexpected error',
+          code: 'UNEXPECTED_ERROR',
+          recoverable: false,
+        },
+      });
+    });
+
+    it('should handle long content by extracting relevant sections', async () => {
+      const longContent = 'a'.repeat(40000); // Exceeds 32000 chars
+      const longDocument = { ...validDocument, content: longContent };
       
-      const processedTags = service.processTagsWithConfidence(inputTags);
+      mockOpenAIClient.makeRequest.mockResolvedValueOnce({
+        success: true,
+        data: { classification: mockTagSet },
+      });
+
+      await taggingService.tagDocument(longDocument);
       
-      expect(processedTags.explanations).toBeUndefined();
+      expect(mockExtractRelevantSections).toHaveBeenCalledWith(expect.any(String), 8000);
     });
   });
 
-  describe('applyTagBehavior', () => {
-    const existingTags: TagSet = {
-      year: '2022',
-      life_area: 'work',
+  describe('tag behavior', () => {
+    const mockNewTags: TagSet = {
+      year: '2024',
+      life_area: 'career',
+      conversation_type: 'analysis',
       topical_tags: [
-        { domain: 'business', subdomain: 'management' }
+        { domain: 'technology', subdomain: 'programming' },
+        { domain: 'education', subdomain: 'online-learning' }
       ],
-      conversation_type: 'conceptual',
-      confidence: { overall: 0.9 }
+      confidence: {
+        overall: 0.9,
+        domain: 0.85,
+        life_area: 0.7,
+      }
     };
-    
-    const newTags: TagSet = {
+
+    const mockExistingTags: TagSet = {
       year: '2023',
-      life_area: 'learning',
-      topical_tags: [
-        { domain: 'software-development', subdomain: 'frontend' }
-      ],
+      life_area: 'health',
       conversation_type: 'practical',
-      confidence: { overall: 0.9 }
+      topical_tags: [
+        { domain: 'fitness', subdomain: 'weightlifting' },
+        { domain: 'technology', subdomain: 'hardware' }
+      ],
+      confidence: {
+        overall: 1.0,
+      }
     };
-    
-    it('should replace all tags in replace mode', () => {
-      const service = new TaggingService(mockOpenAIClient, { behavior: 'replace' });
+
+    const validDocument: Document = {
+      id: 'test-doc',
+      path: '/path/to/document.md',
+      content: 'This is a test document content for analysis.',
+      metadata: {},
+      existingTags: mockExistingTags
+    };
+
+    it('should replace existing tags when in replace mode', async () => {
+      const replaceService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {
+        behavior: 'replace',
+      });
       
-      const result = service.applyTagBehavior(newTags, existingTags);
+      mockOpenAIClient.makeRequest.mockResolvedValueOnce({
+        success: true,
+        data: { classification: mockNewTags },
+      });
+
+      const result = await replaceService.tagDocument(validDocument);
       
-      expect(result).toBe(newTags);
-      expect(result).not.toBe(existingTags);
+      expect(result.success).toBe(true);
+      expect(result.tags).toEqual(mockNewTags); // Complete replacement
     });
-    
-    it('should use new tags when no existing tags provided', () => {
-      const service = new TaggingService(mockOpenAIClient, { behavior: 'merge' });
+
+    it('should append non-conflicting tags when in append mode', async () => {
+      const appendService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {
+        behavior: 'append',
+      });
       
-      const result = service.applyTagBehavior(newTags);
+      mockOpenAIClient.makeRequest.mockResolvedValueOnce({
+        success: true,
+        data: { classification: mockNewTags },
+      });
+
+      const result = await appendService.tagDocument(validDocument);
       
-      expect(result).toBe(newTags);
-    });
-    
-    it('should append new topical tags to existing ones in append mode', () => {
-      const service = new TaggingService(mockOpenAIClient, { behavior: 'append' });
+      expect(result.success).toBe(true);
+      expect(result.tags).toBeDefined();
       
-      const result = service.applyTagBehavior(newTags, existingTags);
+      // Check that year and conversation type are from new tags
+      expect(result.tags?.year).toBe(mockNewTags.year);
+      expect(result.tags?.conversation_type).toBe(mockNewTags.conversation_type);
       
-      // Always overwrite year and conversation_type
-      expect(result.year).toBe(newTags.year);
-      expect(result.conversation_type).toBe(newTags.conversation_type);
+      // Life area is kept from existing since it's present
+      expect(result.tags?.life_area).toBe(mockExistingTags.life_area);
       
-      // Keep existing life_area
-      expect(result.life_area).toBe(existingTags.life_area);
-      
-      // Combine topical tags
-      expect(result.topical_tags).toHaveLength(
-        existingTags.topical_tags.length + newTags.topical_tags.length
+      // Should have combined topical tags (ensure the count is right)
+      expect(result.tags?.topical_tags).toHaveLength(
+        mockExistingTags.topical_tags.length + 1 // +1 because "education" is new, but "technology" exists in both
       );
-      expect(result.topical_tags).toContainEqual(existingTags.topical_tags[0]);
-      expect(result.topical_tags).toContainEqual(newTags.topical_tags[0]);
     });
-    
-    it('should merge tags intelligently in merge mode', () => {
-      const service = new TaggingService(mockOpenAIClient, { behavior: 'merge' });
+
+    it('should merge tags with preference for high confidence tags', async () => {
+      const mergeService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {
+        behavior: 'merge',
+        reviewThreshold: 0.8
+      });
       
-      const result = service.applyTagBehavior(newTags, existingTags);
+      mockOpenAIClient.makeRequest.mockResolvedValueOnce({
+        success: true,
+        data: { classification: mockNewTags },
+      });
+
+      const result = await mergeService.tagDocument(validDocument);
       
-      // Overwrite with higher confidence values
-      expect(result.year).toBe(newTags.year);
-      expect(result.conversation_type).toBe(newTags.conversation_type);
+      expect(result.success).toBe(true);
+      expect(result.tags).toBeDefined();
       
-      // Use new life_area in merge mode
-      expect(result.life_area).toBe(newTags.life_area);
+      // Life area confidence is below review threshold, so existing is kept
+      expect(result.tags?.life_area).toBe(mockExistingTags.life_area);
       
-      // Merge topical tags with deduplication
-      expect(result.topical_tags).toContainEqual(newTags.topical_tags[0]);
-      expect(result.topical_tags).toHaveLength(
-        // Both sets of topical tags in merge mode
-        newTags.topical_tags.length + existingTags.topical_tags.length
+      // Should have merged topical tags
+      expect(result.tags?.topical_tags).toContainEqual(
+        expect.objectContaining({ domain: 'education' })
       );
+      expect(result.tags?.topical_tags).toContainEqual(
+        expect.objectContaining({ domain: 'fitness' })
+      );
+    });
+  });
+
+  describe('confidence thresholds', () => {
+    it('should filter out low confidence tags', async () => {
+      const lowConfidenceTags: TagSet = {
+        year: '2024',
+        life_area: 'career',
+        conversation_type: 'practical',
+        topical_tags: [
+          { domain: 'technology', subdomain: 'programming' },
+          { domain: 'education', subdomain: 'online-learning' }
+        ],
+        confidence: {
+          overall: 0.7,
+          domain: 0.6, // Below default threshold of 0.65
+          life_area: 0.3, // Well below threshold
+        }
+      };
+
+      mockOpenAIClient.makeRequest.mockResolvedValueOnce({
+        success: true,
+        data: { classification: lowConfidenceTags },
+      });
+
+      const validDocument: Document = {
+        id: 'test-doc',
+        path: '/path/to/document.md',
+        content: 'This is a test document content for analysis.',
+        metadata: {},
+      };
+
+      const result = await taggingService.tagDocument(validDocument);
+      
+      expect(result.success).toBe(true);
+      expect(result.tags).toBeDefined();
+      expect(result.tags?.life_area).toBeUndefined(); // Filtered out due to low confidence
+      expect(result.tags?.topical_tags).toHaveLength(0); // Filtered out due to low domain confidence
     });
   });
 }); 

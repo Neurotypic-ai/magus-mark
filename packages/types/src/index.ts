@@ -5,17 +5,9 @@
 // Export all model types with specific imports to avoid conflicts
 export * from './models/tags';
 export * from './models/api';
-export * from './models/plugin';
-export * from './models/vscode';
 export * from './models/taxonomy';
 export * from './models/markdown-frontmatter';
 export * from './models/config';
-
-// Explicitly export CLI types to avoid name conflicts
-import * as cliTypes from './models/cli';
-export { cliTypes };
-// Renamed export for backward compatibility
-export type { CLIConfig as ConfigCLI } from './models/cli';
 
 // Re-export constants
 export {
@@ -49,9 +41,7 @@ export interface PaginationParams {
 
 // Common types
 export type * from './models/config';
-export type * from './models/plugin';
 export type * from './models/tags';
-export type * from './models/vscode';
 
 // Utility types
 

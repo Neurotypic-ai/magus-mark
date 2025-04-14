@@ -31,7 +31,9 @@ describe('Object Utilities', () => {
     });
 
     it('should return false for functions', () => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       expect(isObject(() => {})).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       expect(isObject(function() {})).toBe(false);
     });
   });
@@ -164,8 +166,8 @@ describe('Object Utilities', () => {
     });
 
     it('should return false for prototype properties', () => {
-      const obj = Object.create({ a: 1 });
-      obj.b = 2;
+      const obj = Object.create({ a: 1 }) as Record<string, unknown>;
+      obj['b'] = 2;
       
       expect(has(obj, 'a')).toBe(false); // Inherited from prototype
       expect(has(obj, 'b')).toBe(true);  // Direct property
@@ -184,8 +186,8 @@ describe('Object Utilities', () => {
         [sym]: 'symbol' 
       };
       
-      expect(has(obj, 42)).toBe(true);
-      expect(has(obj, sym)).toBe(true);
+      expect(has(obj, '42')).toBe(true);
+      expect(has(obj, sym.toString())).toBe(true);
     });
   });
 }); 

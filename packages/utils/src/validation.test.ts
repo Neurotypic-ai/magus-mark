@@ -17,13 +17,13 @@ import {
   isValidLifeArea,
   isValidConversationType
 } from './validation';
+
 import type { 
   DomainTag, 
   TagSet, 
   YearTag, 
   LifeAreaTag, 
   ConversationTypeTag, 
-  SubdomainTag 
 } from '@obsidian-magic/types';
 
 describe('Validation Utilities', () => {

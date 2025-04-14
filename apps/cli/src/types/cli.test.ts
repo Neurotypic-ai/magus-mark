@@ -9,7 +9,7 @@ import type {
   LogFunction,
   ExecutionResult,
   JobDefinition
-} from '..';
+} from './cli';
 
 describe('CLI Models', () => {
   describe('CommandContext', () => {
