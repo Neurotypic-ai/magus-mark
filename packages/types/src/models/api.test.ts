@@ -6,7 +6,6 @@ import type {
   TaggingOptions,
   Document,
   RateLimitInfo,
-  APIError,
   APIUsageStats,
   APIRequestTracking,
   APIConfig,
@@ -178,29 +177,6 @@ describe('API Models', () => {
       expect(rateLimitInfo.remainingRequests).toBe(75);
       expect(rateLimitInfo.resetTime).toBe(resetTime);
     });
-    
-    it('validates API error', () => {
-      const resetTime = new Date();
-      
-      const error: APIError = {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Rate limit exceeded',
-        recoverable: true,
-        rateLimitInfo: {
-          totalRequests: 100,
-          remainingRequests: 0,
-          resetTime
-        }
-      };
-      
-      expect(error.code).toBe('RATE_LIMIT_EXCEEDED');
-      expect(error.message).toBe('Rate limit exceeded');
-      expect(error.recoverable).toBe(true);
-      expect(error.rateLimitInfo).toBeDefined();
-      if (error.rateLimitInfo) {
-        expect(error.rateLimitInfo.remainingRequests).toBe(0);
-      }
-    });
   });
   
   describe('API Usage and Tracking', () => {
@@ -248,29 +224,6 @@ describe('API Models', () => {
       if (tracking.usage) {
         expect(tracking.usage.totalTokens).toBe(1250);
       }
-    });
-    
-    it('validates API request tracking with error', () => {
-      const tracking: APIRequestTracking = {
-        requestId: 'req-error',
-        model: 'gpt-4o',
-        startTime: new Date(),
-        status: 'error',
-        error: {
-          code: 'MODEL_OVERLOADED',
-          message: 'Model is currently overloaded',
-          recoverable: true
-        }
-      };
-      
-      expect(tracking.requestId).toBe('req-error');
-      expect(tracking.status).toBe('error');
-      expect(tracking.error).toBeDefined();
-      if (tracking.error) {
-        expect(tracking.error.code).toBe('MODEL_OVERLOADED');
-        expect(tracking.error.recoverable).toBe(true);
-      }
-      expect(tracking.usage).toBeUndefined();
     });
   });
   

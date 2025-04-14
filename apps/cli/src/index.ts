@@ -36,8 +36,8 @@ type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => {
 dotenvConfig();
 
 // Set log level from environment variable or config
-const logLevel = process.env.LOG_LEVEL || config.get('logLevel') || 'info';
-const outputFormat = process.env.OUTPUT_FORMAT || config.get('outputFormat') || 'pretty';
+const logLevel = process.env['LOG_LEVEL'] ?? config.get('logLevel') ?? 'info';
+const outputFormat = process.env['OUTPUT_FORMAT'] ?? config.get('outputFormat') ?? 'pretty';
 
 // Configure logger
 logger.configure({
@@ -153,7 +153,7 @@ async function main() {
 }
 
 // Run the application
-main().catch((err) => {
+main().catch((err: unknown) => {
   // This should never happen as main() already catches errors
   console.error('Critical error:', err);
   process.exit(1);

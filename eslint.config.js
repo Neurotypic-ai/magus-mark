@@ -169,7 +169,7 @@ const markdownConfig = {
 // Test configuration
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config} */
 const testConfig = {
-  files: ['**/__tests__/**/*.test.{js,jsx,ts,tsx}', '**/tests/**/*.test.{js,jsx,ts,tsx}'],
+  files: ['**/*.test.{js,jsx,ts,tsx}'],
   languageOptions: {
     globals: {
       ...globals.jest,
@@ -182,24 +182,6 @@ const testConfig = {
   rules: {
     ...testingLibraryPlugin.configs['flat/react'].rules,
     '@typescript-eslint/unbound-method': 'off',
-  },
-};
-
-// E2E configuration
-/** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config} */
-const e2eConfig = {
-  files: ['**/tests/e2e/**/*.test.{js,jsx,ts,tsx}'],
-  languageOptions: {
-    globals: {
-      ...globals.jest,
-    },
-  },
-  plugins: {
-    'testing-library': testingLibraryPlugin,
-  },
-  settings: {},
-  rules: {
-    'testing-library/prefer-screen-queries': 'off',
   },
 };
 
@@ -238,7 +220,6 @@ const configs = [
   markdownTsConfig,
   markdownConfig,
   testConfig,
-  e2eConfig,
   nodeConfig,
   ignoresConfig,
 ];

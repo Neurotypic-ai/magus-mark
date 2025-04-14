@@ -59,16 +59,6 @@ export interface RateLimitInfo {
 }
 
 /**
- * API response error
- */
-export interface APIError {
-  code: string;
-  message: string;
-  recoverable: boolean;
-  rateLimitInfo?: RateLimitInfo;
-}
-
-/**
  * API usage statistics
  */
 export interface APIUsageStats {
@@ -89,7 +79,7 @@ export interface APIRequestTracking {
   endTime?: Date;
   status: 'pending' | 'success' | 'error';
   usage?: APIUsageStats;
-  error?: APIError;
+  error?: Error;
 }
 
 /**

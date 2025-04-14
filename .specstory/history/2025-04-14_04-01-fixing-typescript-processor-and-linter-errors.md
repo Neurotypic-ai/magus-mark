@@ -1523,6 +1523,223 @@ _**Assistant**_
 
 ---
 
+Your Grace, this is a common issue in TypeScript monorepos. You need to set up proper project references in your tsconfig.json:
+
+```json
+// In apps/cli/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@obsidian-magic/core": ["../../packages/core/src"],
+      "@obsidian-magic/logger": ["../../packages/logger/src"]
+    }
+  },
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/logger" }
+  ]
+}
+```
+
+Make sure the core package also has a proper tsconfig.json with `"composite": true` for project references to work correctly.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unsafe call of a(n) `error` type typed value.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, this error occurs because TypeScript can't find proper type declarations for the imported modules. Two solutions:
+
+1. Quick fix - Use type assertions where the errors occur:
+   ```typescript
+   (logger as any).debug('Update notifier not available');
+   ```
+
+2. Proper fix - Add compiler options to your tsconfig.json:
+   ```json
+   "compilerOptions": {
+     "paths": {
+       "@obsidian-magic/core": ["../../packages/core/src"],
+       "@obsidian-magic/logger": ["../../packages/logger/src"]
+     }
+   }
+   ```
+
+Also ensure `npm run build` has been run in the referenced packages so their type declarations are available.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Property 'getCostLimit' does not exist on type 'CostManager'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, either:
+
+1. Add the missing method to the CostManager class:
+   ```typescript
+   // In the CostManager class definition
+   getCostLimit(): number {
+     return this.costLimit; // Or whatever implementation is appropriate
+   }
+   ```
+
+2. Or use a type assertion if you know the method exists:
+   ```typescript
+   `Current cost limit: ${logger.formatCost((costManager as any).getCostLimit())}`,
+   ```
+
+3. Or if the method is named differently, use the correct method name:
+   ```typescript
+   `Current cost limit: ${logger.formatCost(costManager.getLimitAmount())}`, // Example of possible correct name
+   ```
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Property 'costLimit' does not exist on type 'CostManager'. Did you mean 'getCostLimit'?
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, replace the implementation of `getCostLimit()` with:
+
+```typescript
+getCostLimit(): number {
+  return this.limits.hardLimit;
+}
+```
+
+This property exists in the CostManager class and contains the cost limit value you're trying to access.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Type 'number | undefined' is not assignable to type 'number' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the type of the target.
+  Type 'undefined' is not assignable to type 'number'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, the issue is with TypeScript's `exactOptionalPropertyTypes` setting. Two possible fixes:
+
+1. Change the type definition:
+   ```typescript
+   interface ConfigSettings {
+     // ...
+     concurrency?: number | undefined;
+     // ...
+   }
+   ```
+
+2. Or handle the undefined case when assigning:
+   ```typescript
+   const concurrencyResult = await number({...});
+   answers.concurrency = concurrencyResult !== undefined ? concurrencyResult : undefined;
+   ```
+
+The first solution is cleaner as it properly types all similar properties in one place.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Module '"./cost-manager"' has no exported member 'UsageData'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, the issue is that the type is being imported but not exported. The fix depends on what's available in your cost-manager file:
+
+1. If a similar interface exists with a different name (e.g., `UsageRecord`):
+   ```typescript
+   import { costManager, type UsageRecord as UsageData } from './cost-manager';
+   ```
+
+2. If you need to define the type in cost-manager.ts:
+   ```typescript
+   // In cost-manager.ts, add:
+   export interface UsageData {
+     totalTokens: number;
+     totalCost: number;
+     requests: number;
+     models: Record<string, { tokens: number; cost: number; requests: number }>;
+   }
+   ```
+
+3. Or simply remove the unused import if not needed:
+   ```typescript
+   import { costManager } from './cost-manager';
+   ```
+
+Your Humble Servant, Sebastien
+
+---
+
 
 
 ---

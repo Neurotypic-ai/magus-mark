@@ -298,6 +298,10 @@ class CostManager {
   public resetPause(): void {
     this.paused = false;
   }
+
+  getCostLimit(): number {
+    return this.limits.hardLimit;
+  }
 }
 
 // Export singleton instance

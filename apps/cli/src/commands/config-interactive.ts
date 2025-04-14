@@ -12,20 +12,20 @@ import type { ModelPricing } from '@obsidian-magic/core/src/openai-models';
 import type { AIModel } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';
 
+import type { LogLevel } from '@obsidian-magic/logger';
 import type { Config } from '../types/config';
 
 // Configuration types
-type LogLevel = 'error' | 'warn' | 'info' | 'debug';
-type TagMode = 'append' | 'replace' | 'merge' | 'suggest';
+export type TagMode = 'append' | 'replace' | 'merge' | 'suggest';
 interface ConfigSettings {
-  apiKey?: string;
+  apiKey?: string | undefined;
   defaultModel: AIModel;
   tagMode: TagMode;
-  concurrency?: number;
+  concurrency?: number | undefined;
   logLevel: LogLevel;
   vaultPath?: string;
   enableAnalytics?: boolean;
-  costLimit?: number;
+  costLimit?: number | undefined;
   outputDir?: string;
   profiles?: Record<string, Partial<ConfigSettings>>;
   [key: string]: unknown;
@@ -123,7 +123,7 @@ export const configInteractiveCommand: CommandModule = {
         },
       });
 
-      answers.apiKey = apiKeyResponse === '[keep current]' ? currentApiKey : apiKeyResponse;
+      answers.apiKey = (apiKeyResponse === '[keep current]' ? currentApiKey : apiKeyResponse) ?? undefined;
 
       // Get model choices based on API key
       const modelChoices = await getModelChoices(answers.apiKey);
@@ -135,7 +135,7 @@ export const configInteractiveCommand: CommandModule = {
         default: config.get('defaultModel') ?? '',
       });
 
-      const currentTagMode = config.get('tagMode') as TagMode | undefined;
+      const currentTagMode = config.get('tagMode');
       answers.tagMode = await select<TagMode>({
         message: 'Default tag handling mode:',
         choices: [
@@ -159,7 +159,7 @@ export const configInteractiveCommand: CommandModule = {
           },
         });
 
-        const currentLogLevel = config.get('logLevel') as LogLevel | undefined;
+        const currentLogLevel = config.get('logLevel');
         answers.logLevel = await select<LogLevel>({
           message: 'Log level:',
           choices: [
