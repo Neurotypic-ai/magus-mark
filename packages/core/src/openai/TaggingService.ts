@@ -1,13 +1,13 @@
 /**
  * Tagging module for analyzing and categorizing conversations
  */
+import { TaxonomyManager } from '../tagging/TaxonomyManager';
 import { PromptEngineering } from './OpenAIClient';
-import { TaxonomyManager } from './tagging/TaxonomyManager';
 
+import type { Document, TaggingOptions, TaggingResult } from '../models/api';
+import type { TagSet } from '../models/tags';
+import type { Taxonomy } from '../models/taxonomy';
 import type { OpenAIClient } from './OpenAIClient';
-import type { Document, TaggingOptions, TaggingResult } from './models/api';
-import type { TagSet } from './models/tags';
-import type { Taxonomy } from './models/taxonomy';
 
 /**
  * Default tagging options

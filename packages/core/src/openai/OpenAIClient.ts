@@ -4,11 +4,11 @@
 import OpenAI from 'openai';
 import { encoding_for_model } from 'tiktoken';
 
-import { APIError } from './errors/APIError';
-import { ErrorCodes } from './errors/ErrorCodes';
-import { normalizeError } from './errors/utils';
+import { APIError } from '../errors/APIError';
+import { ErrorCodes } from '../errors/ErrorCodes';
+import { normalizeError } from '../errors/utils';
 
-import type { AIModel } from './models/api';
+import type { AIModel } from '../models/api';
 
 /**
  * OpenAI API Client configuration

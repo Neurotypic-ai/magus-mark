@@ -26,14 +26,14 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.mjs",
+      "require": "./dist/src/index.js"
     },
-    "./src/*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.mjs",
-      "require": "./dist/*.js"
+    "./*": {
+      "types": "./dist/src/*.d.ts",
+      "import": "./dist/src/*.mjs",
+      "require": "./dist/src/*.js"
     }
   }
 }

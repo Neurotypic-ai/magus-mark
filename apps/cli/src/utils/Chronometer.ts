@@ -5,7 +5,8 @@ import fs from 'fs-extra';
 import { AppError } from '@obsidian-magic/core/errors/AppError';
 import { Result } from '@obsidian-magic/core/errors/Result';
 
-import { OpenAIClient, TaggingService } from '../mocks/core';
+import { OpenAIClient } from '../../../../packages/core/dist/src/openai/OpenAIClient';
+import { TaggingService } from '../../../../packages/core/dist/src/openai/TaggingService';
 
 import type { AIModel } from '@obsidian-magic/core';
 

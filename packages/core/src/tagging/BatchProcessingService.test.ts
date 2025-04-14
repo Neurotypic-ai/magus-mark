@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BatchProcessingService } from './BatchProcessingService';
 
-import type { TaggingService } from '../TaggingService';
 import type { Document, TaggingResult } from '../models/api';
 import type { TagSet } from '../models/tags';
+import type { TaggingService } from '../openai/TaggingService';
 import type { BatchProcessingOptions } from './BatchProcessingService';
 
 // Mock TaggingService with a properly typed mock function

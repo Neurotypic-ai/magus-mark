@@ -6,20 +6,20 @@
  */
 
 // Explicit imports with full paths to avoid barrel files
-import { OpenAIClient } from './OpenAIClient';
-import { TaggingService } from './TaggingService';
 import { DocumentProcessor } from './markdown/DocumentProcessor';
+import { OpenAIClient } from './openai/OpenAIClient';
+import { TaggingService } from './openai/TaggingService';
 import { BatchProcessingService } from './tagging/BatchProcessingService';
 import { TaxonomyManager } from './tagging/TaxonomyManager';
 
 import type { AIModel } from './models/api';
 
 // Export OpenAI integration with explicit paths
-export { OpenAIClient, type ModelPricing, type PricingConfig } from './OpenAIClient';
+export { OpenAIClient, type ModelPricing, type PricingConfig } from './openai/OpenAIClient';
 
 // Export tagging core with explicit paths
-export { TaggingService } from './TaggingService';
-export { ModelManager } from './ModelManager';
+export { TaggingService } from './openai/TaggingService';
+export { ModelManager } from './openai/ModelManager';
 
 // Export configuration with explicit paths
 export {

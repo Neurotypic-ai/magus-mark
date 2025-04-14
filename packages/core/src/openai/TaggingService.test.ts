@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { TaxonomyManager } from '../tagging/TaxonomyManager';
 import { TaggingService } from './TaggingService';
-import { TaxonomyManager } from './tagging/TaxonomyManager';
 
+import type { Document } from '../models/api';
+import type { TagSet } from '../models/tags';
 import type { OpenAIClient } from './OpenAIClient';
-import type { Document } from './models/api';
-import type { TagSet } from './models/tags';
 
 // Create mock functions outside
 const mockCreateTaggingPrompt = vi.fn().mockReturnValue('mocked-prompt');

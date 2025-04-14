@@ -2020,6 +2020,180 @@ Your Grace, you make an excellent point - we should adapt the interface to match
 
 ---
 
+Read file: apps/obsidian-plugin/src/main.ts
+
+---
+
+Looking at the actual implementation in `main.ts`, I see that Obsidian's menu API uses method chaining with `setTitle()`, `setIcon()`, and `onClick()`. Let's update the test to match Obsidian's actual interface:
+
+---
+
+```diff
+  import { TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
+  
+- import type { App, Plugin, PluginManifest, PluginSettingTab, Setting, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
+- 
+- // Define our own MenuItem interface for testing
+- interface MenuItem {
+-   setTitle: ReturnType<typeof vi.fn>;
+-   setIcon: ReturnType<typeof vi.fn>;
+-   onClick: ReturnType<typeof vi.fn>;
+- }
++ import type { App, MenuItem, Plugin, PluginManifest, PluginSettingTab, Setting, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
+  
+  // Mock Obsidian API
+        // Create mock menu and file
+        const mockMenu = {
+-         addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => void) => {
+-           const mockItem: MenuItem = {
++         addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => any) => {
++           const mockItem = {
+              setTitle: vi.fn().mockReturnThis(),
+              setIcon: vi.fn().mockReturnThis(),
+              onClick: vi.fn().mockReturnThis(),
+-           };
++           } as unknown as MenuItem;
+            cb(mockItem);
+            return mockItem;
+```
+
+---
+
+I see we're still getting some linter errors. The key issue is that Obsidian's `MenuItem` interface has more methods than we're mocking. Let's update the mock to include all required methods:
+
+---
+
+```diff
+              setIcon: vi.fn().mockReturnThis(),
+              onClick: vi.fn().mockReturnThis(),
+-           } as unknown as MenuItem;
++             setChecked: vi.fn().mockReturnThis(),
++             setDisabled: vi.fn().mockReturnThis(),
++             setIsLabel: vi.fn().mockReturnThis(),
++             setSection: vi.fn().mockReturnThis()
++           } as MenuItem;
+            cb(mockItem);
+            return mockItem;
+```
+
+---
+
+Your Grace, I see we need to update all instances of the mock MenuItem in the file, not just one. Let me fix that:
+
+---
+
+```diff
+  
+        // Create mock menu and file
+-       const mockMenu = {
+-         addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => any) => {
+-           const mockItem = {
++       const createMockMenuItem = () => ({
+          setTitle: vi.fn().mockReturnThis(),
+          setIcon: vi.fn().mockReturnThis(),
+          setDisabled: vi.fn().mockReturnThis(),
+          setIsLabel: vi.fn().mockReturnThis(),
+-             setSection: vi.fn().mockReturnThis(),
+-           } as MenuItem;
++         setSection: vi.fn().mockReturnThis()
++       }) as MenuItem;
++ 
++       const mockMenu = {
++         addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => void) => {
++           const mockItem = createMockMenuItem();
+            cb(mockItem);
+            return mockItem;
+  
+        // Create mock menu, editor, and view
++       const createMockMenuItem = () => ({
++         setTitle: vi.fn().mockReturnThis(),
++         setIcon: vi.fn().mockReturnThis(),
++         onClick: vi.fn().mockReturnThis(),
++         setChecked: vi.fn().mockReturnThis(),
++         setDisabled: vi.fn().mockReturnThis(),
++         setIsLabel: vi.fn().mockReturnThis(),
++         setSection: vi.fn().mockReturnThis()
++       }) as MenuItem;
++ 
+        const mockMenu = {
+          addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => void) => {
+-           const mockItem: MenuItem = {
+-             setTitle: vi.fn().mockReturnThis(),
+-             setIcon: vi.fn().mockReturnThis(),
+-             onClick: vi.fn().mockReturnThis(),
+-           };
++           const mockItem = createMockMenuItem();
+            cb(mockItem);
+            return mockItem;
+```
+
+---
+
+Your Grace, we've resolved the MenuItem interface errors, but there are still some linter errors related to event handling and argument counts. These are separate issues from the original MenuItem problem and would require additional changes to fix. Would you like me to address those as well?
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unnecessary conditional, comparison is always false, since `"quit" === "file-menu"` is false.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace, this error occurs because TypeScript doesn't recognize 'file-menu' as a valid event type. Let's fix the type for the event comparison:
+
+---
+
+```diff
+        // Get the file-menu callback
+        const callbacks = vi.mocked(plugin.app.workspace.on).mock.calls;
+-       const fileMenuEvent = callbacks.find(([event]) => event === 'file-menu');
++       const fileMenuEvent = callbacks.find(([event]) => event === ('file-menu' as string));
+        expect(fileMenuEvent).toBeDefined();
+  
+        // Get the editor-menu callback
+        const callbacks = vi.mocked(plugin.app.workspace.on).mock.calls;
+-       const editorMenuEvent = callbacks.find(([event]) => event === 'editor-menu');
++       const editorMenuEvent = callbacks.find(([event]) => event === ('editor-menu' as string));
+        expect(editorMenuEvent).toBeDefined();
+  
+```
+
+---
+
+This resolves the event type comparison errors. The remaining linter errors are related to function argument counts and would need to be addressed separately if you'd like.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Expected 1 arguments, but got 3.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace, looking at the error, we need to wrap the callback arguments in an object since Obsidian's event system expects a single object parameter. Let me fix that:
+
+---
+
+Cancelled
+
+---
+
 
 
 ---

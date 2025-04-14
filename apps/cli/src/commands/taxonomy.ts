@@ -3,7 +3,6 @@ import chalk from 'chalk';
 import { initializeCore } from '@obsidian-magic/core';
 import { Logger } from '@obsidian-magic/core/Logger';
 
-import type { Taxonomy } from '@obsidian-magic/core';
 import type { CommandModule } from 'yargs';
 
 // Initialize logger
@@ -17,9 +16,9 @@ export const taxonomyCommand: CommandModule = {
       .command({
         command: 'list',
         describe: 'List all taxonomies',
-        handler: async () => {
+        handler: () => {
           try {
-            const coreServices = await initializeCore({});
+            const coreServices = initializeCore({});
             const { taxonomyManager } = coreServices;
             const taxonomy = taxonomyManager.getTaxonomy();
 
@@ -69,9 +68,9 @@ export const taxonomyCommand: CommandModule = {
               describe: 'Domain description',
             });
         },
-        handler: async (argv) => {
+        handler: (argv) => {
           try {
-            const coreServices = await initializeCore({});
+            const coreServices = initializeCore({});
             const { taxonomyManager } = coreServices;
             const { domain } = argv as { domain: string };
 
@@ -104,9 +103,9 @@ export const taxonomyCommand: CommandModule = {
               demandOption: true,
             });
         },
-        handler: async (argv) => {
+        handler: (argv) => {
           try {
-            const coreServices = await initializeCore({});
+            const coreServices = initializeCore({});
             const { taxonomyManager } = coreServices;
             const { domain, subdomain } = argv as { domain: string; subdomain: string };
 
@@ -138,9 +137,9 @@ export const taxonomyCommand: CommandModule = {
             demandOption: true,
           });
         },
-        handler: async (argv) => {
+        handler: (argv) => {
           try {
-            const coreServices = await initializeCore({});
+            const coreServices = initializeCore({});
             const { taxonomyManager } = coreServices;
             const { tag } = argv as { tag: string };
 
@@ -153,5 +152,7 @@ export const taxonomyCommand: CommandModule = {
         },
       });
   },
-  handler: () => {}, // Default handler for the taxonomy command
+  handler: () => {
+    console.log('Taxonomy command');
+  }, // Default handler for the taxonomy command
 };

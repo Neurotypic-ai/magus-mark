@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelManager } from './ModelManager';
 import { OpenAIClient } from './OpenAIClient';
 
+import type { AIModel } from '../models/api';
 import type { ModelValidationResult } from './ModelManager';
 import type { ModelPricing } from './OpenAIClient';
-import type { AIModel } from './models/api';
 
 // Create a mock for model pricing since MODEL_COST_MAP is not directly exported
 const MODEL_PRICING: Record<string, { inputPrice: number; outputPrice: number }> = {

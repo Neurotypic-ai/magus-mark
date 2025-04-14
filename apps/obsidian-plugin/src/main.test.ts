@@ -11,6 +11,8 @@ import { TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
 
 import type {
   App,
+  Editor,
+  Menu,
   MenuItem,
   Plugin,
   PluginManifest,
@@ -18,6 +20,7 @@ import type {
   Setting,
   TFile,
   TFolder,
+  View,
   WorkspaceLeaf,
 } from 'obsidian';
 
@@ -426,7 +429,10 @@ describe('ObsidianMagicPlugin', () => {
       expect(fileMenuEvent).toBeDefined();
 
       if (!fileMenuEvent) return;
-      const [, fileMenuCallback] = fileMenuEvent;
+      const [, fileMenuCallback] = fileMenuEvent as unknown as [
+        string,
+        (params: { menu: Partial<Menu>; file: TFile | TFolder }) => void,
+      ];
 
       // Create mock menu and file
       const createMockMenuItem = () =>
@@ -450,7 +456,7 @@ describe('ObsidianMagicPlugin', () => {
 
       // Test with markdown file
       const mockFile = { extension: 'md' } as TFile;
-      fileMenuCallback(mockMenu, mockFile);
+      fileMenuCallback({ menu: mockMenu, file: mockFile });
 
       // Check that menu item is added
       expect(mockMenu.addItem).toHaveBeenCalled();
@@ -463,7 +469,7 @@ describe('ObsidianMagicPlugin', () => {
       // Test with folder
       const mockFolder = { isFolder: () => true } as unknown as TFolder;
       vi.clearAllMocks();
-      fileMenuCallback(mockMenu, mockFolder);
+      fileMenuCallback({ menu: mockMenu, file: mockFolder });
 
       // Check that menu item is added
       expect(mockMenu.addItem).toHaveBeenCalled();
@@ -482,7 +488,10 @@ describe('ObsidianMagicPlugin', () => {
       expect(editorMenuEvent).toBeDefined();
 
       if (!editorMenuEvent) return;
-      const [, editorMenuCallback] = editorMenuEvent;
+      const [, editorMenuCallback] = editorMenuEvent as unknown as [
+        string,
+        (params: { menu: Partial<Menu>; editor: Partial<Editor>; view: Partial<View> }) => void,
+      ];
 
       // Create mock menu, editor, and view
       const createMockMenuItem = () =>
@@ -511,7 +520,7 @@ describe('ObsidianMagicPlugin', () => {
         } as TFile,
       };
 
-      editorMenuCallback(mockMenu, mockEditor, mockView);
+      editorMenuCallback({ menu: mockMenu, editor: mockEditor, view: mockView });
 
       // Check that menu item is added
       expect(mockMenu.addItem).toHaveBeenCalled();
