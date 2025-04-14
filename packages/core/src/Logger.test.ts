@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { logger } from './Logger';
+import { Logger } from './Logger';
 
 describe('logger', () => {
+  const logger = Logger.getInstance();
+
   beforeEach(() => {
     // Spy on console methods
     vi.spyOn(console, 'log').mockImplementation(vi.fn());

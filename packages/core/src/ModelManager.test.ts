@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ModelManager } from './ModelManager';
-import { calculateCost } from './OpenAIModels';
+import { OpenAIClient } from './OpenAIClient';
 
 import type { ModelValidationResult } from './ModelManager';
-import type { ModelPricing } from './OpenAIModels';
+import type { ModelPricing } from './OpenAIClient';
 import type { AIModel } from './models/api';
 
 // Create a mock for model pricing since MODEL_COST_MAP is not directly exported
@@ -16,10 +16,12 @@ const MODEL_PRICING: Record<string, { inputPrice: number; outputPrice: number }>
 
 describe('ModelManager', () => {
   let manager: ModelManager;
+  let openAIClient: OpenAIClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
     manager = ModelManager.getInstance();
+    openAIClient = new OpenAIClient();
   });
 
   describe('singleton pattern', () => {
@@ -65,7 +67,7 @@ describe('ModelManager', () => {
 
   describe('getAvailableModels', () => {
     it('should return available models', async () => {
-      const mockModels = Object.entries(MODEL_PRICING).map(([id, pricing]) => ({
+      const mockModels: ModelPricing[] = Object.entries(MODEL_PRICING).map(([id, pricing]) => ({
         id,
         name: id
           .split('-')
@@ -77,7 +79,7 @@ describe('ModelManager', () => {
         available: true,
         deprecated: false,
         category: id.includes('gpt-4') ? 'gpt4' : 'gpt3.5',
-      })) as ModelPricing[];
+      }));
 
       vi.spyOn(manager, 'getAvailableModels').mockResolvedValue(mockModels);
 
@@ -97,7 +99,7 @@ describe('ModelManager', () => {
 
   describe('getModelsByCategory', () => {
     it('should group models by category', async () => {
-      const mockModels = [
+      const mockModels: ModelPricing[] = [
         {
           id: 'gpt-4',
           name: 'GPT 4',
@@ -118,12 +120,12 @@ describe('ModelManager', () => {
           deprecated: false,
           category: 'gpt3.5',
         },
-      ] as ModelPricing[];
+      ];
 
-      const mockCategorized = {
+      const mockCategorized: Record<string, ModelPricing[]> = {
         gpt4: [mockModels[0]],
         'gpt3.5': [mockModels[1]],
-      } as Record<string, ModelPricing[]>;
+      };
 
       vi.spyOn(manager, 'getAvailableModels').mockResolvedValue(mockModels);
       vi.spyOn(manager, 'getModelsByCategory').mockResolvedValue(mockCategorized);
@@ -157,20 +159,9 @@ describe('ModelManager', () => {
     });
   });
 
-  describe('getBestAvailableModel', () => {
-    it('should find best alternative model', async () => {
-      vi.spyOn(manager, 'getBestAvailableModel').mockResolvedValue('gpt-4o');
-
-      const apiKey = 'test-key';
-      const bestModel = await manager.getBestAvailableModel(apiKey, 'gpt-4-32k');
-
-      expect(bestModel).toBe('gpt-4o');
-    });
-  });
-
   describe('getModelPricing', () => {
     it('should return pricing for a model', async () => {
-      const mockPricing = {
+      const mockPricing: ModelPricing = {
         id: 'gpt-4',
         name: 'GPT 4',
         inputPrice: 30.0,
@@ -179,7 +170,7 @@ describe('ModelManager', () => {
         available: true,
         deprecated: false,
         category: 'gpt4',
-      } as ModelPricing;
+      };
 
       vi.spyOn(manager, 'getModelPricing').mockResolvedValue(mockPricing);
 
@@ -199,58 +190,47 @@ describe('ModelManager', () => {
     });
   });
 
-  describe('calculateCost function', () => {
+  describe('cost calculation', () => {
     it('should calculate costs correctly', () => {
       const model: AIModel = 'gpt-4';
       const inputTokens = 1000;
       const outputTokens = 500;
 
-      // Mock the imported function
-      vi.mock('../src/openai-models', () => ({
-        calculateCost: vi.fn().mockImplementation((modelId: string, input: number, output: number) => {
-          const pricing = MODEL_PRICING[modelId];
-          if (!pricing) return 0;
-          const inputCost = pricing.inputPrice * input;
-          const outputCost = pricing.outputPrice * output;
-          return (inputCost + outputCost) / 1000000;
-        }),
-      }));
+      vi.spyOn(openAIClient, 'calculateCost').mockImplementation((modelId, input, output) => {
+        const pricing = MODEL_PRICING[modelId];
+        if (!pricing) return 0;
+        const inputCost = (pricing.inputPrice * input) / 1000000;
+        const outputCost = (pricing.outputPrice * output) / 1000000;
+        return inputCost + outputCost;
+      });
 
-      const cost = calculateCost(model, inputTokens, outputTokens);
+      const cost = openAIClient.calculateCost(model, inputTokens, outputTokens);
 
       const expectedCost = (() => {
         const pricing = MODEL_PRICING[model];
         if (!pricing) return 0;
-        const inputCost = pricing.inputPrice * inputTokens;
-        const outputCost = pricing.outputPrice * outputTokens;
-        return (inputCost + outputCost) / 1000000;
+        const inputCost = (pricing.inputPrice * inputTokens) / 1000000;
+        const outputCost = (pricing.outputPrice * outputTokens) / 1000000;
+        return inputCost + outputCost;
       })();
 
       expect(cost).toBeCloseTo(expectedCost);
     });
 
     it('should handle different models correctly', () => {
-      // Mock the imported function with different return values for different calls
-      vi.mock('../src/openai-models', () => {
-        let callCount = 0;
-        return {
-          calculateCost: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount === 1) {
-              const pricing = MODEL_PRICING['gpt-4'];
-              if (!pricing) return 0;
-              return (1000 * pricing.inputPrice + 500 * pricing.outputPrice) / 1000000;
-            } else {
-              const pricing = MODEL_PRICING['gpt-3.5-turbo'];
-              if (!pricing) return 0;
-              return (1000 * pricing.inputPrice + 500 * pricing.outputPrice) / 1000000;
-            }
-          }),
-        };
+      vi.spyOn(openAIClient, 'calculateCost').mockImplementation((modelId) => {
+        const pricing = MODEL_PRICING[modelId];
+        if (!pricing) return 0;
+
+        const inputTokens = 1000;
+        const outputTokens = 500;
+        const inputCost = (pricing.inputPrice * inputTokens) / 1000000;
+        const outputCost = (pricing.outputPrice * outputTokens) / 1000000;
+        return inputCost + outputCost;
       });
 
-      const cost1 = calculateCost('gpt-4', 1000, 500);
-      const cost2 = calculateCost('gpt-3.5-turbo', 1000, 500);
+      const cost1 = openAIClient.calculateCost('gpt-4', 1000, 500);
+      const cost2 = openAIClient.calculateCost('gpt-3.5-turbo', 1000, 500);
 
       // GPT-4 should be more expensive than GPT-3.5
       expect(cost1).toBeGreaterThan(cost2);

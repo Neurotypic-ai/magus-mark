@@ -1,4 +1,4 @@
-import { MarkdownError } from '../errors/errors';
+import { MarkdownError } from '../errors/MarkdownError';
 
 import type { TagSet } from '../models/tags';
 

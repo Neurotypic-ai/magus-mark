@@ -1,4 +1,4 @@
-import type { ErrorOptions } from './types';
+import type { ErrorOptions } from './ErrorOptions';
 
 /**
  * Base application error class

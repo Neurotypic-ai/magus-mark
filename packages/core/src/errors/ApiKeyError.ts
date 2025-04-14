@@ -1,6 +1,6 @@
 import { AppError } from './AppError';
 
-import type { ErrorOptions } from './types';
+import type { ErrorOptions } from './ErrorOptions';
 
 /**
  * API key error

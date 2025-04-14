@@ -810,8 +810,6 @@ khallmark in obsidian-magic …                                                 
 
 
 
-
-
 ---
 
 ```bash
@@ -1915,11 +1913,230 @@ Based on the codebase analysis, I can see that the issue is with type safety in 
 
 ---
 
-Cancelled
+```diff
+        await fs.ensureDir(this.resolvePath(dirPath));
+        return Result.ok(undefined);
+-     } catch (err) {
++     } catch (err: unknown) {
+        return Result.fail(
+          new FileSystemError(`Failed to create directory at ${dirPath}`, {
+        const content = await fs.readFile(this.resolvePath(filePath), 'utf-8');
+        return Result.ok(content);
+-     } catch (err) {
++     } catch (err: unknown) {
+        return Result.fail(
+          new FileSystemError(`Failed to read file at ${filePath}`, {
+        const parsedData = JSON.parse(fileResult.getValue()) as T;
+        return Result.ok(schema.parse(parsedData));
+-     } catch (err) {
++     } catch (err: unknown) {
+        if (err instanceof z.ZodError) {
+          return Result.fail(
+        await fs.writeFile(resolvedPath, content, 'utf-8');
+        return Result.ok(undefined);
+-     } catch (err) {
++     } catch (err: unknown) {
+        return Result.fail(
+          new FileSystemError(`Failed to write file at ${filePath}`, {
+        await scan(resolvedDirPath);
+        return Result.ok(results);
+-     } catch (err) {
++     } catch (err: unknown) {
+        return Result.fail(
+          new FileSystemError(`Failed to find files in ${dirPath}`, {
+  
+        return Result.ok(`${size.toFixed(1)} ${String(units[unitIndex])}`);
+-     } catch (err) {
++     } catch (err: unknown) {
+        return Result.fail(
+          new FileSystemError(`Failed to get file size for ${filePath}`, {
+        await fs.unlink(this.resolvePath(filePath));
+        return Result.ok(true);
+-     } catch (err) {
++     } catch (err: unknown) {
+        const nodeError = err as NodeJS.ErrnoException;
+        if (nodeError.code === 'ENOENT') {
+```
 
 ---
 
+Let me fix the remaining linter errors by properly importing the error types:
 
+---
+
+```diff
+  import { z } from 'zod';
+  
+- import { FileSystemError, Result, toAppError } from '../errors/errors';
++ import { FileSystemError } from '../errors/FileSystemError';
++ import { Result } from '../errors/Result';
++ import { toAppError } from '../errors/utils';
+  
+  /**
+```
+
+---
+
+The fix involves:
+
+1. Explicitly typing catch blocks with `unknown` to ensure proper error handling
+2. Using direct imports from error module files instead of the barrel file
+3. Properly typing the error parameters in catch blocks
+
+This should resolve the "unsafe construction of error type" issue by ensuring proper type safety in error handling. The changes follow the TypeScript best practices from the project rules, particularly:
+
+- Using explicit error typing
+- Avoiding unsafe type assertions
+- Following the Result pattern for error handling
+- Using proper error hierarchies
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+setup my package exports so that files in the src directory end up at the import root
+
+---
+
+_**Assistant**_
+
+Your Grace, I'll help you modify the package exports to make source files available at the import root. Based on the project structure and TypeScript best practices, we should update the exports configuration in `package.json`.
+
+---
+
+```diff
+    },
+    "exports": {
+-     "esm": {
+-       "require": "./dist/index.js",
+-       "import": "./dist/index.mjs"
+-     },
+-     "require": "./dist/index.js",
+-     "import": "./dist/index.mjs"
++     ".": {
++       "types": "./dist/index.d.ts",
++       "import": "./dist/index.mjs",
++       "require": "./dist/index.js"
++     },
++     "./errors/*": {
++       "types": "./dist/errors/*.d.ts",
++       "import": "./dist/errors/*.mjs",
++       "require": "./dist/errors/*.js"
++     },
++     "./utils/*": {
++       "types": "./dist/utils/*.d.ts",
++       "import": "./dist/utils/*.mjs",
++       "require": "./dist/utils/*.js"
++     },
++     "./models/*": {
++       "types": "./dist/models/*.d.ts",
++       "import": "./dist/models/*.mjs",
++       "require": "./dist/models/*.js"
++     },
++     "./markdown/*": {
++       "types": "./dist/markdown/*.d.ts",
++       "import": "./dist/markdown/*.mjs",
++       "require": "./dist/markdown/*.js"
++     },
++     "./tagging/*": {
++       "types": "./dist/tagging/*.d.ts",
++       "import": "./dist/tagging/*.mjs",
++       "require": "./dist/tagging/*.js"
++     }
+    }
+  }
+```
+
+---
+
+This update:
+
+1. Configures subpath exports for each major directory in your source code
+2. Provides proper type definitions for TypeScript
+3. Supports both ESM (`import`) and CommonJS (`require`) module systems
+4. Maintains the directory structure in imports
+
+Now you can import files like this:
+```typescript
+// Main exports
+import { initializeCore } from '@obsidian-magic/core';
+
+// Direct imports from subdirectories
+import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
+import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
+import { TaggingService } from '@obsidian-magic/core/tagging/TaggingService';
+```
+
+This follows the TypeScript best practices from your project rules by:
+1. Avoiding barrel files
+2. Providing explicit imports
+3. Maintaining proper type safety
+4. Supporting both module systems
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Can't we just do this with a wildcard tho?
+
+---
+
+_**Assistant**_
+
+Your Grace, yes, we can absolutely simplify this with a wildcard pattern! Let me make that change:
+
+---
+
+```diff
+        "require": "./dist/index.js"
+      },
+-     "./errors/*": {
+-       "types": "./dist/errors/*.d.ts",
+-       "import": "./dist/errors/*.mjs",
+-       "require": "./dist/errors/*.js"
+-     },
+-     "./utils/*": {
+-       "types": "./dist/utils/*.d.ts",
+-       "import": "./dist/utils/*.mjs",
+-       "require": "./dist/utils/*.js"
+-     },
+-     "./models/*": {
+-       "types": "./dist/models/*.d.ts",
+-       "import": "./dist/models/*.mjs",
+-       "require": "./dist/models/*.js"
+-     },
+-     "./markdown/*": {
+-       "types": "./dist/markdown/*.d.ts",
+-       "import": "./dist/markdown/*.mjs",
+-       "require": "./dist/markdown/*.js"
+-     },
+-     "./tagging/*": {
+-       "types": "./dist/tagging/*.d.ts",
+-       "import": "./dist/tagging/*.mjs",
+-       "require": "./dist/tagging/*.js"
++     "./*": {
++       "types": "./dist/*.d.ts",
++       "import": "./dist/*.mjs",
++       "require": "./dist/*.js"
+      }
+    }
+```
+
+---
+
+Much simpler! Now you can still import files the same way:
+```typescript
+import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
+import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
+```
+
+The wildcard pattern `./*` will match any path under the package, maintaining the directory structure while being much more concise. This is a more elegant solution that achieves the same result.
+
+Your Humble Servant, Sebastien
 
 ---
 
