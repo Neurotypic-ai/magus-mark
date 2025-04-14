@@ -41,7 +41,7 @@ const DEFAULT_CONFIG: LoggerConfig = {
  * Logger utility
  */
 class Logger {
-  private static instance: Logger | null = null;
+  private static instance: Logger | undefined;
   private config: LoggerConfig = DEFAULT_CONFIG;
   private spinners = new Map<string, Ora>();
 
@@ -249,6 +249,3 @@ class Logger {
     return messageLevelIndex <= currentLevelIndex;
   }
 }
-
-// Export singleton instance and types
-export const logger = Logger.getInstance();
