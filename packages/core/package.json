@@ -30,7 +30,7 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./*": {
+    "./src/*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.mjs",
       "require": "./dist/*.js"

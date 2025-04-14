@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ObsidianMagicPlugin from './main';
@@ -5,16 +6,26 @@ import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
 import { FolderTagModal } from './ui/FolderTagModal';
-import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
-import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
+import { TAG_MANAGEMENT_VIEW_TYPE } from './ui/TagManagementView';
+import { TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
 
-import type { App, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
+import type {
+  App,
+  MenuItem,
+  Plugin,
+  PluginManifest,
+  PluginSettingTab,
+  Setting,
+  TFile,
+  TFolder,
+  WorkspaceLeaf,
+} from 'obsidian';
 
 // Mock Obsidian API
 vi.mock('obsidian', () => {
   const mockApp = {
     workspace: {
-      onLayoutReady: vi.fn().mockImplementation((callback) => {
+      onLayoutReady: vi.fn().mockImplementation((callback: () => void) => {
         callback();
         return { unsubscribe: vi.fn() };
       }),
@@ -49,11 +60,15 @@ vi.mock('obsidian', () => {
     metadataCache: {
       on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
     },
-  };
+    keymap: {},
+    scope: {},
+    fileManager: {},
+    lastEvent: null,
+  } as unknown as App;
 
   return {
     App: vi.fn().mockImplementation(() => mockApp),
-    Plugin: vi.fn().mockImplementation(function () {
+    Plugin: vi.fn().mockImplementation(function (this: Plugin) {
       this.addRibbonIcon = vi.fn().mockReturnValue(document.createElement('div'));
       this.addStatusBarItem = vi.fn().mockReturnValue(document.createElement('div'));
       this.addCommand = vi.fn();
@@ -62,43 +77,39 @@ vi.mock('obsidian', () => {
       this.loadData = vi.fn().mockResolvedValue({});
       this.saveData = vi.fn().mockResolvedValue(undefined);
       this.app = mockApp;
-      this.registerEvent = vi.fn().mockImplementation((event) => event);
+      this.registerEvent = vi.fn().mockImplementation((event: string) => event);
     }),
-    PluginSettingTab: vi.fn().mockImplementation(function () {
+    PluginSettingTab: vi.fn().mockImplementation(function (this: PluginSettingTab) {
       this.display = vi.fn();
-      this.containerEl = {
-        empty: vi.fn(),
-        createEl: vi.fn(),
-        addEventListener: vi.fn(),
-      };
+      this.containerEl = document.createElement('div');
     }),
-    Setting: vi.fn().mockImplementation(function () {
+    Setting: vi.fn().mockImplementation(function (this: Setting) {
       return {
         setName: vi.fn().mockReturnThis(),
         setDesc: vi.fn().mockReturnThis(),
-        addText: vi.fn().mockImplementation((cb) => {
+        addText: vi.fn().mockImplementation((cb: (text: Setting) => void) => {
           cb({
             setValue: vi.fn(),
             inputEl: document.createElement('input'),
             onChange: vi.fn().mockReturnThis(),
-          });
+          } as unknown as Setting);
           return this;
         }),
-        addDropdown: vi.fn().mockImplementation((cb) => {
+        addDropdown: vi.fn().mockImplementation((cb: (dropdown: Setting) => void) => {
           cb({
             setValue: vi.fn(),
             onChange: vi.fn().mockReturnThis(),
-          });
+          } as unknown as Setting);
           return this;
         }),
-        addToggle: vi.fn().mockImplementation((cb) => {
+        addToggle: vi.fn().mockImplementation((cb: (toggle: Setting) => void) => {
           cb({
             setValue: vi.fn(),
             onChange: vi.fn().mockReturnThis(),
-          });
+          } as unknown as Setting);
           return this;
         }),
-        then: vi.fn().mockImplementation((cb) => {
+        then: vi.fn().mockImplementation((cb: (setting: Setting) => void) => {
           cb(this);
           return this;
         }),
@@ -141,7 +152,7 @@ vi.mock('../src/services/TaggingService', () => ({
         year: '2023',
       },
     }),
-    processFiles: vi.fn().mockImplementation((files) =>
+    processFiles: vi.fn().mockImplementation((files: TFile[]) =>
       Promise.all(
         files.map(() => ({
           success: true,
@@ -182,10 +193,19 @@ vi.mock('../src/ui/FolderTagModal', () => ({
 
 describe('ObsidianMagicPlugin', () => {
   let plugin: ObsidianMagicPlugin;
+  const mockApp = app as unknown as App;
+  const mockManifest: PluginManifest = {
+    id: 'obsidian-magic',
+    name: 'Obsidian Magic',
+    version: '1.0.0',
+    minAppVersion: '0.15.0',
+    author: 'Test Author',
+    description: 'Test Description',
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    plugin = new ObsidianMagicPlugin();
+    plugin = new ObsidianMagicPlugin(mockApp, mockManifest);
   });
 
   afterEach(() => {
@@ -288,17 +308,20 @@ describe('ObsidianMagicPlugin', () => {
       expect(plugin.app.workspace.getRightLeaf).toHaveBeenCalledWith(false);
 
       // Check that view state is set correctly
-      expect(plugin.app.workspace.getRightLeaf().setViewState).toHaveBeenCalledWith({
-        type: TAG_MANAGEMENT_VIEW_TYPE,
-        active: true,
-      });
+      const leaf = plugin.app.workspace.getRightLeaf(false);
+      if (leaf) {
+        expect(leaf.setViewState).toHaveBeenCalledWith({
+          type: TAG_MANAGEMENT_VIEW_TYPE,
+          active: true,
+        });
+      }
     });
 
     it('should use existing leaf if tag management view is already open', async () => {
       await plugin.onload();
 
       // Mock existing view
-      const mockLeaf = { id: 'existing-leaf' };
+      const mockLeaf = { id: 'existing-leaf' } as unknown as WorkspaceLeaf;
       plugin.app.workspace.getLeavesOfType = vi.fn().mockReturnValue([mockLeaf]);
 
       await plugin.activateTagManagementView();
@@ -322,10 +345,13 @@ describe('ObsidianMagicPlugin', () => {
       expect(plugin.app.workspace.getRightLeaf).toHaveBeenCalledWith(false);
 
       // Check that view state is set correctly
-      expect(plugin.app.workspace.getRightLeaf().setViewState).toHaveBeenCalledWith({
-        type: TAG_VISUALIZATION_VIEW_TYPE,
-        active: true,
-      });
+      const leaf = plugin.app.workspace.getRightLeaf(false);
+      if (leaf) {
+        expect(leaf.setViewState).toHaveBeenCalledWith({
+          type: TAG_VISUALIZATION_VIEW_TYPE,
+          active: true,
+        });
+      }
     });
   });
 
@@ -354,7 +380,10 @@ describe('ObsidianMagicPlugin', () => {
 
       // Check that modal is created and opened
       expect(FolderTagModal).toHaveBeenCalledWith(plugin.app, plugin);
-      expect(FolderTagModal.mock.results[0].value.open).toHaveBeenCalled();
+      const modalInstance = vi.mocked(FolderTagModal).mock.instances[0];
+      if (modalInstance) {
+        expect(modalInstance.open).toHaveBeenCalled();
+      }
     });
 
     it('should tag folder correctly', async () => {
@@ -392,56 +421,84 @@ describe('ObsidianMagicPlugin', () => {
       await plugin.onload();
 
       // Get the file-menu callback
-      const callback = plugin.app.workspace.on.mock.calls.find((call) => call[0] === 'file-menu')[1];
+      const callbacks = vi.mocked(plugin.app.workspace.on).mock.calls;
+      const fileMenuEvent = callbacks.find(([event]) => event === ('file-menu' as string));
+      expect(fileMenuEvent).toBeDefined();
+
+      if (!fileMenuEvent) return;
+      const [, fileMenuCallback] = fileMenuEvent;
 
       // Create mock menu and file
+      const createMockMenuItem = () =>
+        ({
+          setTitle: vi.fn().mockReturnThis(),
+          setIcon: vi.fn().mockReturnThis(),
+          onClick: vi.fn().mockReturnThis(),
+          setChecked: vi.fn().mockReturnThis(),
+          setDisabled: vi.fn().mockReturnThis(),
+          setIsLabel: vi.fn().mockReturnThis(),
+          setSection: vi.fn().mockReturnThis(),
+        }) as MenuItem;
+
       const mockMenu = {
-        addItem: vi.fn().mockImplementation((cb) => {
-          const mockItem = {
-            setTitle: vi.fn().mockReturnThis(),
-            setIcon: vi.fn().mockReturnThis(),
-            onClick: vi.fn().mockReturnThis(),
-          };
+        addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => void) => {
+          const mockItem = createMockMenuItem();
           cb(mockItem);
           return mockItem;
         }),
       };
 
       // Test with markdown file
-      const mockFile = { extension: 'md' };
-      callback(mockMenu, mockFile);
+      const mockFile = { extension: 'md' } as TFile;
+      fileMenuCallback(mockMenu, mockFile);
 
       // Check that menu item is added
       expect(mockMenu.addItem).toHaveBeenCalled();
-      const menuItem = mockMenu.addItem.mock.results[0].value;
-      expect(menuItem.setTitle).toHaveBeenCalledWith('Tag with Obsidian Magic');
-      expect(menuItem.setIcon).toHaveBeenCalledWith('tag');
+      const menuItem = vi.mocked(mockMenu.addItem).mock.results[0]?.value as MenuItem | undefined;
+      if (menuItem) {
+        expect(menuItem.setTitle).toHaveBeenCalledWith('Tag with Obsidian Magic');
+        expect(menuItem.setIcon).toHaveBeenCalledWith('tag');
+      }
 
       // Test with folder
-      const mockFolder = { isFolder: () => true };
+      const mockFolder = { isFolder: () => true } as unknown as TFolder;
       vi.clearAllMocks();
-      callback(mockMenu, mockFolder);
+      fileMenuCallback(mockMenu, mockFolder);
 
       // Check that menu item is added
       expect(mockMenu.addItem).toHaveBeenCalled();
-      const folderMenuItem = mockMenu.addItem.mock.results[0].value;
-      expect(folderMenuItem.setTitle).toHaveBeenCalledWith('Tag folder with Obsidian Magic');
+      const folderMenuItem = vi.mocked(mockMenu.addItem).mock.results[0]?.value as MenuItem | undefined;
+      if (folderMenuItem) {
+        expect(folderMenuItem.setTitle).toHaveBeenCalledWith('Tag folder with Obsidian Magic');
+      }
     });
 
     it('should register editor context menu correctly', async () => {
       await plugin.onload();
 
       // Get the editor-menu callback
-      const callback = plugin.app.workspace.on.mock.calls.find((call) => call[0] === 'editor-menu')[1];
+      const callbacks = vi.mocked(plugin.app.workspace.on).mock.calls;
+      const editorMenuEvent = callbacks.find(([event]) => event === ('editor-menu' as string));
+      expect(editorMenuEvent).toBeDefined();
+
+      if (!editorMenuEvent) return;
+      const [, editorMenuCallback] = editorMenuEvent;
 
       // Create mock menu, editor, and view
+      const createMockMenuItem = () =>
+        ({
+          setTitle: vi.fn().mockReturnThis(),
+          setIcon: vi.fn().mockReturnThis(),
+          onClick: vi.fn().mockReturnThis(),
+          setChecked: vi.fn().mockReturnThis(),
+          setDisabled: vi.fn().mockReturnThis(),
+          setIsLabel: vi.fn().mockReturnThis(),
+          setSection: vi.fn().mockReturnThis(),
+        }) as MenuItem;
+
       const mockMenu = {
-        addItem: vi.fn().mockImplementation((cb) => {
-          const mockItem = {
-            setTitle: vi.fn().mockReturnThis(),
-            setIcon: vi.fn().mockReturnThis(),
-            onClick: vi.fn().mockReturnThis(),
-          };
+        addItem: vi.fn().mockImplementation((cb: (item: MenuItem) => void) => {
+          const mockItem = createMockMenuItem();
           cb(mockItem);
           return mockItem;
         }),
@@ -451,23 +508,26 @@ describe('ObsidianMagicPlugin', () => {
         file: {
           path: 'test/document.md',
           extension: 'md',
-        },
+        } as TFile,
       };
 
-      callback(mockMenu, mockEditor, mockView);
+      editorMenuCallback(mockMenu, mockEditor, mockView);
 
       // Check that menu item is added
       expect(mockMenu.addItem).toHaveBeenCalled();
-      const menuItem = mockMenu.addItem.mock.results[0].value;
-      expect(menuItem.setTitle).toHaveBeenCalledWith('Tag with Obsidian Magic');
-      expect(menuItem.setIcon).toHaveBeenCalledWith('tag');
+      const menuItem = vi.mocked(mockMenu.addItem).mock.results[0]?.value as MenuItem | undefined;
+      if (menuItem) {
+        expect(menuItem.setTitle).toHaveBeenCalledWith('Tag with Obsidian Magic');
+        expect(menuItem.setIcon).toHaveBeenCalledWith('tag');
 
-      // Test onClick handler
-      const onClickHandler = menuItem.onClick.mock.calls[0][0];
-      onClickHandler();
-
-      // Check that tagging service is called
-      expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockView.file);
+        // Test onClick handler
+        const onClickHandler = vi.mocked(menuItem.onClick).mock.calls[0]?.[0];
+        if (typeof onClickHandler === 'function') {
+          onClickHandler();
+          // Check that tagging service is called
+          expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockView.file);
+        }
+      }
     });
   });
 });

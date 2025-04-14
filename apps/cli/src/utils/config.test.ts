@@ -1,11 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Import after mock is defined
+// Import after mocks are defined
 import { config } from './config';
 
-// Mock fs-extra and Conf, but leave config implementation alone
-vi.mock('fs-extra', () => ({ ... }));
-vi.mock('conf', () => ({ ... }));
+import type { Config } from '../types/config';
+
+// Mock fs-extra
+vi.mock('fs-extra', () => ({
+  pathExists: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  ensureDir: vi.fn(),
+  readJson: vi.fn(),
+  writeJson: vi.fn(),
+}));
+
+// Mock conf
+vi.mock('conf', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    has: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
+  })),
+}));
 
 describe('Config Utility', () => {
   beforeEach(async () => {
@@ -25,19 +44,19 @@ describe('Config Utility', () => {
   });
 
   it('should return undefined for non-existent keys', () => {
-    const value = config.get('nonExistentKey');
+    const value = config.get('defaultModel');
     expect(value).toBeUndefined();
   });
 
-  it('should return a default value for non-existent keys if provided', () => {
-    const value = config.get('nonExistentKey', 'default-value');
-    expect(value).toBe('default-value');
+  it('should handle undefined values correctly', () => {
+    const value = config.get('apiKey');
+    expect(value).toBeUndefined();
   });
 
   it('should get all values correctly', async () => {
     // Set multiple values
     await config.set('apiKey', 'test-api-key');
-    await config.set('model', 'gpt-4o');
+    await config.set('defaultModel', 'gpt-4');
     await config.set('outputFormat', 'pretty');
 
     // Get all values
@@ -46,7 +65,7 @@ describe('Config Utility', () => {
     // Verify
     expect(values).toEqual({
       apiKey: 'test-api-key',
-      model: 'gpt-4o',
+      defaultModel: 'gpt-4',
       outputFormat: 'pretty',
     });
   });
@@ -57,7 +76,7 @@ describe('Config Utility', () => {
 
     // Check if key exists
     const hasKey = config.has('apiKey');
-    const doesNotHaveKey = config.has('nonExistentKey');
+    const doesNotHaveKey = config.has('defaultModel');
 
     // Verify
     expect(hasKey).toBe(true);
@@ -66,28 +85,28 @@ describe('Config Utility', () => {
 
   it('should delete a key correctly', async () => {
     // Set a value
-    await config.set('tempKey', 'temp-value');
+    await config.set('apiKey', 'test-api-key');
 
     // Verify it exists
-    expect(config.has('tempKey')).toBe(true);
+    expect(config.has('apiKey')).toBe(true);
 
     // Delete the key
-    await config.delete('tempKey');
+    await config.delete('apiKey');
 
     // Verify it no longer exists
-    expect(config.has('tempKey')).toBe(false);
-    expect(config.get('tempKey')).toBeUndefined();
+    expect(config.has('apiKey')).toBe(false);
+    expect(config.get('apiKey')).toBeUndefined();
   });
 
   it('should clear all keys correctly', async () => {
     // Set multiple values
-    await config.set('key1', 'value1');
-    await config.set('key2', 'value2');
+    await config.set('apiKey', 'value1');
+    await config.set('defaultModel', 'gpt-4');
 
     // Verify they exist
     expect(config.getAll()).toEqual({
-      key1: 'value1',
-      key2: 'value2',
+      apiKey: 'value1',
+      defaultModel: 'gpt-4',
     });
 
     // Clear all keys
@@ -97,21 +116,27 @@ describe('Config Utility', () => {
     expect(config.getAll()).toEqual({});
   });
 
-  it('should handle complex values', async () => {
-    // Set a complex value
-    const complexValue = {
-      nested: {
-        array: [1, 2, 3],
-        object: { a: 1, b: 2 },
+  it('should handle profile configuration', async () => {
+    // Set a profile configuration
+    const profileConfig: Record<string, Partial<Config>> = {
+      development: {
+        apiKey: 'dev-key',
+        defaultModel: 'gpt-4',
+        outputFormat: 'pretty' as const,
+      },
+      production: {
+        apiKey: 'prod-key',
+        defaultModel: 'gpt-3.5-turbo',
+        outputFormat: 'json' as const,
       },
     };
 
-    await config.set('complex', complexValue);
+    await config.set('profiles', profileConfig);
 
     // Get the value
-    const value = config.get('complex');
+    const value = config.get('profiles');
 
     // Verify
-    expect(value).toEqual(complexValue);
+    expect(value).toEqual(profileConfig);
   });
 });

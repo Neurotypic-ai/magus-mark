@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TagSet } from '@obsidian-magic/core';
-
 import type {
   CursorCommand,
   CursorDocument,
@@ -160,7 +158,7 @@ describe('VS Code Extension Types', () => {
 
     // Fix circular references
     rootNode.children[0]!.parent = rootNode;
-    rootNode.children[0].children[0]!.parent = rootNode.children[0];
+    rootNode.children[0]!.children[0]!.parent = rootNode.children[0];
 
     expect(rootNode.id).toBe('root');
     expect(rootNode.type).toBe('tag-category');
