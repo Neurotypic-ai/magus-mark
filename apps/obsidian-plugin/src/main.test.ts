@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import ObsidianMagicPlugin from './main';
-import { TagManagementView, TAG_MANAGEMENT_VIEW_TYPE } from './ui/TagManagementView';
-import { TagVisualizationView, TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
-import { FolderTagModal } from './ui/FolderTagModal';
 import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
+import { FolderTagModal } from './ui/FolderTagModal';
+import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
+import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
+
 import type { App, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 
 // Mock Obsidian API
@@ -20,14 +22,14 @@ vi.mock('obsidian', () => {
       getLeavesOfType: vi.fn().mockReturnValue([]),
       detachLeavesOfType: vi.fn(),
       getRightLeaf: vi.fn().mockReturnValue({
-        setViewState: vi.fn().mockResolvedValue(undefined)
+        setViewState: vi.fn().mockResolvedValue(undefined),
       }),
       revealLeaf: vi.fn(),
       getActiveFile: vi.fn().mockReturnValue({
         path: 'test/document.md',
         basename: 'document',
-        extension: 'md'
-      })
+        extension: 'md',
+      }),
     },
     vault: {
       on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
@@ -35,23 +37,23 @@ vi.mock('obsidian', () => {
         {
           path: 'file1.md',
           basename: 'file1',
-          extension: 'md'
+          extension: 'md',
         },
         {
           path: 'file2.md',
           basename: 'file2',
-          extension: 'md'
-        }
-      ])
+          extension: 'md',
+        },
+      ]),
     },
     metadataCache: {
-      on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
-    }
+      on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
+    },
   };
 
   return {
     App: vi.fn().mockImplementation(() => mockApp),
-    Plugin: vi.fn().mockImplementation(function() {
+    Plugin: vi.fn().mockImplementation(function () {
       this.addRibbonIcon = vi.fn().mockReturnValue(document.createElement('div'));
       this.addStatusBarItem = vi.fn().mockReturnValue(document.createElement('div'));
       this.addCommand = vi.fn();
@@ -62,15 +64,15 @@ vi.mock('obsidian', () => {
       this.app = mockApp;
       this.registerEvent = vi.fn().mockImplementation((event) => event);
     }),
-    PluginSettingTab: vi.fn().mockImplementation(function() {
+    PluginSettingTab: vi.fn().mockImplementation(function () {
       this.display = vi.fn();
       this.containerEl = {
         empty: vi.fn(),
         createEl: vi.fn(),
-        addEventListener: vi.fn()
+        addEventListener: vi.fn(),
       };
     }),
-    Setting: vi.fn().mockImplementation(function() {
+    Setting: vi.fn().mockImplementation(function () {
       return {
         setName: vi.fn().mockReturnThis(),
         setDesc: vi.fn().mockReturnThis(),
@@ -78,33 +80,33 @@ vi.mock('obsidian', () => {
           cb({
             setValue: vi.fn(),
             inputEl: document.createElement('input'),
-            onChange: vi.fn().mockReturnThis()
+            onChange: vi.fn().mockReturnThis(),
           });
           return this;
         }),
         addDropdown: vi.fn().mockImplementation((cb) => {
           cb({
             setValue: vi.fn(),
-            onChange: vi.fn().mockReturnThis()
+            onChange: vi.fn().mockReturnThis(),
           });
           return this;
         }),
         addToggle: vi.fn().mockImplementation((cb) => {
           cb({
             setValue: vi.fn(),
-            onChange: vi.fn().mockReturnThis()
+            onChange: vi.fn().mockReturnThis(),
           });
           return this;
         }),
         then: vi.fn().mockImplementation((cb) => {
           cb(this);
           return this;
-        })
+        }),
       };
     }),
     Notice: vi.fn(),
     TFile: vi.fn(),
-    TFolder: vi.fn()
+    TFolder: vi.fn(),
   };
 });
 
@@ -113,16 +115,16 @@ vi.mock('../src/services/DocumentTagService', () => ({
   DocumentTagService: vi.fn().mockImplementation(() => ({
     processEditorChanges: vi.fn(),
     applyTags: vi.fn().mockResolvedValue(true),
-    extractExistingTags: vi.fn().mockReturnValue({})
-  }))
+    extractExistingTags: vi.fn().mockReturnValue({}),
+  })),
 }));
 
 vi.mock('../src/services/KeyManager', () => ({
   KeyManager: vi.fn().mockImplementation(() => ({
     loadKey: vi.fn().mockResolvedValue('test-api-key'),
     saveKey: vi.fn().mockResolvedValue(undefined),
-    deleteKey: vi.fn().mockResolvedValue(undefined)
-  }))
+    deleteKey: vi.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 vi.mock('../src/services/TaggingService', () => ({
@@ -136,44 +138,46 @@ vi.mock('../src/services/TaggingService', () => ({
         lifeAreas: ['learning'],
         conversationType: 'tutorial',
         contextualTags: ['obsidian-plugin', 'markdown'],
-        year: '2023'
-      }
+        year: '2023',
+      },
     }),
-    processFiles: vi.fn().mockImplementation((files) => 
-      Promise.all(files.map(() => ({
-        success: true,
-        data: {
-          domain: 'software-development',
-          subdomains: ['coding', 'documentation']
-        }
-      })))
+    processFiles: vi.fn().mockImplementation((files) =>
+      Promise.all(
+        files.map(() => ({
+          success: true,
+          data: {
+            domain: 'software-development',
+            subdomains: ['coding', 'documentation'],
+          },
+        }))
+      )
     ),
-    updateModelPreference: vi.fn()
-  }))
+    updateModelPreference: vi.fn(),
+  })),
 }));
 
 vi.mock('../src/ui/TagManagementView', () => ({
   TAG_MANAGEMENT_VIEW_TYPE: 'tag-management-view',
   TagManagementView: vi.fn().mockImplementation(() => ({
     onOpen: vi.fn(),
-    onClose: vi.fn()
-  }))
+    onClose: vi.fn(),
+  })),
 }));
 
 vi.mock('../src/ui/TagVisualizationView', () => ({
   TAG_VISUALIZATION_VIEW_TYPE: 'tag-visualization-view',
   TagVisualizationView: vi.fn().mockImplementation(() => ({
     onOpen: vi.fn(),
-    onClose: vi.fn()
-  }))
+    onClose: vi.fn(),
+  })),
 }));
 
 vi.mock('../src/ui/FolderTagModal', () => ({
   FolderTagModal: vi.fn().mockImplementation(() => ({
     open: vi.fn(),
     onClose: vi.fn(),
-    onSubmit: vi.fn()
-  }))
+    onSubmit: vi.fn(),
+  })),
 }));
 
 describe('ObsidianMagicPlugin', () => {
@@ -198,14 +202,8 @@ describe('ObsidianMagicPlugin', () => {
       expect(DocumentTagService).toHaveBeenCalledWith(plugin);
 
       // Check that views are registered
-      expect(plugin.registerView).toHaveBeenCalledWith(
-        TAG_MANAGEMENT_VIEW_TYPE,
-        expect.any(Function)
-      );
-      expect(plugin.registerView).toHaveBeenCalledWith(
-        TAG_VISUALIZATION_VIEW_TYPE,
-        expect.any(Function)
-      );
+      expect(plugin.registerView).toHaveBeenCalledWith(TAG_MANAGEMENT_VIEW_TYPE, expect.any(Function));
+      expect(plugin.registerView).toHaveBeenCalledWith(TAG_VISUALIZATION_VIEW_TYPE, expect.any(Function));
 
       // Check that commands are added
       expect(plugin.addCommand).toHaveBeenCalledTimes(4);
@@ -223,7 +221,7 @@ describe('ObsidianMagicPlugin', () => {
         apiKey: 'custom-api-key',
         modelPreference: 'gpt-3.5-turbo',
         showRibbonIcon: false,
-        statusBarDisplay: 'never'
+        statusBarDisplay: 'never',
       });
 
       await plugin.onload();
@@ -271,7 +269,7 @@ describe('ObsidianMagicPlugin', () => {
 
       expect(plugin.saveData).toHaveBeenCalledWith(
         expect.objectContaining({
-          apiKey: 'new-api-key'
+          apiKey: 'new-api-key',
         })
       );
     });
@@ -288,11 +286,11 @@ describe('ObsidianMagicPlugin', () => {
 
       // Check that right leaf is used
       expect(plugin.app.workspace.getRightLeaf).toHaveBeenCalledWith(false);
-      
+
       // Check that view state is set correctly
       expect(plugin.app.workspace.getRightLeaf().setViewState).toHaveBeenCalledWith({
         type: TAG_MANAGEMENT_VIEW_TYPE,
-        active: true
+        active: true,
       });
     });
 
@@ -307,7 +305,7 @@ describe('ObsidianMagicPlugin', () => {
 
       // Check that existing leaf is revealed
       expect(plugin.app.workspace.revealLeaf).toHaveBeenCalledWith(mockLeaf);
-      
+
       // Check that new leaf is not created
       expect(plugin.app.workspace.getRightLeaf).not.toHaveBeenCalled();
     });
@@ -322,11 +320,11 @@ describe('ObsidianMagicPlugin', () => {
 
       // Check that right leaf is used
       expect(plugin.app.workspace.getRightLeaf).toHaveBeenCalledWith(false);
-      
+
       // Check that view state is set correctly
       expect(plugin.app.workspace.getRightLeaf().setViewState).toHaveBeenCalledWith({
         type: TAG_VISUALIZATION_VIEW_TYPE,
-        active: true
+        active: true,
       });
     });
   });
@@ -339,7 +337,7 @@ describe('ObsidianMagicPlugin', () => {
       const mockFile = {
         path: 'test/document.md',
         basename: 'document',
-        extension: 'md'
+        extension: 'md',
       } as TFile;
       plugin.app.workspace.getActiveFile = vi.fn().mockReturnValue(mockFile);
 
@@ -366,13 +364,13 @@ describe('ObsidianMagicPlugin', () => {
       const mockFolder = {
         path: 'test',
         name: 'test',
-        isFolder: () => true
+        isFolder: () => true,
       } as unknown as TFolder;
 
       // Mock files in the folder
       const mockFiles = [
         { path: 'test/file1.md', extension: 'md' },
-        { path: 'test/file2.md', extension: 'md' }
+        { path: 'test/file2.md', extension: 'md' },
       ] as TFile[];
       plugin.app.vault.getMarkdownFiles = vi.fn().mockReturnValue(mockFiles);
 
@@ -382,7 +380,7 @@ describe('ObsidianMagicPlugin', () => {
       expect(plugin.taggingService.processFiles).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ path: 'test/file1.md' }),
-          expect.objectContaining({ path: 'test/file2.md' })
+          expect.objectContaining({ path: 'test/file2.md' }),
         ]),
         expect.any(Function)
       );
@@ -394,21 +392,19 @@ describe('ObsidianMagicPlugin', () => {
       await plugin.onload();
 
       // Get the file-menu callback
-      const callback = plugin.app.workspace.on.mock.calls.find(
-        call => call[0] === 'file-menu'
-      )[1];
+      const callback = plugin.app.workspace.on.mock.calls.find((call) => call[0] === 'file-menu')[1];
 
       // Create mock menu and file
       const mockMenu = {
-        addItem: vi.fn().mockImplementation(cb => {
+        addItem: vi.fn().mockImplementation((cb) => {
           const mockItem = {
             setTitle: vi.fn().mockReturnThis(),
             setIcon: vi.fn().mockReturnThis(),
-            onClick: vi.fn().mockReturnThis()
+            onClick: vi.fn().mockReturnThis(),
           };
           cb(mockItem);
           return mockItem;
-        })
+        }),
       };
 
       // Test with markdown file
@@ -436,28 +432,26 @@ describe('ObsidianMagicPlugin', () => {
       await plugin.onload();
 
       // Get the editor-menu callback
-      const callback = plugin.app.workspace.on.mock.calls.find(
-        call => call[0] === 'editor-menu'
-      )[1];
+      const callback = plugin.app.workspace.on.mock.calls.find((call) => call[0] === 'editor-menu')[1];
 
       // Create mock menu, editor, and view
       const mockMenu = {
-        addItem: vi.fn().mockImplementation(cb => {
+        addItem: vi.fn().mockImplementation((cb) => {
           const mockItem = {
             setTitle: vi.fn().mockReturnThis(),
             setIcon: vi.fn().mockReturnThis(),
-            onClick: vi.fn().mockReturnThis()
+            onClick: vi.fn().mockReturnThis(),
           };
           cb(mockItem);
           return mockItem;
-        })
+        }),
       };
       const mockEditor = {};
       const mockView = {
         file: {
           path: 'test/document.md',
-          extension: 'md'
-        }
+          extension: 'md',
+        },
       };
 
       callback(mockMenu, mockEditor, mockView);
@@ -476,4 +470,4 @@ describe('ObsidianMagicPlugin', () => {
       expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockView.file);
     });
   });
-}); 
+});

@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
-import { activate, deactivate } from './extension';
+
 import { MCPServer } from './cursor/mcp-server';
+import { activate, deactivate } from './extension';
 
 // Mock VS Code API
 vi.mock('vscode', () => ({
@@ -57,7 +58,10 @@ vi.mock('vscode', () => ({
     Expanded: 2,
   },
   TreeItem: class {
-    constructor(public label: string, public collapsibleState?: number) {}
+    constructor(
+      public label: string,
+      public collapsibleState?: number
+    ) {}
     tooltip = '';
     description = '';
     contextValue = '';
@@ -65,7 +69,10 @@ vi.mock('vscode', () => ({
     iconPath = undefined;
   },
   ThemeIcon: class {
-    constructor(public id: string, public color?: string) {}
+    constructor(
+      public id: string,
+      public color?: string
+    ) {}
   },
 }));
 
@@ -124,18 +131,12 @@ describe('VS Code Integration', () => {
 
   it('should register tag explorer view', () => {
     activate(context);
-    expect(vscode.window.createTreeView).toHaveBeenCalledWith(
-      'obsidianMagicTagExplorer',
-      expect.any(Object)
-    );
+    expect(vscode.window.createTreeView).toHaveBeenCalledWith('obsidianMagicTagExplorer', expect.any(Object));
   });
 
   it('should register commands', () => {
     activate(context);
-    expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-      'obsidian-magic.tagFile',
-      expect.any(Function)
-    );
+    expect(vscode.commands.registerCommand).toHaveBeenCalledWith('obsidian-magic.tagFile', expect.any(Function));
     expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
       'obsidian-magic.openTagExplorer',
       expect.any(Function)
@@ -148,10 +149,8 @@ describe('VS Code Integration', () => {
     mockedEnv.appName = 'Cursor';
     activate(context);
     // Check if MCPServer was initialized
-    expect(context.subscriptions.some(item => 
-      item instanceof MCPServer
-    )).toBe(true);
+    expect(context.subscriptions.some((item) => item instanceof MCPServer)).toBe(true);
     // Reset environment
     mockedEnv.appName = 'Visual Studio Code';
   });
-}); 
+});

@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
 import {
   extractFrontmatter,
-  removeFrontmatter,
-  parseFrontmatter,
   formatFrontmatter,
-  updateFrontmatter
+  parseFrontmatter,
+  removeFrontmatter,
+  updateFrontmatter,
 } from './markdown';
 
 describe('Markdown Utilities', () => {
@@ -85,7 +86,7 @@ tags: [test, markdown]`;
       expect(result).toEqual({
         title: 'Test Document',
         date: '2023-01-01',
-        tags: ['test', 'markdown']
+        tags: ['test', 'markdown'],
       });
     });
 
@@ -102,7 +103,7 @@ date: 2023-01-01`;
       const result = parseFrontmatter(malformed);
       expect(result).toEqual({
         title: 'Test Document',
-        date: '2023-01-01'
+        date: '2023-01-01',
       });
     });
   });
@@ -112,7 +113,7 @@ date: 2023-01-01`;
       const frontmatterObj = {
         title: 'Test Document',
         date: '2023-01-01',
-        tags: ['test', 'markdown']
+        tags: ['test', 'markdown'],
       };
 
       const result = formatFrontmatter(frontmatterObj);
@@ -126,7 +127,7 @@ date: 2023-01-01`;
     it('should handle empty arrays', () => {
       const frontmatterObj = {
         title: 'Test Document',
-        tags: []
+        tags: [],
       };
 
       const result = formatFrontmatter(frontmatterObj);
@@ -137,7 +138,7 @@ date: 2023-01-01`;
     it('should handle single-item arrays', () => {
       const frontmatterObj = {
         title: 'Test Document',
-        tags: ['test']
+        tags: ['test'],
       };
 
       const result = formatFrontmatter(frontmatterObj);
@@ -148,7 +149,7 @@ date: 2023-01-01`;
     it('should handle nested objects', () => {
       const frontmatterObj = {
         title: 'Test Document',
-        meta: { author: 'John Doe' }
+        meta: { author: 'John Doe' },
       };
 
       const result = formatFrontmatter(frontmatterObj);
@@ -166,7 +167,7 @@ Content here.`;
 
       const frontmatter = {
         title: 'New Title',
-        date: '2023-01-01'
+        date: '2023-01-01',
       };
 
       const result = updateFrontmatter(markdown, frontmatter);
@@ -187,7 +188,7 @@ date: 2022-01-01
 
       const frontmatter = {
         title: 'New Title',
-        tags: ['test']
+        tags: ['test'],
       };
 
       const result = updateFrontmatter(markdown, frontmatter);
@@ -205,7 +206,7 @@ title: Old Title
 # Content with *markdown*`;
 
       const frontmatter = {
-        title: 'New Title'
+        title: 'New Title',
       };
 
       const result = updateFrontmatter(markdown, frontmatter);
@@ -215,11 +216,11 @@ title: Old Title
 
     it('should handle errors gracefully', () => {
       // Create a console.error spy to suppress errors during test
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { 
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
         // Intentionally empty to suppress errors
-        return undefined; 
+        return undefined;
       });
-      
+
       const markdown = `---
 malformed-frontmatter
 ---
@@ -227,15 +228,15 @@ malformed-frontmatter
 # Content`;
 
       const frontmatter = {
-        title: 'New Title'
+        title: 'New Title',
       };
 
       // Should return original content if error occurs
       const result = updateFrontmatter(markdown, frontmatter);
       expect(result).toBe(markdown);
-      
+
       // Restore console.error
       consoleErrorSpy.mockRestore();
     });
   });
-}); 
+});

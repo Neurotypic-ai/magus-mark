@@ -1,11 +1,12 @@
 import path from 'path';
 
-import { fileExists } from '@obsidian-magic/utils';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import { costManager } from '../utils/cost-manager';
 import { logger } from '@obsidian-magic/logger';
+import { fileExists } from '@obsidian-magic/utils';
+
+import { costManager } from '../utils/cost-manager';
 
 import type { CommandModule } from 'yargs';
 

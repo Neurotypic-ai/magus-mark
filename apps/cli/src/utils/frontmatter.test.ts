@@ -1,9 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import {
-  extractFrontmatter,
-  extractTagsFromFrontmatter,
-  updateTagsInFrontmatter
-} from './frontmatter';
+import { describe, expect, it } from 'vitest';
+
+import { extractFrontmatter, extractTagsFromFrontmatter, updateTagsInFrontmatter } from './frontmatter';
 
 describe('Frontmatter Utility', () => {
   describe('extractFrontmatter', () => {
@@ -19,14 +16,14 @@ date: 2023-08-15
 This is the main content of the note.`;
 
       const result = extractFrontmatter(content);
-      
+
       expect(result).toEqual({
         frontmatter: {
           title: 'Test Note',
           tags: ['test', 'markdown'],
-          date: '2023-08-15'
+          date: '2023-08-15',
         },
-        content: '# Content\n\nThis is the main content of the note.'
+        content: '# Content\n\nThis is the main content of the note.',
       });
     });
 
@@ -34,10 +31,10 @@ This is the main content of the note.`;
       const content = '# No Frontmatter\n\nThis content has no frontmatter.';
 
       const result = extractFrontmatter(content);
-      
+
       expect(result).toEqual({
         frontmatter: {},
-        content: '# No Frontmatter\n\nThis content has no frontmatter.'
+        content: '# No Frontmatter\n\nThis content has no frontmatter.',
       });
     });
 
@@ -48,10 +45,10 @@ This is the main content of the note.`;
 Content after empty frontmatter.`;
 
       const result = extractFrontmatter(content);
-      
+
       expect(result).toEqual({
         frontmatter: {},
-        content: 'Content after empty frontmatter.'
+        content: 'Content after empty frontmatter.',
       });
     });
 
@@ -70,7 +67,7 @@ date: 2023-08-15
 Content here`;
 
       const result = extractFrontmatter(content);
-      
+
       expect(result.frontmatter).toHaveProperty('string', 'Simple string');
       expect(result.frontmatter).toHaveProperty('number', 42);
       expect(result.frontmatter).toHaveProperty('boolean', true);
@@ -79,7 +76,7 @@ Content here`;
       expect(result.frontmatter).toHaveProperty('nested');
       expect(result.frontmatter.nested).toEqual({
         key: 'value',
-        another: 'nested value'
+        another: 'nested value',
       });
     });
   });
@@ -88,13 +85,13 @@ Content here`;
     it('should extract tags from frontmatter object', () => {
       const frontmatter = {
         title: 'Test Note',
-        tags: ['javascript', 'typescript', 'react']
+        tags: ['javascript', 'typescript', 'react'],
       };
 
       const tags = extractTagsFromFrontmatter(frontmatter);
-      
+
       expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript', 'react']
+        uncategorized: ['javascript', 'typescript', 'react'],
       });
     });
 
@@ -103,51 +100,51 @@ Content here`;
         title: 'Test Note',
         tags: ['javascript', 'typescript'],
         topics: ['frontend', 'web'],
-        complexity: ['intermediate']
+        complexity: ['intermediate'],
       };
 
       const tags = extractTagsFromFrontmatter(frontmatter);
-      
+
       expect(tags).toEqual({
         uncategorized: ['javascript', 'typescript'],
         topics: ['frontend', 'web'],
-        complexity: ['intermediate']
+        complexity: ['intermediate'],
       });
     });
 
     it('should handle string tags', () => {
       const frontmatter = {
         title: 'Test Note',
-        tags: 'javascript, typescript, react'
+        tags: 'javascript, typescript, react',
       };
 
       const tags = extractTagsFromFrontmatter(frontmatter);
-      
+
       expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript', 'react']
+        uncategorized: ['javascript', 'typescript', 'react'],
       });
     });
 
     it('should handle empty tags', () => {
       const frontmatter = {
-        title: 'Test Note'
+        title: 'Test Note',
       };
 
       const tags = extractTagsFromFrontmatter(frontmatter);
-      
+
       expect(tags).toEqual({});
     });
 
     it('should handle different tag formats', () => {
       const frontmatter = {
         title: 'Test Note',
-        tags: '#javascript #typescript #react'
+        tags: '#javascript #typescript #react',
       };
 
       const tags = extractTagsFromFrontmatter(frontmatter);
-      
+
       expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript', 'react']
+        uncategorized: ['javascript', 'typescript', 'react'],
       });
     });
   });
@@ -157,11 +154,11 @@ Content here`;
       const content = '# No Frontmatter\n\nThis content has no frontmatter.';
       const tags = {
         uncategorized: ['javascript', 'typescript'],
-        topics: ['frontend']
+        topics: ['frontend'],
       };
 
       const result = updateTagsInFrontmatter(content, tags);
-      
+
       expect(result).toContain('---');
       expect(result).toContain('tags: [javascript, typescript]');
       expect(result).toContain('topics: [frontend]');
@@ -178,11 +175,11 @@ tags: [old-tag]
 
 This is the content.`;
       const tags = {
-        uncategorized: ['javascript', 'typescript']
+        uncategorized: ['javascript', 'typescript'],
       };
 
       const result = updateTagsInFrontmatter(content, tags);
-      
+
       expect(result).toContain('title: Test Note');
       expect(result).toContain('tags: [javascript, typescript]');
       expect(result).not.toContain('old-tag');
@@ -196,11 +193,11 @@ tags: [existing-tag]
 
 # Content`;
       const tags = {
-        uncategorized: ['new-tag']
+        uncategorized: ['new-tag'],
       };
 
       const result = updateTagsInFrontmatter(content, tags, 'merge');
-      
+
       expect(result).toContain('tags: [existing-tag, new-tag]');
     });
 
@@ -212,11 +209,11 @@ tags: [existing-tag]
 
 # Content`;
       const tags = {
-        uncategorized: ['new-tag']
+        uncategorized: ['new-tag'],
       };
 
       const result = updateTagsInFrontmatter(content, tags, 'append');
-      
+
       expect(result).toContain('tags: [existing-tag, new-tag]');
     });
 
@@ -228,11 +225,11 @@ tags: [existing-tag]
 
 # Content`;
       const tags = {
-        uncategorized: ['new-tag']
+        uncategorized: ['new-tag'],
       };
 
       const result = updateTagsInFrontmatter(content, tags, 'replace');
-      
+
       expect(result).toContain('tags: [new-tag]');
       expect(result).not.toContain('existing-tag');
     });
@@ -242,14 +239,14 @@ tags: [existing-tag]
       const tags = {
         uncategorized: ['javascript', 'typescript'],
         topics: ['frontend', 'web'],
-        complexity: ['intermediate']
+        complexity: ['intermediate'],
       };
 
       const result = updateTagsInFrontmatter(content, tags);
-      
+
       expect(result).toContain('tags: [javascript, typescript]');
       expect(result).toContain('topics: [frontend, web]');
       expect(result).toContain('complexity: [intermediate]');
     });
   });
-}); 
+});

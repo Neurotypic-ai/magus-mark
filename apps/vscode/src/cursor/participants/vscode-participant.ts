@@ -50,14 +50,18 @@ export class VSCodeParticipant implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     this.registerTools();
-    
+
     // Try to restore cached data from storage
     this.restoreCachedData();
-    
+
     // Cache fresh data and store it
-    void this.cacheSettings().then(() => { this.storeCachedData(); });
-    void this.cacheCommands().then(() => { this.storeCachedData(); });
-    
+    void this.cacheSettings().then(() => {
+      this.storeCachedData();
+    });
+    void this.cacheCommands().then(() => {
+      this.storeCachedData();
+    });
+
     // Register a disposable for the participant
     this.context.subscriptions.push(this);
   }
@@ -70,7 +74,7 @@ export class VSCodeParticipant implements vscode.Disposable {
       // Convert Map to serializable object
       const settingsObj = Object.fromEntries(this.settingsCache.entries());
       const commandsObj = Object.fromEntries(this.commandsCache.entries());
-      
+
       // Store in global state (persists across sessions)
       this.context.globalState.update(STORAGE_KEYS.SETTINGS_CACHE, settingsObj);
       this.context.globalState.update(STORAGE_KEYS.COMMANDS_CACHE, commandsObj);
@@ -87,14 +91,14 @@ export class VSCodeParticipant implements vscode.Disposable {
       // Get stored data
       const storedSettings = this.context.globalState.get<Record<string, SettingMetadata>>(STORAGE_KEYS.SETTINGS_CACHE);
       const storedCommands = this.context.globalState.get<Record<string, ExtendedCommand>>(STORAGE_KEYS.COMMANDS_CACHE);
-      
+
       // Restore settings cache
       if (storedSettings) {
         Object.entries(storedSettings).forEach(([key, value]) => {
           this.settingsCache.set(key, value);
         });
       }
-      
+
       // Restore commands cache
       if (storedCommands) {
         Object.entries(storedCommands).forEach(([key, value]) => {
@@ -164,7 +168,7 @@ export class VSCodeParticipant implements vscode.Disposable {
 
         // Return top matches, removing the matchScore property (used only for sorting)
         return Promise.resolve({
-          settings: results.slice(0, 10).map(item => {
+          settings: results.slice(0, 10).map((item) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { matchScore, ...rest } = item;
             return rest;
@@ -237,7 +241,7 @@ export class VSCodeParticipant implements vscode.Disposable {
 
         // Return results, removing matchScore property (used only for sorting)
         return {
-          commands: results.slice(0, 10).map(item => {
+          commands: results.slice(0, 10).map((item) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { matchScore, ...rest } = item;
             return rest;
@@ -525,7 +529,7 @@ export class VSCodeParticipant implements vscode.Disposable {
   public dispose(): void {
     // Store cached data before disposal
     this.storeCachedData();
-    
+
     // Nothing else to dispose as all disposables are handled by context.subscriptions
   }
 }

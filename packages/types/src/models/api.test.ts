@@ -1,15 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import type {
   AIModel,
+  APIConfig,
   APIKeyStorage,
-  TaggingResult,
-  TaggingOptions,
+  APIRequestTracking,
+  APIUsageStats,
+  BatchTaggingJob,
   Document,
   RateLimitInfo,
-  APIUsageStats,
-  APIRequestTracking,
-  APIConfig,
-  BatchTaggingJob
+  TaggingOptions,
+  TaggingResult,
 } from '..';
 
 describe('API Models', () => {
@@ -19,26 +20,26 @@ describe('API Models', () => {
       const model1: AIModel = 'gpt-4o';
       const model2: AIModel = 'gpt-3.5-turbo';
       const model3: AIModel = 'custom-model';
-      
+
       expect(typeof model1).toBe('string');
       expect(typeof model2).toBe('string');
       expect(typeof model3).toBe('string');
     });
-    
+
     it('validates API storage locations', () => {
       // APIKeyStorage is a union of literal string types
       const storage1: APIKeyStorage = 'local';
       const storage2: APIKeyStorage = 'system';
-      
+
       expect(storage1).toBe('local');
       expect(storage2).toBe('system');
-      
+
       // Type checking - only allowed values should compile
       const validStorageValues: APIKeyStorage[] = ['local', 'system'];
       expect(validStorageValues).toContain(storage1);
     });
   });
-  
+
   describe('Tagging Types', () => {
     it('validates successful tagging result', () => {
       const result: TaggingResult = {
@@ -48,17 +49,17 @@ describe('API Models', () => {
           topical_tags: [
             {
               domain: 'technology',
-              subdomain: 'ai'
-            }
+              subdomain: 'ai',
+            },
           ],
           conversation_type: 'deep-dive',
           confidence: {
             overall: 0.9,
-            domain: 0.95
-          }
-        }
+            domain: 0.95,
+          },
+        },
       };
-      
+
       expect(result.success).toBe(true);
       expect(result.tags).toBeDefined();
       if (result.tags) {
@@ -68,17 +69,17 @@ describe('API Models', () => {
       }
       expect(result.error).toBeUndefined();
     });
-    
+
     it('validates failed tagging result', () => {
       const result: TaggingResult = {
         success: false,
         error: {
           message: 'Failed to process text',
           code: 'PROCESSING_ERROR',
-          recoverable: true
-        }
+          recoverable: true,
+        },
       };
-      
+
       expect(result.success).toBe(false);
       expect(result.tags).toBeUndefined();
       expect(result.error).toBeDefined();
@@ -88,28 +89,28 @@ describe('API Models', () => {
         expect(result.error.recoverable).toBe(true);
       }
     });
-    
+
     it('validates tagging options', () => {
       const options: TaggingOptions = {
         model: 'gpt-4o',
         behavior: 'append',
         minConfidence: 0.6,
         reviewThreshold: 0.8,
-        generateExplanations: true
+        generateExplanations: true,
       };
-      
+
       expect(options.model).toBe('gpt-4o');
       expect(options.behavior).toBe('append');
       expect(options.minConfidence).toBe(0.6);
       expect(options.reviewThreshold).toBe(0.8);
       expect(options.generateExplanations).toBe(true);
-      
+
       // Behavior should only allow certain values
       const validBehaviors: TaggingOptions['behavior'][] = ['append', 'replace', 'merge'];
       expect(validBehaviors).toContain(options.behavior);
     });
   });
-  
+
   describe('Document Type', () => {
     it('validates document object', () => {
       const doc: Document = {
@@ -118,67 +119,67 @@ describe('API Models', () => {
         content: 'This is a sample conversation about AI',
         metadata: {
           createdAt: '2023-05-15',
-          source: 'chatgpt'
+          source: 'chatgpt',
         },
         existingTags: {
           year: '2023',
           topical_tags: [
             {
-              domain: 'technology'
-            }
+              domain: 'technology',
+            },
           ],
           conversation_type: 'casual',
           confidence: {
-            overall: 0.7
-          }
-        }
+            overall: 0.7,
+          },
+        },
       };
-      
+
       expect(doc.id).toBe('doc-123');
       expect(doc.path).toBe('/notes/conversation.md');
       expect(doc.content).toBe('This is a sample conversation about AI');
       expect(doc.metadata).toEqual({
         createdAt: '2023-05-15',
-        source: 'chatgpt'
+        source: 'chatgpt',
       });
-      
+
       if (doc.existingTags) {
         expect(doc.existingTags.year).toBe('2023');
         expect(doc.existingTags.topical_tags[0]?.domain).toBe('technology');
       }
     });
-    
+
     it('validates document with minimal fields', () => {
       const doc: Document = {
         id: 'minimal-doc',
         path: '/path/to/doc.md',
         content: 'Minimal content',
-        metadata: {}
+        metadata: {},
       };
-      
+
       expect(doc.id).toBe('minimal-doc');
       expect(doc.path).toBe('/path/to/doc.md');
       expect(doc.content).toBe('Minimal content');
       expect(doc.existingTags).toBeUndefined();
     });
   });
-  
+
   describe('API Error and Rate Limiting', () => {
     it('validates rate limit info', () => {
       const resetTime = new Date();
-      
+
       const rateLimitInfo: RateLimitInfo = {
         totalRequests: 100,
         remainingRequests: 75,
-        resetTime
+        resetTime,
       };
-      
+
       expect(rateLimitInfo.totalRequests).toBe(100);
       expect(rateLimitInfo.remainingRequests).toBe(75);
       expect(rateLimitInfo.resetTime).toBe(resetTime);
     });
   });
-  
+
   describe('API Usage and Tracking', () => {
     it('validates API usage stats', () => {
       const stats: APIUsageStats = {
@@ -186,20 +187,20 @@ describe('API Models', () => {
         promptTokens: 750,
         completionTokens: 500,
         cost: 0.025,
-        currency: 'USD'
+        currency: 'USD',
       };
-      
+
       expect(stats.totalTokens).toBe(1250);
       expect(stats.promptTokens).toBe(750);
       expect(stats.completionTokens).toBe(500);
       expect(stats.cost).toBe(0.025);
       expect(stats.currency).toBe('USD');
     });
-    
+
     it('validates API request tracking', () => {
       const startTime = new Date();
       const endTime = new Date(startTime.getTime() + 2000); // 2 seconds later
-      
+
       const tracking: APIRequestTracking = {
         requestId: 'req-123',
         model: 'gpt-4o',
@@ -211,10 +212,10 @@ describe('API Models', () => {
           promptTokens: 750,
           completionTokens: 500,
           cost: 0.025,
-          currency: 'USD'
-        }
+          currency: 'USD',
+        },
       };
-      
+
       expect(tracking.requestId).toBe('req-123');
       expect(tracking.model).toBe('gpt-4o');
       expect(tracking.startTime).toBe(startTime);
@@ -226,7 +227,7 @@ describe('API Models', () => {
       }
     });
   });
-  
+
   describe('API Configuration', () => {
     it('validates API config', () => {
       const config: APIConfig = {
@@ -239,10 +240,10 @@ describe('API Models', () => {
         costPerTokenMap: {
           'gpt-4o': 0.00005,
           'gpt-4': 0.00003,
-          'gpt-3.5-turbo': 0.00001
-        }
+          'gpt-3.5-turbo': 0.00001,
+        },
       };
-      
+
       expect(config.apiKey).toBe('test-api-key');
       expect(config.apiKeyStorage).toBe('local');
       expect(config.defaultModel).toBe('gpt-4o');
@@ -251,7 +252,7 @@ describe('API Models', () => {
       expect(config.costPerTokenMap['gpt-4o']).toBe(0.00005);
     });
   });
-  
+
   describe('Batch Processing', () => {
     it('validates batch tagging job', () => {
       const job: BatchTaggingJob = {
@@ -262,22 +263,22 @@ describe('API Models', () => {
           behavior: 'append',
           minConfidence: 0.6,
           reviewThreshold: 0.8,
-          generateExplanations: true
+          generateExplanations: true,
         },
         status: 'processing',
         progress: {
           total: 3,
           completed: 1,
-          failed: 0
+          failed: 0,
         },
         stats: {
           startTime: new Date(),
           totalTokens: 1500,
           totalCost: 0.03,
-          currency: 'USD'
-        }
+          currency: 'USD',
+        },
       };
-      
+
       expect(job.id).toBe('batch-job-1');
       expect(job.documents).toHaveLength(3);
       expect(job.options.model).toBe('gpt-4o');
@@ -290,4 +291,4 @@ describe('API Models', () => {
       }
     });
   });
-}); 
+});

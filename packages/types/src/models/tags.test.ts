@@ -1,14 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import type {
-  YearTag,
-  LifeAreaTag,
-  DomainTag,
+  ConfidenceScore,
   ConversationTypeTag,
-  TopicalTag,
+  DomainTag,
+  LifeAreaTag,
+  TagBehavior,
   TagConfidence,
   TagSet,
-  ConfidenceScore,
-  TagBehavior
+  TopicalTag,
+  YearTag,
 } from './tags';
 
 describe('Tag Types', () => {
@@ -27,48 +28,36 @@ describe('Tag Types', () => {
       'projects',
       'personal-growth',
       'finance',
-      'hobby'
+      'hobby',
     ];
-    
+
     expect(validLifeAreas.length).toBeGreaterThan(0);
-    validLifeAreas.forEach(area => {
+    validLifeAreas.forEach((area) => {
       expect(typeof area).toBe('string');
     });
   });
 
   it('validates DomainTag type usage', () => {
-    const validDomains: DomainTag[] = [
-      'technology',
-      'science',
-      'business',
-      'arts',
-      'humanities'
-    ];
-    
+    const validDomains: DomainTag[] = ['technology', 'science', 'business', 'arts', 'humanities'];
+
     expect(validDomains.length).toBeGreaterThan(0);
-    validDomains.forEach(domain => {
+    validDomains.forEach((domain) => {
       expect(typeof domain).toBe('string');
     });
   });
 
   it('validates ConversationTypeTag type usage', () => {
-    const validConversationTypes: ConversationTypeTag[] = [
-      'deep-dive',
-      'practical',
-      'theory',
-      'question',
-      'analysis'
-    ];
-    
+    const validConversationTypes: ConversationTypeTag[] = ['deep-dive', 'practical', 'theory', 'question', 'analysis'];
+
     expect(validConversationTypes.length).toBeGreaterThan(0);
-    validConversationTypes.forEach(type => {
+    validConversationTypes.forEach((type) => {
       expect(typeof type).toBe('string');
     });
   });
 
   it('validates ConfidenceScore type constraints', () => {
     const validScores: ConfidenceScore[] = [0, 0.5, 1];
-    validScores.forEach(score => {
+    validScores.forEach((score) => {
       expect(typeof score).toBe('number');
       expect(score >= 0 && score <= 1).toBe(true);
     });
@@ -78,17 +67,17 @@ describe('Tag Types', () => {
     const validTopicalTag: TopicalTag = {
       domain: 'technology',
       subdomain: 'ai',
-      contextual: 'beginner'
+      contextual: 'beginner',
     };
-    
+
     const minimalTopicalTag: TopicalTag = {
-      domain: 'technology'
+      domain: 'technology',
     };
-    
+
     expect(validTopicalTag.domain).toBe('technology');
     expect(validTopicalTag.subdomain).toBe('ai');
     expect(validTopicalTag.contextual).toBe('beginner');
-    
+
     expect(minimalTopicalTag.domain).toBe('technology');
     expect(minimalTopicalTag.subdomain).toBeUndefined();
     expect(minimalTopicalTag.contextual).toBeUndefined();
@@ -99,16 +88,16 @@ describe('Tag Types', () => {
       overall: 0.92,
       domain: 0.95,
       subdomain: 0.85,
-      conversation_type: 0.90
+      conversation_type: 0.9,
     };
-    
+
     const minimalTagConfidence: TagConfidence = {
-      overall: 0.75
+      overall: 0.75,
     };
-    
+
     expect(validTagConfidence.overall).toBe(0.92);
     expect(typeof validTagConfidence.domain).toBe('number');
-    
+
     expect(minimalTagConfidence.overall).toBe(0.75);
     expect(minimalTagConfidence.domain).toBeUndefined();
   });
@@ -121,15 +110,15 @@ describe('Tag Types', () => {
         {
           domain: 'technology',
           subdomain: 'ai',
-          contextual: 'beginner'
-        }
+          contextual: 'beginner',
+        },
       ],
       conversation_type: 'deep-dive',
       confidence: {
-        overall: 0.92
-      }
+        overall: 0.92,
+      },
     };
-    
+
     expect(validTagSet.year).toBe('2023');
     expect(validTagSet.life_area).toBe('learning');
     expect(validTagSet.topical_tags.length).toBe(1);
@@ -138,16 +127,11 @@ describe('Tag Types', () => {
   });
 
   it('validates TagBehavior type constraints', () => {
-    const validBehaviors: TagBehavior[] = [
-      'append',
-      'replace',
-      'merge',
-      'suggest'
-    ];
-    
+    const validBehaviors: TagBehavior[] = ['append', 'replace', 'merge', 'suggest'];
+
     expect(validBehaviors.length).toBe(4);
-    validBehaviors.forEach(behavior => {
+    validBehaviors.forEach((behavior) => {
       expect(typeof behavior).toBe('string');
     });
   });
-}); 
+});

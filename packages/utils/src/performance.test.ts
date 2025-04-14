@@ -1,24 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
+  debounce,
   measureExecutionTime,
   measureExecutionTimeSync,
-  debounce,
-  throttle,
+  measureMemoryUsage,
   memoize,
   runWithConcurrencyLimit,
-  measureMemoryUsage
+  throttle,
 } from './performance';
 
 describe('Performance Utilities', () => {
   describe('measureExecutionTime', () => {
     it('should measure execution time of async function', async () => {
       const asyncFn = async (delay: number): Promise<string> => {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return 'result';
       };
 
       const { result, timeTaken } = await measureExecutionTime(asyncFn, 50);
-      
+
       expect(result).toBe('result');
       expect(timeTaken).toBeGreaterThanOrEqual(40); // Allow for slight variance
       expect(timeTaken).toBeLessThan(200); // Prevent test from hanging
@@ -26,12 +27,12 @@ describe('Performance Utilities', () => {
 
     it('should handle async functions with multiple arguments', async () => {
       const asyncFn = async (a: number, b: string): Promise<string> => {
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
         return `${String(a)}-${b}`;
       };
 
       const { result, timeTaken } = await measureExecutionTime(asyncFn, 42, 'test');
-      
+
       expect(result).toBe('42-test');
       expect(timeTaken).toBeGreaterThan(0);
     });
@@ -48,7 +49,7 @@ describe('Performance Utilities', () => {
       };
 
       const { result, timeTaken } = measureExecutionTimeSync(syncFn, 1000000);
-      
+
       expect(result).toBe(499999500000); // Sum of numbers 0 to 999999
       expect(timeTaken).toBeGreaterThan(0);
     });
@@ -59,7 +60,7 @@ describe('Performance Utilities', () => {
       };
 
       const { result, timeTaken } = measureExecutionTimeSync(syncFn, 42, 'test');
-      
+
       expect(result).toBe('42-test');
       expect(timeTaken).toBeGreaterThanOrEqual(0);
     });
@@ -76,10 +77,10 @@ describe('Performance Utilities', () => {
 
       debounced();
       expect(callback).not.toHaveBeenCalled();
-      
+
       vi.advanceTimersByTime(50);
       expect(callback).not.toHaveBeenCalled();
-      
+
       vi.advanceTimersByTime(50);
       expect(callback).toHaveBeenCalledTimes(1);
     });
@@ -90,11 +91,11 @@ describe('Performance Utilities', () => {
 
       debounced();
       vi.advanceTimersByTime(50);
-      
+
       debounced(); // Reset timer
       vi.advanceTimersByTime(50);
       expect(callback).not.toHaveBeenCalled();
-      
+
       vi.advanceTimersByTime(50);
       expect(callback).toHaveBeenCalledTimes(1);
     });
@@ -105,7 +106,7 @@ describe('Performance Utilities', () => {
 
       debounced(1, 'test', { key: 'value' });
       vi.advanceTimersByTime(100);
-      
+
       expect(callback).toHaveBeenCalledWith(1, 'test', { key: 'value' });
     });
   });
@@ -121,11 +122,11 @@ describe('Performance Utilities', () => {
 
       throttled();
       expect(callback).toHaveBeenCalledTimes(1);
-      
+
       throttled(); // This call should be ignored
       throttled(); // This call should be ignored
       expect(callback).toHaveBeenCalledTimes(1);
-      
+
       vi.advanceTimersByTime(100);
       throttled();
       expect(callback).toHaveBeenCalledTimes(2);
@@ -137,11 +138,11 @@ describe('Performance Utilities', () => {
 
       throttled('first');
       expect(callback).toHaveBeenCalledWith('first');
-      
+
       throttled('ignored');
       throttled('queued');
       expect(callback).toHaveBeenCalledTimes(1);
-      
+
       vi.advanceTimersByTime(100);
       expect(callback).toHaveBeenCalledWith('queued');
       expect(callback).toHaveBeenCalledTimes(2);
@@ -196,15 +197,31 @@ describe('Performance Utilities', () => {
     it('should execute tasks with concurrency limit', async () => {
       const results: number[] = [];
       const tasks = [
-        async () => { await new Promise(r => setTimeout(r, 50)); results.push(1); return 1; },
-        async () => { await new Promise(r => setTimeout(r, 10)); results.push(2); return 2; },
-        async () => { await new Promise(r => setTimeout(r, 30)); results.push(3); return 3; },
-        async () => { await new Promise(r => setTimeout(r, 20)); results.push(4); return 4; },
+        async () => {
+          await new Promise((r) => setTimeout(r, 50));
+          results.push(1);
+          return 1;
+        },
+        async () => {
+          await new Promise((r) => setTimeout(r, 10));
+          results.push(2);
+          return 2;
+        },
+        async () => {
+          await new Promise((r) => setTimeout(r, 30));
+          results.push(3);
+          return 3;
+        },
+        async () => {
+          await new Promise((r) => setTimeout(r, 20));
+          results.push(4);
+          return 4;
+        },
       ];
 
       vi.useFakeTimers();
       const promise = runWithConcurrencyLimit(tasks, 2);
-      
+
       // Fast-forward time to execute tasks
       vi.advanceTimersByTime(10);
       await Promise.resolve();
@@ -212,9 +229,9 @@ describe('Performance Utilities', () => {
       await Promise.resolve();
       vi.advanceTimersByTime(30);
       await Promise.resolve();
-      
+
       const taskResults = await promise;
-      
+
       // Tasks ran with a limit of 2 concurrent tasks
       // Expected execution order based on completion time, not start time
       expect(results).toEqual([2, 3, 4, 1]);
@@ -224,13 +241,22 @@ describe('Performance Utilities', () => {
 
     it('should handle errors in tasks', async () => {
       const tasks = [
-        async () => { await Promise.resolve(); return 1; },
-        async () => { await Promise.resolve(); throw new Error('Task failed'); },
-        async () => { await Promise.resolve(); return 3; },
+        async () => {
+          await Promise.resolve();
+          return 1;
+        },
+        async () => {
+          await Promise.resolve();
+          throw new Error('Task failed');
+        },
+        async () => {
+          await Promise.resolve();
+          return 3;
+        },
       ];
 
       const results = await runWithConcurrencyLimit(tasks, 2);
-      
+
       expect(results[0]).toBe(1);
       expect(results[1]).toBeInstanceOf(Error);
       const error = results[1] as unknown as Error;
@@ -244,43 +270,44 @@ describe('Performance Utilities', () => {
     it('should measure memory usage of a function', async () => {
       // Mock process.memoryUsage
       const originalMemoryUsage = process.memoryUsage;
-      const mockMemoryUsageValue = { 
-        rss: 1000, 
-        heapTotal: 500, 
-        heapUsed: 300, 
-        external: 100, 
-        arrayBuffers: 50 
+      const mockMemoryUsageValue = {
+        rss: 1000,
+        heapTotal: 500,
+        heapUsed: 300,
+        external: 100,
+        arrayBuffers: 50,
       };
-      const mockMemoryUsageValue2 = { 
-        rss: 1200, 
-        heapTotal: 600, 
-        heapUsed: 350, 
-        external: 120, 
-        arrayBuffers: 60 
+      const mockMemoryUsageValue2 = {
+        rss: 1200,
+        heapTotal: 600,
+        heapUsed: 350,
+        external: 120,
+        arrayBuffers: 60,
       };
-      
-      const mockMemoryUsage = vi.fn()
+
+      const mockMemoryUsage = vi
+        .fn()
         .mockReturnValueOnce(mockMemoryUsageValue)
         .mockReturnValueOnce(mockMemoryUsageValue2);
-      
+
       // Type-safe mock assignment
       process.memoryUsage = mockMemoryUsage as unknown as typeof process.memoryUsage;
 
       const fn = async (size: number): Promise<number[]> => {
         const arr = new Array(size).fill(0).map((_, i) => i);
-        await new Promise(r => setTimeout(r, 5));
+        await new Promise((r) => setTimeout(r, 5));
         return arr;
       };
 
       const { result, memoryStats } = await measureMemoryUsage(fn, 1000);
-      
+
       // Restore original process.memoryUsage
       process.memoryUsage = originalMemoryUsage;
-      
+
       expect(result.length).toBe(1000);
       expect(memoryStats.before).toEqual({ rss: 1000, heapTotal: 500, heapUsed: 300, external: 100, arrayBuffers: 50 });
       expect(memoryStats.after).toEqual({ rss: 1200, heapTotal: 600, heapUsed: 350, external: 120, arrayBuffers: 60 });
       expect(memoryStats.diff).toEqual({ rss: 200, heapTotal: 100, heapUsed: 50, external: 20, arrayBuffers: 10 });
     });
   });
-}); 
+});

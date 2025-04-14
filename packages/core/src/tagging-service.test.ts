@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { TaggingService } from './tagging-service';
 import { TaxonomyManager } from './tagging/taxonomy-manager';
+
 import type { Document, TagSet } from '@obsidian-magic/types';
+
 import type { OpenAIClient } from './openai-client';
 
 // Create mock functions outside
 const mockCreateTaggingPrompt = vi.fn().mockReturnValue('mocked-prompt');
-const mockExtractRelevantSections = vi.fn((content: string, size: number) => 
+const mockExtractRelevantSections = vi.fn((content: string, size: number) =>
   content.length > size ? content.substring(0, size) : content
 );
 
@@ -30,7 +33,7 @@ describe('TaggingService', () => {
     makeRequest: ReturnType<typeof vi.fn>;
   };
   let taggingService: TaggingService;
-  
+
   beforeEach(() => {
     mockOpenAIClient = {
       makeRequest: vi.fn(),
@@ -71,14 +74,12 @@ describe('TaggingService', () => {
     const mockTagSet: TagSet = {
       year: '2024',
       conversation_type: 'analysis',
-      topical_tags: [
-        { domain: 'technology', subdomain: 'software' }
-      ],
+      topical_tags: [{ domain: 'technology', subdomain: 'software' }],
       confidence: {
         overall: 0.9,
         domain: 0.85,
         life_area: 0.7,
-      }
+      },
     };
 
     it('should return error for empty content document', async () => {
@@ -88,7 +89,7 @@ describe('TaggingService', () => {
       };
 
       const result = await taggingService.tagDocument(emptyDocument);
-      
+
       expect(result).toEqual({
         success: false,
         error: {
@@ -107,7 +108,7 @@ describe('TaggingService', () => {
       });
 
       const result = await taggingService.tagDocument(validDocument);
-      
+
       expect(result.success).toBe(true);
       expect(result.tags).toBeDefined();
       expect(mockCreateTaggingPrompt).toHaveBeenCalled();
@@ -131,7 +132,7 @@ describe('TaggingService', () => {
       });
 
       const result = await taggingService.tagDocument(validDocument);
-      
+
       expect(result).toEqual({
         success: false,
         error: {
@@ -146,7 +147,7 @@ describe('TaggingService', () => {
       mockOpenAIClient.makeRequest.mockRejectedValueOnce(new Error('Unexpected error'));
 
       const result = await taggingService.tagDocument(validDocument);
-      
+
       expect(result).toEqual({
         success: false,
         error: {
@@ -160,14 +161,14 @@ describe('TaggingService', () => {
     it('should handle long content by extracting relevant sections', async () => {
       const longContent = 'a'.repeat(40000); // Exceeds 32000 chars
       const longDocument = { ...validDocument, content: longContent };
-      
+
       mockOpenAIClient.makeRequest.mockResolvedValueOnce({
         success: true,
         data: { classification: mockTagSet },
       });
 
       await taggingService.tagDocument(longDocument);
-      
+
       expect(mockExtractRelevantSections).toHaveBeenCalledWith(expect.any(String), 8000);
     });
   });
@@ -179,13 +180,13 @@ describe('TaggingService', () => {
       conversation_type: 'analysis',
       topical_tags: [
         { domain: 'technology', subdomain: 'programming' },
-        { domain: 'education', subdomain: 'online-learning' }
+        { domain: 'education', subdomain: 'online-learning' },
       ],
       confidence: {
         overall: 0.9,
         domain: 0.85,
         life_area: 0.7,
-      }
+      },
     };
 
     const mockExistingTags: TagSet = {
@@ -194,11 +195,11 @@ describe('TaggingService', () => {
       conversation_type: 'practical',
       topical_tags: [
         { domain: 'fitness', subdomain: 'weightlifting' },
-        { domain: 'technology', subdomain: 'hardware' }
+        { domain: 'technology', subdomain: 'hardware' },
       ],
       confidence: {
         overall: 1.0,
-      }
+      },
     };
 
     const validDocument: Document = {
@@ -206,21 +207,21 @@ describe('TaggingService', () => {
       path: '/path/to/document.md',
       content: 'This is a test document content for analysis.',
       metadata: {},
-      existingTags: mockExistingTags
+      existingTags: mockExistingTags,
     };
 
     it('should replace existing tags when in replace mode', async () => {
       const replaceService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {
         behavior: 'replace',
       });
-      
+
       mockOpenAIClient.makeRequest.mockResolvedValueOnce({
         success: true,
         data: { classification: mockNewTags },
       });
 
       const result = await replaceService.tagDocument(validDocument);
-      
+
       expect(result.success).toBe(true);
       expect(result.tags).toEqual(mockNewTags); // Complete replacement
     });
@@ -229,24 +230,24 @@ describe('TaggingService', () => {
       const appendService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {
         behavior: 'append',
       });
-      
+
       mockOpenAIClient.makeRequest.mockResolvedValueOnce({
         success: true,
         data: { classification: mockNewTags },
       });
 
       const result = await appendService.tagDocument(validDocument);
-      
+
       expect(result.success).toBe(true);
       expect(result.tags).toBeDefined();
-      
+
       // Check that year and conversation type are from new tags
       expect(result.tags?.year).toBe(mockNewTags.year);
       expect(result.tags?.conversation_type).toBe(mockNewTags.conversation_type);
-      
+
       // Life area is kept from existing since it's present
       expect(result.tags?.life_area).toBe(mockExistingTags.life_area);
-      
+
       // Should have combined topical tags (ensure the count is right)
       expect(result.tags?.topical_tags).toHaveLength(
         mockExistingTags.topical_tags.length + 1 // +1 because "education" is new, but "technology" exists in both
@@ -256,29 +257,25 @@ describe('TaggingService', () => {
     it('should merge tags with preference for high confidence tags', async () => {
       const mergeService = new TaggingService(mockOpenAIClient as unknown as OpenAIClient, {
         behavior: 'merge',
-        reviewThreshold: 0.8
+        reviewThreshold: 0.8,
       });
-      
+
       mockOpenAIClient.makeRequest.mockResolvedValueOnce({
         success: true,
         data: { classification: mockNewTags },
       });
 
       const result = await mergeService.tagDocument(validDocument);
-      
+
       expect(result.success).toBe(true);
       expect(result.tags).toBeDefined();
-      
+
       // Life area confidence is below review threshold, so existing is kept
       expect(result.tags?.life_area).toBe(mockExistingTags.life_area);
-      
+
       // Should have merged topical tags
-      expect(result.tags?.topical_tags).toContainEqual(
-        expect.objectContaining({ domain: 'education' })
-      );
-      expect(result.tags?.topical_tags).toContainEqual(
-        expect.objectContaining({ domain: 'fitness' })
-      );
+      expect(result.tags?.topical_tags).toContainEqual(expect.objectContaining({ domain: 'education' }));
+      expect(result.tags?.topical_tags).toContainEqual(expect.objectContaining({ domain: 'fitness' }));
     });
   });
 
@@ -290,13 +287,13 @@ describe('TaggingService', () => {
         conversation_type: 'practical',
         topical_tags: [
           { domain: 'technology', subdomain: 'programming' },
-          { domain: 'education', subdomain: 'online-learning' }
+          { domain: 'education', subdomain: 'online-learning' },
         ],
         confidence: {
           overall: 0.7,
           domain: 0.6, // Below default threshold of 0.65
           life_area: 0.3, // Well below threshold
-        }
+        },
       };
 
       mockOpenAIClient.makeRequest.mockResolvedValueOnce({
@@ -312,11 +309,11 @@ describe('TaggingService', () => {
       };
 
       const result = await taggingService.tagDocument(validDocument);
-      
+
       expect(result.success).toBe(true);
       expect(result.tags).toBeDefined();
       expect(result.tags?.life_area).toBeUndefined(); // Filtered out due to low confidence
       expect(result.tags?.topical_tags).toHaveLength(0); // Filtered out due to low domain confidence
     });
   });
-}); 
+});

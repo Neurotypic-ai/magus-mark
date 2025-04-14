@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+
 import { DEFAULT_FRONTMATTER_OPTIONS } from '@obsidian-magic/types';
+
 import { FrontmatterProcessor } from './frontmatter-processor';
-import type { TagSet, FrontmatterOptions } from '@obsidian-magic/types';
+
+import type { FrontmatterOptions, TagSet } from '@obsidian-magic/types';
 
 // Replace the interface with this type
 interface TestFrontmatterProcessorType {
@@ -18,9 +21,9 @@ describe('FrontmatterProcessor', () => {
     });
 
     it('should merge provided options with defaults', () => {
-      const processor = new FrontmatterProcessor({ 
-        preserveExistingTags: false, 
-        tagsKey: 'keywords' 
+      const processor = new FrontmatterProcessor({
+        preserveExistingTags: false,
+        tagsKey: 'keywords',
       });
       const testProcessor = processor as unknown as TestFrontmatterProcessorType;
       expect(testProcessor.options.preserveExistingTags).toBe(false);
@@ -43,7 +46,7 @@ date: 2023-01-01
       expect(frontmatter).toEqual({
         title: 'Test Document',
         tags: ['tag1', 'tag2'],
-        date: '2023-01-01'
+        date: '2023-01-01',
       });
     });
 
@@ -70,7 +73,7 @@ tags: [unclosed array
     it('should extract tags from array in frontmatter', () => {
       const processor = new FrontmatterProcessor();
       const frontmatter = {
-        tags: ['tag1', 'tag2', 'tag3']
+        tags: ['tag1', 'tag2', 'tag3'],
       };
       const tags = processor.extractTags(frontmatter);
       expect(tags).toEqual(['tag1', 'tag2', 'tag3']);
@@ -79,7 +82,7 @@ tags: [unclosed array
     it('should extract tags from comma-separated string', () => {
       const processor = new FrontmatterProcessor();
       const frontmatter = {
-        tags: 'tag1, tag2, tag3'
+        tags: 'tag1, tag2, tag3',
       };
       const tags = processor.extractTags(frontmatter);
       expect(tags).toEqual(['tag1', 'tag2', 'tag3']);
@@ -95,7 +98,7 @@ tags: [unclosed array
     it('should use custom tags key if specified', () => {
       const processor = new FrontmatterProcessor({ tagsKey: 'keywords' });
       const frontmatter = {
-        keywords: ['key1', 'key2']
+        keywords: ['key1', 'key2'],
       };
       const tags = processor.extractTags(frontmatter);
       expect(tags).toEqual(['key1', 'key2']);
@@ -108,7 +111,7 @@ tags: [unclosed array
       life_area: 'learning',
       topical_tags: [
         { domain: 'software-development', subdomain: 'frontend' },
-        { domain: 'programming', contextual: 'tutorial' }
+        { domain: 'programming', contextual: 'tutorial' },
       ],
       conversation_type: 'practical',
       confidence: {
@@ -116,58 +119,52 @@ tags: [unclosed array
         year: 0.95,
         life_area: 0.85,
         domain: 0.9,
-        conversation_type: 0.92
-      }
+        conversation_type: 0.92,
+      },
     };
 
     it('should convert TagSet to frontmatter with default options', () => {
       const processor = new FrontmatterProcessor();
       const frontmatter = processor.tagsToFrontmatter(sampleTagSet);
-      
+
       expect(frontmatter['tags']).toEqual([
         '#year/2023',
         '#learning',
         '#software-development/frontend',
         '#programming/tutorial',
-        '#type/practical'
+        '#type/practical',
       ]);
     });
 
     it('should use custom tag formatter if provided', () => {
       const processor = new FrontmatterProcessor({
-        tagFormatter: (tag) => tag.replace('#', '') 
+        tagFormatter: (tag) => tag.replace('#', ''),
       });
-      
+
       const frontmatter = processor.tagsToFrontmatter(sampleTagSet);
-      
+
       expect(frontmatter['tags']).toEqual([
         'year/2023',
         'learning',
         'software-development/frontend',
         'programming/tutorial',
-        'type/practical'
+        'type/practical',
       ]);
     });
 
     it('should create nested structure when useNestedKeys is true', () => {
       const processor = new FrontmatterProcessor({ useNestedKeys: true });
       const frontmatter = processor.tagsToFrontmatter(sampleTagSet);
-      
+
       expect(frontmatter).toEqual({
-        tags: [
-          '#year/2023',
-          '#learning',
-          '#software-development/frontend',
-          '#programming/tutorial',
-          '#type/practical'
-        ],
+        tags: ['#year/2023', '#learning', '#software-development/frontend', '#programming/tutorial', '#type/practical'],
         year: '2023',
         life_area: 'learning',
         topical_tags: [
           { domain: 'software-development', subdomain: 'frontend' },
-          { domain: 'programming', contextual: 'tutorial' }
+          { domain: 'programming', contextual: 'tutorial' },
         ],
-        conversation_type: 'practical'
+        conversation_type: 'practical',
       });
     });
   });
@@ -176,25 +173,23 @@ tags: [unclosed array
     const sampleTagSet: TagSet = {
       year: '2023',
       life_area: 'learning',
-      topical_tags: [
-        { domain: 'software-development', subdomain: 'frontend' }
-      ],
+      topical_tags: [{ domain: 'software-development', subdomain: 'frontend' }],
       conversation_type: 'practical',
       confidence: {
         overall: 0.9,
         year: 0.95,
         life_area: 0.85,
         domain: 0.9,
-        conversation_type: 0.92
-      }
+        conversation_type: 0.92,
+      },
     };
 
     it('should add frontmatter to content without existing frontmatter', () => {
       const processor = new FrontmatterProcessor();
       const content = '# Document with no frontmatter';
-      
+
       const updated = processor.updateFrontmatter(content, sampleTagSet);
-      
+
       expect(updated).toContain('---');
       expect(updated).toContain('tags:');
       expect(updated).toContain('#year/2023');
@@ -212,9 +207,9 @@ author: Test User
 tags: [old-tag]
 ---
 # Document content`;
-      
+
       const updated = processor.updateFrontmatter(content, sampleTagSet);
-      
+
       expect(updated).toContain('title: Existing Document');
       expect(updated).toContain('author: Test User');
       expect(updated).toContain('#year/2023');
@@ -231,9 +226,9 @@ title: Existing Document
 tags: [existing-tag]
 ---
 # Document content`;
-      
+
       const updated = processor.updateFrontmatter(content, sampleTagSet);
-      
+
       expect(updated).toContain('existing-tag');
       expect(updated).toContain('#year/2023');
       expect(updated).toContain('#learning');
@@ -246,12 +241,12 @@ title: Existing Document
 tags: [existing-tag]
 ---
 # Document content`;
-      
+
       const updated = processor.updateFrontmatter(content, sampleTagSet);
-      
+
       expect(updated).not.toContain('existing-tag');
       expect(updated).toContain('#year/2023');
       expect(updated).toContain('#learning');
     });
   });
-}); 
+});

@@ -2,7 +2,7 @@
  * CLI-specific type definitions for Obsidian Magic
  */
 
-import type { APIConfig, TaggingOptions, Document } from '@obsidian-magic/types';
+import type { APIConfig, Document, TaggingOptions } from '@obsidian-magic/types';
 
 /**
  * CLI command context
@@ -111,4 +111,4 @@ export interface JobDefinition {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: ProgressData;
   onProgress?: ProgressCallback;
-} 
+}

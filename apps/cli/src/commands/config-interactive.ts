@@ -1,18 +1,19 @@
 import path from 'path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
-import { modelManager } from '@obsidian-magic/core';
 import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 
-import { config } from '../utils/config';
+import { modelManager } from '@obsidian-magic/core';
 import { logger } from '@obsidian-magic/logger';
 
+import { config } from '../utils/config';
+
 import type { ModelPricing } from '@obsidian-magic/core/src/openai-models';
+import type { LogLevel } from '@obsidian-magic/logger';
 import type { AIModel } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';
 
-import type { LogLevel } from '@obsidian-magic/logger';
 import type { Config } from '../types/config';
 
 // Configuration types

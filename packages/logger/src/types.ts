@@ -20,4 +20,4 @@ export interface LoggerConfig {
    * Output format
    */
   outputFormat: 'pretty' | 'json' | 'silent';
-} 
+}

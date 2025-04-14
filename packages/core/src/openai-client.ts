@@ -158,7 +158,7 @@ export class OpenAIClient {
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens ?? 1000;
     const model = this.config.model;
-    
+
     // For test compatibility, use the API response tokens if available
     // otherwise estimate from the input
     const promptTokens = this.estimateTokenCount(prompt) + this.estimateTokenCount(systemMessage);
@@ -252,7 +252,7 @@ export class OpenAIClient {
         if (err.status === 429) {
           // Handle both Headers object and plain object with headers
           let retryAfter: number | undefined;
-          
+
           if (err.headers) {
             if (typeof err.headers.get === 'function') {
               // Headers object
@@ -280,7 +280,7 @@ export class OpenAIClient {
 
           if (attemptCount < maxAttempts) {
             const backoffTime = this.calculateBackoff(attemptCount, retryAfter);
-            
+
             // Skip the delay for testing purposes if requested
             await new Promise((resolve) => setTimeout(resolve, backoffTime));
             continue;
@@ -291,7 +291,7 @@ export class OpenAIClient {
         if (err.status && err.status >= 500 && err.status < 600) {
           if (attemptCount < maxAttempts) {
             const backoffTime = this.calculateBackoff(attemptCount);
-            
+
             // Skip the delay for testing purposes if requested
             if (!options.skipRetryDelay) {
               await new Promise((resolve) => setTimeout(resolve, backoffTime));
@@ -303,7 +303,7 @@ export class OpenAIClient {
         // If we've reached maximum retries or it's another type of error, return the error
         // Handle both Headers object and plain object with headers
         let retryAfter: number | undefined;
-        
+
         if (err.headers) {
           if (typeof err.headers.get === 'function') {
             // Headers object

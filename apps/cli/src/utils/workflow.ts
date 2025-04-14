@@ -1,5 +1,6 @@
-import { logger } from '@obsidian-magic/logger';
 import { EventEmitter } from 'events';
+
+import { logger } from '@obsidian-magic/logger';
 
 /**
  * Task status type
@@ -57,7 +58,7 @@ export class Workflow<T> extends EventEmitter {
   private completed = false;
   private activeCount = 0;
   private options: WorkflowOptions;
-  
+
   /**
    * Create a new workflow
    */
@@ -69,10 +70,10 @@ export class Workflow<T> extends EventEmitter {
       retryCount: 2,
       retryDelay: 1000,
       pauseOnError: false,
-      ...options
+      ...options,
     };
   }
-  
+
   /**
    * Add a task to the workflow
    */
@@ -81,29 +82,29 @@ export class Workflow<T> extends EventEmitter {
       logger.warn(`Task with ID ${id} already exists. Skipping.`);
       return this;
     }
-    
+
     this.tasks.set(id, {
       id,
       status: 'pending',
       priority,
-      fn
+      fn,
     });
-    
+
     this.queue.push(id);
-    
+
     // Sort the queue by priority (highest first)
     this.queue.sort((a, b) => {
       const taskA = this.tasks.get(a);
       const taskB = this.tasks.get(b);
-      
+
       if (!taskA || !taskB) return 0;
-      
+
       return taskB.priority - taskA.priority;
     });
-    
+
     return this;
   }
-  
+
   /**
    * Start the workflow
    */
@@ -114,24 +115,26 @@ export class Workflow<T> extends EventEmitter {
       this.emit('workflowComplete', {});
       return {};
     }
-    
-    logger.info(`Starting workflow with ${String(this.queue.length)} tasks and concurrency ${String(this.options.concurrency)}`);
-    
+
+    logger.info(
+      `Starting workflow with ${String(this.queue.length)} tasks and concurrency ${String(this.options.concurrency)}`
+    );
+
     // Start initial batch of tasks based on concurrency
     this.processNextBatch();
-    
+
     // Wait for all tasks to complete
     return new Promise<Record<string, T>>((resolve, reject) => {
       this.on('workflowComplete', (results: Record<string, T>) => {
         resolve(results);
       });
-      
+
       this.on('workflowError', (error: Error) => {
         reject(error);
       });
     });
   }
-  
+
   /**
    * Pause the workflow
    */
@@ -142,7 +145,7 @@ export class Workflow<T> extends EventEmitter {
       this.emit('pause');
     }
   }
-  
+
   /**
    * Resume the workflow
    */
@@ -154,7 +157,7 @@ export class Workflow<T> extends EventEmitter {
       this.processNextBatch();
     }
   }
-  
+
   /**
    * Cancel the workflow
    */
@@ -163,17 +166,24 @@ export class Workflow<T> extends EventEmitter {
     this.queue = [];
     this.emit('workflowComplete', this.results);
   }
-  
+
   /**
    * Get workflow statistics
    */
-  getStats(): { total: number; pending: number; processing: number; completed: number; failed: number; skipped: number } {
+  getStats(): {
+    total: number;
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    skipped: number;
+  } {
     let pending = 0;
     let processing = 0;
     let completed = 0;
     let failed = 0;
     let skipped = 0;
-    
+
     this.tasks.forEach((task) => {
       switch (task.status) {
         case 'pending':
@@ -193,32 +203,32 @@ export class Workflow<T> extends EventEmitter {
           break;
       }
     });
-    
+
     return {
       total: this.tasks.size,
       pending,
       processing,
       completed,
       failed,
-      skipped
+      skipped,
     };
   }
-  
+
   /**
    * Process the next batch of tasks
    */
   private processNextBatch(): void {
     if (this.paused || this.completed) return;
-    
+
     // Calculate how many more tasks can be processed concurrently
     const available = this.options.concurrency - this.activeCount;
-    
+
     if (available <= 0) return;
-    
+
     // Get the next batch of tasks
     const batchSize = Math.min(available, this.options.batchSize ?? available);
     const batch = this.queue.splice(0, batchSize);
-    
+
     if (batch.length === 0) {
       if (this.activeCount === 0) {
         this.completed = true;
@@ -227,51 +237,51 @@ export class Workflow<T> extends EventEmitter {
       }
       return;
     }
-    
+
     // Process each task in the batch
     for (const taskId of batch) {
       void this.processTask(taskId);
     }
   }
-  
+
   /**
    * Process a single task
    */
   private async processTask(taskId: string): Promise<void> {
     const task = this.tasks.get(taskId);
-    
+
     if (!task) return;
-    
+
     task.status = 'processing';
     this.processing.add(taskId);
     this.activeCount++;
-    
+
     this.emit('taskStart', taskId);
-    
+
     try {
       const result = await task.fn();
-      
+
       task.status = 'completed';
       task.result = result;
       this.results[taskId] = result;
-      
+
       this.emit('taskComplete', taskId, result);
     } catch (error) {
       task.status = 'failed';
       task.error = error instanceof Error ? error : new Error(String(error));
       this.errors[taskId] = task.error;
-      
+
       if (this.options.pauseOnError) {
         this.pause();
       }
-      
+
       this.emit('taskError', taskId, task.error);
     } finally {
       this.processing.delete(taskId);
       this.activeCount--;
-      
+
       // Process the next batch of tasks
       this.processNextBatch();
     }
   }
-} 
+}

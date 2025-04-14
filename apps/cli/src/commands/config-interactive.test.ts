@@ -1,31 +1,35 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { configInteractiveCommand, type TagMode } from './config-interactive';
-import { config } from '../utils/config';
-import { logger } from '@obsidian-magic/logger';
-import { modelManager } from '@obsidian-magic/core';
 import * as inquirerPrompts from '@inquirer/prompts';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Argv } from 'yargs';
+import { modelManager } from '@obsidian-magic/core';
+import { logger } from '@obsidian-magic/logger';
+
+import { config } from '../utils/config';
+import { configInteractiveCommand } from './config-interactive';
+
 import type { ModelPricing } from '@obsidian-magic/core/src/openai-models';
-import type { LogLevel } from '../types/commands';
 import type { AIModel } from '@obsidian-magic/types';
+import type { Argv } from 'yargs';
+
+import type { LogLevel } from '../types/commands';
+import type { TagMode } from './config-interactive';
 
 // Mock dependencies
 vi.mock('@inquirer/prompts', () => ({
   input: vi.fn(),
   select: vi.fn(),
   confirm: vi.fn(),
-  number: vi.fn()
+  number: vi.fn(),
 }));
 
 vi.mock('@obsidian-magic/core', () => ({
   modelManager: {
-    getAvailableModels: vi.fn()
-  }
+    getAvailableModels: vi.fn(),
+  },
 }));
 
 vi.mock('fs-extra', () => ({
-  pathExists: vi.fn()
+  pathExists: vi.fn(),
 }));
 
 vi.mock('@obsidian-magic/logger', () => ({
@@ -33,15 +37,15 @@ vi.mock('@obsidian-magic/logger', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn()
-  }
+    debug: vi.fn(),
+  },
 }));
 
 vi.mock('../utils/config', () => ({
   config: {
     get: vi.fn(),
-    set: vi.fn()
-  }
+    set: vi.fn(),
+  },
 }));
 
 describe('configInteractiveCommand', () => {
@@ -57,7 +61,7 @@ describe('configInteractiveCommand', () => {
   it('should define required options in the builder', () => {
     // Create a mock for Yargs
     const yargsInstance = {
-      option: vi.fn().mockReturnThis()
+      option: vi.fn().mockReturnThis(),
     };
 
     // Call the builder function
@@ -65,20 +69,29 @@ describe('configInteractiveCommand', () => {
     builder(yargsInstance as unknown as Argv);
 
     // Check that the expected options are configured
-    expect(yargsInstance.option).toHaveBeenCalledWith('profile', expect.objectContaining({
-      describe: expect.any(String) as string,
-      type: 'string'
-    }));
+    expect(yargsInstance.option).toHaveBeenCalledWith(
+      'profile',
+      expect.objectContaining({
+        describe: expect.any(String) as string,
+        type: 'string',
+      })
+    );
 
-    expect(yargsInstance.option).toHaveBeenCalledWith('minimal', expect.objectContaining({
-      describe: expect.any(String) as string,
-      type: 'boolean'
-    }));
+    expect(yargsInstance.option).toHaveBeenCalledWith(
+      'minimal',
+      expect.objectContaining({
+        describe: expect.any(String) as string,
+        type: 'boolean',
+      })
+    );
 
-    expect(yargsInstance.option).toHaveBeenCalledWith('export', expect.objectContaining({
-      describe: expect.any(String) as string,
-      type: 'string'
-    }));
+    expect(yargsInstance.option).toHaveBeenCalledWith(
+      'export',
+      expect.objectContaining({
+        describe: expect.any(String) as string,
+        type: 'string',
+      })
+    );
   });
 
   describe('handler function', () => {
@@ -94,54 +107,54 @@ describe('configInteractiveCommand', () => {
       minimal: false,
       export: undefined,
       $0: 'test',
-      _: ['setup']
+      _: ['setup'],
     };
 
     it('should handle minimal setup mode', async () => {
       // Setup mocks for minimal mode
       const mockApiKey = 'sk-1234567890';
-      
+
       // Mock environment variable
       const originalEnv = process.env;
       process.env = { ...originalEnv, OPENAI_API_KEY: mockApiKey };
-      
+
       // Mock user responses with proper typing
       vi.mocked(inquirerPrompts.input).mockResolvedValueOnce('[keep current]');
       vi.mocked(inquirerPrompts.select<AIModel>).mockResolvedValueOnce('gpt-4' as AIModel);
       vi.mocked(inquirerPrompts.select<TagMode>).mockResolvedValueOnce('merge' as TagMode);
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(true);
-      
+
       // Mock config values with proper typing
       vi.mocked(config.get).mockImplementation((key: string) => {
         if (key === 'defaultModel') return 'gpt-3.5-turbo';
         if (key === 'tagMode') return 'append';
         return undefined;
       });
-      
+
       vi.mocked(modelManager.getAvailableModels).mockImplementationOnce(async (): Promise<ModelPricing[]> => {
         return Promise.resolve([
           { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', inputPrice: 1, outputPrice: 2 } as ModelPricing,
-          { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 } as ModelPricing
+          { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 } as ModelPricing,
         ]);
       });
-      
+
       // Run the handler with minimal mode
       await configInteractiveCommand.handler({ ...mockArgv, minimal: true });
-      
+
       // Verify that minimal setup was used
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('minimal setup mode'));
-      
+
       // Minimal setup shouldn't ask for concurrency
       expect(inquirerPrompts.number).not.toHaveBeenCalled();
-      
+
       // Verify config was updated
       expect(config.set).toHaveBeenCalledWith('defaultModel', 'gpt-4');
       expect(config.set).toHaveBeenCalledWith('tagMode', 'merge');
-      
+
       // Restore env
       process.env = originalEnv;
     });
-    
+
     it('should validate vault path when provided', async () => {
       // Setup mocks for advanced setup
       vi.mocked(inquirerPrompts.input).mockResolvedValueOnce('sk-abcdefg');
@@ -149,88 +162,88 @@ describe('configInteractiveCommand', () => {
       vi.mocked(inquirerPrompts.select<TagMode>).mockResolvedValueOnce('merge' as TagMode);
       vi.mocked(inquirerPrompts.number).mockResolvedValueOnce(5);
       vi.mocked(inquirerPrompts.select<LogLevel>).mockResolvedValueOnce('info' as LogLevel);
-      
+
       // Mock vault path input and validation
       const mockPromise = Promise.resolve('/valid/path') as Promise<string> & { cancel: () => void };
-      mockPromise.cancel = () => { /* noop */ };
+      mockPromise.cancel = () => {
+        /* noop */
+      };
       vi.mocked(inquirerPrompts.input).mockReturnValueOnce(mockPromise);
-      
+
       // Skip the validation testing - we'll assume it works
-      
+
       // Skip the rest of the inputs
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(true);
       vi.mocked(inquirerPrompts.number).mockResolvedValueOnce(15);
       vi.mocked(inquirerPrompts.input).mockResolvedValueOnce('./output');
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(false);
-      
+
       // Mock model list
       vi.mocked(modelManager.getAvailableModels).mockImplementationOnce(async () => {
-        return [
-          { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 }
-        ] as ModelPricing[];
+        return [{ id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 }] as ModelPricing[];
       });
-      
+
       // Run the handler without minimal mode
       await configInteractiveCommand.handler(mockArgv);
-      
+
       // Verification would happen in the mock implementation
     });
 
     it('should handle error when fetching models', async () => {
       // Setup mocks
       vi.mocked(inquirerPrompts.input).mockResolvedValueOnce('sk-invalid');
-      
+
       // Mock modelManager to throw an error
       vi.mocked(modelManager.getAvailableModels).mockRejectedValueOnce(new Error('API Error'));
-      
+
       // Default values for other prompts to skip them
       vi.mocked(inquirerPrompts.select<AIModel>).mockResolvedValue('gpt-3.5-turbo' as AIModel);
       vi.mocked(inquirerPrompts.select<TagMode>).mockResolvedValueOnce('merge' as TagMode);
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(true);
-      
+
       // Mock console.error since it's used in the implementation
-      const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => { /* noop */ });
-      
+      const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {
+        /* noop */
+      });
+
       // Run the handler
       await configInteractiveCommand.handler({ ...mockArgv, minimal: true });
-      
+
       // Verify error handling
       expect(consoleErrorMock).toHaveBeenCalledWith(
         expect.stringContaining('Error fetching available models:'),
         expect.any(Error)
       );
-      
+
       // Restore console.error
       consoleErrorMock.mockRestore();
     });
-    
+
     it('should export configuration to file when export option is provided', async () => {
       // Setup mocks
       vi.mocked(inquirerPrompts.input).mockResolvedValueOnce('sk-1234');
       vi.mocked(inquirerPrompts.select<AIModel>).mockResolvedValueOnce('gpt-4' as AIModel);
       vi.mocked(inquirerPrompts.select<TagMode>).mockResolvedValueOnce('merge' as TagMode);
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(true);
-      
+
       // Mock filesystem function
       const writeFileMock = vi.fn().mockResolvedValue(undefined);
       vi.mock('@obsidian-magic/utils', () => ({
-        writeFile: writeFileMock
+        writeFile: writeFileMock,
       }));
-      
+
       // Mock model list
       vi.mocked(modelManager.getAvailableModels).mockImplementationOnce(async () => {
-        return [
-          { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 }
-        ] as ModelPricing[];
+        return [{ id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 }] as ModelPricing[];
       });
-      
+
       // Run the handler with export option
       await configInteractiveCommand.handler({
         ...mockArgv,
         minimal: true,
-        export: './config-export.json'
+        export: './config-export.json',
       });
-      
+
       // Check export was attempted
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Exporting configuration'));
     });

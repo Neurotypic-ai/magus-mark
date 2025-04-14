@@ -1,9 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { taxonomyCommand } from './taxonomy';
-import { logger } from '@obsidian-magic/logger';
-import { config } from '../utils/config';
-import type { Argv } from 'yargs';
 import fs from 'fs-extra';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { logger } from '@obsidian-magic/logger';
+
+import { config } from '../utils/config';
+import { taxonomyCommand } from './taxonomy';
+
+import type { Argv } from 'yargs';
 
 // Mock dependencies
 vi.mock('../../src/utils/logger', () => ({
@@ -13,8 +16,8 @@ vi.mock('../../src/utils/logger', () => ({
     error: vi.fn(),
     debug: vi.fn(),
     box: vi.fn(),
-    configure: vi.fn()
-  }
+    configure: vi.fn(),
+  },
 }));
 
 vi.mock('../../src/utils/config', () => ({
@@ -26,14 +29,14 @@ vi.mock('../../src/utils/config', () => ({
           tags: {
             topic: ['javascript', 'typescript', 'react', 'node'],
             technology: ['frontend', 'backend', 'database'],
-            complexity: ['beginner', 'intermediate', 'advanced']
-          }
+            complexity: ['beginner', 'intermediate', 'advanced'],
+          },
         };
       }
       return undefined;
     }),
-    getAll: vi.fn().mockReturnValue({})
-  }
+    getAll: vi.fn().mockReturnValue({}),
+  },
 }));
 
 vi.mock('fs-extra', () => ({
@@ -41,8 +44,8 @@ vi.mock('fs-extra', () => ({
     existsSync: vi.fn().mockReturnValue(true),
     readFileSync: vi.fn().mockReturnValue(''),
     writeFileSync: vi.fn(),
-    outputFileSync: vi.fn()
-  }
+    outputFileSync: vi.fn(),
+  },
 }));
 
 describe('taxonomyCommand', () => {
@@ -58,13 +61,13 @@ describe('taxonomyCommand', () => {
   it('should have the required options in builder', () => {
     const yargsInstance = {
       option: vi.fn().mockReturnThis(),
-      example: vi.fn().mockReturnThis()
+      example: vi.fn().mockReturnThis(),
     } as unknown as Argv;
-    
+
     const builderFn = taxonomyCommand.builder as (yargs: Argv) => Argv;
     expect(builderFn).toBeDefined();
     builderFn(yargsInstance);
-    
+
     expect(yargsInstance.option).toHaveBeenCalledWith('output', expect.any(Object));
     expect(yargsInstance.option).toHaveBeenCalledWith('format', expect.any(Object));
   });
@@ -74,9 +77,9 @@ describe('taxonomyCommand', () => {
     const handlerFn = taxonomyCommand.handler;
     expect(handlerFn).toBeDefined();
     await handlerFn({
-      format: 'pretty'
+      format: 'pretty',
     });
-    
+
     // Verify the logger was called
     expect(logger.info).toHaveBeenCalled();
     expect(config.get).toHaveBeenCalledWith('taxonomy');
@@ -88,9 +91,9 @@ describe('taxonomyCommand', () => {
     expect(handlerFn).toBeDefined();
     await handlerFn({
       format: 'pretty',
-      output: 'taxonomy.json'
+      output: 'taxonomy.json',
     });
-    
+
     // Verify file was written
     expect(fs.outputFileSync).toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Saved taxonomy'));
@@ -101,9 +104,9 @@ describe('taxonomyCommand', () => {
     const handlerFn = taxonomyCommand.handler;
     expect(handlerFn).toBeDefined();
     await handlerFn({
-      format: 'json'
+      format: 'json',
     });
-    
+
     // Verify JSON output
     expect(logger.info).toHaveBeenCalledWith(expect.stringMatching(/^{/));
   });
@@ -111,33 +114,33 @@ describe('taxonomyCommand', () => {
   it('should handle empty taxonomy gracefully', async () => {
     // Override the mock to return undefined
     vi.mocked(config.get).mockReturnValueOnce(undefined);
-    
+
     // Call the handler
     const handlerFn = taxonomyCommand.handler;
     expect(handlerFn).toBeDefined();
     await handlerFn({
-      format: 'pretty'
+      format: 'pretty',
     });
-    
+
     // Verify warning was shown
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('No taxonomy'));
   });
 
   it('should handle malformed taxonomy gracefully', async () => {
     // Override the mock to return malformed data
-    vi.mocked(config.get).mockReturnValueOnce({ 
+    vi.mocked(config.get).mockReturnValueOnce({
       categories: null,
-      tags: 'invalid'
+      tags: 'invalid',
     });
-    
+
     // Call the handler
     const handlerFn = taxonomyCommand.handler;
     expect(handlerFn).toBeDefined();
     await handlerFn({
-      format: 'pretty'
+      format: 'pretty',
     });
-    
+
     // Verify error handling
     expect(logger.warn).toHaveBeenCalled();
   });
-}); 
+});

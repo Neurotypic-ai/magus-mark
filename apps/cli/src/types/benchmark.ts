@@ -90,4 +90,4 @@ export interface BenchmarkRunResult {
   };
   duration: number;
   error?: Error;
-} 
+}

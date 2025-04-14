@@ -1,8 +1,9 @@
 /**
  * Validation utility functions for Obsidian Magic
  */
-import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '@obsidian-magic/types';
 import { z } from 'zod';
+
+import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '@obsidian-magic/types';
 
 import type { ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainTag, TagSet, YearTag } from '@obsidian-magic/types';
 

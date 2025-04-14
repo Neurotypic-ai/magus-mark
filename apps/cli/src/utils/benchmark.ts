@@ -1,7 +1,8 @@
 import path from 'path';
 
-import { AppError, Result } from '@obsidian-magic/core';
 import fs from 'fs-extra';
+
+import { AppError, Result } from '@obsidian-magic/core';
 
 import { OpenAIClient, TaggingService } from '../mocks/core';
 

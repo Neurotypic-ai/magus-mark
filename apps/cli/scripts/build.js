@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-
-import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+
 import chalk from 'chalk';
+import fs from 'fs-extra';
 
 const execAsync = promisify(exec);
 
@@ -25,7 +25,7 @@ import('../dist/index.js').catch(err => {
 });
 `;
 
-    if (!await fs.pathExists(binFile)) {
+    if (!(await fs.pathExists(binFile))) {
       console.log(chalk.yellow('Creating bin script...'));
       await fs.writeFile(binFile, binContent);
       await fs.chmod(binFile, '755'); // Make executable
@@ -42,4 +42,4 @@ import('../dist/index.js').catch(err => {
   }
 }
 
-build(); 
+build();

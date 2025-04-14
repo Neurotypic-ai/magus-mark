@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { KeyManager } from './KeyManager';
+
 import type ObsidianMagicPlugin from '../main';
 
 // Create mock types and values
@@ -12,7 +14,7 @@ interface SecureStorage {
 
 // Mock node modules
 vi.mock('node:os', () => ({
-  platform: vi.fn().mockReturnValue('darwin')
+  platform: vi.fn().mockReturnValue('darwin'),
 }));
 
 // Mock keychain module
@@ -20,11 +22,11 @@ const mockSecureStorage: SecureStorage = {
   setPassword: vi.fn().mockResolvedValue(undefined),
   getPassword: vi.fn().mockResolvedValue('test-api-key'),
   deletePassword: vi.fn().mockResolvedValue(undefined),
-  isAvailable: vi.fn().mockReturnValue(true)
+  isAvailable: vi.fn().mockReturnValue(true),
 };
 
 vi.mock('@obsidian-magic/utils', () => ({
-  secureStorage: mockSecureStorage
+  secureStorage: mockSecureStorage,
 }));
 
 describe('KeyManager', () => {
@@ -33,9 +35,9 @@ describe('KeyManager', () => {
     settings: {
       apiKey: 'local-api-key',
       apiKeyStorage: 'local',
-      apiKeyKeychainId: 'obsidian-magic-api-key'
+      apiKeyKeychainId: 'obsidian-magic-api-key',
     },
-    saveSettings: vi.fn().mockResolvedValue(undefined)
+    saveSettings: vi.fn().mockResolvedValue(undefined),
   } as unknown as ObsidianMagicPlugin;
 
   beforeEach(() => {
@@ -84,20 +86,15 @@ describe('KeyManager', () => {
     it('should save API key to system keychain when apiKeyStorage is system', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
       await keyManager.saveKey('new-api-key');
-      expect(mockSecureStorage.setPassword).toHaveBeenCalledWith(
-        'obsidian-magic-api-key',
-        'new-api-key'
-      );
+      expect(mockSecureStorage.setPassword).toHaveBeenCalledWith('obsidian-magic-api-key', 'new-api-key');
       expect(mockPlugin.settings.apiKey).toBe('');
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
 
     it('should handle errors when saving to system keychain', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
-      (mockSecureStorage.setPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('Keychain error')
-      );
-      
+      (mockSecureStorage.setPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Keychain error'));
+
       await expect(keyManager.saveKey('new-api-key')).rejects.toThrow();
     });
   });
@@ -112,18 +109,14 @@ describe('KeyManager', () => {
     it('should delete API key from system keychain when apiKeyStorage is system', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
       await keyManager.deleteKey();
-      expect(mockSecureStorage.deletePassword).toHaveBeenCalledWith(
-        'obsidian-magic-api-key'
-      );
+      expect(mockSecureStorage.deletePassword).toHaveBeenCalledWith('obsidian-magic-api-key');
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
 
     it('should handle errors when deleting from system keychain', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
-      (mockSecureStorage.deletePassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('Keychain error')
-      );
-      
+      (mockSecureStorage.deletePassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Keychain error'));
+
       await expect(keyManager.deleteKey()).rejects.toThrow();
     });
   });
@@ -170,26 +163,21 @@ describe('KeyManager', () => {
       // Testing the essential implementation details similar to migrateKeyToSystem
       await keyManager.saveKey('local-api-key');
       mockPlugin.settings.apiKeyStorage = 'system';
-      
-      expect(mockSecureStorage.setPassword).toHaveBeenCalledWith(
-        'obsidian-magic-api-key',
-        'local-api-key'
-      );
+
+      expect(mockSecureStorage.setPassword).toHaveBeenCalledWith('obsidian-magic-api-key', 'local-api-key');
     });
 
     it('should handle errors during system migration', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
-      (mockSecureStorage.setPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('Keychain error')
-      );
-      
+      (mockSecureStorage.setPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Keychain error'));
+
       await expect(keyManager.saveKey('test-api-key')).rejects.toThrow();
     });
 
     it('should handle system keychain not being available', async () => {
       (mockSecureStorage.isAvailable as ReturnType<typeof vi.fn>).mockReturnValueOnce(false);
       mockPlugin.settings.apiKeyStorage = 'system';
-      
+
       await expect(keyManager.saveKey('test-api-key')).rejects.toThrow();
     });
   });
@@ -198,11 +186,11 @@ describe('KeyManager', () => {
     it('should simulate migrating key from system to local storage', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
       (mockSecureStorage.getPassword as ReturnType<typeof vi.fn>).mockResolvedValueOnce('test-api-key');
-      
+
       // Simulate the migration by changing storage type and then saving
       mockPlugin.settings.apiKeyStorage = 'local';
       await keyManager.saveKey('test-api-key');
-      
+
       expect(mockPlugin.settings.apiKey).toBe('test-api-key');
       expect(mockPlugin.saveSettings).toHaveBeenCalled();
     });
@@ -210,17 +198,15 @@ describe('KeyManager', () => {
     it('should handle missing key in system keychain', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
       (mockSecureStorage.getPassword as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
-      
+
       await expect(keyManager.loadKey()).resolves.toBeNull();
     });
 
     it('should handle errors when retrieving from system keychain', async () => {
       mockPlugin.settings.apiKeyStorage = 'system';
-      (mockSecureStorage.getPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('Keychain error')
-      );
-      
+      (mockSecureStorage.getPassword as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Keychain error'));
+
       await expect(keyManager.loadKey()).resolves.toBeNull();
     });
   });
-}); 
+});

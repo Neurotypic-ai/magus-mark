@@ -24,26 +24,19 @@ import { initializeCore } from '@obsidian-magic/core';
 // Initialize the core module with your API key
 const core = initializeCore({
   openaiApiKey: 'your-api-key',
-  model: 'gpt-4o' // Default model
+  model: 'gpt-4o', // Default model
 });
 
 // Parse a document
-const document = core.documentProcessor.parseDocument(
-  'document-id',
-  '/path/to/document.md',
-  markdownContent
-);
+const document = core.documentProcessor.parseDocument('document-id', '/path/to/document.md', markdownContent);
 
 // Tag the document
 const result = await core.taggingService.tagDocument(document);
 
 if (result.success && result.tags) {
   // Update document with tags
-  const updatedContent = core.documentProcessor.updateDocument(
-    document, 
-    result.tags
-  );
-  
+  const updatedContent = core.documentProcessor.updateDocument(document, result.tags);
+
   // Use the updated content
   console.log(updatedContent);
 }
@@ -55,13 +48,13 @@ if (result.success && result.tags) {
 import { initializeCore } from '@obsidian-magic/core';
 
 const core = initializeCore({
-  openaiApiKey: 'your-api-key'
+  openaiApiKey: 'your-api-key',
 });
 
 // Create a batch of documents
 const documents = [
   { id: 'doc1', path: '/path/to/doc1.md', content: '...' },
-  { id: 'doc2', path: '/path/to/doc2.md', content: '...' }
+  { id: 'doc2', path: '/path/to/doc2.md', content: '...' },
 ];
 
 // Get cost estimate
@@ -74,7 +67,7 @@ const result = await core.batchProcessingService.processBatch(documents, {
   continueOnError: true,
   onProgress: (completed, total) => {
     console.log(`Progress: ${completed}/${total}`);
-  }
+  },
 });
 
 // Use the results
@@ -84,22 +77,22 @@ console.log(`Successfully processed: ${result.summary.successful}`);
 ### Custom Taxonomy
 
 ```typescript
-import { initializeCore, TaxonomyManager } from '@obsidian-magic/core';
+import { TaxonomyManager, initializeCore } from '@obsidian-magic/core';
 
 // Create a custom taxonomy
 const taxonomyManager = new TaxonomyManager({
   domains: ['custom-domain'],
   subdomains: {
     'software-development': ['custom-subdomain'],
-    'custom-domain': ['sub1', 'sub2']
+    'custom-domain': ['sub1', 'sub2'],
   },
-  contextualTags: ['custom-tag']
+  contextualTags: ['custom-tag'],
 });
 
 // Initialize with custom taxonomy
 const core = initializeCore({
   openaiApiKey: 'your-api-key',
-  taxonomy: taxonomyManager.getTaxonomyForPrompt()
+  taxonomy: taxonomyManager.getTaxonomyForPrompt(),
 });
 
 // Continue using the core module...
@@ -114,12 +107,14 @@ const core = initializeCore({
 Initialize the core module with configuration.
 
 **Parameters:**
+
 - `options` - Configuration options
   - `openaiApiKey` - OpenAI API key
   - `model` - Model to use (default: 'gpt-4o')
   - `taxonomy` - Custom taxonomy for tagging
 
 **Returns:** Object containing core components:
+
 - `openAIClient` - OpenAI API client
 - `taxonomyManager` - Taxonomy management utilities
 - `taggingService` - Document tagging service
@@ -133,6 +128,7 @@ Initialize the core module with configuration.
 Service for tagging documents using AI.
 
 **Methods:**
+
 - `tagDocument(document)` - Tag a document with AI-generated tags
   - Returns a `TaggingResult` with success status and tags
 
@@ -141,6 +137,7 @@ Service for tagging documents using AI.
 Service for batch processing multiple documents.
 
 **Methods:**
+
 - `processBatch(documents)` - Process a batch of documents
   - Returns a `BatchProcessingResult` with results and summary
 - `estimateBatchCost(documents)` - Estimate the cost of processing
@@ -152,6 +149,7 @@ Service for batch processing multiple documents.
 Manage the tagging taxonomy.
 
 **Methods:**
+
 - `getTaxonomy()` - Get the complete taxonomy
 - `getTaxonomyForPrompt()` - Get taxonomy formatted for the prompt
 - `addDomain(domain)` - Add a new domain
@@ -167,6 +165,7 @@ Manage the tagging taxonomy.
 Client for interacting with the OpenAI API.
 
 **Methods:**
+
 - `makeRequest(prompt, systemMessage, options)` - Make a request to the API
 - `setApiKey(apiKey)` - Set API key
 - `setModel(model)` - Set model to use
@@ -177,6 +176,7 @@ Client for interacting with the OpenAI API.
 Templates for various OpenAI prompts.
 
 **Methods:**
+
 - `createTaggingPrompt(content, taxonomy, options)` - Create tagging prompt
 - `createExtractionPrompt(content, maxTokens)` - Create extraction prompt
 - `createSummaryPrompt(content)` - Create summary prompt
@@ -188,6 +188,7 @@ Templates for various OpenAI prompts.
 Process markdown documents.
 
 **Methods:**
+
 - `parseDocument(id, path, content)` - Parse a markdown document
 - `updateDocument(document, tags)` - Update document with tags
 - `extractContent(content)` - Extract content from markdown
@@ -197,6 +198,7 @@ Process markdown documents.
 Process YAML frontmatter in markdown documents.
 
 **Methods:**
+
 - `extractFrontmatter(content)` - Extract frontmatter from markdown
 - `extractTags(frontmatter)` - Extract tags from frontmatter
 - `tagsToFrontmatter(tags)` - Convert tags to frontmatter format
@@ -216,15 +218,17 @@ The core module uses standardized error types for consistent error handling:
 Example error handling:
 
 ```typescript
-import { initializeCore, AppError } from '@obsidian-magic/core';
+import { AppError, initializeCore } from '@obsidian-magic/core';
 
 try {
-  const core = initializeCore({ /* ... */ });
+  const core = initializeCore({
+    /* ... */
+  });
   await core.taggingService.tagDocument(document);
 } catch (err) {
   if (err instanceof AppError) {
     console.error(`Error: ${err.message}, Code: ${err.code}`);
-    
+
     // Check if error is recoverable
     if (err.recoverable) {
       // Try recovery logic
@@ -243,4 +247,4 @@ See the `examples` directory for detailed usage examples:
 
 ## License
 
-MIT 
+MIT

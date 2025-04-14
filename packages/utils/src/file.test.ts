@@ -1,6 +1,21 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+
+// Import after mocking
+import {
+  ensureDirectory,
+  fileExists,
+  findFiles,
+  getFileStats,
+  readFile,
+  readJsonFile,
+  safeDeleteFile,
+  writeFile,
+  writeJsonFile,
+} from './file';
+
 import type * as fsTypes from 'fs-extra';
 
 // Import the module under test, but mock the fs-extra dependency
@@ -19,21 +34,8 @@ vi.mock('fs-extra', () => ({
   access: mockAccess,
   readdir: mockReaddir,
   stat: mockStat,
-  unlink: mockUnlink
+  unlink: mockUnlink,
 }));
-
-// Import after mocking
-import {
-  ensureDirectory,
-  readFile,
-  readJsonFile,
-  writeFile,
-  writeJsonFile,
-  fileExists,
-  findFiles,
-  getFileStats,
-  safeDeleteFile
-} from './file';
 
 describe('File Utilities', () => {
   beforeEach(() => {
@@ -48,7 +50,7 @@ describe('File Utilities', () => {
     it('should create directory if it does not exist', async () => {
       const testDir = '/path/to/dir';
       mockEnsureDir.mockResolvedValue(undefined);
-      
+
       await ensureDirectory(testDir);
       expect(mockEnsureDir).toHaveBeenCalledWith(testDir);
     });
@@ -80,9 +82,9 @@ describe('File Utilities', () => {
       const testContent = '{"name": "test", "value": 123}';
       const testSchema = z.object({
         name: z.string(),
-        value: z.number()
+        value: z.number(),
       });
-      
+
       mockReadFile.mockResolvedValue(testContent);
 
       const result = await readJsonFile(testPath, testSchema);
@@ -94,7 +96,7 @@ describe('File Utilities', () => {
       const testPath = '/path/to/invalid.json';
       const testContent = '{invalid json}';
       const testSchema = z.object({});
-      
+
       mockReadFile.mockResolvedValue(testContent);
 
       await expect(readJsonFile(testPath, testSchema)).rejects.toThrow('Invalid JSON');
@@ -104,9 +106,9 @@ describe('File Utilities', () => {
       const testPath = '/path/to/valid.json';
       const testContent = '{"name": 123}'; // name should be string
       const testSchema = z.object({
-        name: z.string()
+        name: z.string(),
       });
-      
+
       mockReadFile.mockResolvedValue(testContent);
 
       await expect(readJsonFile(testPath, testSchema)).rejects.toThrow('Invalid JSON schema');
@@ -117,10 +119,10 @@ describe('File Utilities', () => {
     it('should write content to file', async () => {
       const testPath = '/path/to/file.txt';
       const testContent = 'file content';
-      
+
       mockEnsureDir.mockResolvedValue(undefined);
       mockWriteFile.mockResolvedValue(undefined);
-      
+
       await writeFile(testPath, testContent);
       expect(mockEnsureDir).toHaveBeenCalledWith(path.dirname(testPath));
       expect(mockWriteFile).toHaveBeenCalledWith(testPath, testContent, 'utf-8');
@@ -129,7 +131,7 @@ describe('File Utilities', () => {
     it('should throw error when write fails', async () => {
       const testPath = '/path/to/file.txt';
       const testContent = 'file content';
-      
+
       mockEnsureDir.mockResolvedValue(undefined);
       mockWriteFile.mockRejectedValue(new Error('Permission denied'));
 
@@ -141,32 +143,24 @@ describe('File Utilities', () => {
     it('should write JSON with pretty formatting by default', async () => {
       const testPath = '/path/to/file.json';
       const testData = { name: 'test', value: 123 };
-      
+
       mockEnsureDir.mockResolvedValue(undefined);
       mockWriteFile.mockResolvedValue(undefined);
-      
+
       await writeJsonFile(testPath, testData);
       expect(mockEnsureDir).toHaveBeenCalledWith(path.dirname(testPath));
-      expect(mockWriteFile).toHaveBeenCalledWith(
-        testPath, 
-        JSON.stringify(testData, null, 2), 
-        'utf-8'
-      );
+      expect(mockWriteFile).toHaveBeenCalledWith(testPath, JSON.stringify(testData, null, 2), 'utf-8');
     });
 
     it('should write compact JSON when pretty=false', async () => {
       const testPath = '/path/to/file.json';
       const testData = { name: 'test', value: 123 };
-      
+
       mockEnsureDir.mockResolvedValue(undefined);
       mockWriteFile.mockResolvedValue(undefined);
-      
+
       await writeJsonFile(testPath, testData, false);
-      expect(mockWriteFile).toHaveBeenCalledWith(
-        testPath, 
-        JSON.stringify(testData), 
-        'utf-8'
-      );
+      expect(mockWriteFile).toHaveBeenCalledWith(testPath, JSON.stringify(testData), 'utf-8');
     });
   });
 
@@ -194,31 +188,28 @@ describe('File Utilities', () => {
     it('should find files matching pattern', async () => {
       const testDir = '/path/to/dir';
       const testPattern = /\.md$/;
-      
+
       // Setup mocks for readdir to return different values based on path
       mockReaddir.mockImplementation((dirPath) => {
         if (dirPath === '/path/to/dir') {
           return Promise.resolve([
             { name: 'file1.md', isDirectory: () => false, isFile: () => true },
             { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
-            { name: 'subdir', isDirectory: () => true, isFile: () => false }
-          ] as unknown as fsTypes.Dirent[]);
-        } 
-        
-        if (dirPath === '/path/to/dir/subdir') {
-          return Promise.resolve([
-            { name: 'file3.md', isDirectory: () => false, isFile: () => true }
+            { name: 'subdir', isDirectory: () => true, isFile: () => false },
           ] as unknown as fsTypes.Dirent[]);
         }
-        
+
+        if (dirPath === '/path/to/dir/subdir') {
+          return Promise.resolve([
+            { name: 'file3.md', isDirectory: () => false, isFile: () => true },
+          ] as unknown as fsTypes.Dirent[]);
+        }
+
         return Promise.resolve([] as unknown as fsTypes.Dirent[]);
       });
 
       const result = await findFiles(testDir, testPattern);
-      expect(result).toEqual([
-        '/path/to/dir/file1.md',
-        '/path/to/dir/subdir/file3.md'
-      ]);
+      expect(result).toEqual(['/path/to/dir/file1.md', '/path/to/dir/subdir/file3.md']);
     });
   });
 
@@ -274,4 +265,4 @@ describe('File Utilities', () => {
       expect(mockUnlink).toHaveBeenCalledWith(testPath);
     });
   });
-}); 
+});

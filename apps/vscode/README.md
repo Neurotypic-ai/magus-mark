@@ -1,6 +1,7 @@
 # Obsidian Magic VS Code Extension
 
-AI-powered tagging system for organizing AI chat history and technical knowledge, seamlessly connecting VS Code with Obsidian.
+AI-powered tagging system for organizing AI chat history and technical knowledge, seamlessly connecting VS Code with
+Obsidian.
 
 ## Features
 
@@ -24,7 +25,8 @@ AI-powered tagging system for organizing AI chat history and technical knowledge
 
 ### Manual Installation
 
-1. Download the latest `.vsix` file from the [GitHub releases page](https://github.com/obsidian-magic/obsidian-magic/releases)
+1. Download the latest `.vsix` file from the
+   [GitHub releases page](https://github.com/obsidian-magic/obsidian-magic/releases)
 2. Open VS Code
 3. Go to the Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
 4. Click on the "..." menu and select "Install from VSIX..."
@@ -106,4 +108,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built on the VS Code Extension API
 - Powered by OpenAI's language models
 - Enhanced integration with Cursor AI
-- Seamless connection with Obsidian 
+- Seamless connection with Obsidian

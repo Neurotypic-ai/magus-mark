@@ -1,6 +1,8 @@
 /**
  * Service for integrating with the core tagging functionality
  */
+import { Notice } from 'obsidian';
+
 import {
   APIError,
   ApiKeyError,
@@ -12,7 +14,6 @@ import {
   TaggingError,
   withRetry,
 } from '@obsidian-magic/core';
-import { Notice } from 'obsidian';
 
 import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/types';
 import type { TFile } from 'obsidian';

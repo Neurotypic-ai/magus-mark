@@ -18,14 +18,7 @@ import type { CommandModule } from 'yargs';
  */
 export function getAllCommands(): CommandModule[] {
   // Import commands
-  return [
-    tagCommand,
-    testCommand,
-    statsCommand,
-    taxonomyCommand,
-    configCommand,
-    configInteractiveCommand,
-  ];
+  return [tagCommand, testCommand, statsCommand, taxonomyCommand, configCommand, configInteractiveCommand];
 }
 
 // Export all commands

@@ -27,7 +27,7 @@ import { logger } from '@obsidian-magic/logger';
 // Configure the logger
 logger.configure({
   logLevel: 'info',
-  outputFormat: 'pretty'
+  outputFormat: 'pretty',
 });
 
 // Basic logging
@@ -74,6 +74,6 @@ interface LoggerConfig {
 // Default configuration
 const DEFAULT_CONFIG = {
   logLevel: 'info',
-  outputFormat: 'pretty'
+  outputFormat: 'pretty',
 };
-``` 
+```

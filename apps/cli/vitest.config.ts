@@ -1,5 +1,6 @@
-import { defineConfig } from 'vitest/config';
 import * as path from 'path';
+
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -9,13 +10,13 @@ export default defineConfig({
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage'
-    }
+      reportsDirectory: './coverage',
+    },
   },
   resolve: {
     alias: {
       '@src': path.resolve(__dirname, './src'),
-      '@tests': path.resolve(__dirname, './tests')
-    }
-  }
-}); 
+      '@tests': path.resolve(__dirname, './tests'),
+    },
+  },
+});

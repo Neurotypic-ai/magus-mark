@@ -2,14 +2,15 @@
 import { readdir, stat } from 'fs/promises';
 import path from 'path';
 
-import { OpenAIClient, TaggingService } from '@obsidian-magic/core';
 import chalk from 'chalk';
 import cliProgress from 'cli-progress';
 import fs from 'fs-extra';
 
+import { OpenAIClient, TaggingService } from '@obsidian-magic/core';
+import { logger } from '@obsidian-magic/logger';
+
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
-import { logger } from '@obsidian-magic/logger';
 
 import type { AIModel, Document, TagBehavior, TagSet } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';

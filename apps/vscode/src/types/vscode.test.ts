@@ -1,16 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
-import type {
-  VSCodeSettings,
-  TagDecoration,
-  WorkspaceDocument,
-  TagTreeNode,
-  TagViewState,
-  MCPContext,
-  CursorDocument,
-  CursorCommand
-} from './vscode';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { TagSet } from '@obsidian-magic/types';
+
+import type {
+  CursorCommand,
+  CursorDocument,
+  MCPContext,
+  TagDecoration,
+  TagTreeNode,
+  TagViewState,
+  VSCodeSettings,
+  WorkspaceDocument,
+} from './vscode';
 
 describe('VS Code Extension Types', () => {
   it('validates VS Code settings', () => {
@@ -22,41 +23,41 @@ describe('VS Code Extension Types', () => {
         timeoutMs: 30000,
         maxRetries: 3,
         costPerTokenMap: {
-          'gpt-4o': 0.00005
-        }
+          'gpt-4o': 0.00005,
+        },
       },
       tagging: {
         model: 'gpt-4o',
         behavior: 'append',
         minConfidence: 0.6,
         reviewThreshold: 0.8,
-        generateExplanations: true
+        generateExplanations: true,
       },
       ui: {
         showTagsInExplorer: true,
         enableTagHighlighting: true,
         tagDecorationStyle: 'background',
-        showTagsInStatusBar: true
+        showTagsInStatusBar: true,
       },
       integration: {
         enableSidebarView: true,
         enableCodeLens: true,
         enableAutotagging: true,
-        enableTagCompletion: true
+        enableTagCompletion: true,
       },
       workspace: {
         vaultPath: '/path/to/vault',
         scanOnStartup: true,
         excludePatterns: ['*.tmp', '*.log'],
-        includePatterns: ['*.md']
+        includePatterns: ['*.md'],
       },
       advanced: {
         logLevel: 'info',
         enableTelemetry: true,
-        cacheExpiration: 60
-      }
+        cacheExpiration: 60,
+      },
     };
-    
+
     // Type checking verification
     expect(settings.api.defaultModel).toBe('gpt-4o');
     expect(settings.tagging.behavior).toBe('append');
@@ -64,17 +65,15 @@ describe('VS Code Extension Types', () => {
     expect(settings.integration.enableSidebarView).toBe(true);
     expect(settings.workspace.vaultPath).toBe('/path/to/vault');
     expect(settings.advanced.logLevel).toBe('info');
-    
+
     // Verify enum values
-    const validDecorationStyles: VSCodeSettings['ui']['tagDecorationStyle'][] = 
-      ['background', 'underline', 'outline'];
+    const validDecorationStyles: VSCodeSettings['ui']['tagDecorationStyle'][] = ['background', 'underline', 'outline'];
     expect(validDecorationStyles).toContain(settings.ui.tagDecorationStyle);
-    
-    const validLogLevels: VSCodeSettings['advanced']['logLevel'][] = 
-      ['debug', 'info', 'warn', 'error'];
+
+    const validLogLevels: VSCodeSettings['advanced']['logLevel'][] = ['debug', 'info', 'warn', 'error'];
     expect(validLogLevels).toContain(settings.advanced.logLevel);
   });
-  
+
   it('validates tag decoration', () => {
     const decoration: TagDecoration = {
       tag: 'technology',
@@ -83,21 +82,21 @@ describe('VS Code Extension Types', () => {
         color: '#0077cc',
         border: '1px solid #0077cc',
         borderRadius: '3px',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
       },
-      hoverMessage: 'Technology tag (confidence: 0.92)'
+      hoverMessage: 'Technology tag (confidence: 0.92)',
     };
-    
+
     expect(decoration.tag).toBe('technology');
     expect(decoration.style.backgroundColor).toBe('#e6f7ff');
     expect(decoration.style.color).toBe('#0077cc');
     expect(decoration.hoverMessage).toBe('Technology tag (confidence: 0.92)');
   });
-  
+
   it('validates workspace document', () => {
     const modifiedDate = new Date(Date.now() - 3600000); // 1 hour ago
     const taggedDate = new Date();
-    
+
     const document: WorkspaceDocument = {
       uri: 'file:///path/to/document.md',
       path: '/path/to/document.md',
@@ -107,18 +106,18 @@ describe('VS Code Extension Types', () => {
         topical_tags: [
           {
             domain: 'technology',
-            subdomain: 'ai'
-          }
+            subdomain: 'ai',
+          },
         ],
         conversation_type: 'deep-dive',
         confidence: {
-          overall: 0.92
-        }
+          overall: 0.92,
+        },
       },
       lastModified: modifiedDate,
-      lastTagged: taggedDate
+      lastTagged: taggedDate,
     };
-    
+
     expect(document.uri).toBe('file:///path/to/document.md');
     expect(document.path).toBe('/path/to/document.md');
     expect(document.name).toBe('document.md');
@@ -126,7 +125,7 @@ describe('VS Code Extension Types', () => {
     expect(document.lastModified).toBe(modifiedDate);
     expect(document.lastTagged).toBe(taggedDate);
   });
-  
+
   it('validates tag tree node', () => {
     // Root node with children
     const rootNode: TagTreeNode = {
@@ -148,21 +147,21 @@ describe('VS Code Extension Types', () => {
               tooltip: 'Tagged with Technology',
               children: [],
               documentUri: 'file:///path/to/document.md',
-              confidence: 0.92
-            }
+              confidence: 0.92,
+            },
           ],
           tag: 'technology',
           confidence: 0.95,
-          iconPath: '/path/to/tech-icon.svg'
-        }
+          iconPath: '/path/to/tech-icon.svg',
+        },
       ],
-      iconPath: '/path/to/folder-icon.svg'
+      iconPath: '/path/to/folder-icon.svg',
     };
-    
+
     // Fix circular references
-    (rootNode.children[0]!).parent = rootNode;
-    (rootNode.children[0].children[0]!).parent = rootNode.children[0];
-    
+    rootNode.children[0]!.parent = rootNode;
+    rootNode.children[0].children[0]!.parent = rootNode.children[0];
+
     expect(rootNode.id).toBe('root');
     expect(rootNode.type).toBe('tag-category');
     expect(rootNode.children).toHaveLength(1);
@@ -171,13 +170,13 @@ describe('VS Code Extension Types', () => {
     expect(rootNode.children[0]?.children[0]?.type).toBe('document');
     expect(rootNode.children[0]?.tag).toBe('technology');
     expect(rootNode.children[0]?.children[0]?.documentUri).toBe('file:///path/to/document.md');
-    
+
     // Verify enum values
     const validNodeTypes: TagTreeNode['type'][] = ['tag-category', 'tag', 'document'];
     expect(validNodeTypes).toContain(rootNode.type);
     expect(validNodeTypes).toContain(rootNode.children[0]?.type!);
   });
-  
+
   it('validates tag view state', () => {
     const viewState: TagViewState = {
       documents: [
@@ -189,10 +188,10 @@ describe('VS Code Extension Types', () => {
             year: '2023',
             topical_tags: [{ domain: 'technology' }],
             conversation_type: 'deep-dive',
-            confidence: { overall: 0.92 }
+            confidence: { overall: 0.92 },
           },
           lastModified: new Date(),
-          lastTagged: new Date()
+          lastTagged: new Date(),
         },
         {
           uri: 'file:///path/to/doc2.md',
@@ -202,11 +201,11 @@ describe('VS Code Extension Types', () => {
             year: '2023',
             topical_tags: [{ domain: 'business' }],
             conversation_type: 'analysis',
-            confidence: { overall: 0.88 }
+            confidence: { overall: 0.88 },
           },
           lastModified: new Date(),
-          lastTagged: new Date()
-        }
+          lastTagged: new Date(),
+        },
       ],
       selectedDocument: {
         uri: 'file:///path/to/doc1.md',
@@ -216,23 +215,23 @@ describe('VS Code Extension Types', () => {
           year: '2023',
           topical_tags: [{ domain: 'technology' }],
           conversation_type: 'deep-dive',
-          confidence: { overall: 0.92 }
+          confidence: { overall: 0.92 },
         },
         lastModified: new Date(),
-        lastTagged: new Date()
+        lastTagged: new Date(),
       },
       selectedTags: ['technology', 'deep-dive'],
       expandedCategories: ['domains', 'conversation-types'],
-      filterQuery: 'tech'
+      filterQuery: 'tech',
     };
-    
+
     expect(viewState.documents).toHaveLength(2);
     expect(viewState.selectedDocument?.name).toBe('doc1.md');
     expect(viewState.selectedTags).toContain('technology');
     expect(viewState.expandedCategories).toContain('domains');
     expect(viewState.filterQuery).toBe('tech');
   });
-  
+
   it('validates MCP context', () => {
     const context: MCPContext = {
       extensionPath: '/path/to/extension',
@@ -242,10 +241,10 @@ describe('VS Code Extension Types', () => {
       capabilities: {
         tagging: true,
         modelAccess: true,
-        fileAccess: true
-      }
+        fileAccess: true,
+      },
     };
-    
+
     expect(context.extensionPath).toBe('/path/to/extension');
     expect(context.workspacePath).toBe('/path/to/workspace');
     expect(context.serverPort).toBe(9000);
@@ -254,7 +253,7 @@ describe('VS Code Extension Types', () => {
     expect(context.capabilities.modelAccess).toBe(true);
     expect(context.capabilities.fileAccess).toBe(true);
   });
-  
+
   it('validates cursor document', () => {
     const doc: CursorDocument = {
       uri: 'file:///path/to/doc.md',
@@ -264,40 +263,40 @@ describe('VS Code Extension Types', () => {
         topical_tags: [
           {
             domain: 'technology',
-            subdomain: 'ai'
-          }
+            subdomain: 'ai',
+          },
         ],
         conversation_type: 'deep-dive',
         confidence: {
-          overall: 0.92
-        }
+          overall: 0.92,
+        },
       },
       content: 'This is a document about AI technology',
       metadata: {
         createdAt: '2023-05-15',
-        wordCount: 150
-      }
+        wordCount: 150,
+      },
     };
-    
+
     expect(doc.uri).toBe('file:///path/to/doc.md');
     expect(doc.path).toBe('/path/to/doc.md');
     expect(doc.tags.year).toBe('2023');
     expect(doc.content).toBe('This is a document about AI technology');
     expect(doc.metadata).toHaveProperty('wordCount');
   });
-  
+
   it('validates cursor command', () => {
     const mockExecute = vi.fn().mockResolvedValue({ success: true });
-    
+
     const command: CursorCommand = {
       name: 'Tag Document',
       id: 'obsidian-magic.tagDocument',
-      execute: mockExecute
+      execute: mockExecute,
     };
-    
+
     expect(command.name).toBe('Tag Document');
     expect(command.id).toBe('obsidian-magic.tagDocument');
-    
+
     // Test execution
     const context: MCPContext = {
       extensionPath: '/path/to/extension',
@@ -307,11 +306,11 @@ describe('VS Code Extension Types', () => {
       capabilities: {
         tagging: true,
         modelAccess: true,
-        fileAccess: true
-      }
+        fileAccess: true,
+      },
     };
-    
+
     void command.execute(context, { documentUri: 'file:///path/to/doc.md' });
     expect(mockExecute).toHaveBeenCalledWith(context, { documentUri: 'file:///path/to/doc.md' });
   });
-}); 
+});

@@ -187,9 +187,7 @@ export function updateFrontmatter(content: string, newData: FrontmatterObject): 
  * Type guard to check if an object might contain obsidianMagic tags
  */
 function isTagsObject(obj: unknown): obj is { obsidianMagic: unknown } {
-  return typeof obj === 'object' && 
-         obj !== null && 
-         'obsidianMagic' in obj;
+  return typeof obj === 'object' && obj !== null && 'obsidianMagic' in obj;
 }
 
 /**
@@ -224,10 +222,8 @@ export function updateTagsInFrontmatter(content: string, tags: TagSet): string {
 
   // Get existing tags, if any
   const existingTagsObj = frontmatter?.['tags'];
-  const existingTags: Record<string, unknown> = 
-    existingTagsObj && typeof existingTagsObj === 'object'
-      ? existingTagsObj as Record<string, unknown>
-      : {};
+  const existingTags: Record<string, unknown> =
+    existingTagsObj && typeof existingTagsObj === 'object' ? (existingTagsObj as Record<string, unknown>) : {};
 
   // Create updated frontmatter
   const updatedFrontmatter: FrontmatterObject = {

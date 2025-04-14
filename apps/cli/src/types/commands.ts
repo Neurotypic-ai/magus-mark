@@ -1,4 +1,4 @@
-import type { TagBehavior, AIModel } from '@obsidian-magic/types';
+import type { AIModel, TagBehavior } from '@obsidian-magic/types';
 
 /**
  * Log level type
@@ -72,9 +72,4 @@ export interface TaxonomyOptions extends CommonOptions {
 /**
  * Type alias for all command options
  */
-export type CommandOptions = 
-  TagOptions | 
-  TestOptions | 
-  ConfigOptions | 
-  StatsOptions | 
-  TaxonomyOptions; 
+export type CommandOptions = TagOptions | TestOptions | ConfigOptions | StatsOptions | TaxonomyOptions;

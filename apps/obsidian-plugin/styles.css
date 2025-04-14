@@ -1,8 +1,8 @@
 /* Obsidian Magic Plugin Styles */
 
 /* Tag Management View */
-.tag-section, 
-.actions-section, 
+.tag-section,
+.actions-section,
 .stats-section {
   margin-bottom: 2rem;
 }
@@ -186,11 +186,13 @@
 }
 
 /* Accessibility Improvements */
-button, input {
+button,
+input {
   transition: all 0.2s ease;
 }
 
-button:focus, input:focus {
+button:focus,
+input:focus {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 2px;
 }
@@ -214,16 +216,16 @@ input::placeholder {
   .tag-item {
     border: 1px solid var(--text-normal);
   }
-  
+
   button {
     border: 1px solid currentColor;
   }
-  
+
   .obsidian-magic-tag-widget {
     border: 1px solid currentColor;
   }
-  
+
   .visualization-container {
     border: 2px solid var(--text-normal);
   }
-} 
+}

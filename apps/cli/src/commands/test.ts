@@ -1,9 +1,10 @@
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
+import { logger } from '@obsidian-magic/logger';
+
 import { formatCurrency, formatDuration } from '../mocks/utils';
 import { benchmark } from '../utils/benchmark';
-import { logger } from '@obsidian-magic/logger';
 
 import type { AIModel } from '@obsidian-magic/types';
 import type { CommandModule } from 'yargs';

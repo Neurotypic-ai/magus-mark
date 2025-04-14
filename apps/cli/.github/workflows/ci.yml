@@ -2,12 +2,12 @@ name: CLI Tool CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'apps/cli/**'
       - 'packages/**'
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'apps/cli/**'
       - 'packages/**'
@@ -18,24 +18,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-          
+
       - name: Install pnpm
         run: npm install -g pnpm
-      
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Build
         run: |
           cd apps/cli
           pnpm run build
-          
+
       - name: Test
         run: |
           cd apps/cli
@@ -44,66 +44,66 @@ jobs:
   package:
     runs-on: ubuntu-latest
     needs: build
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-          
+
       - name: Install pnpm
         run: npm install -g pnpm
-      
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Build
         run: |
           cd apps/cli
           pnpm run build
-      
+
       - name: Package CLI
         run: |
           cd apps/cli
           pnpm pack
-      
+
       - name: Upload Package
         uses: actions/upload-artifact@v4
         with:
           name: cli-package
           path: apps/cli/*.tgz
-          
+
   cross-platform-test:
     runs-on: ${{ matrix.os }}
     needs: build
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-          
+
       - name: Install pnpm
         run: npm install -g pnpm
-      
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Build
         run: |
           cd apps/cli
           pnpm run build
-          
+
       - name: Test
         run: |
           cd apps/cli
-          pnpm run test 
+          pnpm run test

@@ -2,7 +2,6 @@
  * Markdown processing module for handling files and frontmatter
  */
 
-
 /**
  * Options for frontmatter processing
  */
@@ -36,5 +35,3 @@ export const DEFAULT_FRONTMATTER_OPTIONS: FrontmatterOptions = {
   tagsKey: 'tags',
   useNestedKeys: false,
 };
-
-

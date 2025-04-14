@@ -1,30 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
   clamp,
   confidenceScoreSchema,
-  yearTagSchema,
-  domainTagSchema,
-  lifeAreaTagSchema,
-  conversationTypeTagSchema,
   contextualTagSchema,
-  topicalTagSchema,
-  tagConfidenceSchema,
-  tagSetSchema,
-  isDomainWithSubdomain,
-  validateTagSet,
+  conversationTypeTagSchema,
+  domainTagSchema,
   getSubdomainsForDomain,
+  isDomainWithSubdomain,
+  isValidConversationType,
   isValidDomain,
   isValidLifeArea,
-  isValidConversationType
+  lifeAreaTagSchema,
+  tagConfidenceSchema,
+  tagSetSchema,
+  topicalTagSchema,
+  validateTagSet,
+  yearTagSchema,
 } from './validation';
 
-import type { 
-  DomainTag, 
-  TagSet, 
-  YearTag, 
-  LifeAreaTag, 
-  ConversationTypeTag, 
-} from '@obsidian-magic/types';
+import type { ConversationTypeTag, DomainTag, LifeAreaTag, TagSet, YearTag } from '@obsidian-magic/types';
 
 describe('Validation Utilities', () => {
   describe('clamp', () => {
@@ -94,7 +89,7 @@ describe('Validation Utilities', () => {
         const validTag = {
           domain: 'technology' as DomainTag,
           subdomain: 'programming',
-          contextual: 'beginner'
+          contextual: 'beginner',
         };
 
         expect(topicalTagSchema.safeParse(validTag).success).toBe(true);
@@ -102,7 +97,7 @@ describe('Validation Utilities', () => {
 
       it('should validate topical tags with only required fields', () => {
         const minimalTag = {
-          domain: 'technology' as DomainTag
+          domain: 'technology' as DomainTag,
         };
 
         expect(topicalTagSchema.safeParse(minimalTag).success).toBe(true);
@@ -111,7 +106,7 @@ describe('Validation Utilities', () => {
       it('should reject invalid topical tags', () => {
         const invalidTag = {
           domain: 'not-a-domain',
-          subdomain: 'programming'
+          subdomain: 'programming',
         };
 
         expect(topicalTagSchema.safeParse(invalidTag).success).toBe(false);
@@ -123,11 +118,11 @@ describe('Validation Utilities', () => {
         const validConfidence = {
           overall: 0.95,
           year: 0.97,
-          life_area: 0.90,
+          life_area: 0.9,
           domain: 0.93,
           subdomain: 0.85,
-          contextual: 0.80,
-          conversation_type: 0.92
+          contextual: 0.8,
+          conversation_type: 0.92,
         };
 
         expect(tagConfidenceSchema.safeParse(validConfidence).success).toBe(true);
@@ -135,7 +130,7 @@ describe('Validation Utilities', () => {
 
       it('should validate minimal confidence objects with only required fields', () => {
         const minimalConfidence = {
-          overall: 0.90
+          overall: 0.9,
         };
 
         expect(tagConfidenceSchema.safeParse(minimalConfidence).success).toBe(true);
@@ -143,7 +138,7 @@ describe('Validation Utilities', () => {
 
       it('should reject invalid confidence objects', () => {
         const invalidConfidence = {
-          overall: 1.2 // Must be <= 1
+          overall: 1.2, // Must be <= 1
         };
 
         expect(tagConfidenceSchema.safeParse(invalidConfidence).success).toBe(false);
@@ -159,14 +154,14 @@ describe('Validation Utilities', () => {
             {
               domain: 'technology' as DomainTag,
               subdomain: 'programming',
-              contextual: 'beginner'
-            }
+              contextual: 'beginner',
+            },
           ],
           conversation_type: 'deep-dive' as ConversationTypeTag,
           confidence: {
             overall: 0.92,
-            domain: 0.95
-          }
+            domain: 0.95,
+          },
         };
 
         expect(tagSetSchema.safeParse(validTagSet).success).toBe(true);
@@ -178,8 +173,8 @@ describe('Validation Utilities', () => {
           // Missing topical_tags (required)
           conversation_type: 'deep-dive',
           confidence: {
-            overall: 0.92
-          }
+            overall: 0.92,
+          },
         };
 
         expect(tagSetSchema.safeParse(invalidTagSet).success).toBe(false);
@@ -190,13 +185,13 @@ describe('Validation Utilities', () => {
           year: '23', // Not a 4-digit year
           topical_tags: [
             {
-              domain: 'technology'
-            }
+              domain: 'technology',
+            },
           ],
           conversation_type: 'deep-dive',
           confidence: {
-            overall: 0.92
-          }
+            overall: 0.92,
+          },
         };
 
         expect(tagSetSchema.safeParse(invalidTagSet).success).toBe(false);
@@ -277,13 +272,13 @@ describe('Validation Utilities', () => {
           year: '2023' as YearTag,
           topical_tags: [
             {
-              domain: 'technology' as DomainTag
-            }
+              domain: 'technology' as DomainTag,
+            },
           ],
           conversation_type: 'deep-dive' as ConversationTypeTag,
           confidence: {
-            overall: 0.92
-          }
+            overall: 0.92,
+          },
         };
 
         expect(() => validateTagSet(validTagSet)).not.toThrow();
@@ -332,4 +327,4 @@ describe('Validation Utilities', () => {
       });
     });
   });
-}); 
+});

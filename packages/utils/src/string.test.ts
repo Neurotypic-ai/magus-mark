@@ -1,15 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  truncate,
-  toKebabCase,
-  toCamelCase,
-  toPascalCase,
-  slugify,
-  normalizeLineEndings,
   escapeRegExp,
-  sanitizeHtml,
+  formatCurrency,
   formatDuration,
-  formatCurrency
+  normalizeLineEndings,
+  sanitizeHtml,
+  slugify,
+  toCamelCase,
+  toKebabCase,
+  toPascalCase,
+  truncate,
 } from './string';
 
 describe('String Utilities', () => {
@@ -121,4 +122,4 @@ describe('String Utilities', () => {
       expect(formatCurrency(1234.56, 'EUR')).toBe('€1,234.56');
     });
   });
-}); 
+});

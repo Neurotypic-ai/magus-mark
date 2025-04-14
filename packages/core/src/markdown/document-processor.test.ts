@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { DocumentProcessor } from './document-processor';
 import { FrontmatterProcessor } from './frontmatter-processor';
+
 import type { Document, TagSet } from '@obsidian-magic/types';
 
 // Set up mocks
@@ -48,7 +50,7 @@ describe('DocumentProcessor', () => {
         id,
         path,
         content,
-        metadata: {}
+        metadata: {},
       });
     });
 
@@ -93,23 +95,20 @@ describe('DocumentProcessor', () => {
         life_area: 'learning',
         topical_tags: [{ domain: 'software-development' }],
         conversation_type: 'practical',
-        confidence: { overall: 0.9 }
+        confidence: { overall: 0.9 },
       };
 
       const document: Document = {
         id: 'test-id',
         path: '/path/to/document.md',
         content: '# Test Document\nContent here',
-        metadata: {}
+        metadata: {},
       };
 
       const processor = new DocumentProcessor();
       const updated = processor.updateDocument(document, sampleTagSet);
 
-      expect(mockUpdateFrontmatter).toHaveBeenCalledWith(
-        document.content,
-        sampleTagSet
-      );
+      expect(mockUpdateFrontmatter).toHaveBeenCalledWith(document.content, sampleTagSet);
       expect(updated).toBe(`UPDATED: # Test Document\nContent here`);
     });
   });
@@ -134,7 +133,7 @@ This is the main content.`;
 
     it('should return the original content if no frontmatter is present', () => {
       const content = '# Document without frontmatter\nJust content.';
-      
+
       const processor = new DocumentProcessor();
       const extracted = processor.extractContent(content);
 
@@ -165,4 +164,4 @@ Extra spaces at the end.   `;
       expect(true).toBeTruthy();
     });
   });
-}); 
+});

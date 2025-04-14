@@ -4,11 +4,12 @@
 import os from 'os';
 import path from 'path';
 
-import { fileExists, readFile, writeFile } from '@obsidian-magic/utils';
 import Conf from 'conf';
 import { cosmiconfig } from 'cosmiconfig';
 import fs from 'fs-extra';
 import { z } from 'zod';
+
+import { fileExists, readFile, writeFile } from '@obsidian-magic/utils';
 
 import { deepMerge } from '../mocks/utils';
 

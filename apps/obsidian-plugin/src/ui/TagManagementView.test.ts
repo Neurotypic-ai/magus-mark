@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { WorkspaceLeaf, MetadataCache, Vault, TFile  } from 'obsidian';
-import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TagManagementView } from './TagManagementView';
+
+import type { MetadataCache, TFile, Vault, WorkspaceLeaf } from 'obsidian';
+import type { Mock } from 'vitest';
+
 import type ObsidianMagicPlugin from '../main';
 
 // Define interface for mocking
@@ -47,42 +49,40 @@ const mockLeaf: Partial<MockedWorkspaceLeaf> = {
   containerEl: {
     children: [
       {}, // First child (typically header)
-      {  // Content container
+      {
+        // Content container
         empty: vi.fn(),
         createEl: vi.fn().mockReturnThis(),
         createDiv: vi.fn().mockReturnValue({
           createEl: vi.fn().mockReturnThis(),
           createDiv: vi.fn().mockReturnValue({
             createEl: vi.fn().mockReturnValue({
-              addEventListener: vi.fn()
+              addEventListener: vi.fn(),
             }),
             createSpan: vi.fn().mockReturnThis(),
-            setText: vi.fn()
-          })
-        })
-      }
-    ]
-  }
+            setText: vi.fn(),
+          }),
+        }),
+      },
+    ],
+  },
 };
 
 describe('TagManagementView', () => {
   let view: TagManagementView;
-  
+
   const mockPlugin = {
     app: {
       metadataCache: {
         getFileCache: vi.fn().mockReturnValue({
           frontmatter: { tags: ['test-tag'] },
-          tags: [{ tag: '#inline-tag', position: { start: { line: 5 } } }]
-        })
+          tags: [{ tag: '#inline-tag', position: { start: { line: 5 } } }],
+        }),
       } as unknown as Partial<MetadataCache>,
       vault: {
-        getMarkdownFiles: vi.fn().mockReturnValue([
-          { path: 'note1.md' },
-          { path: 'note2.md' }
-        ])
-      } as unknown as Partial<Vault>
-    }
+        getMarkdownFiles: vi.fn().mockReturnValue([{ path: 'note1.md' }, { path: 'note2.md' }]),
+      } as unknown as Partial<Vault>,
+    },
   } as unknown as ObsidianMagicPlugin;
 
   beforeEach(() => {
@@ -104,7 +104,7 @@ describe('TagManagementView', () => {
 
   it('should render the view on open', async () => {
     await view.onOpen();
-    
+
     const container = mockLeaf.containerEl?.children[1];
     if (container) {
       expect(container.empty).toHaveBeenCalled();
@@ -115,10 +115,10 @@ describe('TagManagementView', () => {
   it('should collect tags from the vault', () => {
     // Using "unknown" instead of "any" with a type assertion for the private method
     const privates = view as unknown as TagManagementViewPrivates;
-    
+
     // Now we can safely call the method through our typed interface
     const tags = privates.getAllTags();
-    
+
     expect(Array.isArray(tags)).toBe(true);
     expect(tags.length).toBeGreaterThan(0);
   });
@@ -128,21 +128,21 @@ describe('TagManagementView', () => {
       empty: vi.fn(),
       createEl: vi.fn().mockReturnThis(),
       createSpan: vi.fn().mockReturnThis(),
-      setText: vi.fn()
+      setText: vi.fn(),
     } as unknown as MockContainer;
-    
+
     // Using "unknown" instead of "any" with a type assertion for the private method
     const privates = view as unknown as TagManagementViewPrivates;
-    
+
     // Mock getAllTags to return test data
     vi.spyOn(privates, 'getAllTags').mockReturnValue([
       { id: 'tag-1', name: '#tag1', count: 3 },
-      { id: 'tag-2', name: '#tag2', count: 1 }
+      { id: 'tag-2', name: '#tag2', count: 1 },
     ]);
-    
+
     // Now we can safely call the method through our typed interface
     privates.renderTagsList(mockContainer, 'tag1');
-    
+
     expect(mockContainer.empty).toHaveBeenCalled();
   });
-}); 
+});

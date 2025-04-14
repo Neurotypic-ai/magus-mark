@@ -34,15 +34,18 @@
 ### Tagging Single Documents
 
 #### Method 1: Command Palette
+
 1. Open the document you want to tag
 2. Press `Ctrl/Cmd+P` to open the command palette
 3. Type "Tag Current File" and select the command
 
 #### Method 2: Context Menu
+
 1. Right-click on a file in the file explorer
 2. Select "Tag with Obsidian Magic"
 
 #### Method 3: Ribbon Button
+
 1. Click the Obsidian Magic icon in the ribbon (left sidebar)
 2. Select "Tag Current File"
 
@@ -78,14 +81,17 @@
 ## Troubleshooting
 
 ### API Key Issues
+
 - Make sure your OpenAI API key is valid and has sufficient credits
 - Check your internet connection
 
 ### Performance Issues
+
 - For large vaults, consider batch processing smaller folders
 - Adjust the concurrency settings in the plugin settings
 
 ### Tag Conflicts
+
 - Review the merge strategy in settings
 - Use the Tag Management view to resolve conflicts manually
 
@@ -93,4 +99,4 @@
 
 - Check the [full documentation](https://github.com/obsidian-magic/obsidian-magic/wiki)
 - Report issues on [GitHub](https://github.com/obsidian-magic/obsidian-magic/issues)
-- Join the [Obsidian Discord](https://discord.gg/obsidianmd) and ask in the #plugin-discuss channel 
+- Join the [Obsidian Discord](https://discord.gg/obsidianmd) and ask in the #plugin-discuss channel

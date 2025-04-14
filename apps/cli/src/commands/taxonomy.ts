@@ -1,9 +1,10 @@
-import { fileExists, readFile, writeFile } from '@obsidian-magic/utils';
 import chalk from 'chalk';
+
+import { logger } from '@obsidian-magic/logger';
+import { fileExists, readFile, writeFile } from '@obsidian-magic/utils';
 
 // Import a local mock instead since the actual module may not exist
 import { taxonomy as taxonomyService } from '../mocks/core';
-import { logger } from '@obsidian-magic/logger';
 
 import type { CommandModule } from 'yargs';
 

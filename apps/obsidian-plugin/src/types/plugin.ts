@@ -2,7 +2,7 @@
  * Plugin-specific type definitions for Obsidian Magic
  */
 
-import type { TagSet, APIConfig, TaggingOptions } from '@obsidian-magic/types';
+import type { APIConfig, TagSet, TaggingOptions } from '@obsidian-magic/types';
 
 /**
  * Obsidian plugin settings
@@ -94,7 +94,7 @@ export interface TagStatistics {
   tagDistribution: Record<string, number>;
   averageConfidence: number;
   userModificationRate: number;
-  mostCommonTags: {tag: string; count: number}[];
+  mostCommonTags: { tag: string; count: number }[];
 }
 
 /**
@@ -106,4 +106,4 @@ export interface TagEvent {
   tags: Partial<TagSet>;
   user: boolean; // true if user initiated, false if system
   timestamp: Date;
-} 
+}

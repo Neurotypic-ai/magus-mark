@@ -16,7 +16,7 @@ export * from './openai-client';
 export * from './tagging-service';
 export * from './openai-models';
 export * from './model-manager';
-  
+
 // Export tagging functionality
 export * from './markdown/frontmatter-processor';
 export * from './markdown/document-processor';

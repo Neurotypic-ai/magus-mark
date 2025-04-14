@@ -33,26 +33,22 @@ export function estimateTokenCount(text: string): number {
  */
 export function truncateToTokenLimit(text: string, maxTokens = MAX_PROMPT_LENGTH): string {
   const estimatedTokens = estimateTokenCount(text);
-  
+
   if (estimatedTokens <= maxTokens) {
     return text;
   }
-  
+
   // Calculate approximate character limit
   const charLimit = Math.floor(maxTokens / TOKENS_PER_CHARACTER);
-  
+
   // Try to truncate at sentence boundary
   const truncated = text.slice(0, charLimit);
-  const lastSentenceEnd = Math.max(
-    truncated.lastIndexOf('.'),
-    truncated.lastIndexOf('!'),
-    truncated.lastIndexOf('?')
-  );
-  
+  const lastSentenceEnd = Math.max(truncated.lastIndexOf('.'), truncated.lastIndexOf('!'), truncated.lastIndexOf('?'));
+
   if (lastSentenceEnd > charLimit * 0.8) {
     return text.slice(0, lastSentenceEnd + 1);
   }
-  
+
   return truncated;
 }
 
@@ -77,11 +73,11 @@ export async function loadPromptTemplate(templatePath: string): Promise<string> 
  */
 export function processTemplate(template: string, variables: Record<string, string>): string {
   let processed = template;
-  
+
   for (const [key, value] of Object.entries(variables)) {
     processed = processed.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), value);
   }
-  
+
   return processed;
 }
 
@@ -93,11 +89,8 @@ export function processTemplate(template: string, variables: Record<string, stri
  */
 export function formatDocumentForPrompt(content: string, maxTokens = MAX_PROMPT_LENGTH * 0.8): string {
   // Clean and normalize content
-  const normalized = content
-    .replace(/\r\n/g, '\n')
-    .replace(/\t/g, '    ')
-    .trim();
-  
+  const normalized = content.replace(/\r\n/g, '\n').replace(/\t/g, '    ').trim();
+
   return truncateToTokenLimit(normalized, maxTokens);
 }
 
@@ -118,26 +111,26 @@ export function combinePromptComponents(
   // Start with system prompt which we never truncate
   let combinedPrompt = systemPrompt;
   const remainingTokens = maxTokens - estimateTokenCount(systemPrompt);
-  
+
   if (remainingTokens <= 0) {
     return combinedPrompt;
   }
-  
+
   // Add context if provided, using up to 30% of remaining tokens
   if (context) {
     const contextTokens = Math.floor(remainingTokens * 0.3);
     const truncatedContext = truncateToTokenLimit(context, contextTokens);
     combinedPrompt += `\n\nContext:\n${truncatedContext}`;
   }
-  
+
   // Calculate tokens used so far
   const tokensUsed = estimateTokenCount(combinedPrompt);
   const userTokens = maxTokens - tokensUsed;
-  
+
   // Add user content with remaining tokens
   const truncatedUserContent = truncateToTokenLimit(userContent, userTokens);
   combinedPrompt += `\n\nDocument:\n${truncatedUserContent}`;
-  
+
   return combinedPrompt;
 }
 
@@ -148,10 +141,10 @@ export function combinePromptComponents(
  */
 export async function loadPromptTemplates(templateDir: string): Promise<Map<string, string>> {
   const templates = new Map<string, string>();
-  
+
   try {
     const files = await fs.readdir(templateDir);
-    
+
     for (const file of files) {
       if (path.extname(file) === '.txt' || path.extname(file) === '.md') {
         const templateName = path.basename(file, path.extname(file));
@@ -160,9 +153,9 @@ export async function loadPromptTemplates(templateDir: string): Promise<Map<stri
         templates.set(templateName, templateContent);
       }
     }
-    
+
     return templates;
   } catch (error) {
     throw new Error(`Failed to load prompt templates from ${templateDir}: ${(error as Error).message}`);
   }
-} 
+}

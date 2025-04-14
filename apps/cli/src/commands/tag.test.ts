@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { tagCommand } from './tag';
+
 // Imports are kept for mocking purposes
 import '@obsidian-magic/logger';
 import '../utils/config';
 import 'fs-extra';
 import '@obsidian-magic/core';
+
 import type { Argv } from 'yargs';
 
 // Mock dependencies
@@ -15,44 +18,44 @@ vi.mock('../../src/utils/logger', () => ({
     error: vi.fn(),
     debug: vi.fn(),
     box: vi.fn(),
-    configure: vi.fn()
-  }
+    configure: vi.fn(),
+  },
 }));
 
 vi.mock('../../src/utils/config', () => ({
   config: {
     get: vi.fn(),
-    getAll: vi.fn().mockReturnValue({})
-  }
+    getAll: vi.fn().mockReturnValue({}),
+  },
 }));
 
 vi.mock('fs-extra', () => ({
   default: {
     existsSync: vi.fn().mockReturnValue(true),
     readFileSync: vi.fn().mockReturnValue('# Test Content\n\nThis is a test markdown file.'),
-    writeFileSync: vi.fn()
-  }
+    writeFileSync: vi.fn(),
+  },
 }));
 
 vi.mock('@obsidian-magic/core', () => ({
   OpenAIClient: vi.fn().mockImplementation(() => ({
     setApiKey: vi.fn(),
-    setModel: vi.fn()
+    setModel: vi.fn(),
   })),
   TaggingService: vi.fn().mockImplementation(() => ({
     tagDocument: vi.fn().mockResolvedValue({
       success: true,
-      tags: ['test', 'markdown', 'content']
-    })
-  }))
+      tags: ['test', 'markdown', 'content'],
+    }),
+  })),
 }));
 
 vi.mock('fs/promises', () => ({
   readdir: vi.fn().mockResolvedValue(['test.md']),
   stat: vi.fn().mockImplementation((path: string) => ({
     isFile: () => path.endsWith('.md'),
-    isDirectory: () => !path.endsWith('.md')
-  }))
+    isDirectory: () => !path.endsWith('.md'),
+  })),
 }));
 
 describe('tagCommand', () => {
@@ -74,13 +77,13 @@ describe('tagCommand', () => {
     const yargsInstance = {
       positional: vi.fn().mockReturnThis(),
       option: vi.fn().mockReturnThis(),
-      example: vi.fn().mockReturnThis()
+      example: vi.fn().mockReturnThis(),
     } as unknown as Argv;
-    
+
     if (tagCommand.builder) {
       const builderFn = tagCommand.builder as (yargs: Argv) => Argv;
       builderFn(yargsInstance);
-      
+
       expect(yargsInstance.positional).toHaveBeenCalledWith('paths', expect.any(Object));
       expect(yargsInstance.option).toHaveBeenCalledWith('model', expect.any(Object));
       expect(yargsInstance.option).toHaveBeenCalledWith('mode', expect.any(Object));
@@ -90,4 +93,4 @@ describe('tagCommand', () => {
 
   // Additional tests would test the handler functionality
   // This would require more comprehensive mocking
-}); 
+});

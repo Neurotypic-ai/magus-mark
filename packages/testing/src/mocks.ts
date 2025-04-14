@@ -2,8 +2,8 @@
  * Mock utilities for testing
  */
 
-import type { TagSet } from '@obsidian-magic/types';
 import type { OpenAIConfig, OpenAIResponse } from '@obsidian-magic/core';
+import type { TagSet } from '@obsidian-magic/types';
 
 /**
  * Creates a mock TagSet for testing
@@ -15,8 +15,8 @@ export function createMockTagSet(overrides: Partial<TagSet> = {}): TagSet {
     year: '2023',
     life_area: 'projects',
     topical_tags: [
-      { domain: 'software-development', subdomain: 'frontend' }, 
-      { domain: 'performance', contextual: 'performance' }
+      { domain: 'software-development', subdomain: 'frontend' },
+      { domain: 'performance', contextual: 'performance' },
     ],
     conversation_type: 'practical',
     confidence: {

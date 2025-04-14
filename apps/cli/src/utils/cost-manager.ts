@@ -1,11 +1,12 @@
 import * as path from 'path';
 
-import { CostLimitError } from '@obsidian-magic/core';
-import { calculateCost } from '@obsidian-magic/core/src/openai-models';
 import * as fs from 'fs-extra';
 
-import { config } from './config';
+import { CostLimitError } from '@obsidian-magic/core';
+import { calculateCost } from '@obsidian-magic/core/src/openai-models';
 import { logger } from '@obsidian-magic/logger';
+
+import { config } from './config';
 
 import type { AIModel } from '@obsidian-magic/types';
 

@@ -15,7 +15,7 @@ export const lifeAreaTagSchema = z.enum([
   'projects',
   'personal-growth',
   'finance',
-  'hobby'
+  'hobby',
 ]);
 
 export const domainTagSchema = z.enum([
@@ -30,7 +30,7 @@ export const domainTagSchema = z.enum([
   'technology',
   'health',
   'education',
-  'finance'
+  'finance',
 ]);
 
 // This is a simplification as we can't directly map the complex SubdomainMap in Zod
@@ -51,10 +51,11 @@ export const conversationTypeTagSchema = z.enum([
   'reflection',
   'planning',
   'question',
-  'analysis'
+  'analysis',
 ]);
 
-export const confidenceScoreSchema = z.number()
+export const confidenceScoreSchema = z
+  .number()
   .min(0, 'Confidence score must be at least 0')
   .max(1, 'Confidence score must be at most 1');
 
@@ -62,7 +63,7 @@ export const confidenceScoreSchema = z.number()
 export const topicalTagSchema = z.object({
   domain: domainTagSchema,
   subdomain: subdomainTagSchema.optional(),
-  contextual: contextualTagSchema.optional()
+  contextual: contextualTagSchema.optional(),
 });
 
 export const tagConfidenceSchema = z.object({
@@ -72,7 +73,7 @@ export const tagConfidenceSchema = z.object({
   domain: confidenceScoreSchema.optional(),
   subdomain: confidenceScoreSchema.optional(),
   contextual: confidenceScoreSchema.optional(),
-  conversation_type: confidenceScoreSchema.optional()
+  conversation_type: confidenceScoreSchema.optional(),
 });
 
 export const tagSetSchema = z.object({
@@ -81,7 +82,7 @@ export const tagSetSchema = z.object({
   topical_tags: z.array(topicalTagSchema),
   conversation_type: conversationTypeTagSchema,
   confidence: tagConfidenceSchema,
-  explanations: z.record(z.string()).optional()
+  explanations: z.record(z.string()).optional(),
 });
 
 export const tagBehaviorSchema = z.enum(['append', 'replace', 'merge']);
@@ -97,4 +98,4 @@ export type ConfidenceScoreSchema = z.infer<typeof confidenceScoreSchema>;
 export type TopicalTagSchema = z.infer<typeof topicalTagSchema>;
 export type TagConfidenceSchema = z.infer<typeof tagConfidenceSchema>;
 export type TagSetSchema = z.infer<typeof tagSetSchema>;
-export type TagBehaviorSchema = z.infer<typeof tagBehaviorSchema>; 
+export type TagBehaviorSchema = z.infer<typeof tagBehaviorSchema>;

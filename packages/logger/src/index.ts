@@ -1,6 +1,10 @@
+import boxen from 'boxen';
 import chalk from 'chalk';
-import ora, { type Ora } from 'ora';
-import boxen, { type Options as BoxenOptions } from 'boxen';
+import ora from 'ora';
+
+import type { Options as BoxenOptions } from 'boxen';
+import type { Ora } from 'ora';
+
 import type { LogLevel, LoggerConfig } from './types';
 
 /**
@@ -8,7 +12,7 @@ import type { LogLevel, LoggerConfig } from './types';
  */
 const DEFAULT_CONFIG: LoggerConfig = {
   logLevel: 'info',
-  outputFormat: 'pretty'
+  outputFormat: 'pretty',
 };
 
 /**
@@ -18,11 +22,11 @@ class Logger {
   private static instance: Logger | null = null;
   private config: LoggerConfig = DEFAULT_CONFIG;
   private spinners = new Map<string, Ora>();
-  
+
   private constructor() {
     // Private constructor for singleton
   }
-  
+
   /**
    * Get singleton instance
    */
@@ -30,14 +34,14 @@ class Logger {
     Logger.instance ??= new Logger();
     return Logger.instance;
   }
-  
+
   /**
    * Configure the logger
    */
   public configure(config: Partial<LoggerConfig>): void {
     this.config = { ...this.config, ...config };
   }
-  
+
   /**
    * Log an info message
    */
@@ -46,7 +50,7 @@ class Logger {
       this.log('info', message);
     }
   }
-  
+
   /**
    * Log a warning message
    */
@@ -55,7 +59,7 @@ class Logger {
       this.log('warn', message);
     }
   }
-  
+
   /**
    * Log an error message
    */
@@ -64,7 +68,7 @@ class Logger {
       this.log('error', message);
     }
   }
-  
+
   /**
    * Log a debug message
    */
@@ -73,7 +77,7 @@ class Logger {
       this.log('debug', message);
     }
   }
-  
+
   /**
    * Log a success message
    */
@@ -82,58 +86,58 @@ class Logger {
       this.log('success', message);
     }
   }
-  
+
   /**
    * Display content in a box
    */
   public box(content: string, title?: string): void {
     if (this.config.outputFormat === 'silent') return;
-    
+
     if (this.config.outputFormat === 'json') {
       console.log(JSON.stringify({ type: 'box', content, title }));
       return;
     }
-    
+
     const options: BoxenOptions = {
       padding: 1,
       margin: 1,
       borderStyle: 'round',
       borderColor: 'cyan',
       titleAlignment: 'center',
-      ...(title ? { title } : {})
+      ...(title ? { title } : {}),
     };
-    
+
     console.log(boxen(content, options));
   }
-  
+
   /**
    * Display a table
    */
   public table(data: Record<string, unknown>[], columns?: string[]): void {
     if (this.config.outputFormat === 'silent') return;
-    
+
     if (this.config.outputFormat === 'json') {
       console.log(JSON.stringify({ type: 'table', data }));
       return;
     }
-    
+
     console.table(data, columns);
   }
-  
+
   /**
    * Format a cost value as currency
    */
   public formatCost(value: number): string {
     return `$${value.toFixed(4)}`;
   }
-  
+
   /**
    * Format tokens count with comma separators
    */
   public formatTokens(tokens: number): string {
     return tokens.toLocaleString();
   }
-  
+
   /**
    * Create a spinner
    */
@@ -144,7 +148,7 @@ class Logger {
       this.spinners.set(id, dummySpinner);
       return dummySpinner;
     }
-    
+
     if (this.spinners.has(id)) {
       const existingSpinner = this.spinners.get(id);
       if (existingSpinner) {
@@ -152,12 +156,12 @@ class Logger {
         return existingSpinner;
       }
     }
-    
+
     const spinner = ora({ text }).start();
     this.spinners.set(id, spinner);
     return spinner;
   }
-  
+
   /**
    * Stop a spinner with success
    */
@@ -168,7 +172,7 @@ class Logger {
       this.spinners.delete(id);
     }
   }
-  
+
   /**
    * Stop a spinner with failure
    */
@@ -179,7 +183,7 @@ class Logger {
       this.spinners.delete(id);
     }
   }
-  
+
   /**
    * Log a message
    */
@@ -188,9 +192,9 @@ class Logger {
       console.log(JSON.stringify({ level, message }));
       return;
     }
-    
-    const timestamp = new Date().toISOString().split('T')[1]?.slice(0, 8) ?? "";
-    
+
+    const timestamp = new Date().toISOString().split('T')[1]?.slice(0, 8) ?? '';
+
     switch (level) {
       case 'error':
         console.error(`${chalk.gray(timestamp)} ${chalk.red.bold('ERROR')} ${message}`);
@@ -209,21 +213,21 @@ class Logger {
         break;
     }
   }
-  
+
   /**
    * Check if a log level should be logged
    */
   private shouldLog(level: LogLevel): boolean {
     if (this.config.outputFormat === 'silent') return false;
-    
+
     const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
     const currentLevelIndex = levels.indexOf(this.config.logLevel);
     const messageLevelIndex = levels.indexOf(level);
-    
+
     return messageLevelIndex <= currentLevelIndex;
   }
 }
 
 // Export singleton instance and types
 export const logger = Logger.getInstance();
-export * from './types'; 
+export * from './types';

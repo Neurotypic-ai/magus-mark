@@ -2,7 +2,7 @@
  * VS Code extension-specific type definitions for Obsidian Magic
  */
 
-import type { APIConfig, TaggingOptions, TagSet } from '@obsidian-magic/types';
+import type { APIConfig, TagSet, TaggingOptions } from '@obsidian-magic/types';
 
 /**
  * VS Code extension settings
@@ -122,4 +122,4 @@ export interface CursorCommand {
   name: string;
   id: string;
   execute: (context: MCPContext, params: Record<string, unknown>) => Promise<unknown>;
-} 
+}

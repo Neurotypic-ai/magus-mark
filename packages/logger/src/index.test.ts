@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { logger } from './index';
 
 describe('logger', () => {
@@ -22,7 +23,7 @@ describe('logger', () => {
       error: logger.error.bind(logger),
       debug: logger.debug.bind(logger),
       configure: logger.configure.bind(logger),
-      box: logger.box.bind(logger)
+      box: logger.box.bind(logger),
     };
 
     expect(methods.info).toBeDefined();
@@ -36,12 +37,12 @@ describe('logger', () => {
   it('should configure logging level', () => {
     // Configure logger to show only errors
     logger.configure({ logLevel: 'error' });
-    
+
     // Log messages at different levels
     logger.info('Info message');
     logger.warn('Warning message');
     logger.error('Error message');
-    
+
     // Only error should be logged
     expect(console.debug).not.toHaveBeenCalled();
     expect(console.info).not.toHaveBeenCalled();
@@ -51,31 +52,29 @@ describe('logger', () => {
 
   it('should format messages correctly', () => {
     logger.configure({ logLevel: 'info', outputFormat: 'pretty' });
-    
+
     logger.info('Test message');
-    
+
     expect(console.info).toHaveBeenCalledWith(expect.stringContaining('Test message'));
   });
 
   it('should handle JSON output format', () => {
     logger.configure({ logLevel: 'info', outputFormat: 'json' });
-    
+
     logger.info('Test message');
-    
+
     // In JSON mode, it uses console.log instead of console.info
     expect(console.log).toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(
-      JSON.stringify({ level: 'info', message: 'Test message' })
-    );
+    expect(console.log).toHaveBeenCalledWith(JSON.stringify({ level: 'info', message: 'Test message' }));
   });
 
   it('should not log in silent mode', () => {
     logger.configure({ logLevel: 'info', outputFormat: 'silent' });
-    
+
     logger.info('Test message');
     logger.warn('Warning message');
     logger.error('Error message');
-    
+
     expect(console.info).not.toHaveBeenCalled();
     expect(console.warn).not.toHaveBeenCalled();
     expect(console.error).not.toHaveBeenCalled();
@@ -90,4 +89,4 @@ describe('logger', () => {
     const formatted = logger.formatTokens(1000000);
     expect(formatted).toBe('1,000,000');
   });
-}); 
+});

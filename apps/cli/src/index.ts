@@ -3,12 +3,13 @@
  * Obsidian Magic CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
-import { AppError } from '@obsidian-magic/core';
-import { logger } from '@obsidian-magic/logger';
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+
+import { AppError } from '@obsidian-magic/core';
+import { logger } from '@obsidian-magic/logger';
 
 import pkg from '../package.json';
 import { getAllCommands } from './commands/commands';
@@ -42,7 +43,7 @@ const outputFormat = process.env['OUTPUT_FORMAT'] ?? config.get('outputFormat') 
 // Configure logger
 logger.configure({
   logLevel: logLevel as 'error' | 'warn' | 'info' | 'debug',
-  outputFormat: outputFormat as 'pretty' | 'json' | 'silent'
+  outputFormat: outputFormat as 'pretty' | 'json' | 'silent',
 });
 
 /**
@@ -51,8 +52,7 @@ logger.configure({
 function showBanner() {
   if (outputFormat !== 'silent') {
     logger.box(
-      `Obsidian Magic v${pkg.version}\n` +
-      `Current cost limit: ${logger.formatCost(costManager.getCostLimit())}`,
+      `Obsidian Magic v${pkg.version}\n` + `Current cost limit: ${logger.formatCost(costManager.getCostLimit())}`,
       'CLI Tool'
     );
   }

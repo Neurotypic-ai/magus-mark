@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WorkspaceLeaf, MetadataCache, Vault, Workspace } from 'obsidian';
-import type { Mock } from 'vitest';
 
 import { TagVisualizationView } from './TagVisualizationView';
+
+import type { MetadataCache, Vault, Workspace, WorkspaceLeaf } from 'obsidian';
+import type { Mock } from 'vitest';
+
 import type ObsidianMagicPlugin from '../main';
 
 interface MockedWorkspaceLeaf {
@@ -22,9 +24,9 @@ interface MockedWorkspaceLeaf {
 
 // Create a type for our test subject that exposes private methods for testing
 type TestableTagVisualizationView = TagVisualizationView & {
-  buildTagGraph: () => { 
-    nodes: { id: string; label: string; count: number }[]; 
-    links: { source: string; target: string; weight: number }[] 
+  buildTagGraph: () => {
+    nodes: { id: string; label: string; count: number }[];
+    links: { source: string; target: string; weight: number }[];
   };
   setupVisualization: () => void;
   getAllTags: () => { id: string; name: string; count: number; files: string[] }[];

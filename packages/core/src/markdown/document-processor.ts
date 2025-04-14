@@ -1,5 +1,15 @@
-import type { Document, TagSet, YearTag, ConversationTypeTag, LifeAreaTag, DomainTag, SubdomainTag, ContextualTag } from '@obsidian-magic/types';
 import { FrontmatterProcessor } from './frontmatter-processor';
+
+import type {
+  ContextualTag,
+  ConversationTypeTag,
+  Document,
+  DomainTag,
+  LifeAreaTag,
+  SubdomainTag,
+  TagSet,
+  YearTag,
+} from '@obsidian-magic/types';
 import type { FrontmatterOptions } from '@obsidian-magic/types/src/models/markdown-frontmatter';
 
 /**

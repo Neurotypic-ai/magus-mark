@@ -2,7 +2,6 @@
  * Core type definitions for Obsidian Magic
  */
 
-
 // Export all model types with specific imports to avoid conflicts
 export * from './models/tags';
 export * from './models/api';
@@ -33,4 +32,3 @@ export * from './types/QueryOptions';
 export * from './types/StringRecord';
 export * from './types/Result';
 export * from './types/TypedEventEmitter';
-

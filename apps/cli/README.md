@@ -45,6 +45,7 @@ tag-conversations tag ./convos/ --model=gpt-4 --max-cost=10.00
 ```
 
 Options:
+
 - `--model`: Model to use (gpt-3.5-turbo, gpt-4, gpt-4o)
 - `--mode`: Operation mode (auto, interactive, differential)
 - `--dry-run`: Calculate tokens and estimate cost without processing
@@ -74,6 +75,7 @@ tag-conversations config export --format=json
 ```
 
 Subcommands:
+
 - `get [key]`: View configuration values
 - `set <key> <value>`: Set configuration values
 - `import <file>`: Import configuration from file
@@ -94,6 +96,7 @@ tag-conversations test --models=gpt-3.5-turbo,gpt-4 --samples=10
 ```
 
 Options:
+
 - `--benchmark`: Run performance benchmark
 - `--samples`: Number of samples to test
 - `--test-set`: Path to test set file
@@ -113,6 +116,7 @@ tag-conversations stats --type=cost
 ```
 
 Options:
+
 - `--period`: Time period (day, week, month, all)
 - `--type`: Statistics type (usage, cost, all)
 
@@ -129,6 +133,7 @@ tag-conversations taxonomy create --domain=Programming
 ```
 
 Subcommands:
+
 - `list`: List all taxonomies
 - `get <domain>`: Get a specific taxonomy
 - `create <domain>`: Create a new taxonomy
@@ -136,6 +141,7 @@ Subcommands:
 - `delete <domain>`: Delete a taxonomy
 
 Options:
+
 - `--domain`: Domain name
 - `--description`: Domain description
 - `--file`: Path to taxonomy file
@@ -150,6 +156,7 @@ The CLI can be configured in multiple ways:
 4. Direct config commands: `tag-conversations config set apiKey your-key`
 
 Configuration is stored in:
+
 - macOS: `~/Library/Preferences/obsidian-magic-cli-nodejs`
 - Windows: `%APPDATA%\obsidian-magic-cli-nodejs\Config`
 - Linux: `~/.config/obsidian-magic-cli-nodejs`
@@ -188,4 +195,4 @@ For more detailed documentation, see:
 ## Requirements
 
 - Node.js 18 or higher
-- OpenAI API key 
+- OpenAI API key

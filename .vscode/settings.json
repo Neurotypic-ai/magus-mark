@@ -108,5 +108,6 @@
   "peacock.color": "#2f263f",
   "eslint.lintTask.enable": true,
   "eslint.useESLintClass": true,
-  "eslint.useFlatConfig": true
+  "eslint.useFlatConfig": true,
+  "prettier.configPath": "./prettier.config.js"
 }
