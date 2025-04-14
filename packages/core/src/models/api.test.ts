@@ -11,7 +11,7 @@ import type {
   RateLimitInfo,
   TaggingOptions,
   TaggingResult,
-} from '..';
+} from './api';
 
 describe('API Models', () => {
   describe('Basic API Types', () => {

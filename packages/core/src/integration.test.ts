@@ -5,9 +5,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initializeCore } from '.';
 
-import type { Document } from '@obsidian-magic/types';
-
 import type { BatchProcessingService, DocumentProcessor, OpenAIClient, TaggingService, TaxonomyManager } from '.';
+import type { Document } from './models/api';
 
 // Mock the OpenAI API client to avoid actual API calls
 vi.mock('../src/openai', () => {

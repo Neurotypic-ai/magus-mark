@@ -24,7 +24,7 @@ import type {
   TagSet,
   TopicalTag,
   YearTag,
-} from '@obsidian-magic/types';
+} from '../models/tags';
 
 describe('Tag Validators', () => {
   describe('Basic Tag Schema', () => {

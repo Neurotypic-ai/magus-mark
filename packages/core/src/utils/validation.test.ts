@@ -19,7 +19,7 @@ import {
   yearTagSchema,
 } from './validation';
 
-import type { ConversationTypeTag, DomainTag, LifeAreaTag, TagSet, YearTag } from '@obsidian-magic/types';
+import type { ConversationTypeTag, DomainTag, LifeAreaTag, TagSet, YearTag } from '../models/tags';
 
 describe('Validation Utilities', () => {
   describe('clamp', () => {

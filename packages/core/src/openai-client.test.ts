@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_OPENAI_CONFIG, OpenAIClient } from './openai-client';
 
-import type { AIModel } from '@obsidian-magic/types';
+import type { AIModel } from './models/api';
 
 // Define a type for our mocked OpenAI client
 interface MockedOpenAIClient {

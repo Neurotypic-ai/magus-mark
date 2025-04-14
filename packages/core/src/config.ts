@@ -3,9 +3,10 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
-import { fileExists, readJsonFile, writeJsonFile } from './file';
+import { fileExists, readJsonFile, writeJsonFile } from './utils/file';
 
-import type { AIModel, APIKeyStorage, TagBehavior } from '@obsidian-magic/types';
+import type { AIModel, APIKeyStorage } from './models/api';
+import type { TagBehavior } from './models/tags';
 
 /**
  * Logging level type

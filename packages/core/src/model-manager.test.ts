@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelManager } from './model-manager';
 import { calculateCost } from './openai-models';
 
-import type { AIModel } from '@obsidian-magic/types';
-
 import type { ModelValidationResult } from './model-manager';
+import type { AIModel } from './models/api';
 import type { ModelPricing } from './openai-models';
 
 // Create a mock for model pricing since MODEL_COST_MAP is not directly exported

@@ -1,23 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  CONTEXTUAL_TAGS_LIST,
-  CONVERSATION_TYPES,
-  DEFAULT_TAXONOMY,
-  // Taxonomy constants
-  DOMAINS,
-  LIFE_AREAS,
-  SUBDOMAINS_MAP,
-} from '..';
+import { CONTEXTUAL_TAGS, CONVERSATION_TYPES, DEFAULT_TAXONOMY, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from './taxonomy';
 
-import type {
-  ContextualTag,
-  ConversationTypeTag,
-  DomainTag,
-  LifeAreaTag,
-  // Types (for TypeScript validation)
-  Taxonomy,
-} from '..';
+import type { ContextualTag, ConversationTypeTag, DomainTag, LifeAreaTag } from './tags';
+import type { Taxonomy } from './taxonomy';
 
 describe('Taxonomy Constants', () => {
   describe('Domain Tags', () => {
@@ -90,13 +76,13 @@ describe('Taxonomy Constants', () => {
 
   describe('Contextual Tags', () => {
     it('contains expected contextual tag values', () => {
-      expect(CONTEXTUAL_TAGS_LIST).toContain('beginner');
-      expect(CONTEXTUAL_TAGS_LIST).toContain('advanced');
-      expect(CONTEXTUAL_TAGS_LIST).toContain('tutorial');
-      expect(CONTEXTUAL_TAGS_LIST).toContain('case-study');
+      expect(CONTEXTUAL_TAGS).toContain('beginner');
+      expect(CONTEXTUAL_TAGS).toContain('advanced');
+      expect(CONTEXTUAL_TAGS).toContain('tutorial');
+      expect(CONTEXTUAL_TAGS).toContain('case-study');
 
-      expect(CONTEXTUAL_TAGS_LIST.length).toBeGreaterThan(0);
-      expect(Array.isArray(CONTEXTUAL_TAGS_LIST)).toBe(true);
+      expect(CONTEXTUAL_TAGS.length).toBeGreaterThan(0);
+      expect(Array.isArray(CONTEXTUAL_TAGS)).toBe(true);
     });
 
     it('allows using values as ContextualTag type', () => {

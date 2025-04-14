@@ -722,6 +722,55 @@ Your Humble Servant, Sebastien
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Property 'costManager' does not exist on type '{ default: typeof import("/Users/khallmark/Desktop/Code/obsidian-magic/packages/core/dist/index"); initializeCore(options: { openaiApiKey?: string; model?: string; taxonomy?: Record<string, unknown>; }): Promise<...>; ... 64 more ...; DEFAULT_TAGGING_PROMPT_OPTIONS: TaggingPromptOptions; }'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, the error is happening because there's a mismatch between how you're mocking `@obsidian-magic/core` and how you're importing it later. The simplest fix is to use a type assertion:
+
+---
+
+```diff
+    it('should display usage statistics', async () => {
+      const { logger } = await import('@obsidian-magic/logger');
+-     const { costManager } = await import('@obsidian-magic/core');
++     const { costManager } = await import('@obsidian-magic/core') as { costManager: any };
+  
+      // Call the handler with mock arguments
+```
+
+---
+
+```diff
+    it('should display usage statistics', async () => {
+      const { logger } = await import('@obsidian-magic/logger');
+-     const { costManager } = (await import('@obsidian-magic/core')) as { costManager: any };
++     const core = await import('@obsidian-magic/core') as unknown as {
++       costManager: {
++         getUsageData: vi.Mock;
++         resetUsageData: vi.Mock;
++         saveUsageData: vi.Mock;
++       };
++     };
++     const { costManager } = core;
+  
+      // Call the handler with mock arguments
+```
+
+---
+
 
 
 ---

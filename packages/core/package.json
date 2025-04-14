@@ -11,14 +11,16 @@
     "test": "nx vite:test run"
   },
   "dependencies": {
-    "@obsidian-magic/types": "workspace:*",
-    "@obsidian-magic/logger": "workspace:*",
-    "@obsidian-magic/utils": "workspace:*",
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
+    "fs-extra": "^11.3.0",
     "openai": "^4.93.0",
+    "ora": "^8.2.0",
     "tiktoken": "^1.0.20",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
   }

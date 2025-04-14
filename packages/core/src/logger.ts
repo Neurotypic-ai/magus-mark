@@ -5,7 +5,29 @@ import ora from 'ora';
 import type { Options as BoxenOptions } from 'boxen';
 import type { Ora } from 'ora';
 
-import type { LogLevel, LoggerConfig } from './types';
+/**
+ * Type definitions for the logger
+ */
+
+/**
+ * Log level type
+ */
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+/**
+ * Logger configuration
+ */
+export interface LoggerConfig {
+  /**
+   * Log level
+   */
+  logLevel: LogLevel;
+
+  /**
+   * Output format
+   */
+  outputFormat: 'pretty' | 'json' | 'silent';
+}
 
 /**
  * Default logger configuration
@@ -230,4 +252,3 @@ class Logger {
 
 // Export singleton instance and types
 export const logger = Logger.getInstance();
-export * from './types';

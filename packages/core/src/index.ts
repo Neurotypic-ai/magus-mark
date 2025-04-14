@@ -8,27 +8,120 @@
 // Export model calculation function from openai-models
 import { calculateCost as calcCost } from './openai-models';
 
-import type { AIModel } from '@obsidian-magic/types';
+// Import AIModel from its actual source to avoid circular dependencies
+import type { AIModel } from './models/api';
 
-// Export all components from the core module
+// Export error handling
 export * from './errors';
+
+// Export OpenAI integration
 export * from './openai-client';
-export * from './tagging-service';
 export * from './openai-models';
+export * from './openai/prompts';
+
+// Export tagging core
+export * from './tagging-service';
 export * from './model-manager';
 
-// Export tagging functionality
+// Export from config selectively to avoid ambiguity
+export {
+  DEFAULT_CONFIG,
+  configSchema,
+  type Config,
+  getDefaultConfigPath,
+  loadConfig,
+  saveConfig,
+  updateConfig,
+  getApiKey,
+  setApiKey,
+} from './config';
+
+// Export from logger
+export { logger, type LogLevel, type LoggerConfig } from './logger';
+
+// Export markdown processing
 export * from './markdown/frontmatter-processor';
 export * from './markdown/document-processor';
+
+// Export tagging functionality
 export * from './tagging/taxonomy-manager';
 export * from './tagging/batch-processing-service';
 
-// Export validators
-export * from './validators/api-validators';
-export * from './validators/tags-validators';
+// Export API validators selectively
+export {
+  aiModelSchema,
+  apiKeyStorageSchema,
+  taggingResultSchema,
+  taggingOptionsSchema,
+  documentSchema,
+  rateLimitInfoSchema,
+  apiErrorSchema,
+  apiUsageStatsSchema,
+  apiRequestTrackingSchema,
+  apiConfigSchema,
+  batchTaggingJobSchema,
+  type AIModelSchema,
+  type APIKeyStorageSchema,
+  type TaggingResultSchema,
+  type TaggingOptionsSchema,
+  type DocumentSchema,
+  type RateLimitInfoSchema,
+  type APIErrorSchema,
+  type APIUsageStatsSchema,
+  type APIRequestTrackingSchema,
+  type APIConfigSchema,
+  type BatchTaggingJobSchema,
+} from './validators/api-validators';
 
-// Export openai utilities
-export * from './openai/prompts';
+// Export tag validators selectively
+export {
+  yearTagSchema,
+  lifeAreaTagSchema,
+  domainTagSchema,
+  subdomainTagSchema,
+  contextualTagSchema,
+  conversationTypeTagSchema,
+  confidenceScoreSchema,
+  topicalTagSchema,
+  tagConfidenceSchema,
+  tagSetSchema,
+  tagBehaviorSchema,
+  type YearTagSchema,
+  type LifeAreaTagSchema,
+  type DomainTagSchema,
+  type SubdomainTagSchema,
+  type ContextualTagSchema,
+  type ConversationTypeTagSchema,
+  type ConfidenceScoreSchema,
+  type TopicalTagSchema,
+  type TagConfidenceSchema,
+  type TagSetSchema,
+  type TagBehaviorSchema,
+} from './validators/tags-validators';
+
+// Export models
+export * from './models/api';
+export * from './models/tags';
+export * from './models/taxonomy';
+export * from './models/frontmatter-options';
+
+// Export basic types
+export * from './types/AsyncState';
+export * from './types/DeepPartial';
+export * from './types/PaginatedResult';
+export * from './types/QueryOptions';
+export * from './types/StringRecord';
+export * from './types/TypedEventEmitter';
+
+// Export utils
+export * from './utils/file';
+export * from './utils/string';
+export * from './utils/object';
+export * from './utils/markdown';
+export * from './utils/performance';
+export * from './utils/validation';
+export * from './utils/tag';
+export * from './utils/prompt';
 
 // Export version information
 export const VERSION = '0.1.0';
@@ -57,7 +150,7 @@ export async function initializeCore(options: {
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({
     apiKey: options.openaiApiKey ?? process.env['OPENAI_API_KEY'] ?? '',
-    model: options.model ?? 'gpt-4o',
+    model: options.model ?? 'gpt-4o', // Use nullish coalescing
   });
 
   // Initialize taxonomy manager

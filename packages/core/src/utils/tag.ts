@@ -1,12 +1,20 @@
 /**
  * Tag utility functions for Obsidian Magic
  */
-import type * as Tags from '@obsidian-magic/types';
+import type {
+  ConfidenceScore,
+  DomainTag,
+  SubdomainTag,
+  TagBehavior,
+  TagConfidence,
+  TagSet,
+  TopicalTag,
+} from '../models/tags';
 
 /**
- * Formats a tag for display in Obsidian
- * @param tag - Raw tag name
- * @returns Formatted tag string
+ * Formats a tag for display (adds # prefix)
+ * @param tag - Tag to format
+ * @returns Formatted tag
  */
 export function formatTag(tag: string): string {
   return `#${tag}`;
@@ -18,7 +26,7 @@ export function formatTag(tag: string): string {
  * @param subdomain - Optional subdomain tag
  * @returns Hierarchical tag string (e.g., "software-development/frontend")
  */
-export function createHierarchicalTag(domain: Tags.DomainTag, subdomain?: Tags.SubdomainTag): string {
+export function createHierarchicalTag(domain: DomainTag, subdomain?: SubdomainTag): string {
   return subdomain ? `${domain}/${subdomain}` : domain;
 }
 
@@ -46,7 +54,7 @@ export function extractSubdomain(hierarchicalTag: string): string | undefined {
  * @param tagSet - Tag set to format
  * @returns Array of formatted tags
  */
-export function formatTagSetForFrontmatter(tagSet: Tags.TagSet): string[] {
+export function formatTagSetForFrontmatter(tagSet: TagSet): string[] {
   const tags: string[] = [];
 
   // Add year tag
@@ -83,8 +91,8 @@ export function formatTagSetForFrontmatter(tagSet: Tags.TagSet): string[] {
  */
 export function createConfidence(
   overall: number,
-  options: Partial<Omit<Tags.TagConfidence, 'overall'>> = {}
-): Tags.TagConfidence {
+  options: Partial<Omit<TagConfidence, 'overall'>> = {}
+): TagConfidence {
   return {
     overall,
     ...options,
@@ -98,11 +106,7 @@ export function createConfidence(
  * @param behavior - Merge behavior (append, replace, merge)
  * @returns Merged tag set
  */
-export function mergeTagSets(
-  existingTags: Tags.TagSet | undefined,
-  newTags: Tags.TagSet,
-  behavior: Tags.TagBehavior
-): Tags.TagSet {
+export function mergeTagSets(existingTags: TagSet | undefined, newTags: TagSet, behavior: TagBehavior): TagSet {
   // If no existing tags or behavior is replace, just return new tags
   if (!existingTags || behavior === 'replace') {
     return newTags;
@@ -202,7 +206,7 @@ export function mergeTagSets(
         : existingTags.conversation_type,
 
     // Calculate new confidence scores
-    confidence: mergedConfidence as Tags.TagConfidence,
+    confidence: mergedConfidence as TagConfidence,
 
     // Merge explanations
     explanations: {
@@ -218,7 +222,7 @@ export function mergeTagSets(
  * @param newTags - New topical tags
  * @returns Merged topical tags array
  */
-function mergeTopicalTags(existingTags: Tags.TopicalTag[], newTags: Tags.TopicalTag[]): Tags.TopicalTag[] {
+function mergeTopicalTags(existingTags: TopicalTag[], newTags: TopicalTag[]): TopicalTag[] {
   const mergedTags = [...existingTags];
 
   for (const newTag of newTags) {
@@ -251,7 +255,7 @@ function mergeTopicalTags(existingTags: Tags.TopicalTag[], newTags: Tags.Topical
  * @param tagSet - Tag set to calculate confidence for
  * @returns Overall confidence score
  */
-export function getOverallConfidence(tagSet: Tags.TagSet): Tags.ConfidenceScore {
+export function getOverallConfidence(tagSet: TagSet): ConfidenceScore {
   return tagSet.confidence.overall;
 }
 
@@ -261,7 +265,7 @@ export function getOverallConfidence(tagSet: Tags.TagSet): Tags.ConfidenceScore 
  * @param threshold - Confidence threshold (default: 0.7)
  * @returns True if tag set needs review
  */
-export function needsReview(tagSet: Tags.TagSet, threshold = 0.7): boolean {
+export function needsReview(tagSet: TagSet, threshold = 0.7): boolean {
   return tagSet.confidence.overall < threshold;
 }
 
@@ -270,7 +274,7 @@ export function needsReview(tagSet: Tags.TagSet, threshold = 0.7): boolean {
  * @param tagSet - Tag set to extract domains from
  * @returns Array of unique domains
  */
-export function getAllDomains(tagSet: Tags.TagSet): Tags.DomainTag[] {
+export function getAllDomains(tagSet: TagSet): DomainTag[] {
   return [...new Set(tagSet.topical_tags.map((tag) => tag.domain))];
 }
 
@@ -279,12 +283,12 @@ export function getAllDomains(tagSet: Tags.TagSet): Tags.DomainTag[] {
  * @param tagSet - Tag set to extract subdomains from
  * @returns Array of unique subdomains (excluding undefined)
  */
-export function getAllSubdomains(tagSet: Tags.TagSet): Tags.SubdomainTag[] {
+export function getAllSubdomains(tagSet: TagSet): SubdomainTag[] {
   return [
     ...new Set(
       tagSet.topical_tags
         .map((tag) => tag.subdomain)
-        .filter((subdomain): subdomain is Tags.SubdomainTag => subdomain !== undefined)
+        .filter((subdomain): subdomain is SubdomainTag => subdomain !== undefined)
     ),
   ];
 }
@@ -294,7 +298,7 @@ export function getAllSubdomains(tagSet: Tags.TagSet): Tags.SubdomainTag[] {
  * @param tagSet - Tag set to extract contextual tags from
  * @returns Array of unique contextual tags (excluding undefined)
  */
-export function getAllContextualTags(tagSet: Tags.TagSet): string[] {
+export function getAllContextualTags(tagSet: TagSet): string[] {
   return [
     ...new Set(
       tagSet.topical_tags

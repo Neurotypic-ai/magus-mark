@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { TaxonomyManager } from './taxonomy-manager';
 
-import type { ContextualTag, ConversationTypeTag, DomainTag, SubdomainMap, Taxonomy } from '@obsidian-magic/types';
+import type { ContextualTag, ConversationTypeTag, DomainTag, SubdomainMap } from '../models/tags';
+import type { Taxonomy } from '../models/taxonomy';
 
 describe('TaxonomyManager', () => {
   // Sample default taxonomy structure

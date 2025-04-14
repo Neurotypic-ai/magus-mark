@@ -1,8 +1,7 @@
 /**
  * Batch processing service for tagging multiple documents
  */
-import type { Document, TaggingOptions, TaggingResult } from '@obsidian-magic/types';
-
+import type { Document, TaggingOptions, TaggingResult } from '../models/api';
 import type { TaggingService } from '../tagging-service';
 
 /**

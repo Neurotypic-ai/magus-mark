@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_FRONTMATTER_OPTIONS } from '@obsidian-magic/types';
-
+import { DEFAULT_FRONTMATTER_OPTIONS } from '../models/frontmatter-options';
 import { FrontmatterProcessor } from './frontmatter-processor';
 
-import type { FrontmatterOptions, TagSet } from '@obsidian-magic/types';
+import type { FrontmatterOptions } from '../models/frontmatter-options';
+import type { TagSet } from '../models/tags';
 
 // Replace the interface with this type
 interface TestFrontmatterProcessorType {

@@ -1,11 +1,11 @@
 /**
- * Validation utility functions for Obsidian Magic
+ * Validation utilities for Obsidian Magic
  */
 import { z } from 'zod';
 
-import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '@obsidian-magic/types';
+import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '../models/taxonomy';
 
-import type { ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainTag, TagSet, YearTag } from '@obsidian-magic/types';
+import type { ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainTag, TagSet, YearTag } from '../models/tags';
 
 /**
  * Validates and ensures a value is between min and max (inclusive)

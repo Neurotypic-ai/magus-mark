@@ -1,16 +1,16 @@
 import { FrontmatterProcessor } from './frontmatter-processor';
 
+import type { Document } from '../models/api';
+import type { FrontmatterOptions } from '../models/frontmatter-options';
 import type {
   ContextualTag,
   ConversationTypeTag,
-  Document,
   DomainTag,
   LifeAreaTag,
   SubdomainTag,
   TagSet,
   YearTag,
-} from '@obsidian-magic/types';
-import type { FrontmatterOptions } from '@obsidian-magic/types/src/models/markdown-frontmatter';
+} from '../models/tags';
 
 /**
  * Document processor for handling markdown documents

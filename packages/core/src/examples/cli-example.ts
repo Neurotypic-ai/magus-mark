@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import { initializeCore } from '..';
 
-import type { AIModel } from '@obsidian-magic/types';
+import type { AIModel } from '../models/api';
 
 // Get the directory name using CommonJS compatible approach
 const __filename = fileURLToPath(import.meta.url);

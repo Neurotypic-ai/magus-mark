@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentProcessor } from './document-processor';
 import { FrontmatterProcessor } from './frontmatter-processor';
 
-import type { Document, TagSet } from '@obsidian-magic/types';
+import type { Document } from '../models/api';
+import type { TagSet } from '../models/tags';
 
 // Set up mocks
 const mockExtractFrontmatter = vi.fn().mockReturnValue({});

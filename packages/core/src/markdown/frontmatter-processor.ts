@@ -1,9 +1,8 @@
-import { DEFAULT_FRONTMATTER_OPTIONS } from '@obsidian-magic/types/src/models/markdown-frontmatter';
-
 import { MarkdownError } from '../errors';
+import { DEFAULT_FRONTMATTER_OPTIONS } from '../models/frontmatter-options';
 
-import type { TagSet } from '@obsidian-magic/types';
-import type { FrontmatterOptions } from '@obsidian-magic/types/src/models/markdown-frontmatter';
+import type { FrontmatterOptions } from '../models/frontmatter-options';
+import type { TagSet } from '../models/tags';
 
 /**
  * Frontmatter utilities for working with YAML frontmatter in markdown files

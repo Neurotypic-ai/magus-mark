@@ -6,7 +6,7 @@ import { encoding_for_model } from 'tiktoken';
 
 import { APIError, ErrorCodes, normalizeError } from './errors';
 
-import type { AIModel } from '@obsidian-magic/types';
+import type { AIModel } from './models/api';
 
 /**
  * OpenAI API Client configuration

@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TaggingService } from './tagging-service';
 import { TaxonomyManager } from './tagging/taxonomy-manager';
 
-import type { Document, TagSet } from '@obsidian-magic/types';
-
+import type { Document } from './models/api';
+import type { TagSet } from './models/tags';
 import type { OpenAIClient } from './openai-client';
 
 // Create mock functions outside

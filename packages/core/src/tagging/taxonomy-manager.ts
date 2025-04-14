@@ -1,9 +1,10 @@
 /**
  * Taxonomy management for the tagging system
  */
-import { DEFAULT_TAXONOMY } from '@obsidian-magic/types';
+import { DEFAULT_TAXONOMY } from '../models/taxonomy';
 
-import type { ContextualTag, ConversationTypeTag, LifeAreaTag, SubdomainMap, Taxonomy } from '@obsidian-magic/types';
+import type { ContextualTag, ConversationTypeTag, LifeAreaTag, SubdomainMap } from '../models/tags';
+import type { Taxonomy } from '../models/taxonomy';
 
 /**
  * TaxonomyManager provides methods for working with the tagging taxonomy
