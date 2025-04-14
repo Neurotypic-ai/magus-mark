@@ -1507,6 +1507,22 @@ Your Humble Servant, Sebastien
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Cannot find module '@obsidian-magic/core' or its corresponding type declarations.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
 
 
 ---

@@ -1,7 +1,7 @@
 import path from 'path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
-import { modelManager } from '@obsidian-magic/core/src/model-manager';
+import { modelManager } from '@obsidian-magic/core';
 import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 

@@ -30,9 +30,11 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
+    "outDir": "${configDir}/dist",
     "pretty": true,
     "removeComments": false,
     "resolveJsonModule": true,
+    "rootDir": "${configDir}",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
@@ -45,9 +47,21 @@
     "useUnknownInCatchVariables": true,
     "verbatimModuleSyntax": true
   },
+  "include": [
+    "${configDir}/package.json",
+    "${configDir}/eslint.config.js",
+    "${configDir}/prettier.config.js",
+    "${configDir}/src/**/*.ts",
+    "${configDir}/src/**/*.tsx",
+    "${configDir}/vitest.config.ts"
+  ],
+  "exclude": [
+    "${configDir}/node_modules/**/*",
+    "${configDir}/dist/**/*"
+  ],
   "watchOptions": {
     "watchFile": "useFsEvents",
     "watchDirectory": "useFsEvents",
-    "excludeDirectories": ["**/node_modules/**/*", "**/build/**/*", "**/documentation/**/*"]
+    "excludeDirectories": ["${configDir}/node_modules/**/*", "${configDir}/dist/**/*"]
   }
 }
