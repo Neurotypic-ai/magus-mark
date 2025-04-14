@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DocumentProcessor } from './document-processor';
-import { FrontmatterProcessor } from './frontmatter-processor';
+import { DocumentProcessor } from './DocumentProcessor';
+import { FrontmatterProcessor } from './FrontmatterProcessor';
 
 import type { Document } from '../models/api';
 import type { TagSet } from '../models/tags';

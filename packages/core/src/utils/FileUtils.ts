@@ -6,19 +6,28 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { z } from 'zod';
 
+import { FileSystemError, Result, toAppError } from '../errors/errors';
+
 /**
  * Class providing file system utility methods for Obsidian Magic
+ *
+ * Initialize with a base path to perform all operations relative to that directory.
+ *
+ * @example
+ * // For Obsidian vault operations
+ * const vaultUtils = new FileUtils(vaultPath);
+ * await vaultUtils.readFile('path/relative/to/vault.md');
+ *
+ * // For project directory operations
+ * const projectUtils = new FileUtils(projectPath);
+ * await projectUtils.writeJsonFile('config.json', config);
  */
 export class FileUtils {
-  private basePath: string;
-
   /**
    * Creates a new FileUtils instance
-   * @param basePath - Optional base directory for relative paths
+   * @param basePath - Base directory for relative paths. All file operations will be relative to this path.
    */
-  constructor(basePath = '') {
-    this.basePath = basePath;
-  }
+  constructor(private readonly basePath: string) {}
 
   /**
    * Resolves a path relative to the base path
@@ -26,81 +35,128 @@ export class FileUtils {
    * @returns Resolved path
    */
   private resolvePath(filePath: string): string {
-    return this.basePath ? path.join(this.basePath, filePath) : filePath;
+    return path.join(this.basePath, filePath);
   }
 
   /**
    * Ensures a directory exists, creating it if necessary
-   * @param dirPath - Path to the directory
+   * @param dirPath - Path to the directory, relative to basePath
    */
-  async ensureDirectory(dirPath: string): Promise<void> {
-    await fs.ensureDir(this.resolvePath(dirPath));
+  async ensureDirectory(dirPath: string): Promise<Result<void>> {
+    try {
+      await fs.ensureDir(this.resolvePath(dirPath));
+      return Result.ok(undefined);
+    } catch (err) {
+      return Result.fail(
+        new FileSystemError(`Failed to create directory at ${dirPath}`, {
+          cause: toAppError(err),
+          path: this.resolvePath(dirPath),
+        })
+      );
+    }
   }
 
   /**
    * Reads a file from the filesystem
-   * @param filePath - Path to the file
+   * @param filePath - Path to the file, relative to basePath
    * @returns File contents as string
    */
-  async readFile(filePath: string): Promise<string> {
+  async readFile(filePath: string): Promise<Result<string>> {
     try {
-      return await fs.readFile(this.resolvePath(filePath), 'utf-8');
-    } catch (error) {
-      throw new Error(`Failed to read file at ${filePath}: ${(error as Error).message}`);
+      const content = await fs.readFile(this.resolvePath(filePath), 'utf-8');
+      return Result.ok(content);
+    } catch (err) {
+      return Result.fail(
+        new FileSystemError(`Failed to read file at ${filePath}`, {
+          cause: toAppError(err),
+          path: this.resolvePath(filePath),
+        })
+      );
     }
   }
 
   /**
    * Reads a JSON file and validates it against a schema
-   * @param filePath - Path to the JSON file
+   * @param filePath - Path to the JSON file, relative to basePath
    * @param schema - Zod schema for validation
    * @returns Parsed and validated JSON
    */
-  async readJsonFile<T>(filePath: string, schema: z.ZodType<T>): Promise<T> {
+  async readJsonFile<T>(filePath: string, schema: z.ZodType<T>): Promise<Result<T>> {
+    const fileResult = await this.readFile(filePath);
+
+    if (fileResult.isFail()) {
+      return Result.fail(fileResult.getError());
+    }
+
     try {
-      const fileContent = await this.readFile(filePath);
-      const parsedData = JSON.parse(fileContent) as T;
-      return schema.parse(parsedData);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        throw new Error(`Invalid JSON schema in ${filePath}: ${error.message}`);
+      const parsedData = JSON.parse(fileResult.getValue()) as T;
+      return Result.ok(schema.parse(parsedData));
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return Result.fail(
+          new FileSystemError(`Invalid JSON schema in ${filePath}`, {
+            cause: toAppError(err),
+            path: this.resolvePath(filePath),
+          })
+        );
       }
-      if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in ${filePath}: ${error.message}`);
+      if (err instanceof SyntaxError) {
+        return Result.fail(
+          new FileSystemError(`Invalid JSON in ${filePath}`, {
+            cause: toAppError(err),
+            path: this.resolvePath(filePath),
+          })
+        );
       }
-      throw error instanceof Error ? error : new Error(String(error));
+      return Result.fail(
+        new FileSystemError(`Error processing JSON file ${filePath}`, {
+          cause: toAppError(err),
+          path: this.resolvePath(filePath),
+        })
+      );
     }
   }
 
   /**
    * Writes a string to a file
-   * @param filePath - Path to the file
+   * @param filePath - Path to the file, relative to basePath
    * @param content - Content to write
    */
-  async writeFile(filePath: string, content: string): Promise<void> {
+  async writeFile(filePath: string, content: string): Promise<Result<void>> {
     try {
       const resolvedPath = this.resolvePath(filePath);
-      await this.ensureDirectory(path.dirname(resolvedPath));
+      const dirResult = await this.ensureDirectory(path.dirname(filePath));
+
+      if (dirResult.isFail()) {
+        return dirResult;
+      }
+
       await fs.writeFile(resolvedPath, content, 'utf-8');
-    } catch (error) {
-      throw new Error(`Failed to write file at ${filePath}: ${(error as Error).message}`);
+      return Result.ok(undefined);
+    } catch (err) {
+      return Result.fail(
+        new FileSystemError(`Failed to write file at ${filePath}`, {
+          cause: toAppError(err),
+          path: this.resolvePath(filePath),
+        })
+      );
     }
   }
 
   /**
    * Writes a JSON object to a file
-   * @param filePath - Path to the file
+   * @param filePath - Path to the file, relative to basePath
    * @param data - Data to write
    * @param pretty - Whether to format the JSON (default: true)
    */
-  async writeJsonFile(filePath: string, data: unknown, pretty = true): Promise<void> {
+  async writeJsonFile(filePath: string, data: unknown, pretty = true): Promise<Result<void>> {
     const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
-    await this.writeFile(filePath, content);
+    return this.writeFile(filePath, content);
   }
 
   /**
    * Checks if a file exists
-   * @param filePath - Path to the file
+   * @param filePath - Path to the file, relative to basePath
    * @returns True if the file exists
    */
   async fileExists(filePath: string): Promise<boolean> {
@@ -114,35 +170,44 @@ export class FileUtils {
 
   /**
    * Recursively finds all files matching a pattern
-   * @param dirPath - Directory to search in
+   * @param dirPath - Directory to search in, relative to basePath
    * @param pattern - Regex pattern to match against
-   * @returns Array of matching file paths
+   * @returns Array of matching file paths (fully resolved)
    */
-  async findFiles(dirPath: string, pattern: RegExp): Promise<string[]> {
+  async findFiles(dirPath: string, pattern: RegExp): Promise<Result<string[]>> {
     const results: string[] = [];
     const resolvedDirPath = this.resolvePath(dirPath);
 
-    async function scan(currentPath: string): Promise<void> {
-      const entries = await fs.readdir(currentPath, { withFileTypes: true });
+    try {
+      async function scan(currentPath: string): Promise<void> {
+        const entries = await fs.readdir(currentPath, { withFileTypes: true });
 
-      for (const entry of entries) {
-        const fullPath = path.join(currentPath, entry.name);
+        for (const entry of entries) {
+          const fullPath = path.join(currentPath, entry.name);
 
-        if (entry.isDirectory()) {
-          await scan(fullPath);
-        } else if (entry.isFile() && pattern.test(entry.name)) {
-          results.push(fullPath);
+          if (entry.isDirectory()) {
+            await scan(fullPath);
+          } else if (entry.isFile() && pattern.test(entry.name)) {
+            results.push(fullPath);
+          }
         }
       }
-    }
 
-    await scan(resolvedDirPath);
-    return results;
+      await scan(resolvedDirPath);
+      return Result.ok(results);
+    } catch (err) {
+      return Result.fail(
+        new FileSystemError(`Failed to find files in ${dirPath}`, {
+          cause: toAppError(err),
+          path: resolvedDirPath,
+        })
+      );
+    }
   }
 
   /**
    * Gets file stats with error handling
-   * @param filePath - Path to the file
+   * @param filePath - Path to the file, relative to basePath
    * @returns File stats or null if file doesn't exist
    */
   async getFileStats(filePath: string): Promise<fs.Stats | null> {
@@ -154,160 +219,55 @@ export class FileUtils {
   }
 
   /**
+   * Get file size in a human-readable format
+   * @param filePath - Path to the file, relative to basePath
+   * @returns Human-readable file size
+   */
+  getFileSize(filePath: string): Result<string> {
+    try {
+      const stats = fs.statSync(this.resolvePath(filePath));
+      const bytes = stats.size;
+
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let size = bytes;
+      let unitIndex = 0;
+
+      while (size > 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+      }
+
+      return Result.ok(`${size.toFixed(1)} ${String(units[unitIndex])}`);
+    } catch (err) {
+      return Result.fail(
+        new FileSystemError(`Failed to get file size for ${filePath}`, {
+          cause: toAppError(err),
+          path: this.resolvePath(filePath),
+        })
+      );
+    }
+  }
+
+  /**
    * Safely deletes a file if it exists
-   * @param filePath - Path to the file
+   * @param filePath - Path to the file, relative to basePath
    * @returns True if file was deleted, false if it didn't exist
    */
-  async safeDeleteFile(filePath: string): Promise<boolean> {
+  async safeDeleteFile(filePath: string): Promise<Result<boolean>> {
     try {
       await fs.unlink(this.resolvePath(filePath));
-      return true;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return false;
+      return Result.ok(true);
+    } catch (err) {
+      const nodeError = err as NodeJS.ErrnoException;
+      if (nodeError.code === 'ENOENT') {
+        return Result.ok(false);
       }
-      throw error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  // Static methods for convenience
-
-  /**
-   * Ensures a directory exists, creating it if necessary
-   * @param dirPath - Path to the directory
-   */
-  static async ensureDirectory(dirPath: string): Promise<void> {
-    await fs.ensureDir(dirPath);
-  }
-
-  /**
-   * Reads a file from the filesystem
-   * @param filePath - Path to the file
-   * @returns File contents as string
-   */
-  static async readFile(filePath: string): Promise<string> {
-    try {
-      return await fs.readFile(filePath, 'utf-8');
-    } catch (error) {
-      throw new Error(`Failed to read file at ${filePath}: ${(error as Error).message}`);
-    }
-  }
-
-  /**
-   * Reads a JSON file and validates it against a schema
-   * @param filePath - Path to the JSON file
-   * @param schema - Zod schema for validation
-   * @returns Parsed and validated JSON
-   */
-  static async readJsonFile<T>(filePath: string, schema: z.ZodType<T>): Promise<T> {
-    try {
-      const fileContent = await FileUtils.readFile(filePath);
-      const parsedData = JSON.parse(fileContent) as T;
-      return schema.parse(parsedData);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        throw new Error(`Invalid JSON schema in ${filePath}: ${error.message}`);
-      }
-      if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in ${filePath}: ${error.message}`);
-      }
-      throw error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  /**
-   * Writes a string to a file
-   * @param filePath - Path to the file
-   * @param content - Content to write
-   */
-  static async writeFile(filePath: string, content: string): Promise<void> {
-    try {
-      await FileUtils.ensureDirectory(path.dirname(filePath));
-      await fs.writeFile(filePath, content, 'utf-8');
-    } catch (error) {
-      throw new Error(`Failed to write file at ${filePath}: ${(error as Error).message}`);
-    }
-  }
-
-  /**
-   * Writes a JSON object to a file
-   * @param filePath - Path to the file
-   * @param data - Data to write
-   * @param pretty - Whether to format the JSON (default: true)
-   */
-  static async writeJsonFile(filePath: string, data: unknown, pretty = true): Promise<void> {
-    const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
-    await FileUtils.writeFile(filePath, content);
-  }
-
-  /**
-   * Checks if a file exists
-   * @param filePath - Path to the file
-   * @returns True if the file exists
-   */
-  static async fileExists(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Recursively finds all files matching a pattern
-   * @param dirPath - Directory to search in
-   * @param pattern - Regex pattern to match against
-   * @returns Array of matching file paths
-   */
-  static async findFiles(dirPath: string, pattern: RegExp): Promise<string[]> {
-    const results: string[] = [];
-
-    async function scan(currentPath: string): Promise<void> {
-      const entries = await fs.readdir(currentPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(currentPath, entry.name);
-
-        if (entry.isDirectory()) {
-          await scan(fullPath);
-        } else if (entry.isFile() && pattern.test(entry.name)) {
-          results.push(fullPath);
-        }
-      }
-    }
-
-    await scan(dirPath);
-    return results;
-  }
-
-  /**
-   * Gets file stats with error handling
-   * @param filePath - Path to the file
-   * @returns File stats or null if file doesn't exist
-   */
-  static async getFileStats(filePath: string): Promise<fs.Stats | null> {
-    try {
-      return await fs.stat(filePath);
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Safely deletes a file if it exists
-   * @param filePath - Path to the file
-   * @returns True if file was deleted, false if it didn't exist
-   */
-  static async safeDeleteFile(filePath: string): Promise<boolean> {
-    try {
-      await fs.unlink(filePath);
-      return true;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return false;
-      }
-      throw error instanceof Error ? error : new Error(String(error));
+      return Result.fail(
+        new FileSystemError(`Failed to delete file at ${filePath}`, {
+          cause: toAppError(err),
+          path: this.resolvePath(filePath),
+        })
+      );
     }
   }
 }

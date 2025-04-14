@@ -2,9 +2,9 @@
  * Model Manager for handling OpenAI model availability and selection
  */
 
-import { getAvailableModels, getModelPricing, getRecommendedModel } from './openai-models';
+import { ModelPricing } from './OpenAIClient';
 
-import type { ModelPricing } from './openai-models';
+import type { ModelPricing as ModelPricingType } from './OpenAIClient';
 
 /**
  * Model validation options
@@ -56,7 +56,7 @@ export interface ModelValidationResult {
 interface ModelCache {
   apiKey: string;
   timestamp: number;
-  models: ModelPricing[];
+  models: ModelPricingType[];
 }
 
 /**
@@ -125,7 +125,7 @@ export class ModelManager {
 
     try {
       // Check if model is available
-      const isAvailable = await this.isModelAvailable(apiKey, modelId);
+      const isAvailable = await ModelPricing.isModelAvailable(apiKey, modelId);
 
       if (isAvailable) {
         return {
@@ -190,7 +190,7 @@ export class ModelManager {
    * @param forceRefresh Force refresh the cache
    * @returns Array of available models with pricing information
    */
-  public async getAvailableModels(apiKey: string, forceRefresh = false): Promise<ModelPricing[]> {
+  public async getAvailableModels(apiKey: string, forceRefresh = false): Promise<ModelPricingType[]> {
     if (!apiKey) {
       return []; // Return empty array if no API key
     }
@@ -206,7 +206,7 @@ export class ModelManager {
     }
 
     // Fetch new data
-    const models = await getAvailableModels(apiKey);
+    const models = await ModelPricing.getAvailableModels(apiKey);
 
     // Update cache
     this.modelCache = {
@@ -224,7 +224,7 @@ export class ModelManager {
    * @param availableOnly Only include available models
    * @returns Models grouped by category
    */
-  public async getModelsByCategory(apiKey: string, availableOnly = true): Promise<Record<string, ModelPricing[]>> {
+  public async getModelsByCategory(apiKey: string, availableOnly = true): Promise<Record<string, ModelPricingType[]>> {
     if (!apiKey) {
       return {}; // Return empty object if no API key
     }
@@ -233,7 +233,7 @@ export class ModelManager {
     const filteredModels = availableOnly ? models.filter((model) => model.available) : models;
 
     // Group by category
-    return filteredModels.reduce<Record<string, ModelPricing[]>>((acc, model) => {
+    return filteredModels.reduce<Record<string, ModelPricingType[]>>((acc, model) => {
       const category = model.category || 'other';
       acc[category] ??= [];
       acc[category].push(model);
@@ -252,8 +252,7 @@ export class ModelManager {
       return false;
     }
 
-    const models = await this.getAvailableModels(apiKey);
-    return models.some((model) => model.id === modelId);
+    return ModelPricing.isModelAvailable(apiKey, modelId);
   }
 
   /**
@@ -267,7 +266,7 @@ export class ModelManager {
       return '';
     }
 
-    return getRecommendedModel(apiKey, preferredModel);
+    return ModelPricing.getRecommendedModel(apiKey, preferredModel);
   }
 
   /**
@@ -276,7 +275,7 @@ export class ModelManager {
    * @param apiKey Optional API key to check availability
    * @returns Pricing information or null if not found
    */
-  public async getModelPricing(modelId: string, apiKey?: string): Promise<ModelPricing | null> {
+  public async getModelPricing(modelId: string, apiKey?: string): Promise<ModelPricingType | null> {
     if (!modelId) {
       return null;
     }
@@ -288,7 +287,7 @@ export class ModelManager {
     }
 
     // Fallback to inferred pricing
-    return getModelPricing(modelId);
+    return ModelPricing.getModelPricing(modelId);
   }
 
   /**

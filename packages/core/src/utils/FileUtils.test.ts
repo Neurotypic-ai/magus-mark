@@ -3,6 +3,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+import { FileSystemError } from '../errors/errors';
 // Import after mocking
 import { FileUtils } from './FileUtils';
 
@@ -16,6 +17,7 @@ const mockAccess = vi.fn();
 const mockReaddir = vi.fn();
 const mockStat = vi.fn();
 const mockUnlink = vi.fn();
+const mockStatSync = vi.fn();
 
 vi.mock('fs-extra', () => ({
   ensureDir: mockEnsureDir,
@@ -25,294 +27,357 @@ vi.mock('fs-extra', () => ({
   readdir: mockReaddir,
   stat: mockStat,
   unlink: mockUnlink,
+  statSync: mockStatSync,
 }));
 
-describe('File Utilities', () => {
-  const fileUtils = new FileUtils();
+describe('FileUtils', () => {
+  const BASE_PATH = '/base/path';
+  let fileUtils: FileUtils;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    fileUtils = new FileUtils(BASE_PATH);
   });
 
   afterEach(() => {
     vi.resetAllMocks();
   });
 
-  describe('Static Methods', () => {
-    describe('ensureDirectory', () => {
-      it('should create directory if it does not exist', async () => {
-        const testDir = '/path/to/dir';
-        mockEnsureDir.mockResolvedValue(undefined);
-
-        await fileUtils.ensureDirectory(testDir);
-        expect(mockEnsureDir).toHaveBeenCalledWith(testDir);
-      });
-    });
-
-    describe('readFile', () => {
-      it('should read file contents', async () => {
-        const testPath = '/path/to/file.txt';
-        const testContent = 'file content';
-        mockReadFile.mockResolvedValue(testContent);
-
-        const result = await fileUtils.readFile(testPath);
-        expect(result).toBe(testContent);
-        expect(mockReadFile).toHaveBeenCalledWith(testPath, 'utf-8');
-      });
-
-      it('should throw error when read fails', async () => {
-        const testPath = '/path/to/nonexistent.txt';
-        mockReadFile.mockRejectedValue(new Error('File not found'));
-
-        await expect(fileUtils.readFile(testPath)).rejects.toThrow('Failed to read file');
-        expect(mockReadFile).toHaveBeenCalledWith(testPath, 'utf-8');
-      });
-    });
-
-    describe('readJsonFile', () => {
-      it('should read and validate JSON file', async () => {
-        const testPath = '/path/to/file.json';
-        const testContent = '{"name": "test", "value": 123}';
-        const testSchema = z.object({
-          name: z.string(),
-          value: z.number(),
-        });
-
-        mockReadFile.mockResolvedValue(testContent);
-
-        const result = await fileUtils.readJsonFile(testPath, testSchema);
-        expect(result).toEqual({ name: 'test', value: 123 });
-        expect(mockReadFile).toHaveBeenCalledWith(testPath, 'utf-8');
-      });
-
-      it('should throw error on invalid JSON', async () => {
-        const testPath = '/path/to/invalid.json';
-        const testContent = '{invalid json}';
-        const testSchema = z.object({});
-
-        mockReadFile.mockResolvedValue(testContent);
-
-        await expect(fileUtils.readJsonFile(testPath, testSchema)).rejects.toThrow('Invalid JSON');
-      });
-
-      it('should throw error on schema validation failure', async () => {
-        const testPath = '/path/to/valid.json';
-        const testContent = '{"name": 123}'; // name should be string
-        const testSchema = z.object({
-          name: z.string(),
-        });
-
-        mockReadFile.mockResolvedValue(testContent);
-
-        await expect(fileUtils.readJsonFile(testPath, testSchema)).rejects.toThrow('Invalid JSON schema');
-      });
-    });
-
-    describe('writeFile', () => {
-      it('should write content to file', async () => {
-        const testPath = '/path/to/file.txt';
-        const testContent = 'file content';
-
-        mockEnsureDir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
-        await fileUtils.writeFile(testPath, testContent);
-        expect(mockEnsureDir).toHaveBeenCalledWith(path.dirname(testPath));
-        expect(mockWriteFile).toHaveBeenCalledWith(testPath, testContent, 'utf-8');
-      });
-
-      it('should throw error when write fails', async () => {
-        const testPath = '/path/to/file.txt';
-        const testContent = 'file content';
-
-        mockEnsureDir.mockResolvedValue(undefined);
-        mockWriteFile.mockRejectedValue(new Error('Permission denied'));
-
-        await expect(fileUtils.writeFile(testPath, testContent)).rejects.toThrow('Failed to write file');
-      });
-    });
-
-    describe('writeJsonFile', () => {
-      it('should write JSON with pretty formatting by default', async () => {
-        const testPath = '/path/to/file.json';
-        const testData = { name: 'test', value: 123 };
-
-        mockEnsureDir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
-        await fileUtils.writeJsonFile(testPath, testData);
-        expect(mockEnsureDir).toHaveBeenCalledWith(path.dirname(testPath));
-        expect(mockWriteFile).toHaveBeenCalledWith(testPath, JSON.stringify(testData, null, 2), 'utf-8');
-      });
-
-      it('should write compact JSON when pretty=false', async () => {
-        const testPath = '/path/to/file.json';
-        const testData = { name: 'test', value: 123 };
-
-        mockEnsureDir.mockResolvedValue(undefined);
-        mockWriteFile.mockResolvedValue(undefined);
-
-        await fileUtils.writeJsonFile(testPath, testData, false);
-        expect(mockWriteFile).toHaveBeenCalledWith(testPath, JSON.stringify(testData), 'utf-8');
-      });
-    });
-
-    describe('fileExists', () => {
-      it('should return true when file exists', async () => {
-        const testPath = '/path/to/existing.txt';
-        mockAccess.mockResolvedValue(undefined);
-
-        const result = await fileUtils.fileExists(testPath);
-        expect(result).toBe(true);
-        expect(mockAccess).toHaveBeenCalledWith(testPath);
-      });
-
-      it('should return false when file does not exist', async () => {
-        const testPath = '/path/to/nonexistent.txt';
-        mockAccess.mockRejectedValue(new Error('ENOENT'));
-
-        const result = await fileUtils.fileExists(testPath);
-        expect(result).toBe(false);
-        expect(mockAccess).toHaveBeenCalledWith(testPath);
-      });
-    });
-
-    describe('findFiles', () => {
-      it('should find files matching pattern', async () => {
-        const testDir = '/path/to/dir';
-        const testPattern = /\.md$/;
-
-        // Setup mocks for readdir to return different values based on path
-        mockReaddir.mockImplementation((dirPath) => {
-          if (dirPath === '/path/to/dir') {
-            return Promise.resolve([
-              { name: 'file1.md', isDirectory: () => false, isFile: () => true },
-              { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
-              { name: 'subdir', isDirectory: () => true, isFile: () => false },
-            ] as unknown as Dirent[]);
-          }
-
-          if (dirPath === '/path/to/dir/subdir') {
-            return Promise.resolve([
-              { name: 'file3.md', isDirectory: () => false, isFile: () => true },
-            ] as unknown as Dirent[]);
-          }
-
-          return Promise.resolve([] as unknown as Dirent[]);
-        });
-
-        const result = await fileUtils.findFiles(testDir, testPattern);
-        expect(result).toEqual(['/path/to/dir/file1.md', '/path/to/dir/subdir/file3.md']);
-      });
-    });
-
-    describe('getFileStats', () => {
-      it('should return stats when file exists', async () => {
-        const testPath = '/path/to/file.txt';
-        const mockStats = { size: 100, mtime: new Date() } as Stats;
-        mockStat.mockResolvedValue(mockStats);
-
-        const result = await fileUtils.getFileStats(testPath);
-        expect(result).toBe(mockStats);
-        expect(mockStat).toHaveBeenCalledWith(testPath);
-      });
-
-      it('should return null when file does not exist', async () => {
-        const testPath = '/path/to/nonexistent.txt';
-        mockStat.mockRejectedValue(new Error('ENOENT'));
-
-        const result = await fileUtils.getFileStats(testPath);
-        expect(result).toBeNull();
-        expect(mockStat).toHaveBeenCalledWith(testPath);
-      });
-    });
-
-    describe('safeDeleteFile', () => {
-      it('should delete file and return true when file exists', async () => {
-        const testPath = '/path/to/file.txt';
-        mockUnlink.mockResolvedValue(undefined);
-
-        const result = await fileUtils.safeDeleteFile(testPath);
-        expect(result).toBe(true);
-        expect(mockUnlink).toHaveBeenCalledWith(testPath);
-      });
-
-      it('should return false when file does not exist', async () => {
-        const testPath = '/path/to/nonexistent.txt';
-        const error = new Error('File not found') as NodeJS.ErrnoException;
-        error.code = 'ENOENT';
-        mockUnlink.mockRejectedValue(error);
-
-        const result = await fileUtils.safeDeleteFile(testPath);
-        expect(result).toBe(false);
-        expect(mockUnlink).toHaveBeenCalledWith(testPath);
-      });
-
-      it('should throw error for other errors', async () => {
-        const testPath = '/path/to/file.txt';
-        const error = new Error('Permission denied') as NodeJS.ErrnoException;
-        error.code = 'EPERM';
-        mockUnlink.mockRejectedValue(error);
-
-        await expect(fileUtils.safeDeleteFile(testPath)).rejects.toThrow('Permission denied');
-        expect(mockUnlink).toHaveBeenCalledWith(testPath);
-      });
+  describe('constructor', () => {
+    it('should initialize with provided base path', () => {
+      const utils = new FileUtils('/test/path');
+      expect(utils).toBeInstanceOf(FileUtils);
     });
   });
 
-  describe('FileUtils Class', () => {
-    describe('constructor', () => {
-      it('should initialize with empty base path by default', () => {
-        const fileUtils = new FileUtils();
-        expect(fileUtils).toBeInstanceOf(FileUtils);
-      });
+  describe('ensureDirectory', () => {
+    it('should create directory with resolved path', async () => {
+      const testDir = 'subdir';
+      mockEnsureDir.mockResolvedValue(undefined);
 
-      it('should initialize with provided base path', () => {
-        const fileUtils = new FileUtils('/base/path');
-        expect(fileUtils).toBeInstanceOf(FileUtils);
-      });
+      const result = await fileUtils.ensureDirectory(testDir);
+      expect(result.isOk()).toBe(true);
+      expect(mockEnsureDir).toHaveBeenCalledWith(path.join(BASE_PATH, testDir));
     });
 
-    describe('instance methods', () => {
-      let fileUtils: FileUtils;
+    it('should return error when directory creation fails', async () => {
+      const testDir = 'subdir';
+      const error = new Error('Permission denied');
+      mockEnsureDir.mockRejectedValue(error);
 
-      beforeEach(() => {
-        fileUtils = new FileUtils('/base/path');
+      const result = await fileUtils.ensureDirectory(testDir);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to create directory');
+    });
+  });
+
+  describe('readFile', () => {
+    it('should read file with resolved path', async () => {
+      const testPath = 'file.txt';
+      const testContent = 'file content';
+      mockReadFile.mockResolvedValue(testContent);
+
+      const result = await fileUtils.readFile(testPath);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toBe(testContent);
+      expect(mockReadFile).toHaveBeenCalledWith(path.join(BASE_PATH, testPath), 'utf-8');
+    });
+
+    it('should return error when read fails', async () => {
+      const testPath = 'nonexistent.txt';
+      mockReadFile.mockRejectedValue(new Error('File not found'));
+
+      const result = await fileUtils.readFile(testPath);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to read file');
+    });
+  });
+
+  describe('readJsonFile', () => {
+    it('should read and validate JSON file', async () => {
+      const testPath = 'file.json';
+      const testContent = '{"name": "test", "value": 123}';
+      const testSchema = z.object({
+        name: z.string(),
+        value: z.number(),
       });
 
-      describe('ensureDirectory', () => {
-        it('should create directory with resolved path', async () => {
-          const testDir = 'subdir';
-          mockEnsureDir.mockResolvedValue(undefined);
+      mockReadFile.mockResolvedValue(testContent);
 
-          await fileUtils.ensureDirectory(testDir);
-          expect(mockEnsureDir).toHaveBeenCalledWith(path.join('/base/path', testDir));
-        });
+      const result = await fileUtils.readJsonFile(testPath, testSchema);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toEqual({ name: 'test', value: 123 });
+      expect(mockReadFile).toHaveBeenCalledWith(path.join(BASE_PATH, testPath), 'utf-8');
+    });
+
+    it('should return error on invalid JSON', async () => {
+      const testPath = 'invalid.json';
+      const testContent = '{invalid json}';
+      const testSchema = z.object({});
+
+      mockReadFile.mockResolvedValue(testContent);
+
+      const result = await fileUtils.readJsonFile(testPath, testSchema);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Invalid JSON');
+    });
+
+    it('should return error on schema validation failure', async () => {
+      const testPath = 'valid.json';
+      const testContent = '{"name": 123}'; // name should be string
+      const testSchema = z.object({
+        name: z.string(),
       });
 
-      describe('readFile', () => {
-        it('should read file with resolved path', async () => {
-          const testPath = 'file.txt';
-          const testContent = 'file content';
-          mockReadFile.mockResolvedValue(testContent);
+      mockReadFile.mockResolvedValue(testContent);
 
-          const result = await fileUtils.readFile(testPath);
-          expect(result).toBe(testContent);
-          expect(mockReadFile).toHaveBeenCalledWith(path.join('/base/path', testPath), 'utf-8');
-        });
+      const result = await fileUtils.readJsonFile(testPath, testSchema);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Invalid JSON schema');
+    });
+
+    it('should propagate error from readFile', async () => {
+      const testPath = 'error.json';
+      const testSchema = z.object({});
+      mockReadFile.mockRejectedValue(new Error('File not found'));
+
+      const result = await fileUtils.readJsonFile(testPath, testSchema);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to read file');
+    });
+  });
+
+  describe('writeFile', () => {
+    it('should write content to file with resolved path', async () => {
+      const testPath = 'file.txt';
+      const testContent = 'file content';
+
+      mockEnsureDir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await fileUtils.writeFile(testPath, testContent);
+      expect(result.isOk()).toBe(true);
+      expect(mockEnsureDir).toHaveBeenCalledWith(path.join(BASE_PATH, path.dirname(testPath)));
+      expect(mockWriteFile).toHaveBeenCalledWith(path.join(BASE_PATH, testPath), testContent, 'utf-8');
+    });
+
+    it('should return error when write fails', async () => {
+      const testPath = 'file.txt';
+      const testContent = 'file content';
+
+      mockEnsureDir.mockResolvedValue(undefined);
+      mockWriteFile.mockRejectedValue(new Error('Permission denied'));
+
+      const result = await fileUtils.writeFile(testPath, testContent);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to write file');
+    });
+
+    it('should propagate directory creation errors', async () => {
+      const testPath = 'subdir/file.txt';
+      const testContent = 'file content';
+      const error = new Error('Permission denied');
+
+      mockEnsureDir.mockRejectedValue(error);
+
+      const result = await fileUtils.writeFile(testPath, testContent);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to create directory');
+    });
+  });
+
+  describe('writeJsonFile', () => {
+    it('should write JSON with pretty formatting by default', async () => {
+      const testPath = 'file.json';
+      const testData = { name: 'test', value: 123 };
+
+      mockEnsureDir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await fileUtils.writeJsonFile(testPath, testData);
+      expect(result.isOk()).toBe(true);
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        path.join(BASE_PATH, testPath),
+        JSON.stringify(testData, null, 2),
+        'utf-8'
+      );
+    });
+
+    it('should write compact JSON when pretty=false', async () => {
+      const testPath = 'file.json';
+      const testData = { name: 'test', value: 123 };
+
+      mockEnsureDir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await fileUtils.writeJsonFile(testPath, testData, false);
+      expect(result.isOk()).toBe(true);
+      expect(mockWriteFile).toHaveBeenCalledWith(path.join(BASE_PATH, testPath), JSON.stringify(testData), 'utf-8');
+    });
+  });
+
+  describe('fileExists', () => {
+    it('should check if file exists with resolved path', async () => {
+      const testPath = 'file.txt';
+      mockAccess.mockResolvedValue(undefined);
+
+      const result = await fileUtils.fileExists(testPath);
+      expect(result).toBe(true);
+      expect(mockAccess).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+
+    it('should return false when file does not exist', async () => {
+      const testPath = 'nonexistent.txt';
+      mockAccess.mockRejectedValue(new Error('ENOENT'));
+
+      const result = await fileUtils.fileExists(testPath);
+      expect(result).toBe(false);
+      expect(mockAccess).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+  });
+
+  describe('findFiles', () => {
+    it('should find files matching pattern with resolved paths', async () => {
+      const testDir = 'docs';
+      const testPattern = /\.md$/;
+      const resolvedDir = path.join(BASE_PATH, testDir);
+
+      // Setup mocks for readdir to return different values based on path
+      mockReaddir.mockImplementation((dirPath) => {
+        if (dirPath === resolvedDir) {
+          return Promise.resolve([
+            { name: 'file1.md', isDirectory: () => false, isFile: () => true },
+            { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
+            { name: 'subdir', isDirectory: () => true, isFile: () => false },
+          ] as unknown as Dirent[]);
+        }
+
+        if (dirPath === path.join(resolvedDir, 'subdir')) {
+          return Promise.resolve([
+            { name: 'file3.md', isDirectory: () => false, isFile: () => true },
+          ] as unknown as Dirent[]);
+        }
+
+        return Promise.resolve([] as unknown as Dirent[]);
       });
 
-      describe('fileExists', () => {
-        it('should check if file exists with resolved path', async () => {
-          const testPath = 'file.txt';
-          mockAccess.mockResolvedValue(undefined);
+      const result = await fileUtils.findFiles(testDir, testPattern);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toEqual([
+        path.join(resolvedDir, 'file1.md'),
+        path.join(resolvedDir, 'subdir', 'file3.md'),
+      ]);
+    });
 
-          const result = await fileUtils.fileExists(testPath);
-          expect(result).toBe(true);
-          expect(mockAccess).toHaveBeenCalledWith(path.join('/base/path', testPath));
-        });
+    it('should return error when directory read fails', async () => {
+      const testDir = 'docs';
+      const testPattern = /\.md$/;
+
+      mockReaddir.mockRejectedValue(new Error('Permission denied'));
+
+      const result = await fileUtils.findFiles(testDir, testPattern);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to find files');
+    });
+  });
+
+  describe('getFileStats', () => {
+    it('should return stats with resolved path when file exists', async () => {
+      const testPath = 'file.txt';
+      const mockStats = { size: 100, mtime: new Date() } as Stats;
+      mockStat.mockResolvedValue(mockStats);
+
+      const result = await fileUtils.getFileStats(testPath);
+      expect(result).toBe(mockStats);
+      expect(mockStat).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+
+    it('should return null when file does not exist', async () => {
+      const testPath = 'nonexistent.txt';
+      mockStat.mockRejectedValue(new Error('ENOENT'));
+
+      const result = await fileUtils.getFileStats(testPath);
+      expect(result).toBeNull();
+      expect(mockStat).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+  });
+
+  describe('getFileSize', () => {
+    it('should return human-readable file size', () => {
+      const testPath = 'file.txt';
+      const mockStats = { size: 1536 } as Stats;
+      mockStatSync.mockReturnValue(mockStats);
+
+      const result = fileUtils.getFileSize(testPath);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toBe('1.5 KB');
+      expect(mockStatSync).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+
+    it('should return bytes for small files', () => {
+      const testPath = 'small.txt';
+      const mockStats = { size: 100 } as Stats;
+      mockStatSync.mockReturnValue(mockStats);
+
+      const result = fileUtils.getFileSize(testPath);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toBe('100.0 B');
+    });
+
+    it('should return error when stat fails', () => {
+      const testPath = 'nonexistent.txt';
+      mockStatSync.mockImplementation(() => {
+        throw new Error('ENOENT');
       });
 
-      // Additional instance method tests could be added here
+      const result = fileUtils.getFileSize(testPath);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to get file size');
+    });
+  });
+
+  describe('safeDeleteFile', () => {
+    it('should delete file with resolved path and return true when file exists', async () => {
+      const testPath = 'file.txt';
+      mockUnlink.mockResolvedValue(undefined);
+
+      const result = await fileUtils.safeDeleteFile(testPath);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toBe(true);
+      expect(mockUnlink).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+
+    it('should return false when file does not exist', async () => {
+      const testPath = 'nonexistent.txt';
+      const error = new Error('File not found') as NodeJS.ErrnoException;
+      error.code = 'ENOENT';
+      mockUnlink.mockRejectedValue(error);
+
+      const result = await fileUtils.safeDeleteFile(testPath);
+      expect(result.isOk()).toBe(true);
+      expect(result.getValue()).toBe(false);
+      expect(mockUnlink).toHaveBeenCalledWith(path.join(BASE_PATH, testPath));
+    });
+
+    it('should return error for other unlink errors', async () => {
+      const testPath = 'file.txt';
+      const error = new Error('Permission denied') as NodeJS.ErrnoException;
+      error.code = 'EPERM';
+      mockUnlink.mockRejectedValue(error);
+
+      const result = await fileUtils.safeDeleteFile(testPath);
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeInstanceOf(FileSystemError);
+      expect(result.getError().message).toContain('Failed to delete file');
     });
   });
 });

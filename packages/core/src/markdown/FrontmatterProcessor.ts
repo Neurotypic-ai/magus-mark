@@ -1,4 +1,4 @@
-import { MarkdownError } from '../errors';
+import { MarkdownError } from '../errors/errors';
 import { DEFAULT_FRONTMATTER_OPTIONS } from '../models/frontmatter-options';
 
 import type { FrontmatterOptions } from '../models/frontmatter-options';

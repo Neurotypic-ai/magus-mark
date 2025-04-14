@@ -1,4 +1,4 @@
-import { FrontmatterProcessor } from './frontmatter-processor';
+import { FrontmatterProcessor } from './FrontmatterProcessor';
 
 import type { Document } from '../models/api';
 import type { FrontmatterOptions } from '../models/frontmatter-options';

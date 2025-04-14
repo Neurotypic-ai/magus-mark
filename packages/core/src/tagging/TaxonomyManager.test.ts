@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { TaxonomyManager } from './taxonomy-manager';
+import { TaxonomyManager } from './TaxonomyManager';
 
 import type { ContextualTag, ConversationTypeTag, DomainTag, SubdomainMap } from '../models/tags';
 import type { Taxonomy } from '../models/taxonomy';

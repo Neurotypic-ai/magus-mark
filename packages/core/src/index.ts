@@ -6,22 +6,23 @@
  */
 
 // Export model calculation function from openai-models
-import { calculateCost as calcCost } from './openai-models';
+import { calculateCost as calcCost } from './OpenAIModels';
 
 // Import AIModel from its actual source to avoid circular dependencies
 import type { AIModel } from './models/api';
 
 // Export error handling
-export * from './errors';
+export * from './errors/errors';
 
 // Export OpenAI integration
-export * from './openai-client';
-export * from './openai-models';
+export * from './OpenAIClient';
+export * from './OpenAIModels';
+export { type ModelPricing, type PricingConfig } from './OpenAIModels';
 export * from './openai/prompts';
 
 // Export tagging core
-export * from './tagging-service';
-export * from './model-manager';
+export * from './TaggingService';
+export * from './ModelManager';
 
 // Export from config selectively to avoid ambiguity
 export {
@@ -37,15 +38,15 @@ export {
 } from './config';
 
 // Export from logger
-export { logger, type LogLevel, type LoggerConfig } from './logger';
+export { type LogLevel, type LoggerConfig } from './Logger';
 
 // Export markdown processing
-export * from './markdown/frontmatter-processor';
-export * from './markdown/document-processor';
+export * from './markdown/FrontmatterProcessor';
+export * from './markdown/DocumentProcessor';
 
 // Export tagging functionality
-export * from './tagging/taxonomy-manager';
-export * from './tagging/batch-processing-service';
+export * from './tagging/TaxonomyManager';
+export * from './tagging/BatchProcessingService';
 
 // Export API validators selectively
 export {
@@ -114,11 +115,12 @@ export * from './types/StringRecord';
 export * from './types/TypedEventEmitter';
 
 // Export utils
-export * from './utils/file';
+export * from './utils/FileUtils';
 export * from './utils/string';
-export * from './utils/object';
-export * from './utils/markdown';
-export * from './utils/performance';
+export * from './utils/DeepMerge';
+export * from './markdown/MarkdownProcessor';
+export { MarkdownProcessor } from './markdown/MarkdownProcessor';
+export * from './utils/Chrono';
 export * from './utils/validation';
 export * from './utils/tag';
 export * from './utils/prompt';
@@ -141,11 +143,11 @@ export async function initializeCore(options: {
 }) {
   // Import needed classes - using the exports we already have
   // This avoids circular dependencies while allowing static type checking
-  const { OpenAIClient } = await import('./openai-client');
-  const { TaggingService } = await import('./tagging-service');
-  const { TaxonomyManager } = await import('./tagging/taxonomy-manager');
-  const { DocumentProcessor } = await import('./markdown/document-processor');
-  const { BatchProcessingService } = await import('./tagging/batch-processing-service');
+  const { OpenAIClient } = await import('./OpenAIClient');
+  const { TaggingService } = await import('./TaggingService');
+  const { TaxonomyManager } = await import('./tagging/TaxonomyManager');
+  const { DocumentProcessor } = await import('./markdown/DocumentProcessor');
+  const { BatchProcessingService } = await import('./tagging/BatchProcessingService');
 
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({

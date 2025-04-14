@@ -1,24 +1,68 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  debounce,
-  measureExecutionTime,
-  measureExecutionTimeSync,
-  measureMemoryUsage,
-  memoize,
-  runWithConcurrencyLimit,
-  throttle,
-} from './performance';
+import { Chrono } from './Chrono';
 
-describe('Performance Utilities', () => {
+describe('Chrono', () => {
+  describe('Singleton Instance', () => {
+    it('should return the same instance when getInstance is called multiple times', () => {
+      const instance1 = Chrono.getInstance();
+      const instance2 = Chrono.getInstance();
+
+      expect(instance1).toBe(instance2);
+      expect(instance1).toBe(Chrono.getInstance());
+    });
+  });
+
+  describe('Class Methods', () => {
+    let chrono: Chrono;
+
+    beforeEach(() => {
+      chrono = Chrono.getInstance();
+    });
+
+    it('should measure execution time of async function using class method', async () => {
+      const asyncFn = async (delay: number): Promise<string> => {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return 'result';
+      };
+
+      const { result, timeTaken } = await chrono.measureExecutionTime(asyncFn, 50);
+
+      expect(result).toBe('result');
+      expect(timeTaken).toBeGreaterThanOrEqual(40); // Allow for slight variance
+      expect(timeTaken).toBeLessThan(200); // Prevent test from hanging
+    });
+
+    it('should measure execution time of sync function using class method', () => {
+      const syncFn = (iterations: number): number => {
+        let result = 0;
+        for (let i = 0; i < iterations; i++) {
+          result += i;
+        }
+        return result;
+      };
+
+      const { result, timeTaken } = chrono.measureExecutionTimeSync(syncFn, 1000000);
+
+      expect(result).toBe(499999500000); // Sum of numbers 0 to 999999
+      expect(timeTaken).toBeGreaterThan(0);
+    });
+  });
+
   describe('measureExecutionTime', () => {
+    let chrono: Chrono;
+
+    beforeEach(() => {
+      chrono = Chrono.getInstance();
+    });
+
     it('should measure execution time of async function', async () => {
       const asyncFn = async (delay: number): Promise<string> => {
         await new Promise((resolve) => setTimeout(resolve, delay));
         return 'result';
       };
 
-      const { result, timeTaken } = await measureExecutionTime(asyncFn, 50);
+      const { result, timeTaken } = await chrono.measureExecutionTime(asyncFn, 50);
 
       expect(result).toBe('result');
       expect(timeTaken).toBeGreaterThanOrEqual(40); // Allow for slight variance
@@ -31,7 +75,7 @@ describe('Performance Utilities', () => {
         return `${String(a)}-${b}`;
       };
 
-      const { result, timeTaken } = await measureExecutionTime(asyncFn, 42, 'test');
+      const { result, timeTaken } = await chrono.measureExecutionTime(asyncFn, 42, 'test');
 
       expect(result).toBe('42-test');
       expect(timeTaken).toBeGreaterThan(0);
@@ -39,6 +83,12 @@ describe('Performance Utilities', () => {
   });
 
   describe('measureExecutionTimeSync', () => {
+    let chrono: Chrono;
+
+    beforeEach(() => {
+      chrono = Chrono.getInstance();
+    });
+
     it('should measure execution time of sync function', () => {
       const syncFn = (iterations: number): number => {
         let result = 0;
@@ -48,7 +98,7 @@ describe('Performance Utilities', () => {
         return result;
       };
 
-      const { result, timeTaken } = measureExecutionTimeSync(syncFn, 1000000);
+      const { result, timeTaken } = chrono.measureExecutionTimeSync(syncFn, 1000000);
 
       expect(result).toBe(499999500000); // Sum of numbers 0 to 999999
       expect(timeTaken).toBeGreaterThan(0);
@@ -59,7 +109,7 @@ describe('Performance Utilities', () => {
         return `${String(a)}-${b}`;
       };
 
-      const { result, timeTaken } = measureExecutionTimeSync(syncFn, 42, 'test');
+      const { result, timeTaken } = chrono.measureExecutionTimeSync(syncFn, 42, 'test');
 
       expect(result).toBe('42-test');
       expect(timeTaken).toBeGreaterThanOrEqual(0);
@@ -67,13 +117,16 @@ describe('Performance Utilities', () => {
   });
 
   describe('debounce', () => {
+    let chrono: Chrono;
+
     beforeEach(() => {
+      chrono = Chrono.getInstance();
       vi.useFakeTimers();
     });
 
     it('should delay function execution', () => {
       const callback = vi.fn();
-      const debounced = debounce(callback, 100);
+      const debounced = chrono.debounce(callback, 100);
 
       debounced();
       expect(callback).not.toHaveBeenCalled();
@@ -87,7 +140,7 @@ describe('Performance Utilities', () => {
 
     it('should reset timer when called again before timeout', () => {
       const callback = vi.fn();
-      const debounced = debounce(callback, 100);
+      const debounced = chrono.debounce(callback, 100);
 
       debounced();
       vi.advanceTimersByTime(50);
@@ -102,7 +155,7 @@ describe('Performance Utilities', () => {
 
     it('should pass arguments to the debounced function', () => {
       const callback = vi.fn();
-      const debounced = debounce(callback, 100);
+      const debounced = chrono.debounce(callback, 100);
 
       debounced(1, 'test', { key: 'value' });
       vi.advanceTimersByTime(100);
@@ -112,13 +165,16 @@ describe('Performance Utilities', () => {
   });
 
   describe('throttle', () => {
+    let chrono: Chrono;
+
     beforeEach(() => {
+      chrono = Chrono.getInstance();
       vi.useFakeTimers();
     });
 
     it('should limit function calls', () => {
       const callback = vi.fn();
-      const throttled = throttle(callback, 100);
+      const throttled = chrono.throttle(callback, 100);
 
       throttled();
       expect(callback).toHaveBeenCalledTimes(1);
@@ -134,7 +190,7 @@ describe('Performance Utilities', () => {
 
     it('should queue last call during throttle period', () => {
       const callback = vi.fn();
-      const throttled = throttle(callback, 100);
+      const throttled = chrono.throttle(callback, 100);
 
       throttled('first');
       expect(callback).toHaveBeenCalledWith('first');
@@ -150,7 +206,7 @@ describe('Performance Utilities', () => {
 
     it('should pass arguments to the throttled function', () => {
       const callback = vi.fn();
-      const throttled = throttle(callback, 100);
+      const throttled = chrono.throttle(callback, 100);
 
       throttled(1, 'test', { key: 'value' });
       expect(callback).toHaveBeenCalledWith(1, 'test', { key: 'value' });
@@ -158,9 +214,15 @@ describe('Performance Utilities', () => {
   });
 
   describe('memoize', () => {
+    let chrono: Chrono;
+
+    beforeEach(() => {
+      chrono = Chrono.getInstance();
+    });
+
     it('should cache function results', () => {
       const fn = vi.fn().mockImplementation((a: number, b: number) => a + b);
-      const memoizedFn = memoize(fn as (...args: unknown[]) => unknown);
+      const memoizedFn = chrono.memoize(fn as (...args: unknown[]) => unknown);
 
       // First call - should execute the function
       expect(memoizedFn(1, 2)).toBe(3);
@@ -177,7 +239,7 @@ describe('Performance Utilities', () => {
 
     it('should handle complex arguments', () => {
       const fn = vi.fn().mockImplementation((obj: { a: number; b: string[] }) => String(obj.a) + obj.b.join(''));
-      const memoizedFn = memoize(fn as (...args: unknown[]) => unknown);
+      const memoizedFn = chrono.memoize(fn as (...args: unknown[]) => unknown);
 
       // First call
       expect(memoizedFn({ a: 1, b: ['x', 'y'] })).toBe('1xy');
@@ -194,6 +256,12 @@ describe('Performance Utilities', () => {
   });
 
   describe('runWithConcurrencyLimit', () => {
+    let chrono: Chrono;
+
+    beforeEach(() => {
+      chrono = Chrono.getInstance();
+    });
+
     it('should execute tasks with concurrency limit', async () => {
       const results: number[] = [];
       const tasks = [
@@ -220,7 +288,7 @@ describe('Performance Utilities', () => {
       ];
 
       vi.useFakeTimers();
-      const promise = runWithConcurrencyLimit(tasks, 2);
+      const promise = chrono.runWithConcurrencyLimit(tasks, 2);
 
       // Fast-forward time to execute tasks
       vi.advanceTimersByTime(10);
@@ -255,7 +323,7 @@ describe('Performance Utilities', () => {
         },
       ];
 
-      const results = await runWithConcurrencyLimit(tasks, 2);
+      const results = await chrono.runWithConcurrencyLimit(tasks, 2);
 
       expect(results[0]).toBe(1);
       expect(results[1]).toBeInstanceOf(Error);
@@ -266,6 +334,12 @@ describe('Performance Utilities', () => {
   });
 
   describe('measureMemoryUsage', () => {
+    let chrono: Chrono;
+
+    beforeEach(() => {
+      chrono = Chrono.getInstance();
+    });
+
     // Not using fake timers here as they can interfere with memory usage measurement
     it('should measure memory usage of a function', async () => {
       // Mock process.memoryUsage
@@ -299,7 +373,7 @@ describe('Performance Utilities', () => {
         return arr;
       };
 
-      const { result, memoryStats } = await measureMemoryUsage(fn, 1000);
+      const { result, memoryStats } = await chrono.measureMemoryUsage(fn, 1000);
 
       // Restore original process.memoryUsage
       process.memoryUsage = originalMemoryUsage;

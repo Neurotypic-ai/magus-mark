@@ -4,7 +4,7 @@
 import OpenAI from 'openai';
 import { encoding_for_model } from 'tiktoken';
 
-import { APIError, ErrorCodes, normalizeError } from './errors';
+import { APIError, ErrorCodes, normalizeError } from './errors/errors';
 
 import type { AIModel } from './models/api';
 
@@ -67,12 +67,52 @@ export interface ModerationResult {
 }
 
 /**
+ * Model pricing information
+ */
+export interface ModelPricing {
+  id: string;
+  name: string; // Display name
+  inputPrice: number; // Price per 1M tokens
+  outputPrice: number; // Price per 1M tokens
+  contextWindow: number;
+  available: boolean;
+  deprecated: boolean;
+  category: string;
+}
+
+/**
+ * External pricing configuration for models
+ */
+export interface PricingConfig {
+  /**
+   * Custom pricing map for known models
+   * Maps model ID to input and output pricing
+   */
+  customPricing?: Record<string, { inputPrice: number; outputPrice: number }>;
+  /**
+   * Default input price for unknown models (per 1M tokens)
+   */
+  defaultInputPrice?: number;
+  /**
+   * Default output price for unknown models (per 1M tokens)
+   */
+  defaultOutputPrice?: number;
+}
+
+// Default pricing config
+const DEFAULT_PRICING: PricingConfig = {
+  defaultInputPrice: 5.0,
+  defaultOutputPrice: 15.0,
+};
+
+/**
  * OpenAI API client for making requests with retry logic and error handling
  */
 export class OpenAIClient {
   private config: OpenAIConfig;
   private client: OpenAI | null = null;
   private encodingCache: Record<string, ReturnType<typeof encoding_for_model>> = {};
+  private pricingConfig: PricingConfig = { ...DEFAULT_PRICING };
 
   constructor(config: Partial<OpenAIConfig> = {}) {
     this.config = { ...DEFAULT_OPENAI_CONFIG, ...config };
@@ -111,6 +151,284 @@ export class OpenAIClient {
    */
   setModel(model: AIModel): void {
     this.config.model = model;
+  }
+
+  /**
+   * Configure pricing information
+   * @param config Pricing configuration
+   */
+  configurePricing(config: PricingConfig): void {
+    this.pricingConfig = {
+      ...DEFAULT_PRICING,
+      ...config,
+      customPricing: {
+        ...this.pricingConfig.customPricing,
+        ...config.customPricing,
+      },
+    };
+  }
+
+  /**
+   * Reset pricing to defaults
+   */
+  resetPricing(): void {
+    this.pricingConfig = { ...DEFAULT_PRICING };
+  }
+
+  /**
+   * Get available models from OpenAI API
+   * @returns Array of available model IDs and their properties
+   */
+  async getAvailableModels(): Promise<ModelPricing[]> {
+    if (!this.config.apiKey) {
+      return []; // Return empty array if no API key provided
+    }
+
+    if (!this.client) {
+      try {
+        this.initClient();
+      } catch (error) {
+        console.error('Failed to initialize OpenAI client:', error);
+        return [];
+      }
+    }
+
+    // After initialization attempts, verify client exists
+    if (!this.client) {
+      console.error('OpenAI client is still null after initialization');
+      return [];
+    }
+
+    try {
+      // Get list of models
+      const response = await this.client.models.list();
+
+      // Map to model pricing objects with inferred pricing based on model name patterns
+      return response.data.map((model) => {
+        const modelId = model.id;
+        const pricing = this.inferModelPricing(modelId);
+
+        return {
+          id: modelId,
+          name: this.formatModelName(modelId),
+          inputPrice: pricing.inputPrice,
+          outputPrice: pricing.outputPrice,
+          contextWindow: this.inferContextWindow(modelId),
+          available: true,
+          deprecated: false,
+          category: this.inferModelCategory(modelId),
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching available models:', error);
+      return []; // Return empty array on error
+    }
+  }
+
+  /**
+   * Format model name for display
+   */
+  private formatModelName(modelId: string): string {
+    return modelId
+      .split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  /**
+   * Infer model pricing based on name patterns
+   */
+  private inferModelPricing(modelId: string): { inputPrice: number; outputPrice: number } {
+    // First check if we have a custom pricing for this model
+    if (this.pricingConfig.customPricing?.[modelId]) {
+      return this.pricingConfig.customPricing[modelId];
+    }
+
+    const modelLower = modelId.toLowerCase();
+
+    // GPT-4 pricing tiers
+    if (modelLower.includes('gpt-4o')) {
+      if (modelLower.includes('mini')) {
+        return { inputPrice: 2.5, outputPrice: 7.5 }; // GPT-4o Mini pricing
+      }
+      return { inputPrice: 10.0, outputPrice: 30.0 }; // GPT-4o pricing
+    }
+
+    if (modelLower.includes('gpt-4')) {
+      if (modelLower.includes('turbo') || modelLower.includes('vision')) {
+        return { inputPrice: 10.0, outputPrice: 30.0 }; // GPT-4 Turbo/Vision pricing
+      }
+      return { inputPrice: 30.0, outputPrice: 60.0 }; // GPT-4 base pricing
+    }
+
+    // O1 & O3 pricing tiers
+    if (modelLower.startsWith('o3')) {
+      if (modelLower.includes('mini')) {
+        return { inputPrice: 15.0, outputPrice: 45.0 };
+      }
+      return { inputPrice: 40.0, outputPrice: 120.0 };
+    }
+
+    if (modelLower.startsWith('o1')) {
+      if (modelLower.includes('mini')) {
+        return { inputPrice: 25.0, outputPrice: 75.0 };
+      }
+      return { inputPrice: 50.0, outputPrice: 150.0 };
+    }
+
+    // GPT-3.5 pricing tiers
+    if (modelLower.includes('gpt-3.5')) {
+      if (modelLower.includes('instruct')) {
+        return { inputPrice: 1.5, outputPrice: 2.0 };
+      }
+      return { inputPrice: 0.5, outputPrice: 1.5 };
+    }
+
+    // Base models
+    if (modelLower.includes('davinci')) {
+      return { inputPrice: 2.0, outputPrice: 2.0 };
+    }
+
+    if (modelLower.includes('babbage')) {
+      return { inputPrice: 0.4, outputPrice: 0.4 };
+    }
+
+    // Default fallback for unknown models
+    return {
+      inputPrice: this.pricingConfig.defaultInputPrice ?? 5.0,
+      outputPrice: this.pricingConfig.defaultOutputPrice ?? 15.0,
+    };
+  }
+
+  /**
+   * Infer context window size based on model name
+   */
+  private inferContextWindow(modelId: string): number {
+    const modelLower = modelId.toLowerCase();
+
+    if (modelLower.includes('gpt-4o') || modelLower.includes('gpt-4-turbo') || modelLower.includes('o1')) {
+      return 128000; // Large context window models
+    }
+
+    if (modelLower.includes('o3')) {
+      return 200000; // O3 has 200k context
+    }
+
+    if (modelLower.includes('gpt-4') && !modelLower.includes('turbo')) {
+      return 8192; // Base GPT-4
+    }
+
+    if (modelLower.includes('gpt-3.5-turbo')) {
+      return 16385; // GPT-3.5 Turbo
+    }
+
+    if (modelLower.includes('gpt-3.5-turbo-instruct')) {
+      return 4096; // GPT-3.5 Turbo Instruct
+    }
+
+    // Default for other models
+    return 16384;
+  }
+
+  /**
+   * Infer model category based on name
+   */
+  private inferModelCategory(modelId: string): string {
+    const modelLower = modelId.toLowerCase();
+
+    if (modelLower.startsWith('o3')) return 'o3';
+    if (modelLower.startsWith('o1')) return 'o1';
+    if (modelLower.includes('gpt-4')) return 'gpt4';
+    if (modelLower.includes('gpt-3.5')) return 'gpt3.5';
+    if (modelLower.includes('davinci') || modelLower.includes('babbage')) return 'base';
+
+    // For other models, try to extract category from name
+    const parts = modelLower.split('-');
+    if (parts.length > 0 && parts[0]) {
+      return parts[0];
+    }
+
+    return 'other';
+  }
+
+  /**
+   * Get pricing information for a specific model
+   * @param modelId Model ID
+   * @returns Pricing information or null if not found
+   */
+  getModelPricing(modelId: string): ModelPricing | null {
+    if (!modelId) return null;
+
+    const pricing = this.inferModelPricing(modelId);
+
+    return {
+      id: modelId,
+      name: this.formatModelName(modelId),
+      inputPrice: pricing.inputPrice,
+      outputPrice: pricing.outputPrice,
+      contextWindow: this.inferContextWindow(modelId),
+      available: true, // We don't know availability without an API call
+      deprecated: false,
+      category: this.inferModelCategory(modelId),
+    };
+  }
+
+  /**
+   * Calculate cost for a model based on tokens
+   * @param model Model ID
+   * @param inputTokens Number of input tokens
+   * @param outputTokens Number of output tokens
+   * @returns Cost in USD
+   */
+  calculateCost(model: string, inputTokens: number, outputTokens: number): number {
+    const pricing = this.getModelPricing(model);
+    if (!pricing) return 0;
+
+    return (inputTokens / 1000000) * pricing.inputPrice + (outputTokens / 1000000) * pricing.outputPrice;
+  }
+
+  /**
+   * Check if a model is available for a given API key
+   * @param modelId Model ID to check
+   * @returns Promise resolving to boolean indicating availability
+   */
+  async isModelAvailable(modelId: string): Promise<boolean> {
+    if (!this.config.apiKey || !modelId) return false;
+
+    try {
+      const models = await this.getAvailableModels();
+      return models.some((model) => model.id === modelId);
+    } catch (error) {
+      console.error('Error checking model availability:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get recommended model based on user preferences and availability
+   * @param preferredModel Preferred model ID
+   * @returns Promise resolving to recommended model ID or an empty string if no model is available
+   */
+  async getRecommendedModel(preferredModel: string): Promise<string> {
+    if (!this.config.apiKey) return '';
+
+    try {
+      // Check if preferred model is available
+      const isAvailable = await this.isModelAvailable(preferredModel);
+      if (isAvailable) return preferredModel;
+
+      // Get all available models
+      const models = await this.getAvailableModels();
+      if (models.length > 0) {
+        // Return first available model
+        return models[0]?.id ?? '';
+      }
+
+      return ''; // No models available
+    } catch (error) {
+      console.error('Error getting recommended model:', error);
+      return ''; // No default fallbacks
+    }
   }
 
   /**
@@ -199,13 +517,11 @@ export class OpenAIClient {
         const completionTokens = response.usage?.completion_tokens ?? 0;
         const totalTokens = response.usage?.total_tokens ?? apiPromptTokens + completionTokens;
 
-        // Calculate estimated cost based on model
-        let costPerToken = 0.00001; // Default for gpt-3.5-turbo
-        if (model.includes('gpt-4')) {
-          costPerToken = model.includes('32k') ? 0.00006 : 0.00003;
-        } else if (model.includes('gpt-4o')) {
-          costPerToken = 0.00001;
-        }
+        // Get more accurate cost based on model pricing
+        const pricing = this.getModelPricing(model);
+        const estimatedCost = pricing
+          ? this.calculateCost(model, apiPromptTokens, completionTokens)
+          : totalTokens * 0.00001; // Fallback
 
         let responseText = response.choices[0]?.message.content ?? '';
         let parsedData: T;
@@ -226,7 +542,7 @@ export class OpenAIClient {
               promptTokens: apiPromptTokens,
               completionTokens,
               totalTokens,
-              estimatedCost: totalTokens * costPerToken,
+              estimatedCost,
             },
           };
         } catch (error) {
@@ -241,7 +557,7 @@ export class OpenAIClient {
               promptTokens: apiPromptTokens,
               completionTokens,
               totalTokens,
-              estimatedCost: totalTokens * costPerToken,
+              estimatedCost,
             },
           };
         }
@@ -445,6 +761,80 @@ export class OpenAIClient {
     }
   }
 }
+
+// Static pricing configuration methods for backward compatibility
+export const ModelPricing = {
+  /**
+   * Configure pricing information
+   * @param config Pricing configuration
+   */
+  configurePricing(config: PricingConfig): void {
+    const client = new OpenAIClient();
+    client.configurePricing(config);
+  },
+
+  /**
+   * Reset pricing to defaults
+   */
+  resetPricing(): void {
+    const client = new OpenAIClient();
+    client.resetPricing();
+  },
+
+  /**
+   * Get available models from OpenAI API
+   * @param apiKey OpenAI API key
+   * @returns Array of available model IDs and their properties
+   */
+  async getAvailableModels(apiKey: string): Promise<ModelPricing[]> {
+    const client = new OpenAIClient({ apiKey });
+    return client.getAvailableModels();
+  },
+
+  /**
+   * Get pricing information for a specific model
+   * @param modelId Model ID
+   * @returns Pricing information or null if not found
+   */
+  getModelPricing(modelId: string): ModelPricing | null {
+    const client = new OpenAIClient();
+    return client.getModelPricing(modelId);
+  },
+
+  /**
+   * Calculate cost for a model based on tokens
+   * @param model Model ID
+   * @param inputTokens Number of input tokens
+   * @param outputTokens Number of output tokens
+   * @returns Cost in USD
+   */
+  calculateCost(model: string, inputTokens: number, outputTokens: number): number {
+    const client = new OpenAIClient();
+    return client.calculateCost(model, inputTokens, outputTokens);
+  },
+
+  /**
+   * Check if a model is available for a given API key
+   * @param apiKey OpenAI API key
+   * @param modelId Model ID to check
+   * @returns Promise resolving to boolean indicating availability
+   */
+  async isModelAvailable(apiKey: string, modelId: string): Promise<boolean> {
+    const client = new OpenAIClient({ apiKey });
+    return client.isModelAvailable(modelId);
+  },
+
+  /**
+   * Get recommended model based on user preferences and availability
+   * @param apiKey OpenAI API key
+   * @param preferredModel Preferred model ID
+   * @returns Promise resolving to recommended model ID or an empty string if no model is available
+   */
+  async getRecommendedModel(apiKey: string, preferredModel: string): Promise<string> {
+    const client = new OpenAIClient({ apiKey });
+    return client.getRecommendedModel(preferredModel);
+  },
+};
 
 /**
  * Prompt engineering utilities for constructing effective prompts

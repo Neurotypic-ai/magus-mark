@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ModelManager } from './model-manager';
-import { calculateCost } from './openai-models';
+import { ModelManager } from './ModelManager';
+import { calculateCost } from './OpenAIModels';
 
-import type { ModelValidationResult } from './model-manager';
+import type { ModelValidationResult } from './ModelManager';
+import type { ModelPricing } from './OpenAIModels';
 import type { AIModel } from './models/api';
-import type { ModelPricing } from './openai-models';
 
 // Create a mock for model pricing since MODEL_COST_MAP is not directly exported
 const MODEL_PRICING: Record<string, { inputPrice: number; outputPrice: number }> = {

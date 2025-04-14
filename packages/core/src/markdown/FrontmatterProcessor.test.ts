@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_FRONTMATTER_OPTIONS } from '../models/frontmatter-options';
-import { FrontmatterProcessor } from './frontmatter-processor';
+import { FrontmatterProcessor } from './FrontmatterProcessor';
 
 import type { FrontmatterOptions } from '../models/frontmatter-options';
 import type { TagSet } from '../models/tags';

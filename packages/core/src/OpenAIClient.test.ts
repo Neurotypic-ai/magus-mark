@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_OPENAI_CONFIG, OpenAIClient } from './openai-client';
+import { DEFAULT_OPENAI_CONFIG, OpenAIClient } from './OpenAIClient';
 
 import type { AIModel } from './models/api';
 

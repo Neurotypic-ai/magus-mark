@@ -3,15 +3,11 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
-import { fileExists, readJsonFile, writeJsonFile } from './utils/file';
+import { FileUtils } from './utils/FileUtils';
 
+import type { LogLevel } from './Logger';
 import type { AIModel, APIKeyStorage } from './models/api';
 import type { TagBehavior } from './models/tags';
-
-/**
- * Logging level type
- */
-export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 /**
  * Default configuration values
@@ -142,13 +138,14 @@ export function getDefaultConfigPath(): string {
  */
 export async function loadConfig(configPath = getDefaultConfigPath()): Promise<Config> {
   try {
-    if (await fileExists(configPath)) {
-      return await readJsonFile(configPath, configSchema);
+    const fileUtils = new FileUtils(configPath);
+    if (await fileUtils.fileExists(configPath)) {
+      return await fileUtils.readJsonFile(configPath, configSchema);
     }
 
     // Config file doesn't exist, create with defaults
     const config = DEFAULT_CONFIG;
-    await writeJsonFile(configPath, config);
+    await fileUtils.writeJsonFile(configPath, config);
     return config;
   } catch (error) {
     console.warn(`Error loading config from ${configPath}: ${(error as Error).message}`);
@@ -166,7 +163,8 @@ export async function saveConfig(config: Config, configPath = getDefaultConfigPa
   try {
     // Validate config before saving
     const validatedConfig = configSchema.parse(config);
-    await writeJsonFile(configPath, validatedConfig);
+    const fileUtils = new FileUtils(configPath);
+    await fileUtils.writeJsonFile(configPath, validatedConfig);
   } catch (error) {
     throw new Error(`Failed to save config: ${(error as Error).message}`);
   }

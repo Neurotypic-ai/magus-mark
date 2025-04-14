@@ -1,8 +1,8 @@
 /**
  * Batch processing service for tagging multiple documents
  */
+import type { TaggingService } from '../TaggingService';
 import type { Document, TaggingOptions, TaggingResult } from '../models/api';
-import type { TaggingService } from '../tagging-service';
 
 /**
  * Options for batch processing
