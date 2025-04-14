@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { logger } from '@obsidian-magic/logger';
+import { logger } from '@obsidian-magic/core';
 
 import { testCommand } from './test';
 

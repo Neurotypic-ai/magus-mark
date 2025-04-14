@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TagSet } from '@obsidian-magic/types';
+import type { TagSet } from '@obsidian-magic/core';
 
 import type {
   CursorCommand,

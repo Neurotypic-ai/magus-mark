@@ -7,7 +7,7 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 import type { StatsOptions } from '../types/commands';
 
 // Mock dependencies
-vi.mock('../../src/utils/logger', () => ({
+vi.mock('@obsidian-magic/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -18,14 +18,14 @@ vi.mock('../../src/utils/logger', () => ({
   },
 }));
 
-vi.mock('../../src/utils/config', () => ({
+vi.mock('@obsidian-magic/core', () => ({
   config: {
     get: vi.fn(),
     getAll: vi.fn().mockReturnValue({}),
   },
 }));
 
-vi.mock('../../src/utils/cost-manager', () => ({
+vi.mock('@obsidian-magic/core', () => ({
   costManager: {
     getUsageData: vi.fn().mockReturnValue({
       totalTokens: 1000,
@@ -67,8 +67,8 @@ describe('statsCommand', () => {
   });
 
   it('should display usage statistics', async () => {
-    const { logger } = await import('@obsidian-magic/logger');
-    const { costManager } = await import('../utils/cost-manager');
+    const { logger } = await import('@obsidian-magic/logger/dist/logger');
+    const { costManager } = await import('@obsidian-magic/core');
 
     // Call the handler with mock arguments
     const handlerFn = statsCommand.handler;
@@ -87,7 +87,7 @@ describe('statsCommand', () => {
   });
 
   it('should reset usage statistics when reset flag is true', async () => {
-    const { costManager } = await import('../utils/cost-manager');
+    const { costManager } = await import('@obsidian-magic/core');
 
     // Call the handler with reset flag
     const handlerFn = statsCommand.handler;
@@ -105,7 +105,7 @@ describe('statsCommand', () => {
   });
 
   it('should output JSON format when specified', async () => {
-    const { logger } = await import('@obsidian-magic/logger');
+    const { logger } = await import('@obsidian-magic/logger/dist/logger');
 
     // Call the handler with JSON format
     const handlerFn = statsCommand.handler;

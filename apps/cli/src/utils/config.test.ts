@@ -1,37 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Import after mock is defined
 import { config } from './config';
 
-// Mock the Conf module
-vi.mock('conf', () => {
-  const mockStore = new Map<string, unknown>();
-
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      get: vi.fn((key: string) => mockStore.get(key)),
-      set: vi.fn((key: string, value: unknown) => mockStore.set(key, value)),
-      has: vi.fn((key: string) => mockStore.has(key)),
-      delete: vi.fn((key: string) => mockStore.delete(key)),
-      clear: vi.fn(() => {
-        mockStore.clear();
-      }),
-      getAll: vi.fn(() => {
-        const result: Record<string, unknown> = {};
-        mockStore.forEach((value, key) => {
-          result[key] = value;
-        });
-        return result;
-      }),
-      size: mockStore.size,
-    })),
-  };
-});
+// Mock fs-extra and Conf, but leave config implementation alone
+vi.mock('fs-extra', () => ({ ... }));
+vi.mock('conf', () => ({ ... }));
 
 describe('Config Utility', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    // Reset mock store
-    config.clear();
+    await config.clear();
   });
 
   it('should get and set values correctly', async () => {

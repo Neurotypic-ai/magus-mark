@@ -3,8 +3,7 @@ import path from 'path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import { logger } from '@obsidian-magic/logger';
-import { fileExists } from '@obsidian-magic/utils';
+import { fileExists, logger } from '@obsidian-magic/core';
 
 import { costManager } from '../utils/cost-manager';
 

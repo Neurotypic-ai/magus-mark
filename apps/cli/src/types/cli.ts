@@ -2,7 +2,7 @@
  * CLI-specific type definitions for Obsidian Magic
  */
 
-import type { APIConfig, Document, TaggingOptions } from '@obsidian-magic/types';
+import type { APIConfig, Document, TaggingOptions } from '@obsidian-magic/core';
 
 /**
  * CLI command context

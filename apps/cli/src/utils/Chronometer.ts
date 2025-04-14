@@ -6,7 +6,7 @@ import { AppError, Result } from '@obsidian-magic/core';
 
 import { OpenAIClient, TaggingService } from '../mocks/core';
 
-import type { AIModel } from '@obsidian-magic/types';
+import type { AIModel } from '@obsidian-magic/core';
 
 /**
  * Benchmark report for a single model
@@ -103,15 +103,15 @@ interface BenchmarkRunResult {
 /**
  * Benchmark utility for evaluating model performance
  */
-class Benchmark {
-  private static instance: Benchmark;
+class Chronometer {
+  private static instance: Chronometer;
   private testCases: TestCase[] = [];
 
   /**
    * Get the singleton instance
    */
-  public static getInstance(): Benchmark {
-    return Benchmark.instance;
+  public static getInstance(): Chronometer {
+    return Chronometer.instance;
   }
 
   /**
@@ -471,4 +471,4 @@ class Benchmark {
 }
 
 // Export the benchmark singleton
-export const benchmark = Benchmark.getInstance();
+export const benchmark = Chronometer.getInstance();

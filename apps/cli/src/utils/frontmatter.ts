@@ -1,4 +1,4 @@
-import type { TagSet } from '@obsidian-magic/types';
+import type { TagSet } from '@obsidian-magic/core';
 
 /**
  * Type definitions for frontmatter data

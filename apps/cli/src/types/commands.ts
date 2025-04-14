@@ -1,4 +1,4 @@
-import type { AIModel, TagBehavior } from '@obsidian-magic/types';
+import type { AIModel, TagBehavior } from '@obsidian-magic/core';
 
 /**
  * Log level type

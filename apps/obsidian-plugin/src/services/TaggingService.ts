@@ -15,7 +15,7 @@ import {
   withRetry,
 } from '@obsidian-magic/core';
 
-import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/types';
+import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/core';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';

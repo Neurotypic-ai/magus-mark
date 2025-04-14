@@ -5,26 +5,47 @@
  * OpenAI integration, markdown parsing, and other core features.
  */
 
-// Export model calculation function from openai-models
-import { calculateCost as calcCost } from './OpenAIModels';
+// Explicit imports with full paths to avoid barrel files
+import { OpenAIClient } from './OpenAIClient';
+import { TaggingService } from './TaggingService';
+import { DocumentProcessor } from './markdown/DocumentProcessor';
+import { BatchProcessingService } from './tagging/BatchProcessingService';
+import { TaxonomyManager } from './tagging/TaxonomyManager';
 
-// Import AIModel from its actual source to avoid circular dependencies
 import type { AIModel } from './models/api';
 
-// Export error handling
-export * from './errors/errors';
+// Export from explicit paths
+export {
+  AppError,
+  ValidationError,
+  FileSystemError,
+  NetworkError,
+  APIError,
+  ApiKeyError,
+  ConfigurationError,
+  MarkdownError,
+  TaggingError,
+  CostLimitError,
+  Result,
+  type ResultObject,
+  success,
+  failure,
+  tryCatch,
+  tryOrNull,
+  toAppError,
+  normalizeError,
+  withRetry,
+  type ErrorCode,
+} from './errors/errors';
 
-// Export OpenAI integration
-export * from './OpenAIClient';
-export * from './OpenAIModels';
-export { type ModelPricing, type PricingConfig } from './OpenAIModels';
-export * from './openai/prompts';
+// Export OpenAI integration with explicit paths
+export { OpenAIClient, type ModelPricing, type PricingConfig } from './OpenAIClient';
 
-// Export tagging core
-export * from './TaggingService';
-export * from './ModelManager';
+// Export tagging core with explicit paths
+export { TaggingService } from './TaggingService';
+export { ModelManager } from './ModelManager';
 
-// Export from config selectively to avoid ambiguity
+// Export configuration with explicit paths
 export {
   DEFAULT_CONFIG,
   configSchema,
@@ -37,18 +58,19 @@ export {
   setApiKey,
 } from './config';
 
-// Export from logger
-export { type LogLevel, type LoggerConfig } from './Logger';
+// Export logger with explicit paths
+export { Logger, type LogLevel, type LoggerConfig } from './Logger';
 
-// Export markdown processing
-export * from './markdown/FrontmatterProcessor';
-export * from './markdown/DocumentProcessor';
+// Export markdown processing with explicit paths
+export { FrontmatterProcessor } from './markdown/FrontmatterProcessor';
+export { DocumentProcessor } from './markdown/DocumentProcessor';
+export { MarkdownProcessor } from './markdown/MarkdownProcessor';
 
-// Export tagging functionality
-export * from './tagging/TaxonomyManager';
-export * from './tagging/BatchProcessingService';
+// Export tagging functionality with explicit paths
+export { TaxonomyManager } from './tagging/TaxonomyManager';
+export { BatchProcessingService } from './tagging/BatchProcessingService';
 
-// Export API validators selectively
+// Export validators with explicit paths
 export {
   aiModelSchema,
   apiKeyStorageSchema,
@@ -74,7 +96,7 @@ export {
   type BatchTaggingJobSchema,
 } from './validators/api-validators';
 
-// Export tag validators selectively
+// Export tag validators with explicit paths
 export {
   yearTagSchema,
   lifeAreaTagSchema,
@@ -100,35 +122,24 @@ export {
   type TagBehaviorSchema,
 } from './validators/tags-validators';
 
-// Export models
-export * from './models/api';
-export * from './models/tags';
-export * from './models/taxonomy';
-export * from './models/frontmatter-options';
+// Export models with explicit paths
+export { type AIModel } from './models/api';
+export { type TagConfidence } from './models/tags';
+export { type Taxonomy } from './models/taxonomy';
+export { type FrontmatterOptions } from './markdown/frontmatter-options';
 
-// Export basic types
-export * from './types/AsyncState';
-export * from './types/DeepPartial';
-export * from './types/PaginatedResult';
-export * from './types/QueryOptions';
-export * from './types/StringRecord';
-export * from './types/TypedEventEmitter';
+// Export basic types with explicit paths
+export { type AsyncState } from './types/AsyncState';
+export { type DeepPartial } from './types/DeepPartial';
+export { type PaginatedResult } from './types/PaginatedResult';
+export { type QueryOptions } from './types/QueryOptions';
+export { type StringRecord } from './types/StringRecord';
+export { type TypedEventEmitter } from './types/TypedEventEmitter';
 
-// Export utils
-export * from './utils/FileUtils';
-export * from './utils/string';
-export * from './utils/DeepMerge';
-export * from './markdown/MarkdownProcessor';
-export { MarkdownProcessor } from './markdown/MarkdownProcessor';
-export * from './utils/Chrono';
-export * from './utils/validation';
-export * from './utils/tag';
-export * from './utils/prompt';
+export { deepMerge } from './utils/DeepMerge';
 
 // Export version information
 export const VERSION = '0.1.0';
-
-export const calculateCost = calcCost;
 
 /**
  * Initialize the core module with configuration
@@ -136,23 +147,15 @@ export const calculateCost = calcCost;
  * @param options Configuration options for the core module
  * @returns Core functionality instances
  */
-export async function initializeCore(options: {
+export function initializeCore(options: {
   openaiApiKey?: string;
   model?: AIModel;
   taxonomy?: Record<string, unknown>;
 }) {
-  // Import needed classes - using the exports we already have
-  // This avoids circular dependencies while allowing static type checking
-  const { OpenAIClient } = await import('./OpenAIClient');
-  const { TaggingService } = await import('./TaggingService');
-  const { TaxonomyManager } = await import('./tagging/TaxonomyManager');
-  const { DocumentProcessor } = await import('./markdown/DocumentProcessor');
-  const { BatchProcessingService } = await import('./tagging/BatchProcessingService');
-
   // Initialize OpenAI client
   const openAIClient = new OpenAIClient({
     apiKey: options.openaiApiKey ?? process.env['OPENAI_API_KEY'] ?? '',
-    model: options.model ?? 'gpt-4o', // Use nullish coalescing
+    model: options.model ?? 'gpt-4o',
   });
 
   // Initialize taxonomy manager

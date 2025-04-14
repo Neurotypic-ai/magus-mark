@@ -7,7 +7,7 @@ import { FolderTagModal } from './ui/FolderTagModal';
 import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
-import type { AIModel, TagBehavior } from '@obsidian-magic/types';
+import type { AIModel, TagBehavior } from '@obsidian-magic/core';
 import type { App } from 'obsidian';
 
 interface ObsidianMagicSettings {

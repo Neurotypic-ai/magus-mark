@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import { logger } from '@obsidian-magic/logger';
+import { logger } from '@obsidian-magic/core';
 
 /**
  * Task status type

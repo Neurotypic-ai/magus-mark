@@ -6,13 +6,12 @@ import chalk from 'chalk';
 import cliProgress from 'cli-progress';
 import fs from 'fs-extra';
 
-import { OpenAIClient, TaggingService } from '@obsidian-magic/core';
-import { logger } from '@obsidian-magic/logger';
+import { OpenAIClient, TaggingService, logger } from '@obsidian-magic/core';
 
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
 
-import type { AIModel, Document, TagBehavior, TagSet } from '@obsidian-magic/types';
+import type { AIModel, Document, TagBehavior, TagSet } from '@obsidian-magic/core';
 import type { CommandModule } from 'yargs';
 
 import type { TagOptions } from '../types/commands';

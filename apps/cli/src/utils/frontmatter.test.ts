@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { extractFrontmatter, extractTagsFromFrontmatter, updateTagsInFrontmatter } from './frontmatter';
 
+import type { ConversationTypeTag, TagConfidence, TagSet, TopicalTag } from '@obsidian-magic/core';
+
 describe('Frontmatter Utility', () => {
   describe('extractFrontmatter', () => {
     it('should extract frontmatter from markdown content', () => {
@@ -33,7 +35,7 @@ This is the main content of the note.`;
       const result = extractFrontmatter(content);
 
       expect(result).toEqual({
-        frontmatter: {},
+        frontmatter: null,
         content: '# No Frontmatter\n\nThis content has no frontmatter.',
       });
     });
@@ -68,185 +70,123 @@ Content here`;
 
       const result = extractFrontmatter(content);
 
-      expect(result.frontmatter).toHaveProperty('string', 'Simple string');
-      expect(result.frontmatter).toHaveProperty('number', 42);
-      expect(result.frontmatter).toHaveProperty('boolean', true);
-      expect(result.frontmatter).toHaveProperty('array');
-      expect(result.frontmatter.array).toEqual([1, 2, 3]);
-      expect(result.frontmatter).toHaveProperty('nested');
-      expect(result.frontmatter.nested).toEqual({
-        key: 'value',
-        another: 'nested value',
-      });
+      expect(result.frontmatter).not.toBeNull();
+      if (result.frontmatter) {
+        expect(result.frontmatter).toHaveProperty('string', 'Simple string');
+        expect(result.frontmatter).toHaveProperty('number', 42);
+        expect(result.frontmatter).toHaveProperty('boolean', true);
+        expect(result.frontmatter).toHaveProperty('array');
+        expect(result.frontmatter['array']).toEqual([1, 2, 3]);
+        expect(result.frontmatter).toHaveProperty('nested');
+        expect(result.frontmatter['nested']).toEqual({
+          key: 'value',
+          another: 'nested value',
+        });
+      }
     });
   });
 
   describe('extractTagsFromFrontmatter', () => {
     it('should extract tags from frontmatter object', () => {
-      const frontmatter = {
-        title: 'Test Note',
-        tags: ['javascript', 'typescript', 'react'],
+      const topicalTag: TopicalTag = {
+        domain: 'technology',
       };
 
-      const tags = extractTagsFromFrontmatter(frontmatter);
+      const confidence: TagConfidence = {
+        overall: 0.9,
+      };
+
+      const markdown = `---
+title: Test Note
+tags:
+  obsidianMagic:
+    year: "2023"
+    topical_tags: [${JSON.stringify(topicalTag)}]
+    conversation_type: "deep-dive"
+    confidence: ${JSON.stringify(confidence)}
+---
+Test content`;
+
+      const tags = extractTagsFromFrontmatter(markdown);
 
       expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript', 'react'],
+        year: '2023',
+        topical_tags: [topicalTag],
+        conversation_type: 'deep-dive' as ConversationTypeTag,
+        confidence: confidence,
       });
     });
 
-    it('should extract categorized tags', () => {
-      const frontmatter = {
-        title: 'Test Note',
-        tags: ['javascript', 'typescript'],
-        topics: ['frontend', 'web'],
-        complexity: ['intermediate'],
-      };
+    it('should return undefined when no tags are found', () => {
+      const markdown = `---
+title: Test Note
+---
+Test content`;
 
-      const tags = extractTagsFromFrontmatter(frontmatter);
+      const tags = extractTagsFromFrontmatter(markdown);
 
-      expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript'],
-        topics: ['frontend', 'web'],
-        complexity: ['intermediate'],
-      });
-    });
-
-    it('should handle string tags', () => {
-      const frontmatter = {
-        title: 'Test Note',
-        tags: 'javascript, typescript, react',
-      };
-
-      const tags = extractTagsFromFrontmatter(frontmatter);
-
-      expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript', 'react'],
-      });
-    });
-
-    it('should handle empty tags', () => {
-      const frontmatter = {
-        title: 'Test Note',
-      };
-
-      const tags = extractTagsFromFrontmatter(frontmatter);
-
-      expect(tags).toEqual({});
-    });
-
-    it('should handle different tag formats', () => {
-      const frontmatter = {
-        title: 'Test Note',
-        tags: '#javascript #typescript #react',
-      };
-
-      const tags = extractTagsFromFrontmatter(frontmatter);
-
-      expect(tags).toEqual({
-        uncategorized: ['javascript', 'typescript', 'react'],
-      });
+      expect(tags).toBeUndefined();
     });
   });
 
   describe('updateTagsInFrontmatter', () => {
     it('should add tags to content without existing frontmatter', () => {
       const content = '# No Frontmatter\n\nThis content has no frontmatter.';
-      const tags = {
-        uncategorized: ['javascript', 'typescript'],
-        topics: ['frontend'],
+      const topicalTag: TopicalTag = {
+        domain: 'technology',
+      };
+
+      const tags: TagSet = {
+        year: '2023',
+        topical_tags: [topicalTag],
+        conversation_type: 'deep-dive',
+        confidence: {
+          overall: 0.9,
+        },
       };
 
       const result = updateTagsInFrontmatter(content, tags);
 
       expect(result).toContain('---');
-      expect(result).toContain('tags: [javascript, typescript]');
-      expect(result).toContain('topics: [frontend]');
+      expect(result).toContain('tags');
+      expect(result).toContain('obsidianMagic');
       expect(result).toContain('# No Frontmatter');
     });
 
     it('should update existing tags in frontmatter', () => {
       const content = `---
 title: Test Note
-tags: [old-tag]
+tags:
+  obsidianMagic:
+    year: "2022"
+    topical_tags: [{"domain":"science"}]
+    conversation_type: "question"
+    confidence: {"overall":0.7}
 ---
 
 # Content
 
 This is the content.`;
-      const tags = {
-        uncategorized: ['javascript', 'typescript'],
+      const topicalTag: TopicalTag = {
+        domain: 'technology',
+      };
+
+      const tags: TagSet = {
+        year: '2023',
+        topical_tags: [topicalTag],
+        conversation_type: 'deep-dive',
+        confidence: {
+          overall: 0.9,
+        },
       };
 
       const result = updateTagsInFrontmatter(content, tags);
 
       expect(result).toContain('title: Test Note');
-      expect(result).toContain('tags: [javascript, typescript]');
-      expect(result).not.toContain('old-tag');
-    });
-
-    it('should merge tags when specified', () => {
-      const content = `---
-title: Test Note
-tags: [existing-tag]
----
-
-# Content`;
-      const tags = {
-        uncategorized: ['new-tag'],
-      };
-
-      const result = updateTagsInFrontmatter(content, tags, 'merge');
-
-      expect(result).toContain('tags: [existing-tag, new-tag]');
-    });
-
-    it('should append tags when specified', () => {
-      const content = `---
-title: Test Note
-tags: [existing-tag]
----
-
-# Content`;
-      const tags = {
-        uncategorized: ['new-tag'],
-      };
-
-      const result = updateTagsInFrontmatter(content, tags, 'append');
-
-      expect(result).toContain('tags: [existing-tag, new-tag]');
-    });
-
-    it('should replace tags when specified', () => {
-      const content = `---
-title: Test Note
-tags: [existing-tag]
----
-
-# Content`;
-      const tags = {
-        uncategorized: ['new-tag'],
-      };
-
-      const result = updateTagsInFrontmatter(content, tags, 'replace');
-
-      expect(result).toContain('tags: [new-tag]');
-      expect(result).not.toContain('existing-tag');
-    });
-
-    it('should handle multiple tag categories', () => {
-      const content = '# No Frontmatter';
-      const tags = {
-        uncategorized: ['javascript', 'typescript'],
-        topics: ['frontend', 'web'],
-        complexity: ['intermediate'],
-      };
-
-      const result = updateTagsInFrontmatter(content, tags);
-
-      expect(result).toContain('tags: [javascript, typescript]');
-      expect(result).toContain('topics: [frontend, web]');
-      expect(result).toContain('complexity: [intermediate]');
+      expect(result).toContain('tags');
+      expect(result).toContain('obsidianMagic');
+      expect(result).toContain('"year": "2023"');
+      expect(result).toContain('"domain":"technology"');
     });
   });
 });

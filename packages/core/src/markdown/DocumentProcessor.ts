@@ -1,7 +1,6 @@
 import { FrontmatterProcessor } from './FrontmatterProcessor';
 
 import type { Document } from '../models/api';
-import type { FrontmatterOptions } from '../models/frontmatter-options';
 import type {
   ContextualTag,
   ConversationTypeTag,
@@ -11,6 +10,7 @@ import type {
   TagSet,
   YearTag,
 } from '../models/tags';
+import type { FrontmatterOptions } from './FrontmatterProcessor';
 
 /**
  * Document processor for handling markdown documents

@@ -2,8 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TaggingService } from './TaggingService';
 
-import type { Result } from '@obsidian-magic/core';
-import type { TagSet } from '@obsidian-magic/types';
+import type { Result, TagSet } from '@obsidian-magic/core';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';

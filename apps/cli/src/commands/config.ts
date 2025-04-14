@@ -1,8 +1,7 @@
 import { confirm } from '@inquirer/prompts';
 
+import { fileExists, logger, writeFile } from '@obsidian-magic/core';
 import { modelManager } from '@obsidian-magic/core/src/model-manager';
-import { logger } from '@obsidian-magic/logger';
-import { fileExists, writeFile } from '@obsidian-magic/utils';
 
 import { config } from '../utils/config';
 

@@ -8,8 +8,7 @@ import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { AppError } from '@obsidian-magic/core';
-import { logger } from '@obsidian-magic/logger';
+import { AppError, logger } from '@obsidian-magic/core';
 
 import pkg from '../package.json';
 import { getAllCommands } from './commands/commands';

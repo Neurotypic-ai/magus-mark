@@ -1,3 +1,4 @@
+import console from 'console';
 import path from 'path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
@@ -5,15 +6,13 @@ import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 
 import { modelManager } from '@obsidian-magic/core';
-import { logger } from '@obsidian-magic/logger';
 
 import { config } from '../utils/config';
 
-import type { ModelPricing } from '@obsidian-magic/core/src/openai-models';
-import type { LogLevel } from '@obsidian-magic/logger';
-import type { AIModel } from '@obsidian-magic/types';
+import type { AIModel, ModelPricing } from '@obsidian-magic/core';
 import type { CommandModule } from 'yargs';
 
+import type { LogLevel } from '../types/commands';
 import type { Config } from '../types/config';
 
 // Configuration types
@@ -100,10 +99,10 @@ export const configInteractiveCommand: CommandModule = {
 
       const currentApiKey = process.env['OPENAI_API_KEY'] ?? config.get('apiKey');
 
-      logger.info(chalk.bold('Interactive Configuration Setup'));
+      console.log(chalk.bold('Interactive Configuration Setup'));
 
       if (minimal) {
-        logger.info('Using minimal setup mode (essential settings only)');
+        console.log('Using minimal setup mode (essential settings only)');
       }
 
       // Define an object to hold our answers
@@ -217,7 +216,7 @@ export const configInteractiveCommand: CommandModule = {
       }
 
       // Confirm settings
-      logger.info('\nReview your settings:');
+      console.log('\nReview your settings:');
       Object.entries(answers).forEach(([key, value]) => {
         // Handle stringification properly to avoid [object Object]
         let displayValue: string;
@@ -232,7 +231,7 @@ export const configInteractiveCommand: CommandModule = {
           displayValue = JSON.stringify(value);
         }
 
-        logger.info(`${chalk.cyan(key)}: ${displayValue}`);
+        console.log(`${chalk.cyan(key)}: ${displayValue}`);
       });
 
       const confirmSettings = await confirm({
@@ -241,7 +240,7 @@ export const configInteractiveCommand: CommandModule = {
       });
 
       if (!confirmSettings) {
-        logger.info('Configuration cancelled.');
+        console.log('Configuration cancelled.');
         return;
       }
 
@@ -258,10 +257,10 @@ export const configInteractiveCommand: CommandModule = {
         const profiles = config.get('profiles') ?? {};
         profiles[profileName] = answers as Partial<Config>;
         void config.set('profiles', profiles);
-        logger.success(`Profile '${profileName}' saved.`);
+        console.log(`Profile '${profileName}' saved.`);
       }
 
-      logger.success('Configuration updated successfully!');
+      console.log('Configuration updated successfully!');
 
       // Export configuration if requested
       if (exportPath) {
@@ -279,17 +278,17 @@ export const configInteractiveCommand: CommandModule = {
           // Safely write config file
           try {
             await fsExtra.writeJson(exportPath, configData, { spaces: 2 });
-            logger.success(`Configuration exported to ${exportPath}`);
+            console.log(`Configuration exported to ${exportPath}`);
           } catch (error) {
             throw new Error(`Failed to write config file: ${error instanceof Error ? error.message : String(error)}`);
           }
         } catch (error) {
-          logger.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);
+          console.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
       // Show next steps
-      logger.box(
+      console.log(
         `
 Next Steps:
 
@@ -305,7 +304,7 @@ Next Steps:
         'Getting Started'
       );
     } catch (error) {
-      logger.error(`Configuration setup failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(`Configuration setup failed: ${error instanceof Error ? error.message : String(error)}`);
       process.exit(1);
     }
   },

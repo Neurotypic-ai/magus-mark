@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_FRONTMATTER_OPTIONS } from '../models/frontmatter-options';
-import { FrontmatterProcessor } from './FrontmatterProcessor';
+import { DEFAULT_FRONTMATTER_OPTIONS, FrontmatterProcessor } from './FrontmatterProcessor';
 
-import type { FrontmatterOptions } from '../models/frontmatter-options';
 import type { TagSet } from '../models/tags';
+import type { FrontmatterOptions } from './FrontmatterProcessor';
 
 // Replace the interface with this type
 interface TestFrontmatterProcessorType {

@@ -1,4 +1,5 @@
-import type { AIModel, TagBehavior } from '@obsidian-magic/types';
+import type { AIModel } from '@obsidian-magic/core/src/models/api';
+import type { TagBehavior } from '@obsidian-magic/core/src/models/tags';
 
 import type { LogLevel } from './commands';
 
@@ -15,6 +16,7 @@ export interface Config {
   tagMode?: TagBehavior;
   minConfidence?: number;
   reviewThreshold?: number;
+  generateExplanations?: boolean;
 
   // Output settings
   outputFormat?: 'pretty' | 'json' | 'silent';

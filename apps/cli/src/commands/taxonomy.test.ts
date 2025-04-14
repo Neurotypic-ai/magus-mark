@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { logger } from '@obsidian-magic/logger';
+import { logger } from '@obsidian-magic/core';
 
 import { config } from '../utils/config';
 import { taxonomyCommand } from './taxonomy';

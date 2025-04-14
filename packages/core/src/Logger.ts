@@ -40,7 +40,7 @@ const DEFAULT_CONFIG: LoggerConfig = {
 /**
  * Logger utility
  */
-class Logger {
+export class Logger {
   private static instance: Logger | undefined;
   private config: LoggerConfig = DEFAULT_CONFIG;
   private spinners = new Map<string, Ora>();
