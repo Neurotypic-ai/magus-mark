@@ -1,8 +1,7 @@
 import chalk from 'chalk';
 
 import { initializeCore } from '@obsidian-magic/core';
-
-import { Logger } from '../../../../packages/core/dist/src/utils/Logger';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import type { CommandModule } from 'yargs';
 

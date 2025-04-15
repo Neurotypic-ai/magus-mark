@@ -12,9 +12,9 @@ import { z } from 'zod';
 // Import deepMerge utility
 import { deepMerge } from '@obsidian-magic/core/utils/DeepMerge';
 
-import type { LogLevel } from '@obsidian-magic/core/Logger';
-import type { TagBehavior } from '@obsidian-magic/core/models/tags';
+import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
 import type { OnLimitReached, OutputFormat } from '@obsidian-magic/core/types/CoreConfig';
+import type { LogLevel } from '@obsidian-magic/core/utils/Logger';
 
 import type { Config, ConfigStorage } from '../types/config';
 

@@ -7,7 +7,7 @@ import { config } from '../utils/config';
 import { configInteractiveCommand } from './config-interactive';
 
 import type { ModelPricing } from '@obsidian-magic/core/OpenAIClient';
-import type { AIModel } from '@obsidian-magic/core/models/api';
+import type { AIModel } from '@obsidian-magic/core/models/AIModel';
 import type { Argv } from 'yargs';
 
 import type { LogLevel } from '../types/commands';

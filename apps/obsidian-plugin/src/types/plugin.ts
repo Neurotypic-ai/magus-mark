@@ -2,8 +2,9 @@
  * Plugin-specific type definitions for Obsidian Magic
  */
 
-import type { APIConfig, TaggingOptions } from '@obsidian-magic/core/models/api';
-import type { TagSet } from '@obsidian-magic/core/models/tags';
+import type { APIConfig } from '@obsidian-magic/core/models/APIConfig';
+import type { TagSet } from '@obsidian-magic/core/models/TagSet';
+import type { TaggingOptions } from '@obsidian-magic/core/models/TaggingOptions';
 
 /**
  * Obsidian plugin settings

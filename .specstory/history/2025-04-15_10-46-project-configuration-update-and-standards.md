@@ -2378,6 +2378,1018 @@ Read file: apps/vscode/tsconfig.test.json
 
 
 
+---
+
+```bash
+npx tsc -b
+```
+
+```
+➜ npx tsc -b
+error TS5083: Cannot read file '/Users/khallmark/Desktop/Code/obsidian-magic/config/config/typescript/tsconfig.base.json'.
+
+error TS18003: No inputs were found in config file '/Users/khallmark/Desktop/Code/obsidian-magic/packages/core/tsconfig.json'. Specified 'include' paths were '["../../config/ty
+pescript/templates/src/**/*"]' and 'exclude' paths were '["../../config/typescript/templates/**/*.test.ts","../../config/typescript/templates/**/*.spec.ts","../../config/typesc
+ript/templates/node_modules"]'.
+
+error TS6504: File '/Users/khallmark/Desktop/Code/obsidian-magic/eslint.config.js' is a JavaScript file. Did you mean to enable the 'allowJs' option?
+  The file is in the program because:
+    Part of 'files' list in tsconfig.json
+
+  tsconfig.json:21:13
+    21   "files": ["./eslint.config.js", "./prettier.config.js"],
+                   ~~~~~~~~~~~~~~~~~~~~
+    File is matched by 'files' list specified here.
+
+error TS6504: File '/Users/khallmark/Desktop/Code/obsidian-magic/prettier.config.js' is a JavaScript file. Did you mean to enable the 'allowJs' option?
+  The file is in the program because:
+    Part of 'files' list in tsconfig.json
+
+  tsconfig.json:21:35
+    21   "files": ["./eslint.config.js", "./prettier.config.js"],
+                                         ~~~~~~~~~~~~~~~~~~~~~~
+    File is matched by 'files' list specified here.
+
+tsconfig.base.json:2:14 - error TS6053: File 'configs/typescript/tsconfig.base.json' not found.
+
+2   "extends": "configs/typescript/tsconfig.base.json"
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+tsconfig.json:7:5 - error TS5069: Option 'declarationDir' cannot be specified without specifying option 'declaration' or option 'composite'.
+
+7     "declarationDir": "./dist/types",
+      ~~~~~~~~~~~~~~~~
+
+tsconfig.json:24:5 - error TS6306: Referenced project '/Users/khallmark/Desktop/Code/obsidian-magic/packages/core' must have setting "composite": true.
+
+24     { "path": "packages/core" },
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+tsconfig.json:25:5 - error TS6306: Referenced project '/Users/khallmark/Desktop/Code/obsidian-magic/apps/cli' must have setting "composite": true.
+
+25     { "path": "apps/cli" },
+       ~~~~~~~~~~~~~~~~~~~~~~
+
+tsconfig.json:26:5 - error TS6306: Referenced project '/Users/khallmark/Desktop/Code/obsidian-magic/apps/obsidian-plugin' must have setting "composite": true.
+
+26     { "path": "apps/obsidian-plugin" },
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+tsconfig.json:27:5 - error TS6306: Referenced project '/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode' must have setting "composite": true.
+
+27     { "path": "apps/vscode" }
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Found 10 errors.
+
+khallmark in obsidian-magic on  main [✘!+?] is 📦 0.1.0 via ⬢ v22.13.1                                                                               14:59:57 at Voyager •80% 
+➜
+```
+
+---
+
+
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Cannot find module '@obsidian-magic/core/tagging/TaxonomyManager' or its corresponding type declarations.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, 
+
+The error occurs because TypeScript can't resolve subpath imports from `@obsidian-magic/core`. This is likely due to missing path mappings in your TypeScript configuration.
+
+Add this to the `compilerOptions` in `config/typescript/lib.json`:
+
+```json
+"paths": {
+  "@obsidian-magic/core": ["../../packages/core/src"],
+  "@obsidian-magic/core/*": ["../../packages/core/src/*"]
+}
+```
+
+This mapping will tell TypeScript to resolve `@obsidian-magic/core` imports to the correct location in your project structure.
+
+Alternatively, you could fix the imports in `tag-explorer.ts` to use relative paths:
+
+```typescript
+import { initializeCore } from '../../../packages/core/src';
+import { DisplayTaxonomy } from '../../../packages/core/src/models/DisplayTaxonomy';
+```
+
+But path mappings would be cleaner for your workspace structure.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Can you check @package.json to make sure my exports and config are right? we don't have cjs only js and it's esm. our types are in dist/types which is why we're getting an error.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, 
+
+I see the issue in your package.json. Your exports configuration doesn't correctly handle the deeper imports like "tagging/TaxonomyManager". Here's the fix:
+
+```json
+"exports": {
+  ".": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js"
+  },
+  "./tagging/*": {
+    "types": "./dist/src/tagging/*.d.ts",
+    "import": "./dist/src/tagging/*.js"
+  },
+  "./models/*": {
+    "types": "./dist/src/models/*.d.ts", 
+    "import": "./dist/src/models/*.js"
+  },
+  "./openai/*": {
+    "types": "./dist/src/openai/*.d.ts",
+    "import": "./dist/src/openai/*.js"
+  }
+}
+```
+
+Alternatively, use a more generic pattern that covers all subdirectories:
+
+```json
+"exports": {
+  ".": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js"
+  },
+  "./*": {
+    "types": "./dist/src/*.d.ts",
+    "import": "./dist/src/*.js"
+  },
+  "./*/*": {
+    "types": "./dist/src/*/*.d.ts",
+    "import": "./dist/src/*/*.js"
+  }
+}
+```
+
+This will ensure the proper exports resolution for deep imports.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Cannot find module '@obsidian-magic/core/openai/TaggingService' or its corresponding type declarations.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship,
+
+The issue is with how VS Code resolves imports from subpaths of `@obsidian-magic/core`. Looking at your import style:
+
+```typescript
+import type { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
+```
+
+The simplest fix is to change the imports to use barrel exports from the main package:
+
+```typescript
+import type { TaggingService } from '@obsidian-magic/core';
+```
+
+Or fix the specific imports by using relative paths:
+
+```typescript
+import type { TaggingService } from '../../../packages/core/src/openai/TaggingService';
+```
+
+Alternatively, add path mapping in `apps/vscode/tsconfig.json`:
+
+```json
+"compilerOptions": {
+  "paths": {
+    "@obsidian-magic/core/*": ["../../packages/core/src/*"]
+  }
+}
+```
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+We just need to fix the @package.json exports correctly.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship,
+
+Here's the correct exports configuration for `packages/core/package.json`:
+
+```json
+"exports": {
+  ".": {
+    "types": "./dist/types/index.d.ts",
+    "import": "./dist/index.js"
+  },
+  "./models/*": {
+    "types": "./dist/types/models/*.d.ts",
+    "import": "./dist/models/*.js"
+  },
+  "./tagging/*": {
+    "types": "./dist/types/tagging/*.d.ts",
+    "import": "./dist/tagging/*.js"
+  },
+  "./openai/*": {
+    "types": "./dist/types/openai/*.d.ts", 
+    "import": "./dist/openai/*.js"
+  }
+}
+```
+
+Replace your current exports with this configuration to fix the import resolution.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+I want it to just be one export for all the subfolders.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship,
+
+Here's a simplified exports configuration using a single pattern for all subfolders:
+
+```json
+"exports": {
+  ".": {
+    "types": "./dist/types/index.d.ts",
+    "import": "./dist/index.js"
+  },
+  "./*": {
+    "types": "./dist/types/*.d.ts",
+    "import": "./dist/*.js"
+  }
+}
+```
+
+This pattern will handle all direct subfolder imports like `@obsidian-magic/core/models/Category`.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+I fixed all my import errors. Please fix this file using these types. @tag-explorer.ts @Linter errors 
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, 
+
+I'll fix the type issues in the tag-explorer.ts file:
+
+---
+
+```diff
+  import { initializeCore } from '@obsidian-magic/core';
+  
+- import type { Taxonomy } from '@obsidian-magic/core/models/Taxonomy';
+- import type { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
+- import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
++ import type { Taxonomy } from '@obsidian-magic/core';
++ import type { TaggingService } from '@obsidian-magic/core';
++ import type { TaxonomyManager } from '@obsidian-magic/core';
+  
+  // Tag node representation for the tree view
+    count: number;
+  }
++ 
++ // Define the Category interface if it's not imported
++ interface Category {
++   name: string;
++   description?: string;
++   tags?: Array<{
++     id?: string;
++     name?: string;
++     description?: string;
++     usageCount?: number;
++   }>;
++ }
+  
+  /**
+        // Convert display taxonomy to TagNode structure
+        this.tags = Object.entries(this.displayTaxonomy.categories).map(([categoryId, category]) => {
++         const typedCategory = category as Category;
+          return {
+            id: categoryId,
+-           name: category.name,
++           name: typedCategory.name,
+            type: 'category' as const,
+-           description: category.description,
+-           count: category.tags?.length || 0,
+-           children: (category.tags || []).map((tag) => ({
++           description: typedCategory.description,
++           count: typedCategory.tags?.length || 0,
++           children: (typedCategory.tags || []).map((tag) => ({
+              id: `${categoryId}.${tag.id || ''}`,
+              name: tag.name || '',
+```
+
+---
+
+Read file: packages/core/src/index.ts
+
+---
+
+Cancelled
+
+---
+
+_**User**_
+
+Category isn't a thing. Rewrite this file based on my@models and @core 
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship,
+
+I'll rewrite the file to properly use your existing types:
+
+---
+
+```diff
+    description?: string | undefined;
+    children: TagNode[];
+-   type: 'tag' | 'category';
++   type: 'domain' | 'subdomain' | 'tag';
+    count: number;
+  }
+    private disposables: vscode.Disposable[] = [];
+    private taxonomyManager: TaxonomyManager;
+-   private taggingService: TaggingService;
+-   private displayTaxonomy: Taxonomy = { categories: {} };
++   private displayTaxonomy: Taxonomy;
+  
+    /**
+    constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager, taggingService: TaggingService) {
+      this.taxonomyManager = taxonomyManager;
+-     this.taggingService = taggingService;
++     this.displayTaxonomy = taxonomyManager.getTaxonomy();
+  
+      // Load initial tag data
+      this.registerEventHandlers();
+  
+-     // Listen for taxonomy changes
+-     if (this.taxonomyManager.onTaxonomyChanged) {
+-       this.taxonomyManager.onTaxonomyChanged(() => {
++     // Set up event listener for taxonomy changes if supported
++     const manager = this.taxonomyManager as unknown as { onChange?: (callback: () => void) => void };
++     if (typeof manager.onChange === 'function') {
++       manager.onChange(() => {
+          void this.loadTagData().catch((error: unknown) => {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        `\n\nType: ${element.type}`,
+        `\nItems: ${String(element.count)}`,
+-       element.type === 'tag' ? `\nFull path: ${element.id}` : '',
++       element.type !== 'domain' ? `\nFull path: ${element.id}` : '',
+      ].join('');
+  
+      item.tooltip.appendMarkdown(tooltipContent);
+  
+-     // Add command for clicking on tags (not categories)
+-     if (element.type === 'tag') {
++     // Add command for clicking on tags
++     if (element.type === 'subdomain' || element.type === 'tag') {
+        item.command = {
+          command: 'obsidian-magic.openTaggedFiles',
+        // Get the full taxonomy
+        const taxonomy = this.taxonomyManager.getTaxonomy();
+- 
+-       // We need to adapt the taxonomy to our display format
+-       // In this case, we'll create a categories object with domain tags as categories
+-       const categories: Record<string, Category> = {};
+- 
+-       // Create categories from domains
+-       for (const domain of taxonomy.domains) {
+-         categories[domain] = {
++       this.displayTaxonomy = taxonomy;
++ 
++       // Convert taxonomy to TagNode structure
++       // Create domain level nodes
++       this.tags = (taxonomy.domains || []).map((domain) => {
++         // Create domain node
++         return {
++           id: domain,
+            name: domain,
++           type: 'domain' as const,
+            description: `${domain} domain`,
+-           tags: [],
+-         };
+- 
+-         // Add subdomains as tags
+-         const subdomains = taxonomy.subdomains[domain] || [];
+-         if (Array.isArray(subdomains)) {
+-           for (const subdomain of subdomains) {
+-             categories[domain].tags?.push({
+-               id: subdomain,
++           count: (taxonomy.subdomains?.[domain] || []).length,
++           children: (taxonomy.subdomains?.[domain] || []).map((subdomain) => {
++             // Create subdomain nodes
++             return {
++               id: `${domain}.${subdomain}`,
+                name: subdomain,
++               type: 'subdomain' as const,
+                description: `${subdomain} subdomain of ${domain}`,
+-               usageCount: 0,
+-             });
+-           }
+-         }
+-       }
+- 
+-       // Store our display taxonomy
+-       this.displayTaxonomy = { categories };
+- 
+-       // Convert display taxonomy to TagNode structure
+-       this.tags = Object.entries(this.displayTaxonomy.categories).map(([categoryId, category]) => {
+-         const typedCategory = category as Category;
+-         return {
+-           id: categoryId,
+-           name: typedCategory.name,
+-           type: 'category' as const,
+-           description: typedCategory.description,
+-           count: typedCategory.tags?.length || 0,
+-           children: (typedCategory.tags || []).map((tag) => ({
+-             id: `${categoryId}.${tag.id || ''}`,
+-             name: tag.name || '',
+-             type: 'tag' as const,
+-             description: tag.description,
+-             count: tag.usageCount || 0,
++               count: 0, // We don't have usage count in the data model
+                children: [],
+-           })),
++             };
++           }),
+          };
+        });
+          if (!tagName) return;
+  
+-         // Prompt for category
+-         const categories = this.tags.map((tag) => tag.name);
+-         const category = await vscode.window.showQuickPick(['<New Category>', ...categories], {
+-           placeHolder: 'Select category or create new',
++         // Prompt for domain
++         const domains = this.tags.map((tag) => tag.name);
++         const domain = await vscode.window.showQuickPick(['<New Domain>', ...domains], {
++           placeHolder: 'Select domain or create new',
+          });
+  
+-         if (!category) return;
++         if (!domain) return;
+  
+-         if (category === '<New Category>') {
+-           const newCategory = await vscode.window.showInputBox({
+-             placeHolder: 'Enter category name',
+-             prompt: 'Enter a new category name',
++         if (domain === '<New Domain>') {
++           const newDomain = await vscode.window.showInputBox({
++             placeHolder: 'Enter domain name',
++             prompt: 'Enter a new domain name',
+            });
+  
+-           if (!newCategory) return;
++           if (!newDomain) return;
+  
+            // Add domain to taxonomy
+-           this.taxonomyManager.addDomain(newCategory);
++           this.taxonomyManager.addDomain(newDomain);
+  
+-           void vscode.window.showInformationMessage(`Category '${newCategory}' added`);
++           void vscode.window.showInformationMessage(`Domain '${newDomain}' added`);
+          }
+  
+          // Add subdomain to taxonomy
+-         if (category !== '<New Category>') {
+-           this.taxonomyManager.addSubdomain(category, tagName);
+-           void vscode.window.showInformationMessage(`Tag '${tagName}' added to ${category}`);
++         if (domain !== '<New Domain>') {
++           this.taxonomyManager.addSubdomain(domain, tagName);
++           void vscode.window.showInformationMessage(`Tag '${tagName}' added to ${domain}`);
+          }
+  
+      const treeItem = new vscode.TreeItem(
+        element.name,
+-       element.type === 'category' && element.children.length > 0
++       element.type === 'domain' && element.children.length > 0
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.None
+  
+      // Set appropriate icon based on type
+-     if (element.type === 'category') {
++     if (element.type === 'domain') {
+        treeItem.iconPath = new vscode.ThemeIcon('symbol-folder');
+      } else {
+```
+
+---
+
+Let me fix those remaining linter errors:
+
+---
+
+Read file: packages/core/src/models/Taxonomy.ts
+
+---
+
+Read file: packages/core/src/models/SubdomainMap.ts
+
+---
+
+Read file: packages/core/src/models/DomainTag.ts
+
+---
+
+Could not find file 'packages/core/src/tag-explorer.ts' in the workspace.
+
+---
+
+<details>
+            <summary>Searched codebase "tag-explorer.ts" • **1** results</summary>
+        
+| File |
+|------|
+| `undefined` |
+
+</details>
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+
+---
+
+<details>
+            <summary>Searched codebase "linter errors in tag-explorer.ts" • **0** results</summary>
+        
+No results found
+</details>
+
+---
+
+```bash
+cd /Users/khallmark/Desktop/Code/obsidian-magic && npx eslint apps/vscode/src/views/tag-explorer.ts
+```
+
+```
+Removing from PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.b
+in
+Added to PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.bin
+
+/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.
+ts
+   39:84  error  'taggingService' is defined but never used
+                                            @typescript-eslint/no-unused-vars
+  143:3   error  Async method 'loadTagData' has no 'await' expression
+                                            @typescript-eslint/require-await
+  151:20  error  Unnecessary conditional, value is always truthy
+                                            @typescript-eslint/no-unnecessary-co
+ndition
+  158:38  error  Unnecessary optional chain on a non-nullish value
+                                            @typescript-eslint/no-unnecessary-co
+ndition
+  158:49  error  Prefer using nullish coalescing operator (`??`) instead of a lo
+gical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-co
+alescing
+  159:11  error  Unsafe assignment of an error typed value
+                                            @typescript-eslint/no-unsafe-assignm
+ent
+  159:21  error  Unsafe call of a(n) `error` type typed value
+                                            @typescript-eslint/no-unsafe-call
+  159:41  error  Unnecessary optional chain on a non-nullish value
+                                            @typescript-eslint/no-unnecessary-co
+ndition
+  159:52  error  Prefer using nullish coalescing operator (`??`) instead of a lo
+gical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-co
+alescing
+  162:32  error  Invalid type "any" of template literal expression
+                                            @typescript-eslint/restrict-template
+-expressions
+  163:15  error  Unsafe assignment of an `any` value
+                                            @typescript-eslint/no-unsafe-assignm
+ent
+  165:31  error  Invalid type "any" of template literal expression
+                                            @typescript-eslint/restrict-template
+-expressions
+
+✖ 12 problems (12 errors, 0 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+
+
+```
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+
+---
+
+### Rule: project-overview
+
+**Project overview and architecture information for Obsidian Magic**
+
+```markdown
+# Obsidian Magic Project Structure
+
+## Project Overview
+
+Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
+
+## Repository Structure
+
+The project uses a modern TypeScript (5.8.3) workspace with pnpm, ESLint flat config, and project references:
+
+```
+obsidian-magic/
+├── apps/                    # Application implementations
+│   ├── cli/                 # Command-line application
+│   ├── obsidian-plugin/     # Obsidian plugin
+│   └── vscode/              # VS Code extension
+├── packages/                # Shared packages (publishable)
+│   ├── core/                # Core library package
+│   ├── types/               # Shared type definitions
+│   └── utils/               # Shared utilities
+├── documentation/           # Project documentation
+├── config/                  # Configuration files
+└── prompts/                 # OpenAI prompt templates
+```
+
+## Workspace Architecture
+
+The project implements a modular workspace architecture with the following components:
+
+- **Core Package**: Contains all shared business logic
+  - Tag classification engines
+  - OpenAI API integration
+  - Markdown parsing and manipulation
+  - Shared utilities and helpers
+
+- **CLI App**: Command-line interface implementation
+  - Command structure with Yargs integration
+  - Workflow orchestration and concurrency management
+  - Interactive UI with rich visualizations
+  - Cost management and token optimization
+  - Benchmarking and performance analysis
+  - Comprehensive error handling and recovery
+
+- **Obsidian Plugin App**: Obsidian-specific implementation
+  - Plugin registration and lifecycle management
+  - Obsidian UI integration components
+  - Vault access and file manipulation
+  - Settings management
+
+- **VS Code Extension App**: VS Code-specific implementation
+  - Extension activation and registration
+  - VS Code UI components and views
+  - Cursor-specific integration with MCP server
+  - Bidirectional vault synchronization
+  - AI-assisted tagging and knowledge retrieval
+
+## Implementation Guides
+
+For more detailed implementation information, refer to these specialized guides:
+
+- [Build System](mdc:.cursor/rules/build-system.mdc)
+- [Testing Strategy](mdc:.cursor/rules/testing-strategy.mdc)
+- [Error Handling](mdc:.cursor/rules/error-handling.mdc)
+- [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc)
+- [API Integration](mdc:.cursor/rules/api-integration.mdc)
+- [Accessibility & UX](mdc:.cursor/rules/accessibility-ux.mdc)
+- [VS Code Integration](mdc:.cursor/rules/vscode-integration.mdc)
+- [CLI Tool](mdc:.cursor/rules/cli-tool.mdc)
+
+## Documentation Links
+
+- [Project Structure](mdc:documentation/implementation/project-structure.md)
+- [Core Tagging Model](mdc:documentation/core/tagging-model.md)
+- [OpenAI Integration](mdc:documentation/core/openai-integration.md)
+
+### CLI Documentation
+- [CLI Overview](mdc:documentation/cli/cli-overview.md)
+- [Command Structure](mdc:documentation/cli/command-structure.md)
+- [Workflow Orchestration](mdc:documentation/cli/workflow-orchestration.md)
+- [Cost Management](mdc:documentation/cli/cost-management.md)
+- [Yargs Implementation](mdc:documentation/cli/yargs-implementation.md)
+- [Error Handling](mdc:documentation/cli/error-handling.md)
+- [Benchmarking](mdc:documentation/cli/benchmarking.md)
+- [Interactive UI](mdc:documentation/cli/interactive-ui.md)
+- [Configuration Reference](mdc:documentation/cli/configuration-reference.md)
+
+### Application Documentation
+- [Obsidian Plugin](mdc:documentation/obsidian-plugin/plugin-overview.md)
+- [VS Code Integration](mdc:documentation/vscode-integration/vscode-overview.md)```
+
+---
+
+<details>
+            <summary>Searched codebase "Taxonomy model in core package" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `packages/core/src/models/Taxonomy.ts` | L1-23 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L1-22 |
+| `packages/core/src/tagging/taxonomy.ts` | L230-241 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L94-101 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L114-124 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L188-195 |
+| `packages/core/src/index.ts` | L18-60 |
+| `packages/core/src/tagging/taxonomy.ts` | L1-30 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L159-166 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L213-233 |
+| `packages/core/README.md` | L83-223 |
+| `apps/cli/src/types/commands.ts` | L65-74 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L233-265 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L71-94 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L177-188 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L206-213 |
+| `packages/core/src/tagging/TaxonomyManager.test.ts` | L1-22 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L166-177 |
+| `documentation/core/tagging-model.md` | L1-118 |
+| `apps/vscode/src/views/tag-explorer.ts` | L1-15 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L195-206 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L101-114 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L124-149 |
+| `packages/core/src/tagging/TaxonomyManager.ts` | L149-159 |
+| `packages/core/src/tagging/taxonomy.ts` | L123-161 |
+
+</details>
+
+---
+
+<details>
+            <summary>Searched codebase "tag model and interfaces in core package" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `packages/core/src/models/TaggingResult.ts` | L1-15 |
+| `packages/core/src/models/Document.ts` | L1-13 |
+| `packages/core/src/models/TagBehavior.ts` | L1-5 |
+| `packages/core/src/models/TopicalTag.ts` | L1-13 |
+| `packages/core/src/models/TaggingOptions.ts` | L1-14 |
+| `packages/core/src/models/TagConfidence.ts` | L1-15 |
+| `packages/core/src/models/TagSet.ts` | L1-18 |
+| `packages/core/src/models/DomainTag.ts` | L1-7 |
+| `packages/core/src/markdown/FrontmatterProcessor.ts` | L1-32 |
+| `packages/core/src/models/SubdomainTag.ts` | L1-5 |
+| `packages/core/src/models/YearTag.ts` | L1-7 |
+| `packages/core/src/models/TagConfidence.test.ts` | L1-24 |
+| `packages/core/src/models/Taxonomy.ts` | L1-23 |
+| `packages/core/src/types/CoreConfig.ts` | L18-43 |
+| `apps/cli/src/types/commands.ts` | L17-33 |
+| `apps/vscode/src/views/tag-explorer.ts` | L1-15 |
+| `packages/core/src/models/TagSet.test.ts` | L1-29 |
+| `packages/core/src/validators/api-validators.ts` | L1-10 |
+| `apps/cli/src/commands/stats.ts` | L54-62 |
+| `packages/core/src/models/ConfidenceScore.ts` | L1-5 |
+| `packages/core/src/models/ContextualTag.ts` | L1-7 |
+| `packages/core/src/utils/validation.ts` | L131-140 |
+| `packages/core/src/models/BatchTaggingJob.ts` | L1-24 |
+| `packages/core/src/tagging/taxonomy.ts` | L1-30 |
+| `packages/core/src/validators/tags-validators.ts` | L86-88 |
+
+</details>
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/Taxonomy.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/DomainTag.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/PredefinedDomainTag.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/tagging/taxonomy.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/Taxonomy.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/DomainTag.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/PredefinedDomainTag.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/tagging/taxonomy.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/Taxonomy.ts
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/PredefinedDomainTag.ts
+
+---
+
+
+
+
+
+---
+
+Read file: /Users/khallmark/Desktop/Code/obsidian-magic/packages/core/src/models/SubdomainMap.ts
+
+---
+
+```diff
+     * @param taggingService The tagging service instance
+     */
+-   constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager, taggingService: TaggingService) {
++   constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager, _taggingService: TaggingService) {
+      this.taxonomyManager = taxonomyManager;
+      this.displayTaxonomy = taxonomyManager.getTaxonomy();
+        // Convert taxonomy to TagNode structure
+        // Create domain level nodes
+-       this.tags = (taxonomy.domains || []).map((domain) => {
++       this.tags = taxonomy.domains.map((domain) => {
++         // Get subdomains for this domain, ensuring we have an array
++         const subdomains = taxonomy.subdomains[domain];
++         const subdomainArray = Array.isArray(subdomains) 
++           ? subdomains 
++           : (typeof subdomains === 'string' ? [subdomains] : []);
++           
+          // Create domain node
+          return {
+            type: 'domain' as const,
+            description: `${domain} domain`,
+-           count: (taxonomy.subdomains?.[domain] || []).length,
+-           children: (taxonomy.subdomains?.[domain] || []).map((subdomain) => {
++           count: subdomainArray.length,
++           children: subdomainArray.map((subdomain: string) => {
+              // Create subdomain nodes
+              return {
+        // Notify tree view of data changes
+        this.refresh();
+-     } catch (error) {
++     } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        void vscode.window.showErrorMessage(`Failed to load tag taxonomy: ${errorMessage}`);
+-       throw new Error(errorMessage); // Re-throw as proper Error
++       throw new Error(String(errorMessage)); // Re-throw as proper Error
+      }
+    }
+          // Refresh the tree view
+          await this.loadTagData();
+-       } catch (error) {
++       } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          void vscode.window.showErrorMessage(`Failed to add tag: ${errorMessage}`);
+          // Refresh the tree view
+          await this.loadTagData();
+-       } catch (error) {
++       } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          void vscode.window.showErrorMessage(`Failed to delete ${node.type}: ${errorMessage}`);
+```
+
+---
+
+```bash
+cd /Users/khallmark/Desktop/Code/obsidian-magic && npx eslint apps/vscode/src/views/tag-explorer.ts
+```
+
+```
+➜ cd /Users/khallmark/Desktop/Code/obsidian-magic && npx eslint apps/vscode/src/views/tag-explorer.ts
+Removing from PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.bin
+Added to PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.bin
+
+/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/views/tag-explorer.ts
+   39:84  error  '_taggingService' is defined but never used           @typescript-eslint/no-unused-vars
+  143:3   error  Async method 'loadTagData' has no 'await' expression  @typescript-eslint/require-await
+
+✖ 2 problems (2 errors, 0 warnings)
+
+khallmark in obsidian-magic …                                                                                                                              17:07:41 at Voyager 
+➜
+```
+
+---
+
+Cancelled
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+'displayTaxonomy' is declared but its value is never read.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace,
+
+You can simply remove the property since it's never used. The code already gets fresh taxonomy data directly from `taxonomyManager.getTaxonomy()` whenever needed.
+
+---
+
+Cancelled
+
+---
+
 
 
 ---

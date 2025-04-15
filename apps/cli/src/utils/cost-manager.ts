@@ -8,7 +8,7 @@ import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from './config';
 
-import type { AIModel } from '@obsidian-magic/core/models/api';
+import type { AIModel } from '@obsidian-magic/core/models/AIModel';
 
 const logger = Logger.getInstance('cost-manager');
 /**

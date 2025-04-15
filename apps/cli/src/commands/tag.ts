@@ -6,15 +6,17 @@ import chalk from 'chalk';
 import cliProgress from 'cli-progress';
 import fs from 'fs-extra';
 
-import { OpenAIClient } from '@obsidian-magic/core/OpenAIClient';
-import { TaggingService } from '@obsidian-magic/core/TaggingService';
+import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
+import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
 import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
 
-import type { AIModel, Document } from '@obsidian-magic/core/models/api';
-import type { TagBehavior, TagSet } from '@obsidian-magic/core/models/tags';
+import type { AIModel } from '@obsidian-magic/core/models/AIModel';
+import type { Document } from '@obsidian-magic/core/models/Document';
+import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
+import type { TagSet } from '@obsidian-magic/core/models/TagSet';
 import type { CommandModule } from 'yargs';
 
 import type { TagOptions } from '../types/commands';
@@ -103,8 +105,8 @@ export const tagCommand: CommandModule = {
       // Parse arguments with proper types
       const options = argv as unknown as TagOptions;
       const verbose = options.verbose;
-      const model = options.model;
-      const tagMode = options.tagMode;
+      const model = options.model as AIModel | undefined;
+      const tagMode = options.tagMode as TagBehavior | undefined;
       const minConfidence = options.minConfidence;
       const reviewThreshold = options.reviewThreshold;
       const concurrency = options.concurrency ?? 3;
@@ -273,11 +275,7 @@ Cost Estimate:
           };
 
           // Tag the document
-          const result = (await taggingService.tagDocument(document)) as {
-            success: boolean;
-            tags?: TagSet;
-            error?: Error;
-          };
+          const result = await taggingService.tagDocument(document);
 
           if (!result.success) {
             totalErrors++;

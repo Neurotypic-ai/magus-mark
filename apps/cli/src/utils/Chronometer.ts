@@ -7,7 +7,7 @@ import { Result } from '@obsidian-magic/core/errors/Result';
 import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
 import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
 
-import type { AIModel } from '@obsidian-magic/core/models/api';
+import type { AIModel } from '@obsidian-magic/core/models/AIModel';
 
 /**
  * Benchmark report for a single model

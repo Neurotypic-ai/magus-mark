@@ -6,7 +6,7 @@ import { formatCurrency, formatDuration } from '@obsidian-magic/core/utils/strin
 
 import { benchmark } from '../utils/Chronometer';
 
-import type { AIModel } from '@obsidian-magic/core/models/api';
+import type { AIModel } from '@obsidian-magic/core/models/AIModel';
 import type { CommandModule } from 'yargs';
 
 import type { TestOptions } from '../types/commands';

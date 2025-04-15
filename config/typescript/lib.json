@@ -1,7 +1,6 @@
 {
   "extends": "./base.json",
   "compilerOptions": {
-    "declarationDir": "${configDir}/dist/types",
     "outDir": "${configDir}/dist",
     "rootDir": "${configDir}/src",
     "types": ["node"]

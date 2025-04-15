@@ -5,16 +5,13 @@ import { initializeCore } from '@obsidian-magic/core';
 import type { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
 import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
 
-import { Taxonomy } from '@obsidian-magic/core/models/taxonomy';
-import type { Category, Taxonomy } from '../../../../packages/core/dist/src/tagging/taxonomy';
-
 // Tag node representation for the tree view
 interface TagNode {
   id: string;
   name: string;
   description?: string | undefined;
   children: TagNode[];
-  type: 'tag' | 'category';
+  type: 'domain' | 'subdomain' | 'tag';
   count: number;
 }
 
@@ -30,8 +27,6 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
   private tags: TagNode[] = [];
   private disposables: vscode.Disposable[] = [];
   private taxonomyManager: TaxonomyManager;
-  private taggingService: TaggingService;
-  private displayTaxonomy: DisplayTaxonomy = { categories: {} };
 
   /**
    * Creates a new TagExplorer instance
@@ -39,9 +34,8 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    * @param taxonomyManager The taxonomy manager instance
    * @param taggingService The tagging service instance
    */
-  constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager, taggingService: TaggingService) {
+  constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager, _taggingService: TaggingService) {
     this.taxonomyManager = taxonomyManager;
-    this.taggingService = taggingService;
 
     // Load initial tag data
     void this.loadTagData().catch((error: unknown) => {
@@ -52,9 +46,10 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
     // Register for events that might change tag data
     this.registerEventHandlers();
 
-    // Listen for taxonomy changes
-    if (this.taxonomyManager.onTaxonomyChanged) {
-      this.taxonomyManager.onTaxonomyChanged(() => {
+    // Set up event listener for taxonomy changes if supported
+    const manager = this.taxonomyManager as unknown as { onChange?: (callback: () => void) => void };
+    if (typeof manager.onChange === 'function') {
+      manager.onChange(() => {
         void this.loadTagData().catch((error: unknown) => {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           void vscode.window.showErrorMessage(`Failed to refresh tags: ${errorMessage}`);
@@ -122,13 +117,13 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
       element.description ? `\n\n${element.description}` : '',
       `\n\nType: ${element.type}`,
       `\nItems: ${String(element.count)}`,
-      element.type === 'tag' ? `\nFull path: ${element.id}` : '',
+      element.type !== 'domain' ? `\nFull path: ${element.id}` : '',
     ].join('');
 
     item.tooltip.appendMarkdown(tooltipContent);
 
-    // Add command for clicking on tags (not categories)
-    if (element.type === 'tag') {
+    // Add command for clicking on tags
+    if (element.type === 'subdomain' || element.type === 'tag') {
       item.command = {
         command: 'obsidian-magic.openTaggedFiles',
         title: 'Open Tagged Files',
@@ -147,60 +142,44 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
       // Get the full taxonomy
       const taxonomy = this.taxonomyManager.getTaxonomy();
 
-      // We need to adapt the taxonomy to our display format
-      // In this case, we'll create a categories object with domain tags as categories
-      const categories: Record<string, Category> = {};
+      // Convert taxonomy to TagNode structure
+      // Create domain level nodes
+      this.tags = taxonomy.domains.map((domain) => {
+        // Get subdomains for this domain, ensuring we have an array
+        const subdomains = taxonomy.subdomains[domain];
+        const subdomainArray = Array.isArray(subdomains)
+          ? subdomains
+          : typeof subdomains === 'string'
+            ? [subdomains]
+            : [];
 
-      // Create categories from domains
-      for (const domain of taxonomy.domains) {
-        categories[domain] = {
-          name: domain,
-          description: `${domain} domain`,
-          tags: [],
-        };
-
-        // Add subdomains as tags
-        const subdomains = taxonomy.subdomains[domain] || [];
-        if (Array.isArray(subdomains)) {
-          for (const subdomain of subdomains) {
-            categories[domain].tags?.push({
-              id: subdomain,
-              name: subdomain,
-              description: `${subdomain} subdomain of ${domain}`,
-              usageCount: 0,
-            });
-          }
-        }
-      }
-
-      // Store our display taxonomy
-      this.displayTaxonomy = { categories };
-
-      // Convert display taxonomy to TagNode structure
-      this.tags = Object.entries(this.displayTaxonomy.categories).map(([categoryId, category]) => {
+        // Create domain node
         return {
-          id: categoryId,
-          name: category.name,
-          type: 'category' as const,
-          description: category.description,
-          count: category.tags?.length || 0,
-          children: (category.tags || []).map((tag) => ({
-            id: `${categoryId}.${tag.id || ''}`,
-            name: tag.name || '',
-            type: 'tag' as const,
-            description: tag.description,
-            count: tag.usageCount || 0,
-            children: [],
-          })),
+          id: domain,
+          name: domain,
+          type: 'domain' as const,
+          description: `${domain} domain`,
+          count: subdomainArray.length,
+          children: subdomainArray.map((subdomain: string) => {
+            // Create subdomain nodes
+            return {
+              id: `${domain}.${subdomain}`,
+              name: subdomain,
+              type: 'subdomain' as const,
+              description: `${subdomain} subdomain of ${domain}`,
+              count: 0, // We don't have usage count in the data model
+              children: [],
+            };
+          }),
         };
       });
 
       // Notify tree view of data changes
       this.refresh();
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       void vscode.window.showErrorMessage(`Failed to load tag taxonomy: ${errorMessage}`);
-      throw new Error(errorMessage); // Re-throw as proper Error
+      throw new Error(String(errorMessage)); // Re-throw as proper Error
     }
   }
 
@@ -219,37 +198,37 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
         if (!tagName) return;
 
-        // Prompt for category
-        const categories = this.tags.map((tag) => tag.name);
-        const category = await vscode.window.showQuickPick(['<New Category>', ...categories], {
-          placeHolder: 'Select category or create new',
+        // Prompt for domain
+        const domains = this.tags.map((tag) => tag.name);
+        const domain = await vscode.window.showQuickPick(['<New Domain>', ...domains], {
+          placeHolder: 'Select domain or create new',
         });
 
-        if (!category) return;
+        if (!domain) return;
 
-        if (category === '<New Category>') {
-          const newCategory = await vscode.window.showInputBox({
-            placeHolder: 'Enter category name',
-            prompt: 'Enter a new category name',
+        if (domain === '<New Domain>') {
+          const newDomain = await vscode.window.showInputBox({
+            placeHolder: 'Enter domain name',
+            prompt: 'Enter a new domain name',
           });
 
-          if (!newCategory) return;
+          if (!newDomain) return;
 
           // Add domain to taxonomy
-          this.taxonomyManager.addDomain(newCategory);
+          this.taxonomyManager.addDomain(newDomain);
 
-          void vscode.window.showInformationMessage(`Category '${newCategory}' added`);
+          void vscode.window.showInformationMessage(`Domain '${newDomain}' added`);
         }
 
         // Add subdomain to taxonomy
-        if (category !== '<New Category>') {
-          this.taxonomyManager.addSubdomain(category, tagName);
-          void vscode.window.showInformationMessage(`Tag '${tagName}' added to ${category}`);
+        if (domain !== '<New Domain>') {
+          this.taxonomyManager.addSubdomain(domain, tagName);
+          void vscode.window.showInformationMessage(`Tag '${tagName}' added to ${domain}`);
         }
 
         // Refresh the tree view
         await this.loadTagData();
-      } catch (error) {
+      } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         void vscode.window.showErrorMessage(`Failed to add tag: ${errorMessage}`);
       }
@@ -273,7 +252,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
         // Refresh the tree view
         await this.loadTagData();
-      } catch (error) {
+      } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         void vscode.window.showErrorMessage(`Failed to delete ${node.type}: ${errorMessage}`);
       }
@@ -296,7 +275,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
   getTreeItem(element: TagNode): vscode.TreeItem {
     const treeItem = new vscode.TreeItem(
       element.name,
-      element.type === 'category' && element.children.length > 0
+      element.type === 'domain' && element.children.length > 0
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None
     );
@@ -307,7 +286,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
     treeItem.contextValue = element.type;
 
     // Set appropriate icon based on type
-    if (element.type === 'category') {
+    if (element.type === 'domain') {
       treeItem.iconPath = new vscode.ThemeIcon('symbol-folder');
     } else {
       treeItem.iconPath = new vscode.ThemeIcon('tag');
