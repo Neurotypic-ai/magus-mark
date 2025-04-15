@@ -10,6 +10,7 @@ build/
 # Environment variables
 .env
 .env.*
+!.env.template
 !.env.example
 
 # Logs
@@ -44,7 +45,11 @@ coverage/
 # Obsidian
 .obsidian/
 
+# MCP configuration
+.cursor/mcp.json
 
+# Data directories
+data/vector-db/
 
 .nx/cache
 .nx/workspace-data
