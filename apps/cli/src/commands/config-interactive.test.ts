@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../utils/config';
 import { configInteractiveCommand } from './config-interactive';
 
-import type { ModelPricing } from '@obsidian-magic/core/src/OpenAIClient';
-import type { AIModel } from '@obsidian-magic/core/src/models/api';
+import type { ModelPricing } from '@obsidian-magic/core/OpenAIClient';
+import type { AIModel } from '@obsidian-magic/core/models/api';
 import type { Argv } from 'yargs';
 
 import type { LogLevel } from '../types/commands';
+import type { logger } from '../utils/logger';
 import type { TagMode } from './config-interactive';
 
 // Mock dependencies

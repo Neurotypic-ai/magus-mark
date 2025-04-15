@@ -1,8 +1,12 @@
 import * as vscode from 'vscode';
 
-import { TaggingService, TaxonomyManager } from '@obsidian-magic/core';
+import { initializeCore } from '@obsidian-magic/core';
 
-import type { Category, Tag, Taxonomy } from '@obsidian-magic/core';
+import type { Category } from '@obsidian-magic/core/models/categories';
+import type { Tag } from '@obsidian-magic/core/models/tags';
+import type { Taxonomy } from '@obsidian-magic/core/models/taxonomy';
+import type { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
+import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
 
 // Tag node representation for the tree view
 interface TagNode {
@@ -141,7 +145,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
   private async loadTagData(): Promise<void> {
     try {
       // Get the full taxonomy
-      const taxonomy = (await this.taxonomyManager.getTaxonomy()) as Taxonomy;
+      const taxonomy = await this.taxonomyManager.getTaxonomy();
 
       // Convert taxonomy to TagNode structure
       this.tags = Object.entries(taxonomy.categories ?? {}).map(([categoryId, category]) => {
@@ -332,20 +336,25 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 }
 
 /**
- * Register the tag explorer tree view
- * @returns The created tree view
+ * Register the tag explorer view
+ * @param context The extension context
+ * @returns The tree view instance
  */
 export function registerTagExplorer(context: vscode.ExtensionContext): vscode.TreeView<TagNode> {
-  // Create explorer instance
-  const tagExplorer = new TagExplorer(context, new TaxonomyManager(), new TaggingService(new TaxonomyManager()));
+  // Initialize core services
+  const core = initializeCore({});
 
-  // Register tree data provider
-  const treeView = vscode.window.createTreeView<TagNode>('obsidianMagicTagExplorer', {
+  // Create tag explorer with core services
+  const tagExplorer = new TagExplorer(context, core.taxonomyManager, core.taggingService);
+
+  // Register the tree data provider
+  const treeView = vscode.window.createTreeView('obsidianMagicTags', {
     treeDataProvider: tagExplorer,
     showCollapseAll: true,
   });
 
-  // Add explorer to disposables
+  // Add explorer to subscriptions for cleanup
+  context.subscriptions.push(treeView);
   context.subscriptions.push(tagExplorer);
 
   return treeView;

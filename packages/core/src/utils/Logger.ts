@@ -41,20 +41,19 @@ const DEFAULT_CONFIG: LoggerConfig = {
  * Logger utility
  */
 export class Logger {
-  private static instance: Logger | undefined;
   private config: LoggerConfig = DEFAULT_CONFIG;
   private spinners = new Map<string, Ora>();
+  private namespace: string;
 
-  private constructor() {
-    // Private constructor for singleton
+  private constructor(namespace: string) {
+    this.namespace = namespace;
   }
 
   /**
    * Get singleton instance
    */
-  public static getInstance(): Logger {
-    Logger.instance ??= new Logger();
-    return Logger.instance;
+  public static getInstance(namespace: string): Logger {
+    return new Logger(namespace);
   }
 
   /**

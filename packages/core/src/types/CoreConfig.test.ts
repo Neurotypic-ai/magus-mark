@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LogLevel } from '../Logger';
 import type { AIModel, APIKeyStorage } from '../models/api';
 import type { TagBehavior } from '../models/tags';
+import type { LogLevel } from '../utils/Logger';
 import type { CoreConfig, OnLimitReached, OutputFormat } from './CoreConfig';
 
 describe('CoreConfig', () => {

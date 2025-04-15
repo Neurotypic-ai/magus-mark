@@ -3,20 +3,23 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
+import { AppError } from './errors/AppError';
+import { Result } from './errors/Result';
+import { toAppError } from './errors/utils';
 import { FileUtils } from './utils/FileUtils';
 
-import type { LogLevel } from './Logger';
 import type { AIModel, APIKeyStorage } from './models/api';
 import type { TagBehavior } from './models/tags';
+import type { LogLevel } from './utils/Logger';
 
 /**
  * Default configuration values
  */
-export const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG = {
   /**
    * Default AI model
    */
-  defaultModel: 'gpt-4o' as AIModel,
+  defaultModel: 'gpt-4' as AIModel,
 
   /**
    * Default tag behavior
@@ -97,7 +100,7 @@ export const DEFAULT_CONFIG = {
 /**
  * Configuration schema
  */
-export const configSchema = z.object({
+const configSchema = z.object({
   defaultModel: z.string(),
   defaultTagBehavior: z.enum(['append', 'replace', 'merge', 'suggest']),
   minConfidence: z.number().min(0).max(1),
@@ -124,118 +127,211 @@ export const configSchema = z.object({
 export type Config = z.infer<typeof configSchema>;
 
 /**
- * Gets the default config file path
- * @returns Default config file path
+ * Configuration error type
  */
-export function getDefaultConfigPath(): string {
-  return path.join(os.homedir(), '.config', 'obsidian-magic', 'config.json');
+export class ConfigurationError extends AppError {
+  constructor(message: string, cause?: Error, context?: Record<string, unknown>) {
+    super(message, {
+      code: 'CONFIGURATION_ERROR',
+      cause,
+      context,
+      recoverable: true,
+    });
+  }
+
+  /**
+   * Convert a standard Error to a ConfigurationError
+   */
+  static from(error: Error, message?: string): ConfigurationError {
+    return new ConfigurationError(
+      message ?? error.message,
+      error instanceof AppError ? error : undefined,
+      error instanceof AppError ? error.context : undefined
+    );
+  }
 }
 
 /**
- * Loads configuration from file
- * @param configPath - Path to configuration file
- * @returns Loaded configuration
+ * Manages application configuration with type-safe loading, saving, and updating
  */
-export async function loadConfig(configPath = getDefaultConfigPath()): Promise<Config> {
-  try {
-    const fileUtils = new FileUtils(configPath);
-    if (await fileUtils.fileExists(configPath)) {
-      try {
-        const result = await fileUtils.readJsonFile(configPath, configSchema);
+export class ConfigManager {
+  private config: Config;
+  private readonly fileUtils: FileUtils;
+
+  /**
+   * Creates a new ConfigManager instance
+   * @param configPath - Optional custom config path
+   */
+  constructor(private readonly configPath = ConfigManager.getDefaultConfigPath()) {
+    this.config = DEFAULT_CONFIG;
+    this.fileUtils = new FileUtils(configPath);
+  }
+
+  /**
+   * Gets the default config file path
+   */
+  static getDefaultConfigPath(): string {
+    return path.join(os.homedir(), '.config', 'obsidian-magic', 'config.json');
+  }
+
+  /**
+   * Gets the current configuration
+   */
+  getConfig(): Config {
+    return { ...this.config };
+  }
+
+  /**
+   * Creates a configuration error
+   */
+  private createError(message: string, cause?: Error, context?: Record<string, unknown>): ConfigurationError {
+    return new ConfigurationError(message, cause, { ...context, path: this.configPath });
+  }
+
+  /**
+   * Converts a Result<T, Error> to Result<T, ConfigurationError>
+   */
+  private wrapResult<T>(result: Result<T>, message: string): Result<T, ConfigurationError> {
+    if (result.isOk()) {
+      return Result.ok(result.getValue()) as Result<T, ConfigurationError>;
+    }
+    const error = ConfigurationError.from(result.getError(), message);
+    return Result.fail<T, ConfigurationError>(error);
+  }
+
+  /**
+   * Loads configuration from file
+   */
+  async load(): Promise<Result<Config, ConfigurationError>> {
+    try {
+      if (await this.fileUtils.fileExists(this.configPath)) {
+        const result = await this.fileUtils.readJsonFile(this.configPath, configSchema);
         if (result.isOk()) {
-          return result.getValue();
+          this.config = result.getValue();
+          return Result.ok(this.getConfig()) as Result<Config, ConfigurationError>;
         }
-        console.warn(`Error parsing config: ${result.getError().message}`);
-      } catch (error) {
-        console.warn(`Error reading config: ${(error as Error).message}`);
+        const error = ConfigurationError.from(result.getError(), 'Error parsing config');
+        return Result.fail<Config, ConfigurationError>(error);
       }
+
+      // Use defaults if file doesn't exist
+      const saveResult = await this.save();
+      if (saveResult.isFail()) {
+        return Result.fail<Config, ConfigurationError>(saveResult.getError());
+      }
+      return Result.ok(this.getConfig()) as Result<Config, ConfigurationError>;
+    } catch (error) {
+      return Result.fail<Config, ConfigurationError>(this.createError('Error loading config', toAppError(error)));
+    }
+  }
+
+  /**
+   * Saves current configuration to file
+   */
+  async save(): Promise<Result<void, ConfigurationError>> {
+    try {
+      const validatedConfig = configSchema.parse(this.config);
+      const writeResult = await this.fileUtils.writeJsonFile(this.configPath, validatedConfig);
+      if (writeResult.isFail()) {
+        const error = ConfigurationError.from(writeResult.getError(), 'Failed to save config');
+        return Result.fail<never, ConfigurationError>(error);
+      }
+      return Result.ok(undefined) as Result<void, ConfigurationError>;
+    } catch (error) {
+      return Result.fail<never, ConfigurationError>(this.createError('Failed to save config', toAppError(error)));
+    }
+  }
+
+  /**
+   * Updates specific configuration values
+   * @param updates - Partial configuration updates
+   */
+  async update(updates: Partial<Config>): Promise<Result<Config, ConfigurationError>> {
+    try {
+      const updatedConfig = { ...this.config, ...updates };
+
+      // Recursively merge nested objects
+      if (updates.cache) {
+        updatedConfig.cache = { ...this.config.cache, ...updates.cache };
+      }
+
+      if (updates.logging) {
+        updatedConfig.logging = { ...this.config.logging, ...updates.logging };
+      }
+
+      // Validate before updating
+      this.config = configSchema.parse(updatedConfig);
+      const saveResult = await this.save();
+
+      if (saveResult.isFail()) {
+        return Result.fail<Config, ConfigurationError>(saveResult.getError());
+      }
+      return Result.ok(this.getConfig()) as Result<Config, ConfigurationError>;
+    } catch (error) {
+      return Result.fail<Config, ConfigurationError>(
+        this.createError('Failed to update config', toAppError(error), { updates })
+      );
+    }
+  }
+
+  /**
+   * Gets a specific configuration value by key path
+   * @param keyPath - Dot-notation path to config value
+   */
+  get(keyPath: string): unknown {
+    return keyPath.split('.').reduce<unknown>((obj, key) => {
+      if (obj && typeof obj === 'object') {
+        return (obj as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, this.config);
+  }
+
+  /**
+   * Sets a specific configuration value by key path
+   * @param keyPath - Dot-notation path to config value
+   * @param value - Value to set
+   */
+  async set(keyPath: string, value: unknown): Promise<Result<Config, ConfigurationError>> {
+    const keys = keyPath.split('.');
+    const updates = keys.reduceRight<Partial<Config>>(
+      (acc, key, i) => ({ [key]: i === keys.length - 1 ? value : acc }),
+      {} as Partial<Config>
+    );
+    return this.update(updates);
+  }
+
+  /**
+   * Gets the OpenAI API key from configuration or environment
+   */
+  getApiKey(): string | null {
+    if (this.config.apiKeyStorage === 'local' && this.config.apiKey) {
+      return this.config.apiKey;
     }
 
-    // Use defaults if file doesn't exist or has errors
-    const config = DEFAULT_CONFIG;
-    await fileUtils.writeJsonFile(configPath, config);
-    return config;
-  } catch (error) {
-    console.warn(`Error loading config from ${configPath}: ${(error as Error).message}`);
-    console.warn('Using default configuration');
-    return DEFAULT_CONFIG;
-  }
-}
-
-/**
- * Saves configuration to file
- * @param config - Configuration to save
- * @param configPath - Path to configuration file
- */
-export async function saveConfig(config: Config, configPath = getDefaultConfigPath()): Promise<void> {
-  try {
-    // Validate config before saving
-    const validatedConfig = configSchema.parse(config);
-    const fileUtils = new FileUtils(configPath);
-    await fileUtils.writeJsonFile(configPath, validatedConfig);
-  } catch (error) {
-    throw new Error(`Failed to save config: ${(error as Error).message}`);
-  }
-}
-
-/**
- * Updates specific configuration values
- * @param configUpdates - Partial configuration updates
- * @param configPath - Path to configuration file
- * @returns Updated configuration
- */
-export async function updateConfig(
-  configUpdates: Partial<Config>,
-  configPath = getDefaultConfigPath()
-): Promise<Config> {
-  const currentConfig = await loadConfig(configPath);
-  const updatedConfig = { ...currentConfig, ...configUpdates };
-
-  // Recursively merge nested objects
-  if (configUpdates.cache) {
-    updatedConfig.cache = { ...currentConfig.cache, ...configUpdates.cache };
+    return process.env['OPENAI_API_KEY'] ?? null;
   }
 
-  if (configUpdates.logging) {
-    updatedConfig.logging = { ...currentConfig.logging, ...configUpdates.logging };
+  /**
+   * Sets the OpenAI API key in configuration
+   * @param apiKey - API key to set
+   */
+  async setApiKey(apiKey: string): Promise<Result<Config, ConfigurationError>> {
+    return this.update({
+      apiKey,
+      apiKeyStorage: 'local',
+    });
   }
 
-  await saveConfig(updatedConfig, configPath);
-  return updatedConfig;
-}
-
-/**
- * Gets the OpenAI API key from configuration or environment
- * @param config - Configuration object
- * @returns API key or null if not found
- */
-export function getApiKey(config: Config): string | null {
-  if (config.apiKeyStorage === 'local' && config.apiKey) {
-    return config.apiKey;
+  /**
+   * Resets configuration to defaults
+   */
+  async reset(): Promise<Result<Config, ConfigurationError>> {
+    this.config = DEFAULT_CONFIG;
+    const saveResult = await this.save();
+    if (saveResult.isFail()) {
+      return Result.fail<Config, ConfigurationError>(saveResult.getError());
+    }
+    return Result.ok(this.getConfig()) as Result<Config, ConfigurationError>;
   }
-
-  // Try to get from environment
-  const envApiKey = process.env['OPENAI_API_KEY'];
-  if (envApiKey) {
-    return envApiKey;
-  }
-
-  return null;
-}
-
-/**
- * Sets the OpenAI API key in configuration
- * @param apiKey - API key to set
- * @param config - Configuration object
- * @returns Updated configuration
- */
-export async function setApiKey(apiKey: string, config: Config, configPath = getDefaultConfigPath()): Promise<Config> {
-  const updatedConfig = {
-    ...config,
-    apiKey,
-    apiKeyStorage: 'local' as const,
-  };
-
-  await saveConfig(updatedConfig, configPath);
-  return updatedConfig;
 }

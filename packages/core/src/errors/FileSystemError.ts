@@ -1,6 +1,6 @@
 import { AppError } from './AppError';
 
-import type { ErrorOptions } from './ErrorOptions';
+import type { ErrorOptions } from '../types/ErrorOptions';
 
 /**
  * File system error

@@ -10,11 +10,11 @@ import fs from 'fs-extra';
 import { z } from 'zod';
 
 // Import deepMerge utility
-import { deepMerge } from '@obsidian-magic/core/src/utils/Object';
+import { deepMerge } from '@obsidian-magic/core/utils/Object';
 
-import type { LogLevel } from '@obsidian-magic/core/src/Logger';
-import type { TagBehavior } from '@obsidian-magic/core/src/models/tags';
-import type { OnLimitReached, OutputFormat } from '@obsidian-magic/core/src/types/CoreConfig';
+import type { LogLevel } from '@obsidian-magic/core/Logger';
+import type { TagBehavior } from '@obsidian-magic/core/models/tags';
+import type { OnLimitReached, OutputFormat } from '@obsidian-magic/core/types/CoreConfig';
 
 import type { Config, ConfigStorage } from '../types/config';
 

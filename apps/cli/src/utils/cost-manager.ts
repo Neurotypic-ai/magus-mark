@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 
 import { CostLimitError, logger } from '@obsidian-magic/core';
-import { calculateCost } from '@obsidian-magic/core/src/openai-models';
+import { calculateCost } from '@obsidian-magic/core/openai-models';
 
 import { config } from './config';
 

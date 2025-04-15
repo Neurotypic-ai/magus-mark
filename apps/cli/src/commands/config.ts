@@ -1,9 +1,9 @@
 import { confirm } from '@inquirer/prompts';
 
-import { fileExists, logger, writeFile } from '@obsidian-magic/core';
-import { modelManager } from '@obsidian-magic/core/src/model-manager';
+import { modelManager } from '@obsidian-magic/core/model-manager';
 
 import { config } from '../utils/config';
+import { fileExists, logger, writeFile } from '../utils/core';
 
 import type { CommandModule } from 'yargs';
 

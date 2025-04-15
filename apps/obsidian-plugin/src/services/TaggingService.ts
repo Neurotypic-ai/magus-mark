@@ -3,19 +3,15 @@
  */
 import { Notice } from 'obsidian';
 
-import {
-  APIError,
-  ApiKeyError,
-  TaggingService as CoreTaggingService,
-  DocumentProcessor,
-  FileSystemError,
-  OpenAIClient,
-  Result,
-  TaggingError,
-  withRetry,
-} from '@obsidian-magic/core';
+import { initializeCore } from '@obsidian-magic/core';
+import { APIError } from '@obsidian-magic/core/errors/APIError';
+import { ApiKeyError } from '@obsidian-magic/core/errors/ApiKeyError';
+import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
+import { Result } from '@obsidian-magic/core/errors/Result';
+import { TaggingError } from '@obsidian-magic/core/errors/TaggingError';
+import { withRetry } from '@obsidian-magic/core/errors/retry';
 
-import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/core';
+import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/core/models/tags';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
@@ -52,34 +48,15 @@ export type FileProcessingResult = Result<{
  */
 export class TaggingService {
   private plugin: ObsidianMagicPlugin;
-  private openAIClient: OpenAIClient;
-  private coreTaggingService: CoreTaggingService;
-  private documentProcessor: DocumentProcessor;
+  private coreServices: ReturnType<typeof initializeCore>;
 
   constructor(plugin: ObsidianMagicPlugin) {
     this.plugin = plugin;
 
-    // Initialize OpenAI client with API key from plugin settings
-    this.openAIClient = new OpenAIClient({
-      apiKey: plugin.settings.apiKey,
+    // Initialize core services
+    this.coreServices = initializeCore({
+      openaiApiKey: plugin.settings.apiKey,
       model: plugin.settings.modelPreference,
-    });
-
-    // Initialize core tagging service
-    this.coreTaggingService = new CoreTaggingService(this.openAIClient, {
-      model: plugin.settings.modelPreference,
-      behavior: plugin.settings.defaultTagBehavior,
-      minConfidence: 0.65,
-      reviewThreshold: 0.85,
-      generateExplanations: true,
-    });
-
-    // Initialize document processor
-    this.documentProcessor = new DocumentProcessor({
-      preserveExistingTags:
-        plugin.settings.defaultTagBehavior === 'append' || plugin.settings.defaultTagBehavior === 'merge',
-      tagsKey: 'tags',
-      useNestedKeys: false,
     });
   }
 
@@ -87,14 +64,14 @@ export class TaggingService {
    * Update API key when settings change
    */
   updateApiKey(apiKey: string): void {
-    this.openAIClient.setApiKey(apiKey);
+    this.coreServices.openAIClient.setApiKey(apiKey);
   }
 
   /**
    * Update AI model when settings change
    */
   updateModel(model: TaggingOptions['model']): void {
-    this.openAIClient.setModel(model);
+    this.coreServices.openAIClient.setModel(model);
   }
 
   /**
@@ -130,10 +107,10 @@ export class TaggingService {
       }
 
       // Parse document
-      const document: Document = this.documentProcessor.parseDocument(file.path, file.basename, content);
+      const document: Document = this.coreServices.documentProcessor.parseDocument(file.path, file.basename, content);
 
       // Tag document with retry for transient errors
-      const result = await withRetry(() => this.coreTaggingService.tagDocument(document), {
+      const result = await withRetry(() => this.coreServices.taggingService.tagDocument(document), {
         maxRetries: 3,
         initialDelay: 1000,
       });
@@ -146,7 +123,7 @@ export class TaggingService {
       try {
         // Only update if we have tags and the behavior isn't 'suggest'
         if (result.tags && this.plugin.settings.defaultTagBehavior !== 'suggest') {
-          const updatedContent = this.documentProcessor.updateDocument(document, result.tags);
+          const updatedContent = this.coreServices.documentProcessor.updateDocument(document, result.tags);
 
           // Write back to file
           await this.plugin.app.vault.modify(file, updatedContent);

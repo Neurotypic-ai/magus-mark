@@ -2,9 +2,9 @@
  * Shared configuration types for Obsidian Magic
  */
 
-import type { LogLevel } from '../Logger';
 import type { AIModel, APIKeyStorage } from '../models/api';
 import type { TagBehavior } from '../models/tags';
+import type { LogLevel } from '../utils/Logger';
 
 /**
  * Output format options
