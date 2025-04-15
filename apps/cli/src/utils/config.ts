@@ -10,7 +10,7 @@ import fs from 'fs-extra';
 import { z } from 'zod';
 
 // Import deepMerge utility
-import { deepMerge } from '@obsidian-magic/core/utils/Object';
+import { deepMerge } from '@obsidian-magic/core/utils/DeepMerge';
 
 import type { LogLevel } from '@obsidian-magic/core/Logger';
 import type { TagBehavior } from '@obsidian-magic/core/models/tags';
@@ -21,7 +21,7 @@ import type { Config, ConfigStorage } from '../types/config';
 /**
  * Default configuration
  */
-const DEFAULT_CONFIG: Config = {
+const DEFAULT_CONFIG = {
   apiKey: '',
   tagMode: 'merge',
   minConfidence: 0.7,
@@ -37,7 +37,7 @@ const DEFAULT_CONFIG: Config = {
   outputDir: undefined,
   vaultPath: undefined,
   generateExplanations: true,
-};
+} as const;
 
 // Default configuration for Conf
 const defaultConfig = {
@@ -149,7 +149,7 @@ class ConfigImpl implements ConfigStorage {
     }
 
     // Return from config data or default
-    const value = this.data[key] ?? DEFAULT_CONFIG[key];
+    const value = this.data[key] ?? (DEFAULT_CONFIG as Config)[key];
     return value as Config[K];
   }
 
@@ -197,10 +197,9 @@ class ConfigImpl implements ConfigStorage {
    * Delete a configuration key
    */
   public async delete(key: keyof Config): Promise<void> {
-    // Copy data, then delete to avoid dynamic delete
-    const newData = { ...this.data };
-    delete newData[key];
-    this.data = newData;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [key]: _, ...rest } = this.data;
+    this.data = rest as Config;
     await this.save();
   }
 
@@ -326,7 +325,18 @@ function loadEnvironmentConfig(): Record<string, unknown> {
 const configInstance = new Conf({
   projectName: 'obsidian-magic',
   // Provide a placeholder schema that will be compatible
-  schema: undefined as any, // Required due to Conf's Schema type complexity
+  schema: {
+    tagMode: { type: 'string' },
+    minConfidence: { type: 'number' },
+    reviewThreshold: { type: 'number' },
+    concurrency: { type: 'number' },
+    costLimit: { type: 'number' },
+    onLimitReached: { type: 'string' },
+    enableAnalytics: { type: 'boolean' },
+    outputFormat: { type: 'string' },
+    logLevel: { type: 'string' },
+    generateExplanations: { type: 'boolean' },
+  },
   defaults: {
     ...defaultConfig,
     ...loadEnvironmentConfig(),

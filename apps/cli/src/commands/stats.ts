@@ -3,13 +3,26 @@ import path from 'path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import { fileExists, logger } from '@obsidian-magic/core';
+import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { costManager } from '../utils/cost-manager';
 
 import type { CommandModule } from 'yargs';
 
 import type { StatsOptions } from '../types/commands';
+
+// Create a logger instance for this module
+const logger = Logger.getInstance('statsCommand');
+
+/**
+ * Create a FileUtils instance
+ *
+ * Factory function following the dependency injection pattern
+ */
+function createFileUtils(basePath: string): FileUtils {
+  return new FileUtils(basePath);
+}
 
 /**
  * Interface for usage statistics
@@ -66,7 +79,7 @@ function formatCurrency(amount: number): string {
 export const statsCommand: CommandModule<Record<string, unknown>, StatsOptions> = {
   command: 'stats',
   describe: 'View statistics and reports',
-  builder: (yargs) => {
+  builder: (yargs): typeof yargs => {
     return yargs
       .option('period', {
         describe: 'Time period',
@@ -93,6 +106,11 @@ export const statsCommand: CommandModule<Record<string, unknown>, StatsOptions> 
         type: 'string',
         alias: 'o',
       })
+      .option('reset', {
+        describe: 'Reset usage statistics',
+        type: 'boolean',
+        default: false,
+      })
       .example('$0 stats --period=day', "View today's stats")
       .example('$0 stats --type=cost', 'View cost statistics')
       .example('$0 stats --directory=./conversations', 'Analyze files in directory');
@@ -103,7 +121,7 @@ export const statsCommand: CommandModule<Record<string, unknown>, StatsOptions> 
 
       // If directory is specified, run file-based analysis
       if (directory) {
-        await runFileAnalysis(directory as string, format as string, output);
+        await runFileAnalysis(directory, format as string, output);
         return;
       }
 
@@ -217,7 +235,12 @@ function getStatsForPeriod(period: string): PeriodStats {
  * Run file-based analysis on a directory
  */
 async function runFileAnalysis(directory: string, format: string, output?: string): Promise<void> {
-  if (!(await fileExists(directory))) {
+  // Create FileUtils instance using factory function
+  const fileUtils = createFileUtils(directory);
+
+  // Check if the directory exists
+  const directoryExists = await fileUtils.fileExists('');
+  if (!directoryExists) {
     logger.error(`Directory not found: ${directory}`);
     process.exit(1);
   }
@@ -229,8 +252,14 @@ async function runFileAnalysis(directory: string, format: string, output?: strin
   let files: string[] = [];
 
   try {
-    // Use glob to find files
-    files = await findMarkdownFiles(directory);
+    // Use FileUtils.findFiles to find markdown files
+    const findResult = await fileUtils.findFiles('', /\.(md|markdown)$/);
+
+    if (findResult.isFail()) {
+      throw findResult.getError();
+    }
+
+    files = findResult.getValue();
     spinner.succeed(`Found ${String(files.length)} files`);
   } catch (error) {
     spinner.fail(`Error finding files: ${error instanceof Error ? error.message : String(error)}`);
@@ -259,7 +288,16 @@ async function runFileAnalysis(directory: string, format: string, output?: strin
 
   for (const file of files) {
     try {
-      const content = await fs.readFile(file, 'utf-8');
+      // Use FileUtils to read file contents
+      const relativePath = path.relative(directory, file);
+      const readResult = await fileUtils.readFile(relativePath);
+
+      if (readResult.isFail()) {
+        logger.debug(`Error reading file ${file}: ${readResult.getError().message}`);
+        continue;
+      }
+
+      const content = readResult.getValue();
 
       // Extract tags from frontmatter using simple regex pattern
       // This is a simplified version and would be replaced with proper markdown parsing
@@ -385,32 +423,6 @@ function extractTagsFromContent(content: string): Tag[] {
   }
 
   return tags;
-}
-
-/**
- * Find markdown files in a directory
- */
-async function findMarkdownFiles(directory: string): Promise<string[]> {
-  // Implementation using fs.walk or glob would go here
-  // For now using a simple implementation
-  const files: string[] = [];
-
-  async function walkDir(dir: string) {
-    const entries = await fs.readdir(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-
-      if (entry.isDirectory()) {
-        await walkDir(fullPath);
-      } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.markdown'))) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  await walkDir(directory);
-  return files;
 }
 
 /**

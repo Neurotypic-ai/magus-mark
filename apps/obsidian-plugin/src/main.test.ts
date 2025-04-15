@@ -512,13 +512,15 @@ describe('ObsidianMagicPlugin', () => {
           return mockItem;
         }),
       };
+      const mockFile = {
+        path: 'test/document.md',
+        extension: 'md',
+      } as TFile;
+
       const mockEditor = {};
       const mockView = {
-        file: {
-          path: 'test/document.md',
-          extension: 'md',
-        } as TFile,
-      };
+        file: mockFile,
+      } as unknown as Partial<View>;
 
       editorMenuCallback({ menu: mockMenu, editor: mockEditor, view: mockView });
 
@@ -532,9 +534,9 @@ describe('ObsidianMagicPlugin', () => {
         // Test onClick handler
         const onClickHandler = vi.mocked(menuItem.onClick).mock.calls[0]?.[0];
         if (typeof onClickHandler === 'function') {
-          onClickHandler();
+          onClickHandler({} as MouseEvent);
           // Check that tagging service is called
-          expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockView.file);
+          expect(plugin.taggingService.processFile).toHaveBeenCalledWith(mockFile);
         }
       }
     });

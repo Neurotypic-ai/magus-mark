@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "servers": {
+    "filesystem": {
+      "runner": "npx",
+      "package": "@modelcontextprotocol/server-filesystem",
+      "mount": {
+        "source": ".",
+        "destination": "/workspace"
+      },
+      "network": "host",
+      "args": ["/workspace"]
+    },
+    "git": {
+      "runner": "npx",
+      "package": "mcp-server-git",
+      "network": "host"
+    },
+    "github": {
+      "runner": "docker",
+      "image": "ghcr.io/github/github-mcp-server:latest",
+      "env": ["GITHUB_TOKEN"],
+      "network": "host"
+    },
+    "memory": {
+      "runner": "npx",
+      "package": "@modelcontextprotocol/server-memory",
+      "network": "host"
+    },
+    "obsidian": {
+      "runner": "npx",
+      "package": "mcp-obsidian",
+      "network": "host",
+      "args": ["--vault", "${OBSIDIAN_VAULT_PATH}"]
+    },
+    "markdownify": {
+      "runner": "npx",
+      "package": "markdownify-mcp",
+      "network": "host"
+    },
+    "minima": {
+      "runner": "npx",
+      "package": "mcp-server-minima",
+      "network": "host"
+    },
+    "sequential-thinking": {
+      "runner": "npx",
+      "package": "@modelcontextprotocol/server-sequential-thinking",
+      "network": "host"
+    },
+    "knowledgebase": {
+      "runner": "npx",
+      "package": "knowledgebase-mcp",
+      "network": "host"
+    }
+  }
+}

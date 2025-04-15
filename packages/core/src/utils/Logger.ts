@@ -210,27 +210,28 @@ export class Logger {
    */
   private log(level: LogLevel | 'success', message: string): void {
     if (this.config.outputFormat === 'json') {
-      console.log(JSON.stringify({ level, message }));
+      console.log(JSON.stringify({ level, message, namespace: this.namespace }));
       return;
     }
 
     const timestamp = new Date().toISOString().split('T')[1]?.slice(0, 8) ?? '';
+    const namespaceFormatted = chalk.cyan(`[${this.namespace}]`);
 
     switch (level) {
       case 'error':
-        console.error(`${chalk.gray(timestamp)} ${chalk.red.bold('ERROR')} ${message}`);
+        console.error(`${chalk.gray(timestamp)} ${chalk.red.bold('ERROR')} ${namespaceFormatted} ${message}`);
         break;
       case 'warn':
-        console.warn(`${chalk.gray(timestamp)} ${chalk.yellow.bold('WARN')} ${message}`);
+        console.warn(`${chalk.gray(timestamp)} ${chalk.yellow.bold('WARN')} ${namespaceFormatted} ${message}`);
         break;
       case 'info':
-        console.info(`${chalk.gray(timestamp)} ${chalk.blue.bold('INFO')} ${message}`);
+        console.info(`${chalk.gray(timestamp)} ${chalk.blue.bold('INFO')} ${namespaceFormatted} ${message}`);
         break;
       case 'debug':
-        console.debug(`${chalk.gray(timestamp)} ${chalk.magenta.bold('DEBUG')} ${message}`);
+        console.debug(`${chalk.gray(timestamp)} ${chalk.magenta.bold('DEBUG')} ${namespaceFormatted} ${message}`);
         break;
       case 'success':
-        console.log(`${chalk.gray(timestamp)} ${chalk.green.bold('SUCCESS')} ${message}`);
+        console.log(`${chalk.gray(timestamp)} ${chalk.green.bold('SUCCESS')} ${namespaceFormatted} ${message}`);
         break;
     }
   }

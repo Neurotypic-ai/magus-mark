@@ -14,23 +14,6 @@ interface MockFile {
   extension: string;
 }
 
-// Define types for tagging
-interface TagSet {
-  domain?: string;
-  subdomains?: string[];
-  contextualTags?: string[];
-  lifeAreas?: string[];
-  conversationType?: string;
-  year?: string;
-}
-
-// Simplified result type for tests
-interface TaggingResult {
-  success: boolean;
-  error?: Error;
-  data?: TagSet;
-}
-
 // Mock Obsidian API with proper typing
 const mockApp = {
   workspace: {
@@ -174,7 +157,9 @@ vi.mock('obsidian', () => {
       this.loadData = vi.fn().mockResolvedValue({});
       this.saveData = vi.fn().mockResolvedValue(undefined);
       this.app = mockApp;
-      this.registerEvent = vi.fn().mockImplementation((event) => event);
+      this.registerEvent = vi.fn().mockImplementation((event: { unsubscribe: () => void }) => {
+        return event;
+      });
       return this;
     }),
     PluginSettingTab: vi.fn(),
@@ -232,7 +217,6 @@ describe('Integration Tests', () => {
   describe('File Tagging Flow', () => {
     it('should tag a file from start to finish successfully', async () => {
       // Set up mock to return success
-      // @ts-expect-error - Vi mock has mockResolvedValueOnce but TypeScript doesn't see it
       mockProcessFile.mockResolvedValueOnce({ success: true });
 
       // Get mockFile
@@ -243,22 +227,21 @@ describe('Integration Tests', () => {
       } as TFile;
 
       // Process the file
-      // @ts-expect-error - Result type doesn't match but works in tests
       const result = await plugin.taggingService.processFile(mockFile);
 
       // Verify API was called correctly
       expect(mockTagDocument).toHaveBeenCalled();
       const calls = mockTagDocument.mock.calls;
-      const apiCallContent = calls[0]?.[0] ?? '';
+      const apiCallContent = (calls[0]?.[0] ?? '') as string;
       expect(apiCallContent).toContain('Test Document 1');
 
       // Check the result
-      expect(result.success).toBe(true);
+      expect(result.isOk()).toBe(true);
 
       // Verify file was modified with tags
       expect(mockApp.vault.modify).toHaveBeenCalled();
       const modifyCalls = mockApp.vault.modify.mock.calls;
-      const modifiedContent = modifyCalls[0]?.[1] ?? '';
+      const modifiedContent = (modifyCalls[0]?.[1] ?? '') as string;
       expect(modifiedContent).toContain('domain: software-development');
       expect(modifiedContent).toContain('subdomains:');
       expect(modifiedContent).toContain('coding');
@@ -285,7 +268,7 @@ describe('Integration Tests', () => {
       // Verify file was modified with new frontmatter
       expect(mockApp.vault.modify).toHaveBeenCalled();
       const modifyCalls = mockApp.vault.modify.mock.calls;
-      const modifiedContent = modifyCalls[0]?.[1] ?? '';
+      const modifiedContent = (modifyCalls[0]?.[1] ?? '') as string;
       expect(modifiedContent).toMatch(/^---/);
       expect(modifiedContent).toContain('domain: software-development');
       expect(modifiedContent).toContain('# Test Document');
@@ -294,7 +277,6 @@ describe('Integration Tests', () => {
     it('should handle API errors gracefully', async () => {
       // Mock API error
       mockTagDocument.mockRejectedValueOnce(new Error('API error'));
-      // @ts-expect-error - Vi mock has mockResolvedValueOnce but TypeScript doesn't see it
       mockProcessFile.mockResolvedValueOnce({ success: false, error: new Error('API error') });
 
       const mockFile = {
@@ -304,13 +286,11 @@ describe('Integration Tests', () => {
       } as TFile;
 
       // Process the file
-      // @ts-expect-error - Result type doesn't match but works in tests
       const result = await plugin.taggingService.processFile(mockFile);
 
       // Check error handling
-      expect(result.success).toBe(false);
-      // @ts-expect-error - Error property is private but accessible in tests
-      expect(result.error).toBeDefined();
+      expect(result.isFail()).toBe(true);
+      expect(result.getError()).toBeDefined();
 
       // Verify file was not modified
       expect(mockApp.vault.modify).not.toHaveBeenCalled();
@@ -364,19 +344,20 @@ describe('Integration Tests', () => {
 
       mockApp.vault.getMarkdownFiles = vi.fn().mockReturnValue(allFiles.filter((f) => f.extension === 'md') as TFile[]);
 
+      // Setup mock implementation to capture args
+      let capturedFiles: TFile[] = [];
+      mockProcessFiles.mockImplementation((files: TFile[]) => {
+        capturedFiles = files;
+        return Promise.resolve([{ success: true }]);
+      });
+
       // Tag the folder
       await plugin.tagFolder(mockFolder);
 
-      // Access mock calls in a safe way
+      // Verify the correct files were passed to processFiles
       expect(mockProcessFiles).toHaveBeenCalled();
-      // @ts-expect-error - Mock property exists but TypeScript doesn't see it
-      const processCalls = mockProcessFiles.mock.calls;
-
-      if (processCalls && processCalls.length > 0 && processCalls[0]) {
-        const processedFiles = processCalls[0][0];
-        expect(processedFiles.length).toBe(1);
-        expect(processedFiles[0].path).toBe('mixed-folder/file1.md');
-      }
+      expect(capturedFiles.length).toBe(1);
+      expect(capturedFiles[0]?.path).toBe('mixed-folder/file1.md');
     });
   });
 

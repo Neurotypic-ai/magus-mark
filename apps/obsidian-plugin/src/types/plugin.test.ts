@@ -103,7 +103,8 @@ describe('Obsidian Plugin Types', () => {
 
     expect(query.includeTags.year).toBe('2023');
     if (query.includeTags.topical_tags && query.includeTags.topical_tags.length > 0) {
-      expect(query.includeTags.topical_tags[0].domain).toBe('technology');
+      const [firstTag] = query.includeTags.topical_tags as [{ domain: string }];
+      expect(firstTag.domain).toBe('technology');
     }
     expect(query.excludeTags.conversation_type).toBe('casual');
     expect(query.matchMode).toBe('all');
@@ -163,7 +164,8 @@ describe('Obsidian Plugin Types', () => {
 
     expect(suggestion.tag.year).toBe('2023');
     if (suggestion.tag.topical_tags && suggestion.tag.topical_tags.length > 0) {
-      expect(suggestion.tag.topical_tags[0].domain).toBe('technology');
+      const [firstTag] = suggestion.tag.topical_tags as [{ domain: string }];
+      expect(firstTag.domain).toBe('technology');
     }
     expect(suggestion.confidence).toBe(0.85);
     expect(suggestion.explanation).toBe('This conversation discusses AI technology');
@@ -244,10 +246,10 @@ describe('Obsidian Plugin Types', () => {
     expect(stats.averageConfidence).toBe(0.85);
     expect(stats.userModificationRate).toBe(0.12);
     expect(stats.mostCommonTags).toHaveLength(3);
-    if (stats.mostCommonTags && stats.mostCommonTags.length > 0) {
-      expect(stats.mostCommonTags[0].tag).toBe('technology');
-      expect(stats.mostCommonTags[0].count).toBe(45);
-    }
+    // @ts-expect-error - Non-null assertion is safe here
+    expect(stats.mostCommonTags[0].tag).toBe('technology');
+    // @ts-expect-error - Non-null assertion is safe here
+    expect(stats.mostCommonTags[0].count).toBe(45);
   });
 
   it('validates tag event', () => {
@@ -271,7 +273,8 @@ describe('Obsidian Plugin Types', () => {
     expect(event.type).toBe('added');
     expect(event.fileId).toBe('file-123');
     if (event.tags.topical_tags && event.tags.topical_tags.length > 0) {
-      expect(event.tags.topical_tags[0].domain).toBe('technology');
+      const [firstTag] = event.tags.topical_tags as [{ domain: string }];
+      expect(firstTag.domain).toBe('technology');
     }
     expect(event.user).toBe(true);
     expect(event.timestamp).toBe(timestamp);

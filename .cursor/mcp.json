@@ -1,84 +1,70 @@
 {
   "mcpServers": {
-    "nx-mcp": {
-      "url": "http://localhost:9393/sse"
-    },
-    "git": {
-      "command": "./scripts/start-mcp.sh",
-      "args": ["--runner", "npx", "--server-name", "git", "--image-package", "mcp-server-git", "--network", "host"]
-    },
-    "github": {
-      "command": "./scripts/start-mcp.sh",
+    "filesystem": {
+      "command": "./magus-mcp",
       "args": [
-        "--runner",
-        "docker",
-        "--server-name",
-        "github",
-        "--image-package",
-        "ghcr.io/github/github-mcp-server:latest",
-        "--env",
-        "GITHUB_TOKEN",
-        "--network",
-        "host"
+        "start",
+        "filesystem"
       ]
     },
-    "filesystem": {
-      "command": "./scripts/start-mcp.sh",
+    "git": {
+      "command": "./magus-mcp",
       "args": [
-        "--runner",
-        "npx",
-        "--server-name",
-        "filesystem",
-        "--image-package",
-        "@modelcontextprotocol/server-filesystem",
-        "--mount",
-        ".",
-        "/workspace",
-        "--network",
-        "host",
-        "/workspace"
+        "start",
+        "git"
+      ]
+    },
+    "github": {
+      "command": "./magus-mcp",
+      "args": [
+        "start",
+        "github"
       ]
     },
     "memory": {
-      "command": "./scripts/start-mcp.sh",
+      "command": "./magus-mcp",
       "args": [
-        "--runner",
-        "npx",
-        "--server-name",
-        "memory",
-        "--image-package",
-        "@modelcontextprotocol/server-memory",
-        "--network",
-        "host"
-      ]
-    },
-    "sequential-thinking": {
-      "command": "./scripts/start-mcp.sh",
-      "args": [
-        "--runner",
-        "npx",
-        "--server-name",
-        "sequential-thinking",
-        "--image-package",
-        "@modelcontextprotocol/server-sequential-thinking",
-        "--network",
-        "host"
+        "start",
+        "memory"
       ]
     },
     "obsidian": {
-      "command": "./scripts/start-mcp.sh",
+      "command": "./magus-mcp",
       "args": [
-        "--runner",
-        "npx",
-        "--server-name",
-        "obsidian",
-        "--image-package",
-        "mcp-obsidian",
-        "--env",
-        "{\"OBSIDIAN_API_KEY\":\"$OBSIDIAN_API_KEY\",\"OBSIDIAN_HOST\":\"$OBSIDIAN_HOST\"}",
-        "--network",
-        "host"
+        "start",
+        "obsidian"
       ]
+    },
+    "markdownify": {
+      "command": "./magus-mcp",
+      "args": [
+        "start",
+        "markdownify"
+      ]
+    },
+    "minima": {
+      "command": "./magus-mcp",
+      "args": [
+        "start",
+        "minima"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "./magus-mcp",
+      "args": [
+        "start",
+        "sequential-thinking"
+      ]
+    },
+    "knowledgebase": {
+      "command": "./magus-mcp",
+      "args": [
+        "start",
+        "knowledgebase"
+      ]
+    },
+    "nx-mcp": {
+      "url": "http://localhost:9484/sse"
     }
   }
 }

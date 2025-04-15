@@ -1,4 +1,5 @@
-import type { AIModel, TagBehavior } from '@obsidian-magic/core';
+import type { AIModel } from '@obsidian-magic/core/models/api';
+import type { TagBehavior } from '@obsidian-magic/core/models/tags';
 
 /**
  * Log level type
@@ -58,6 +59,9 @@ export interface ConfigOptions extends CommonOptions {
 export interface StatsOptions extends CommonOptions {
   period?: 'day' | 'week' | 'month' | 'all';
   type?: 'usage' | 'cost' | 'all';
+  format?: 'table' | 'json' | 'chart';
+  directory?: string;
+  reset?: boolean;
 }
 
 /**

@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { Result } from '@obsidian-magic/core/errors/Result';
+
 import { TaggingService } from './TaggingService';
 
-import type { Result, TagSet } from '@obsidian-magic/core';
+import type { TagSet } from '@obsidian-magic/core/models/tags';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
@@ -65,14 +67,18 @@ const mockInitializeCore = vi.fn().mockReturnValue({
 
 // Create a mock TagSet that matches the expected structure
 const mockTagSet: TagSet = {
-  domain: 'test',
-  subdomains: [],
-  lifeAreas: [],
-  conversationType: 'note',
-  contextualTags: [],
-  topical_tags: [],
+  topical_tags: [
+    {
+      domain: 'test',
+    },
+  ],
   year: '2023',
-  confidence: '0.9',
+  conversation_type: 'note',
+  confidence: {
+    overall: 0.9,
+    year: 0.8,
+    conversation_type: 0.7,
+  },
 };
 
 // Mock @obsidian-magic/core module
@@ -112,23 +118,9 @@ describe('TaggingService', () => {
     vi.spyOn(taggingService, 'processFile').mockImplementation(async (file: TFile) => {
       await Promise.resolve();
       if (file.path === 'file2.md') {
-        return {
-          isOk: () => false,
-          isFail: () => true,
-          getError: () => new Error('Failed to process file'),
-          getValue: () => {
-            throw new Error('Failed to process file');
-          },
-        } as FileProcessingResult;
+        return Result.fail(new Error('Failed to process file'));
       }
-      return {
-        isOk: () => true,
-        isFail: () => false,
-        getError: () => {
-          throw new Error('Cannot get error from successful result');
-        },
-        getValue: () => ({ file, tags: mockTagSet }),
-      } as FileProcessingResult;
+      return Result.ok({ file, tags: mockTagSet });
     });
   });
 
@@ -160,14 +152,7 @@ describe('TaggingService', () => {
 
     it('should handle errors when processing a file', async () => {
       // Override the mock for this specific test
-      vi.spyOn(taggingService, 'processFile').mockResolvedValueOnce({
-        isOk: () => false,
-        isFail: () => true,
-        getError: () => new Error('Failed to read file'),
-        getValue: () => {
-          throw new Error('Failed to read file');
-        },
-      } as FileProcessingResult);
+      vi.spyOn(taggingService, 'processFile').mockResolvedValueOnce(Result.fail(new Error('Failed to read file')));
 
       const result = await taggingService.processFile(mockFile);
       expect(result.isOk()).toBe(false);
@@ -176,14 +161,7 @@ describe('TaggingService', () => {
 
     it('should handle errors from tagging service', async () => {
       // Override the mock for this specific test
-      vi.spyOn(taggingService, 'processFile').mockResolvedValueOnce({
-        isOk: () => false,
-        isFail: () => true,
-        getError: () => new Error('Failed to tag document'),
-        getValue: () => {
-          throw new Error('Failed to tag document');
-        },
-      } as FileProcessingResult);
+      vi.spyOn(taggingService, 'processFile').mockResolvedValueOnce(Result.fail(new Error('Failed to tag document')));
 
       const result = await taggingService.processFile(mockFile);
       expect(result.isOk()).toBe(false);
@@ -245,14 +223,7 @@ describe('TaggingService', () => {
       // Create custom implementation of processFiles for testing
       vi.spyOn(taggingService, 'processFiles').mockImplementationOnce(async (files) => {
         await Promise.resolve();
-        return files.map((file) => ({
-          isOk: () => true,
-          isFail: () => false,
-          getError: () => {
-            throw new Error('Cannot get error from successful result');
-          },
-          getValue: () => ({ file, tags: mockTagSet }),
-        })) as FileProcessingResult[];
+        return files.map((file) => Result.ok({ file, tags: mockTagSet }));
       });
 
       const mockFiles = [
@@ -264,9 +235,11 @@ describe('TaggingService', () => {
       const results = await taggingService.processFiles(mockFiles);
 
       expect(results.length).toBe(3);
-      for (const result of results) {
-        expect(result.isOk()).toBe(true);
-      }
+      // Cast to avoid undefined checks since we've verified the array has 3 elements
+      const typedResults = results as [FileProcessingResult, FileProcessingResult, FileProcessingResult];
+      expect(typedResults[0].isOk()).toBe(true);
+      expect(typedResults[1].isOk()).toBe(false);
+      expect(typedResults[2].isOk()).toBe(true);
     });
 
     it('should continue processing files when one fails', async () => {
@@ -276,23 +249,9 @@ describe('TaggingService', () => {
         return files.map((file, index) => {
           if (index === 1) {
             // Make the second file fail
-            return {
-              isOk: () => false,
-              isFail: () => true,
-              getError: () => new Error('Failed to read file'),
-              getValue: () => {
-                throw new Error('Failed to read file');
-              },
-            } as FileProcessingResult;
+            return Result.fail(new Error('Failed to read file'));
           }
-          return {
-            isOk: () => true,
-            isFail: () => false,
-            getError: () => {
-              throw new Error('Cannot get error from successful result');
-            },
-            getValue: () => ({ file, tags: mockTagSet }),
-          } as FileProcessingResult;
+          return Result.ok({ file, tags: mockTagSet });
         });
       });
 
@@ -305,9 +264,11 @@ describe('TaggingService', () => {
       const results = await taggingService.processFiles(mockFiles);
 
       expect(results.length).toBe(3);
-      expect(results[0].isOk()).toBe(true);
-      expect(results[1].isOk()).toBe(false);
-      expect(results[2].isOk()).toBe(true);
+      // Cast to avoid undefined checks since we've verified the array has 3 elements
+      const typedResults = results as [FileProcessingResult, FileProcessingResult, FileProcessingResult];
+      expect(typedResults[0].isOk()).toBe(true);
+      expect(typedResults[1].isOk()).toBe(false);
+      expect(typedResults[2].isOk()).toBe(true);
     });
 
     it('should handle progress tracking', async () => {
@@ -331,14 +292,7 @@ describe('TaggingService', () => {
           const percent = Math.round((filesProcessed / totalFiles) * 100);
           mockPlugin.statusBarElement.setText(`Magic: Processing files (${percent.toString()}%)...`);
 
-          results.push({
-            isOk: () => true,
-            isFail: () => false,
-            getError: () => {
-              throw new Error('Cannot get error from successful result');
-            },
-            getValue: () => ({ file, tags: mockTagSet }),
-          } as FileProcessingResult);
+          results.push(Result.ok({ file, tags: mockTagSet }));
         }
 
         // Reset status when done

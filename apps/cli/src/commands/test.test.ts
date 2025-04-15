@@ -1,20 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { logger } from '@obsidian-magic/core';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { testCommand } from './test';
 
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 
+const logger = Logger.getInstance('test');
+
 // Mock dependencies
-vi.mock('../../src/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    box: vi.fn(),
-    configure: vi.fn(),
+vi.mock('@obsidian-magic/core/utils/Logger', () => ({
+  Logger: {
+    getInstance: vi.fn().mockReturnValue({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+      box: vi.fn(),
+      configure: vi.fn(),
+    }),
   },
 }));
 

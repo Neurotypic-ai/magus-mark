@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { extractFrontmatter, extractTagsFromFrontmatter, updateTagsInFrontmatter } from './frontmatter';
 
-import type { ConversationTypeTag, TagConfidence, TagSet, TopicalTag } from '@obsidian-magic/core';
+import type { ConversationTypeTag, TagConfidence, TagSet, TopicalTag } from '@obsidian-magic/core/models/tags';
 
 describe('Frontmatter Utility', () => {
   describe('extractFrontmatter', () => {

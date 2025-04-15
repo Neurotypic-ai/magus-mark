@@ -2,13 +2,15 @@ import * as path from 'path';
 
 import * as fs from 'fs-extra';
 
-import { CostLimitError, logger } from '@obsidian-magic/core';
-import { calculateCost } from '@obsidian-magic/core/openai-models';
+import { CostLimitError } from '@obsidian-magic/core/errors/CostLimitError';
+import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from './config';
 
-import type { AIModel } from '@obsidian-magic/core';
+import type { AIModel } from '@obsidian-magic/core/models/api';
 
+const logger = Logger.getInstance('cost-manager');
 /**
  * Usage record interface
  */
@@ -252,7 +254,8 @@ class CostManager {
    * Calculate cost based on model and tokens
    */
   private calculateCost(model: AIModel, inputTokens: number, outputTokens: number): number {
-    return calculateCost(model, inputTokens, outputTokens);
+    const client = new OpenAIClient();
+    return client.calculateCost(model, inputTokens, outputTokens);
   }
 
   /**

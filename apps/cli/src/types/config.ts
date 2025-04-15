@@ -8,32 +8,32 @@ import type { LogLevel } from './commands';
  */
 export interface Config {
   // API settings
-  apiKey?: string;
-  defaultModel?: AIModel;
+  apiKey?: string | undefined;
+  defaultModel?: AIModel | undefined;
 
   // Processing settings
-  concurrency?: number;
-  tagMode?: TagBehavior;
-  minConfidence?: number;
-  reviewThreshold?: number;
-  generateExplanations?: boolean;
+  concurrency?: number | undefined;
+  tagMode?: TagBehavior | undefined;
+  minConfidence?: number | undefined;
+  reviewThreshold?: number | undefined;
+  generateExplanations?: boolean | undefined;
 
   // Output settings
-  outputFormat?: 'pretty' | 'json' | 'silent';
-  logLevel?: LogLevel;
-  vaultPath?: string;
-  outputDir?: string;
+  outputFormat?: 'pretty' | 'json' | 'silent' | undefined;
+  logLevel?: LogLevel | undefined;
+  vaultPath?: string | undefined;
+  outputDir?: string | undefined;
 
   // Cost management
-  costLimit?: number;
-  onLimitReached?: 'pause' | 'warn' | 'stop';
+  costLimit?: number | undefined;
+  onLimitReached?: 'pause' | 'warn' | 'stop' | undefined;
 
   // Analytics
-  enableAnalytics?: boolean;
+  enableAnalytics?: boolean | undefined;
 
   // Profiles
-  profiles?: Record<string, Partial<Config>>;
-  activeProfile?: string;
+  profiles?: Record<string, Partial<Config>> | undefined;
+  activeProfile?: string | undefined;
 }
 
 /**

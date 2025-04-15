@@ -11,7 +11,8 @@ import { Result } from '@obsidian-magic/core/errors/Result';
 import { TaggingError } from '@obsidian-magic/core/errors/TaggingError';
 import { withRetry } from '@obsidian-magic/core/errors/retry';
 
-import type { Document, TagSet, TaggingOptions } from '@obsidian-magic/core/models/tags';
+import type { Document, TaggingOptions } from '@obsidian-magic/core/models/api';
+import type { TagSet } from '@obsidian-magic/core/models/tags';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';

@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TagManagementView } from './TagManagementView';
 
-import type { MetadataCache, TFile, Vault, WorkspaceLeaf } from 'obsidian';
+import type { MetadataCache, Vault, WorkspaceLeaf } from 'obsidian';
 import type { Mock } from 'vitest';
 
 import type ObsidianMagicPlugin from '../main';

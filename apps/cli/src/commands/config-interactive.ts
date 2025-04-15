@@ -5,11 +5,12 @@ import { confirm, input, number, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import * as fsExtra from 'fs-extra';
 
-import { modelManager } from '@obsidian-magic/core';
+import { ModelManager } from '@obsidian-magic/core/openai/ModelManager';
 
 import { config } from '../utils/config';
 
-import type { AIModel, ModelPricing } from '@obsidian-magic/core';
+import type { ModelPricing } from '@obsidian-magic/core/OpenAIClient';
+import type { AIModel } from '@obsidian-magic/core/models/api';
 import type { CommandModule } from 'yargs';
 
 import type { LogLevel } from '../types/commands';
@@ -30,6 +31,8 @@ interface ConfigSettings {
   profiles?: Record<string, Partial<ConfigSettings>>;
   [key: string]: unknown;
 }
+
+const modelManager = ModelManager.getInstance();
 
 /**
  * Get model choices for selection dropdown

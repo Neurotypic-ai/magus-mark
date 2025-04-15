@@ -7,7 +7,7 @@ import { Logger } from '../../../../packages/core/dist/src/utils/Logger';
 import type { CommandModule } from 'yargs';
 
 // Initialize logger
-const logger = Logger.getInstance();
+const logger = Logger.getInstance('taxonomy');
 
 export const taxonomyCommand: CommandModule = {
   command: 'taxonomy',

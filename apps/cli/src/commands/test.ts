@@ -1,14 +1,17 @@
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import { benchmark } from '../utils/Chronometer';
-import { formatCurrency, formatDuration } from '../utils/cli-utils';
-import { logger } from '../utils/core';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
+import { formatCurrency, formatDuration } from '@obsidian-magic/core/utils/string';
 
+import { benchmark } from '../utils/Chronometer';
+
+import type { AIModel } from '@obsidian-magic/core/models/api';
 import type { CommandModule } from 'yargs';
 
 import type { TestOptions } from '../types/commands';
-import type { AIModel } from '../utils/core';
+
+const logger = Logger.getInstance('test');
 
 /**
  * Test and benchmark command

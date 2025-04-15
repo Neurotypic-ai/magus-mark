@@ -5,8 +5,12 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initializeCore } from '.';
 
-import type { BatchProcessingService, DocumentProcessor, OpenAIClient, TaggingService, TaxonomyManager } from '.';
+import type { DocumentProcessor } from './markdown/DocumentProcessor';
 import type { Document } from './models/api';
+import type { OpenAIClient } from './openai/OpenAIClient';
+import type { TaggingService } from './openai/TaggingService';
+import type { BatchProcessingService } from './tagging/BatchProcessingService';
+import type { TaxonomyManager } from './tagging/TaxonomyManager';
 
 // Mock the OpenAI API client to avoid actual API calls
 vi.mock('../src/openai', () => {
@@ -117,9 +121,9 @@ function DataFetcher() {
     batchProcessingService: BatchProcessingService;
   };
 
-  beforeAll(async () => {
+  beforeAll(() => {
     // Initialize the core module with mock API key
-    core = await initializeCore({
+    core = initializeCore({
       openaiApiKey: 'mock-api-key',
       model: 'gpt-4o',
     });

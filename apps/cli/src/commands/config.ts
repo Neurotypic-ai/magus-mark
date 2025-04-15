@@ -1,11 +1,16 @@
 import { confirm } from '@inquirer/prompts';
 
-import { modelManager } from '@obsidian-magic/core/model-manager';
+import { ModelManager } from '@obsidian-magic/core/openai/ModelManager';
+import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from '../utils/config';
-import { fileExists, logger, writeFile } from '../utils/core';
 
 import type { CommandModule } from 'yargs';
+
+const logger = Logger.getInstance('config');
+const modelManager = ModelManager.getInstance();
+const fileUtils = new FileUtils(process.cwd());
 
 export const configCommand: CommandModule = {
   command: 'config <command>',
@@ -131,7 +136,7 @@ export const configCommand: CommandModule = {
         handler: async (argv) => {
           const { file } = argv as { file: string };
           try {
-            if (!(await fileExists(file))) {
+            if (!(await fileUtils.fileExists(file))) {
               logger.error(`File not found: ${String(file)}`);
               return;
             }
@@ -167,7 +172,10 @@ export const configCommand: CommandModule = {
             const configStr =
               format === 'json' ? JSON.stringify(currentConfig, null, 2) : '# TODO: Implement YAML export';
 
-            await writeFile(output, configStr);
+            const writeResult = await fileUtils.writeFile(output, configStr);
+            if (writeResult.isFail()) {
+              throw writeResult.getError();
+            }
             logger.info(`Configuration exported to ${String(output)}`);
           } catch (error) {
             logger.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);

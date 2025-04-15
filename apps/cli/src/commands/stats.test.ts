@@ -6,40 +6,41 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 
 import type { StatsOptions } from '../types/commands';
 
-// Mock dependencies
-vi.mock('@obsidian-magic/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    box: vi.fn(),
-    configure: vi.fn(),
-  },
-}));
+// Create direct mocks for the modules
+const mockLogger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  box: vi.fn(),
+  configure: vi.fn(),
+};
 
-vi.mock('@obsidian-magic/core', () => ({
-  config: {
-    get: vi.fn(),
-    getAll: vi.fn().mockReturnValue({}),
-  },
-}));
+const mockCostManager = {
+  getUsageData: vi.fn().mockReturnValue({
+    totalTokens: 1000,
+    totalCost: 0.02,
+    requests: 5,
+    models: {
+      'gpt-4o': { tokens: 500, cost: 0.01, requests: 2 },
+      'gpt-3.5-turbo': { tokens: 500, cost: 0.01, requests: 3 },
+    },
+    lastUpdated: new Date().toISOString(),
+  }),
+  resetUsageData: vi.fn(),
+  saveUsageData: vi.fn(),
+};
 
+const mockConfig = {
+  get: vi.fn(),
+  getAll: vi.fn().mockReturnValue({}),
+};
+
+// Mock the modules
+vi.mock('@obsidian-magic/logger', () => ({ logger: mockLogger }));
 vi.mock('@obsidian-magic/core', () => ({
-  costManager: {
-    getUsageData: vi.fn().mockReturnValue({
-      totalTokens: 1000,
-      totalCost: 0.02,
-      requests: 5,
-      models: {
-        'gpt-4o': { tokens: 500, cost: 0.01, requests: 2 },
-        'gpt-3.5-turbo': { tokens: 500, cost: 0.01, requests: 3 },
-      },
-      lastUpdated: new Date().toISOString(),
-    }),
-    resetUsageData: vi.fn(),
-    saveUsageData: vi.fn(),
-  },
+  costManager: mockCostManager,
+  config: mockConfig,
 }));
 
 describe('statsCommand', () => {
@@ -59,7 +60,6 @@ describe('statsCommand', () => {
     } as unknown as Argv;
 
     const builderFn = statsCommand.builder as (yargs: Argv) => Argv;
-    expect(builderFn).toBeDefined();
     builderFn(yargsInstance);
 
     expect(yargsInstance.option).toHaveBeenCalledWith('format', expect.any(Object));
@@ -67,49 +67,39 @@ describe('statsCommand', () => {
   });
 
   it('should display usage statistics', async () => {
-    const { logger } = await import('@obsidian-magic/logger/dist/logger');
-    const { costManager } = await import('@obsidian-magic/core');
-
     // Call the handler with mock arguments
     const handlerFn = statsCommand.handler;
-    expect(handlerFn).toBeDefined();
     await handlerFn({
-      format: 'pretty',
+      format: 'table',
       reset: false,
       _: ['stats'],
       $0: 'obsidian-magic',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify the correct methods were called
-    expect(costManager.getUsageData).toHaveBeenCalled();
-    expect(logger.box).toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalled();
+    expect(mockCostManager.getUsageData).toHaveBeenCalled();
+    expect(mockLogger.box).toHaveBeenCalled();
+    expect(mockLogger.info).toHaveBeenCalled();
   });
 
   it('should reset usage statistics when reset flag is true', async () => {
-    const { costManager } = await import('@obsidian-magic/core');
-
     // Call the handler with reset flag
     const handlerFn = statsCommand.handler;
-    expect(handlerFn).toBeDefined();
     await handlerFn({
-      format: 'pretty',
+      format: 'table',
       reset: true,
       _: ['stats'],
       $0: 'obsidian-magic',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify reset was called
-    expect(costManager.resetUsageData).toHaveBeenCalled();
-    expect(costManager.saveUsageData).toHaveBeenCalled();
+    expect(mockCostManager.resetUsageData).toHaveBeenCalled();
+    expect(mockCostManager.saveUsageData).toHaveBeenCalled();
   });
 
   it('should output JSON format when specified', async () => {
-    const { logger } = await import('@obsidian-magic/logger/dist/logger');
-
     // Call the handler with JSON format
     const handlerFn = statsCommand.handler;
-    expect(handlerFn).toBeDefined();
     await handlerFn({
       format: 'json',
       reset: false,
@@ -118,6 +108,6 @@ describe('statsCommand', () => {
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify JSON output
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('{'));
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('{'));
   });
 });

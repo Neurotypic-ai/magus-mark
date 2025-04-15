@@ -160,8 +160,8 @@ describe('CLI Models', () => {
       expect(command.name).toBe('tag');
       expect(command.aliases).toContain('t');
       expect(command.options).toHaveLength(2);
-      expect(command.options[0].name).toBe('path');
-      if (command.options[1].choices) {
+      expect(command.options[0]?.name).toBe('path');
+      if (command.options[1]?.choices) {
         expect(command.options[1].choices).toContain('gpt-4o');
       }
 

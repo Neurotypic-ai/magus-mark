@@ -4,11 +4,10 @@ import fs from 'fs-extra';
 
 import { AppError } from '@obsidian-magic/core/errors/AppError';
 import { Result } from '@obsidian-magic/core/errors/Result';
+import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
+import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
 
-import { OpenAIClient } from '../../../../packages/core/dist/src/openai/OpenAIClient';
-import { TaggingService } from '../../../../packages/core/dist/src/openai/TaggingService';
-
-import type { AIModel } from '@obsidian-magic/core';
+import type { AIModel } from '@obsidian-magic/core/models/api';
 
 /**
  * Benchmark report for a single model
@@ -387,7 +386,16 @@ class Chronometer {
         success: true,
         model,
         testCase,
-        suggestedTags: result.tags ?? [],
+        suggestedTags: result.tags
+          ? Array.isArray(result.tags)
+            ? result.tags.map((tag): string => {
+                if (typeof tag === 'string') return tag;
+                // Type assertion to access tag.name safely
+                const tagObj = tag as { name?: string };
+                return tagObj.name ?? String(tag);
+              })
+            : Object.keys(result.tags)
+          : [],
         tokensUsed: {
           input: inputTokens,
           output: outputTokens,

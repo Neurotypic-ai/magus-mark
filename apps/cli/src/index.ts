@@ -3,8 +3,6 @@
  * Obsidian Magic CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
-import { fail } from 'assert';
-
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
@@ -19,7 +17,7 @@ import { config } from './utils/config';
 import { costManager } from './utils/cost-manager';
 
 // Initialize logger
-const logger = Logger.getInstance();
+const logger = Logger.getInstance('cli');
 
 // Import update-notifier dynamically to avoid linter errors
 type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => { notify(): void };

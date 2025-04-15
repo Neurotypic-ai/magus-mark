@@ -1,4 +1,4 @@
-import type { AIModel } from '@obsidian-magic/core';
+import type { AIModel } from '@obsidian-magic/core/models/api';
 
 /**
  * Benchmark report for a single model

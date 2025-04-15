@@ -1,25 +1,14 @@
 import fs from 'fs-extra';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { logger } from '@obsidian-magic/core';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from '../utils/config';
 import { taxonomyCommand } from './taxonomy';
 
 import type { Argv } from 'yargs';
 
-// Mock dependencies
-vi.mock('../../src/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    box: vi.fn(),
-    configure: vi.fn(),
-  },
-}));
-
+const logger = Logger.getInstance('taxonomy');
 vi.mock('../../src/utils/config', () => ({
   config: {
     get: vi.fn((key: string) => {
@@ -78,6 +67,8 @@ describe('taxonomyCommand', () => {
     expect(handlerFn).toBeDefined();
     await handlerFn({
       format: 'pretty',
+      _: [],
+      $0: 'test',
     });
 
     // Verify the logger was called
@@ -92,6 +83,8 @@ describe('taxonomyCommand', () => {
     await handlerFn({
       format: 'pretty',
       output: 'taxonomy.json',
+      _: [],
+      $0: 'test',
     });
 
     // Verify file was written
@@ -105,6 +98,8 @@ describe('taxonomyCommand', () => {
     expect(handlerFn).toBeDefined();
     await handlerFn({
       format: 'json',
+      _: [],
+      $0: 'test',
     });
 
     // Verify JSON output
@@ -120,6 +115,8 @@ describe('taxonomyCommand', () => {
     expect(handlerFn).toBeDefined();
     await handlerFn({
       format: 'pretty',
+      _: [],
+      $0: 'test',
     });
 
     // Verify warning was shown
@@ -127,17 +124,16 @@ describe('taxonomyCommand', () => {
   });
 
   it('should handle malformed taxonomy gracefully', async () => {
-    // Override the mock to return malformed data
-    vi.mocked(config.get).mockReturnValueOnce({
-      categories: null,
-      tags: 'invalid',
-    });
+    // Override the mock to return malformed data with a minimal structure that won't break types
+    vi.mocked(config.get).mockReturnValueOnce({});
 
     // Call the handler
     const handlerFn = taxonomyCommand.handler;
     expect(handlerFn).toBeDefined();
     await handlerFn({
       format: 'pretty',
+      _: [],
+      $0: 'test',
     });
 
     // Verify error handling

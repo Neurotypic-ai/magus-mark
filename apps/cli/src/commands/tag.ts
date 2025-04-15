@@ -6,15 +6,20 @@ import chalk from 'chalk';
 import cliProgress from 'cli-progress';
 import fs from 'fs-extra';
 
-import { OpenAIClient, TaggingService, logger } from '@obsidian-magic/core';
+import { OpenAIClient } from '@obsidian-magic/core/OpenAIClient';
+import { TaggingService } from '@obsidian-magic/core/TaggingService';
+import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
 
-import type { AIModel, Document, TagBehavior, TagSet } from '@obsidian-magic/core';
+import type { AIModel, Document } from '@obsidian-magic/core/models/api';
+import type { TagBehavior, TagSet } from '@obsidian-magic/core/models/tags';
 import type { CommandModule } from 'yargs';
 
 import type { TagOptions } from '../types/commands';
+
+const logger = Logger.getInstance('cli');
 
 export const tagCommand: CommandModule = {
   command: 'tag [paths..]',
@@ -97,20 +102,18 @@ export const tagCommand: CommandModule = {
     try {
       // Parse arguments with proper types
       const options = argv as unknown as TagOptions;
-      const {
-        verbose,
-        model,
-        tagMode,
-        minConfidence,
-        reviewThreshold,
-        concurrency = 3,
-        mode = 'auto',
-        force = false,
-        maxCost,
-        onLimit = 'warn',
-        output,
-        dryRun,
-      } = options;
+      const verbose = options.verbose;
+      const model = options.model as AIModel | undefined;
+      const tagMode = options.tagMode as TagBehavior | undefined;
+      const minConfidence = options.minConfidence;
+      const reviewThreshold = options.reviewThreshold;
+      const concurrency = options.concurrency ?? 3;
+      const mode = options.mode ?? 'auto';
+      const force = options.force ?? false;
+      const maxCost = options.maxCost;
+      const onLimit = options.onLimit ?? 'warn';
+      const output = options.output;
+      const dryRun = options.dryRun;
 
       // Get paths array from positional arguments
       const paths = argv['paths'] as string[];
@@ -270,7 +273,11 @@ Cost Estimate:
           };
 
           // Tag the document
-          const result = await taggingService.tagDocument(document);
+          const result = (await taggingService.tagDocument(document)) as {
+            success: boolean;
+            tags?: TagSet;
+            error?: Error;
+          };
 
           if (!result.success) {
             totalErrors++;
@@ -410,7 +417,7 @@ async function findMarkdownFiles(dir: string, results: string[] = []): Promise<s
  * Extract existing tags from frontmatter
  */
 function extractExistingTags(content: string): TagSet | undefined {
-  return extractTagsFromFrontmatter(content);
+  return extractTagsFromFrontmatter(content) as TagSet | undefined;
 }
 
 /**

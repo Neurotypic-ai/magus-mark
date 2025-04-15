@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { Logger } from '@obsidian-magic/core/utils/Logger';
+
 import { costManager } from './utils/cost-manager';
-import { logger } from './utils/logger';
+
+const logger = Logger.getInstance('cli');
 
 // Mock dependencies
-vi.mock('../src/utils/logger', () => ({
+vi.mock('@obsidian-magic/core/utils/Logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

@@ -203,6 +203,8 @@ export const CONVERSATION_TYPE_TAGS = [
   'planning',
   'question',
   'analysis',
+  'note',
+  'summary',
 ] as const;
 
 /**

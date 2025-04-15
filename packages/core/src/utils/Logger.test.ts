@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from './Logger';
 
-describe('logger', () => {
-  const logger = Logger.getInstance();
+describe('Logger', () => {
+  const logger = Logger.getInstance('Logger');
 
   beforeEach(() => {
     // Spy on console methods

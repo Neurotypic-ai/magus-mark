@@ -189,17 +189,6 @@ export class ConfigManager {
   }
 
   /**
-   * Converts a Result<T, Error> to Result<T, ConfigurationError>
-   */
-  private wrapResult<T>(result: Result<T>, message: string): Result<T, ConfigurationError> {
-    if (result.isOk()) {
-      return Result.ok(result.getValue()) as Result<T, ConfigurationError>;
-    }
-    const error = ConfigurationError.from(result.getError(), message);
-    return Result.fail<T, ConfigurationError>(error);
-  }
-
-  /**
    * Loads configuration from file
    */
   async load(): Promise<Result<Config, ConfigurationError>> {

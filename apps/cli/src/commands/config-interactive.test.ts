@@ -1,3 +1,5 @@
+import console from 'console';
+
 import * as inquirerPrompts from '@inquirer/prompts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,8 +11,12 @@ import type { AIModel } from '@obsidian-magic/core/models/api';
 import type { Argv } from 'yargs';
 
 import type { LogLevel } from '../types/commands';
-import type { logger } from '../utils/logger';
 import type { TagMode } from './config-interactive';
+
+// Create reference to mocked ModelManager instance
+const mockModelManager = {
+  getAvailableModels: vi.fn(),
+};
 
 // Mock dependencies
 vi.mock('@inquirer/prompts', () => ({
@@ -20,9 +26,13 @@ vi.mock('@inquirer/prompts', () => ({
   number: vi.fn(),
 }));
 
+// Fix the ModelManager getInstance mock
+const mockGetInstance = vi.fn().mockReturnValue(mockModelManager);
+
+// Mock ModelManager with getInstance pattern
 vi.mock('@obsidian-magic/core', () => ({
-  modelManager: {
-    getAvailableModels: vi.fn(),
+  ModelManager: {
+    getInstance: mockGetInstance,
   },
 }));
 
@@ -30,12 +40,14 @@ vi.mock('fs-extra', () => ({
   pathExists: vi.fn(),
 }));
 
-vi.mock('@obsidian-magic/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
+vi.mock('@obsidian-magic/core/utils/Logger', () => ({
+  Logger: {
+    getInstance: () => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    }),
   },
 }));
 
@@ -49,6 +61,8 @@ vi.mock('../utils/config', () => ({
 describe('configInteractiveCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the mock implementation
+    mockGetInstance.mockReturnValue(mockModelManager);
   });
 
   it('should have the correct command name and description', () => {
@@ -129,18 +143,16 @@ describe('configInteractiveCommand', () => {
         return undefined;
       });
 
-      vi.mocked(modelManager.getAvailableModels).mockImplementationOnce(async (): Promise<ModelPricing[]> => {
-        return Promise.resolve([
-          { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', inputPrice: 1, outputPrice: 2 } as ModelPricing,
-          { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 } as ModelPricing,
-        ]);
-      });
+      mockModelManager.getAvailableModels.mockResolvedValueOnce([
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', inputPrice: 1, outputPrice: 2 } as ModelPricing,
+        { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 } as ModelPricing,
+      ]);
 
       // Run the handler with minimal mode
       await configInteractiveCommand.handler({ ...mockArgv, minimal: true });
 
       // Verify that minimal setup was used
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('minimal setup mode'));
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('minimal setup mode'));
 
       // Minimal setup shouldn't ask for concurrency
       expect(inquirerPrompts.number).not.toHaveBeenCalled();
@@ -177,9 +189,9 @@ describe('configInteractiveCommand', () => {
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(false);
 
       // Mock model list
-      vi.mocked(modelManager.getAvailableModels).mockImplementationOnce(async () => {
-        return [{ id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 }] as ModelPricing[];
-      });
+      mockModelManager.getAvailableModels.mockResolvedValueOnce([
+        { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 },
+      ] as ModelPricing[]);
 
       // Run the handler without minimal mode
       await configInteractiveCommand.handler(mockArgv);
@@ -192,7 +204,7 @@ describe('configInteractiveCommand', () => {
       vi.mocked(inquirerPrompts.input).mockResolvedValueOnce('sk-invalid');
 
       // Mock modelManager to throw an error
-      vi.mocked(modelManager.getAvailableModels).mockRejectedValueOnce(new Error('API Error'));
+      mockModelManager.getAvailableModels.mockRejectedValueOnce(new Error('API Error'));
 
       // Default values for other prompts to skip them
       vi.mocked(inquirerPrompts.select<AIModel>).mockResolvedValue('gpt-3.5-turbo' as AIModel);
@@ -231,9 +243,9 @@ describe('configInteractiveCommand', () => {
       }));
 
       // Mock model list
-      vi.mocked(modelManager.getAvailableModels).mockImplementationOnce(async () => {
-        return [{ id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 }] as ModelPricing[];
-      });
+      mockModelManager.getAvailableModels.mockResolvedValueOnce([
+        { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 },
+      ] as ModelPricing[]);
 
       // Run the handler with export option
       await configInteractiveCommand.handler({
@@ -243,7 +255,7 @@ describe('configInteractiveCommand', () => {
       });
 
       // Check export was attempted
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Exporting configuration'));
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Exporting configuration'));
     });
   });
 });
