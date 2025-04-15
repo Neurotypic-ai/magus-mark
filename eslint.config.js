@@ -200,6 +200,7 @@ const nodeConfig = {
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config} */
 const ignoresConfig = {
   ignores: [
+    '**/.nx/**/*',
     '**/node_modules/**/*', // Ensure all node_modules are ignored
     '**/build/*',
     '**/public/build/*',

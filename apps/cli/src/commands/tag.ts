@@ -103,8 +103,8 @@ export const tagCommand: CommandModule = {
       // Parse arguments with proper types
       const options = argv as unknown as TagOptions;
       const verbose = options.verbose;
-      const model = options.model as AIModel | undefined;
-      const tagMode = options.tagMode as TagBehavior | undefined;
+      const model = options.model;
+      const tagMode = options.tagMode;
       const minConfidence = options.minConfidence;
       const reviewThreshold = options.reviewThreshold;
       const concurrency = options.concurrency ?? 3;
@@ -417,7 +417,7 @@ async function findMarkdownFiles(dir: string, results: string[] = []): Promise<s
  * Extract existing tags from frontmatter
  */
 function extractExistingTags(content: string): TagSet | undefined {
-  return extractTagsFromFrontmatter(content) as TagSet | undefined;
+  return extractTagsFromFrontmatter(content);
 }
 
 /**

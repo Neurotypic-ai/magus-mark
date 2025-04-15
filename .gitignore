@@ -51,6 +51,10 @@ coverage/
 # Data directories
 data/vector-db/
 
+# Magus-MCP binaries
+tools/magus-mcp/magus-mcp
+tools/magus-mcp/magus-mcp.exe
+
 .nx/cache
 .nx/workspace-data
 vite.config.*.timestamp*

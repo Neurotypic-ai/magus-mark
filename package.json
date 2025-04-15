@@ -45,8 +45,10 @@
     "dev": "tsc -b --watch",
     "format": "prettier --write .",
     "lint": "eslint .",
-    "magus-mcp": "tools/magus-mcp/magus-mcp",
-    "test": "pnpm -r test"
+    "magus-mcp": "node -e \"require('child_process').spawn(process.platform === 'win32' ? 'node_modules\\.bin\\magus-mcp.exe' : 'node_modules/.bin/magus-mcp', process.argv.slice(2), {stdio: 'inherit'})\"",
+    "test": "pnpm -r test",
+    "build:magus-mcp": "cd tools/magus-mcp && go build -o magus-mcp",
+    "postinstall": "node tools/scripts/build-magus-mcp.js"
   },
   "type": "module",
   "version": "0.1.0",

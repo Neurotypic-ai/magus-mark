@@ -1,6 +1,7 @@
 # Testing Strategy
 
-This document outlines the testing strategy, frameworks, and best practices for Obsidian Magic to ensure reliable, maintainable, and high-quality code.
+This document outlines the testing strategy, frameworks, and best practices for Obsidian Magic to ensure reliable,
+maintainable, and high-quality code.
 
 ## Testing Philosophy
 
@@ -15,6 +16,7 @@ Our testing approach is guided by the following principles:
 ## Test Framework: Vitest
 
 We've chosen Vitest as our testing framework for several advantages:
+
 - Unified configuration with Vite in workspace mode
 - Significantly faster test execution through parallelization
 - Watch mode by default for rapid feedback during development
@@ -61,7 +63,8 @@ obsidian-magic/
 
 ## VS Code Integration
 
-We use VS Code file nesting to keep the explorer view clean while maintaining the co-location approach. See [VS Code workspace settings](../../.vscode/settings.json) for configuration details.
+We use VS Code file nesting to keep the explorer view clean while maintaining the co-location approach. See
+[VS Code workspace settings](../../.vscode/settings.json) for configuration details.
 
 ### Unit Tests
 
@@ -73,7 +76,8 @@ Example unit test for a utility function:
 
 ```typescript
 // string.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { capitalize } from './string';
 
 describe('string utils', () => {
@@ -103,16 +107,17 @@ Example integration test for interacting services:
 
 ```typescript
 // parsing-classification.integration.test.ts
-import { describe, it, expect } from 'vitest';
-import { parseMarkdown } from '../src/services/parser';
+import { describe, expect, it } from 'vitest';
+
 import { classifyContent } from '../src/services/classifier';
+import { parseMarkdown } from '../src/services/parser';
 
 describe('parsing and classification integration', () => {
   it('should parse markdown and classify content correctly', () => {
     const markdown = '# Task\nFinish the project by tomorrow';
     const parsed = parseMarkdown(markdown);
     const classified = classifyContent(parsed);
-    
+
     expect(classified.type).toBe('task');
     expect(classified.dueDate).toBeDefined();
   });
@@ -125,13 +130,15 @@ End-to-end tests verify that the entire application works as expected from the u
 
 #### Writing E2E Tests
 
-We use Playwright for end-to-end testing. See [Playwright configuration](../../e2e/playwright.config.ts) for setup details.
+We use Playwright for end-to-end testing. See [Playwright configuration](../../e2e/playwright.config.ts) for setup
+details.
 
 Example E2E test for the Obsidian plugin:
 
 ```typescript
 // note-creation.test.ts
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { ObsidianTestEnvironment } from '../setup/test-environment';
 
 test.describe('Note Creation', () => {
@@ -146,7 +153,7 @@ test.describe('Note Creation', () => {
     await env.createNewNote();
     await env.typeInEditor('# Meeting Notes\nDiscussion about project timeline');
     await env.saveNote();
-    
+
     // Verify tags were automatically applied
     const tags = await env.getNoteTags();
     expect(tags).toContain('#meeting');
@@ -200,7 +207,7 @@ vi.mock('fs-extra', () => ({
   access: vi.fn(),
   readdir: vi.fn(),
   stat: vi.fn(),
-  unlink: vi.fn()
+  unlink: vi.fn(),
 }));
 
 // Mock a custom module
@@ -210,8 +217,8 @@ vi.mock('../logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    configure: vi.fn()
-  }
+    configure: vi.fn(),
+  },
 }));
 ```
 
@@ -220,12 +227,12 @@ vi.mock('../logger', () => ({
 We use dependency injection and the shared testing package for consistent mocks:
 
 ```typescript
-import { createMockTagSet, createMockOpenAIConfig } from '@obsidian-magic/testing';
+import { createMockOpenAIConfig, createMockTagSet } from '@obsidian-magic/testing';
 
 // Create consistent mock data
 const mockTagSet = createMockTagSet({
   year: '2024',
-  conversation_type: 'theoretical'
+  conversation_type: 'theoretical',
 });
 
 // Create service with mocked dependencies
@@ -254,7 +261,8 @@ We encourage a test-driven development (TDD) approach for complex features:
 
 ## Testing in CI/CD Pipeline
 
-Our CI pipeline executes tests at different levels. See our [CI workflow configuration](../../.github/workflows/ci.yml) for details.
+Our CI pipeline executes tests at different levels. See our [CI workflow configuration](../../.github/workflows/ci.yml)
+for details.
 
 ### Pre-release Testing
 
@@ -268,11 +276,11 @@ Before each release, we run a comprehensive test suite that includes:
 
 We aim for the following test coverage targets:
 
-| Package Type | Coverage Target | Critical Path Coverage |
-|--------------|-----------------|------------------------|
-| Core libraries | 90%+ | 100% |
-| UI components | 80%+ | 100% |
-| Applications | 70%+ | 90%+ |
+| Package Type   | Coverage Target | Critical Path Coverage |
+| -------------- | --------------- | ---------------------- |
+| Core libraries | 90%+            | 100%                   |
+| UI components  | 80%+            | 100%                   |
+| Applications   | 70%+            | 90%+                   |
 
 Coverage is monitored through:
 
@@ -289,57 +297,35 @@ To run tests:
 - Watch mode: `pnpm --filter @obsidian-magic/core test -- --watch`
 - Coverage: `pnpm --filter @obsidian-magic/core test -- --coverage`
 
-## Snapshot Testing
-
-For UI components and serialized data structures, we use snapshot testing:
-
-```typescript
-// tag-picker.test.tsx
-import { render } from '@testing-library/react';
-import { expect, it } from 'vitest';
-import { TagPicker } from './tag-picker';
-
-it('should render the tag picker correctly', () => {
-  const { asFragment } = render(
-    <TagPicker 
-      tags={['meeting', 'task', 'idea']} 
-      selectedTags={['meeting']} 
-      onTagSelect={() => {}} 
-    />
-  );
-  
-  expect(asFragment()).toMatchSnapshot();
-});
-```
-
-Snapshot update guidelines:
-
-1. Review snapshot diffs carefully before updating
-2. Only update snapshots when the UI change is intentional
-3. Include snapshot changes in code reviews
-
 ## Performance Testing
 
 For critical performance paths, we include performance tests:
 
 ```typescript
 // parser.performance.test.ts
-import { describe, it, expect, bench } from 'vitest';
-import { parseMarkdown } from './parser';
 import fs from 'fs';
+
+import { bench, describe, expect, it } from 'vitest';
+
+import { parseMarkdown } from './parser';
 
 const largeMarkdown = fs.readFileSync('./test-fixtures/large-document.md', 'utf-8');
 
 describe('parser performance', () => {
-  bench('should parse large markdown document quickly', () => {
-    parseMarkdown(largeMarkdown);
-  }, { time: 1000 });
+  bench(
+    'should parse large markdown document quickly',
+    () => {
+      parseMarkdown(largeMarkdown);
+    },
+    { time: 1000 }
+  );
 });
 ```
 
 ## Accessibility Testing
 
-For UI components, we include accessibility tests using jest-axe. See our [accessibility guidelines](./accessibility-ux.md) for more details.
+For UI components, we include accessibility tests using jest-axe. See our
+[accessibility guidelines](./accessibility-ux.md) for more details.
 
 ## Test Documentation
 
@@ -355,7 +341,7 @@ Example of well-documented test:
 /**
  * Tests the document processor's ability to handle various edge cases
  * including malformed input, nested structures, and special characters.
- * 
+ *
  * The test data includes:
  * - Empty documents
  * - Documents with only metadata
@@ -373,4 +359,4 @@ We regularly review and improve our testing practices through:
 
 1. **Test Retrospectives**: Regular reviews of test effectiveness
 2. **Test Refactoring**: Periodic refactoring of test code
-3. **New Tool Evaluation**: Evaluation of new testing tools and approaches 
+3. **New Tool Evaluation**: Evaluation of new testing tools and approaches
