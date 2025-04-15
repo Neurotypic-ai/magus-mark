@@ -1,0 +1,8 @@
+{
+  "extends": "../../config/typescript/templates/test.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"],
+  "references": [{ "path": "./tsconfig.json" }, { "path": "../../packages/core" }]
+}

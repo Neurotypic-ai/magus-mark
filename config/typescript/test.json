@@ -1,0 +1,10 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "outDir": "${configDir}/dist/test",
+    "rootDir": "${configDir}/src",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["${configDir}/src/**/*.test.ts", "${configDir}/src/**/*.spec.ts"],
+  "references": [{ "path": "${configDir}/tsconfig.lib.json" }]
+}

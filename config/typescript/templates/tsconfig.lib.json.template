@@ -1,0 +1,12 @@
+{
+  "extends": "../../config/typescript/templates/lib.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./dist/${projectName}.tsbuildinfo",
+    "jsx": "react-jsx"
+  },
+  "references": [
+    {
+      "path": "../../packages/core"
+    }
+  ]
+}

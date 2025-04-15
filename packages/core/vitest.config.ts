@@ -1,14 +1,17 @@
+import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  plugins: [tsconfigPaths()],
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
     globals: true,
+    environment: 'node',
+    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: {
-      provider: 'istanbul',
+      provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage',
+      exclude: ['config/**', '**/*.d.ts', '**/*.test.ts', '**/*.spec.ts', '**/index.ts'],
     },
   },
 });

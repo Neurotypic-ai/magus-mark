@@ -1,29 +1,20 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compileOnSave": false,
+  "extends": "./config/typescript/base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": "./dist",
-    "declarationDir": "./dist/types",
-    "tsBuildInfoFile": "./dist/main.tsbuildinfo"
+    "noEmit": true
   },
+  "include": ["./config/**/*.ts"],
   "exclude": [
+    "config/eslint/**/*",
     "node_modules",
     "**/node_modules/**/*",
-    "**/node_modules/.pnpm/**/*",
-    "**/dist",
-    "**/build/**/*",
-    "**/documentation",
-    "**/.cursor/**",
-    "**/examples/**/*",
-    "*.md"
+    "**/dist/**/*",
+    "**/node_modules/.pnpm/**/*"
   ],
-  "files": ["./eslint.config.js", "./prettier.config.js"],
-  "include": ["./config/**/*.ts"],
   "references": [
-    { "path": "packages/core" },
-    { "path": "apps/cli" },
-    { "path": "apps/obsidian-plugin" },
-    { "path": "apps/vscode" }
+    { "path": "./packages/core/tsconfig.json" },
+    { "path": "./apps/cli/tsconfig.json" },
+    { "path": "./apps/obsidian-plugin/tsconfig.json" },
+    { "path": "./apps/vscode/tsconfig.json" }
   ]
 }

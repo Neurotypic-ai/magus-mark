@@ -130,10 +130,15 @@
   },
   "scripts": {
     "build": "tsc -b",
+    "dev": "tsc -b --watch",
     "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "package": "vsce package --no-dependencies",
     "test": "vitest run",
-    "vscode:prepublish": "echo 'Skipping build for packaging'"
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "vscode:prepublish": "tsc -b"
   },
   "version": "0.1.0"
 }

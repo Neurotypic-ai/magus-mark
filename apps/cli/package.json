@@ -8,12 +8,14 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
     "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
-    "test": "nx vite:test run",
-    "test:watch": "nx vite:test"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
   },
   "files": [
     "dist",

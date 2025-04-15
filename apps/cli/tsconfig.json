@@ -1,4 +1,7 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../config/typescript/lib.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./dist/cli.tsbuildinfo"
+  },
   "references": [{ "path": "../../packages/core" }]
 }

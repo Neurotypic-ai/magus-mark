@@ -4,18 +4,18 @@ This checklist provides a structured approach to implementing the build system i
 
 ## Preparation Steps
 
-- [ ] **Review existing architecture**
-  - [ ] Identify current build system challenges
-  - [ ] Document current project structure
-  - [ ] Assess TypeScript configuration needs
-  - [ ] Evaluate testing framework requirements
-  - [ ] Review code quality standards
+- [x] **Review existing architecture**
+  - [x] Identify current build system challenges
+  - [x] Document current project structure
+  - [x] Assess TypeScript configuration needs
+  - [x] Evaluate testing framework requirements
+  - [x] Review code quality standards
 
 ## Phase 1: Configuration Structure
 
-- [ ] **Create centralized configuration structure**
-  - [ ] Create `config/` directory at project root
-  - [ ] Create subdirectories for each configuration type:
+- [x] **Create centralized configuration structure**
+  - [x] Create `config/` directory at project root
+  - [x] Create subdirectories for each configuration type:
     ```
     config/
     ├── typescript/
@@ -33,330 +33,58 @@ This checklist provides a structured approach to implementing the build system i
     │   └── config.js
     ├── lint-staged/
     │   └── config.js
-    └── nx/
-        └── nx.json
     ```
-  - [ ] Implement base TypeScript configuration:
-    ```json
-    // config/typescript/tsconfig.base.json
-    {
-      "compilerOptions": {
-        "target": "ES2022",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "esModuleInterop": true,
-        "sourceMap": true,
-        "declaration": true,
-        "declarationMap": true,
-        "strict": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "strictPropertyInitialization": true,
-        "noImplicitThis": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "composite": true,
-        "incremental": true,
-        "isolatedModules": true
-      }
-    }
-    ```
-  - [ ] Implement template for library TypeScript configuration:
-    ```json
-    // config/typescript/templates/tsconfig.lib.json
-    {
-      "extends": "../../config/typescript/tsconfig.base.json",
-      "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "types": ["node"]
-      },
-      "include": ["src/**/*"],
-      "exclude": ["**/*.test.ts", "**/*.spec.ts", "node_modules"]
-    }
-    ```
-  - [ ] Implement template for test TypeScript configuration:
-    ```json
-    // config/typescript/templates/tsconfig.test.json
-    {
-      "extends": "../../config/typescript/tsconfig.base.json",
-      "compilerOptions": {
-        "outDir": "./dist/test",
-        "rootDir": ".",
-        "types": ["node", "vitest/globals"]
-      },
-      "include": ["src/**/*.test.ts", "src/**/*.spec.ts"],
-      "references": [{ "path": "./tsconfig.lib.json" }]
-    }
-    ```
-  - [ ] Create base ESLint configuration:
-    ```javascript
-    // config/eslint/base.config.js
-    module.exports = {
-      root: true,
-      extends: [
-        'eslint:recommended',
-        'plugin:@typescript-eslint/recommended',
-        'plugin:@typescript-eslint/recommended-requiring-type-checking'
-      ],
-      parser: '@typescript-eslint/parser',
-      parserOptions: {
-        project: './tsconfig.json',
-        ecmaVersion: 'latest',
-        sourceType: 'module'
-      },
-      plugins: ['@typescript-eslint'],
-      rules: {
-        'no-console': 'warn',
-        '@typescript-eslint/explicit-function-return-type': ['error', {
-          allowExpressions: true,
-          allowTypedFunctionExpressions: true,
-        }],
-        '@typescript-eslint/no-unused-vars': ['error', {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_'
-        }],
-        '@typescript-eslint/no-explicit-any': 'error',
-        '@typescript-eslint/no-unsafe-assignment': 'error',
-        '@typescript-eslint/no-unsafe-member-access': 'error',
-        '@typescript-eslint/no-unsafe-call': 'error',
-        '@typescript-eslint/no-unsafe-return': 'error'
-      }
-    };
-    ```
-  - [ ] Create React-specific ESLint configuration:
-    ```javascript
-    // config/eslint/react.config.js
-    const baseConfig = require('./base.config');
-
-    module.exports = {
-      ...baseConfig,
-      extends: [
-        ...baseConfig.extends,
-        'plugin:react/recommended',
-        'plugin:react-hooks/recommended',
-        'plugin:jsx-a11y/recommended'
-      ],
-      plugins: [...baseConfig.plugins, 'react', 'react-hooks', 'jsx-a11y'],
-      settings: {
-        react: {
-          version: 'detect'
-        }
-      },
-      rules: {
-        ...baseConfig.rules,
-        'react/react-in-jsx-scope': 'off',
-        'react/prop-types': 'off',
-        'react-hooks/rules-of-hooks': 'error',
-        'react-hooks/exhaustive-deps': 'warn',
-        'jsx-a11y/anchor-is-valid': 'error'
-      }
-    };
-    ```
-  - [ ] Create base Vitest configuration:
-    ```typescript
-    // config/vitest/base.config.ts
-    import { defineConfig } from 'vitest/config';
-    import tsconfigPaths from 'vite-tsconfig-paths';
-
-    export default defineConfig({
-      plugins: [tsconfigPaths()],
-      test: {
-        globals: true,
-        environment: 'node',
-        include: ['**/*.test.ts', '**/*.spec.ts'],
-        exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
-        coverage: {
-          provider: 'v8',
-          reporter: ['text', 'json', 'html'],
-          exclude: [
-            'config/**',
-            '**/*.d.ts',
-            '**/*.test.ts',
-            '**/*.spec.ts',
-            '**/index.ts',
-          ],
-        },
-      },
-    });
-    ```
-  - [ ] Create React-specific Vitest configuration:
-    ```typescript
-    // config/vitest/react.config.ts
-    import { mergeConfig } from 'vitest/config';
-    import baseConfig from './base.config';
-
-    export default mergeConfig(baseConfig, {
-      test: {
-        environment: 'jsdom',
-        setupFiles: ['./config/vitest/setup-react.ts'],
-      },
-    });
-    ```
-  - [ ] Update root config files to reference the centralized configs
+  - [x] Implement base TypeScript configuration with stricter rules
+  - [x] Implement templates for library TypeScript configuration
+  - [x] Implement templates for test TypeScript configuration
+  - [x] Create base ESLint configuration
+  - [x] Create React-specific ESLint configuration
+  - [x] Create base Vitest configuration
+  - [x] Create React-specific Vitest configuration
+  - [x] Update root config files to reference the centralized configs
 
 ## Phase 2: TypeScript Project References
 
-- [ ] **Implement TypeScript project references structure**
-  - [ ] Update root `tsconfig.json` to include references to all packages:
-    ```json
-    // tsconfig.json
-    {
-      "extends": "./config/typescript/tsconfig.base.json",
-      "files": [],
-      "references": [
-        { "path": "packages/types" },
-        { "path": "packages/utils" },
-        { "path": "packages/core" },
-        { "path": "apps/cli" },
-        { "path": "apps/obsidian-plugin" },
-        { "path": "apps/vscode" }
-      ]
-    }
-    ```
-  - [ ] For each package, create package-level `tsconfig.json`:
-    ```json
-    // packages/core/tsconfig.json
-    {
-      "extends": "../../config/typescript/templates/tsconfig.lib.json",
-      "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src"
-      },
-      "references": [
-        { "path": "../types" },
-        { "path": "../utils" }
-      ]
-    }
-    ```
-  - [ ] Create `tsconfig.lib.json` for production code in each package:
-    ```json
-    // packages/core/tsconfig.lib.json
-    {
-      "extends": "../../config/typescript/templates/tsconfig.lib.json",
-      "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src"
-      },
-      "references": [
-        { "path": "../types" },
-        { "path": "../utils" }
-      ]
-    }
-    ```
-  - [ ] Create `tsconfig.test.json` for test files in each package:
-    ```json
-    // packages/core/tsconfig.test.json
-    {
-      "extends": "../../config/typescript/templates/tsconfig.test.json",
-      "compilerOptions": {
-        "rootDir": ".",
-        "types": ["node", "vitest/globals"]
-      },
-      "include": ["src/**/*.test.ts", "src/**/*.spec.ts"],
-      "references": [{ "path": "./tsconfig.lib.json" }]
-    }
-    ```
-  - [ ] Validate build process with `tsc -b` at root
-  
+- [x] **Implement TypeScript project references structure**
+  - [x] Update root `tsconfig.json` to include references to all packages
+  - [x] For each package, create package-level `tsconfig.json`
+  - [x] Create `tsconfig.lib.json` for production code in each package
+  - [x] Create `tsconfig.test.json` for test files in each package
+  - [x] Validate build process with `tsc -b` at root
+
 ## Phase 3: Nx Workspace Setup
 
-- [ ] **Install and configure Nx**
-  - [ ] Install Nx dependencies: `npm install -D nx @nx/js`
-  - [ ] Create initial nx.json configuration:
-    ```json
-    // nx.json
-    {
-      "extends": "nx/presets/npm.json",
-      "tasksRunnerOptions": {
-        "default": {
-          "runner": "nx/tasks-runners/default",
-          "options": {
-            "cacheableOperations": ["build", "test", "lint"]
-          }
-        }
-      },
-      "targetDefaults": {
-        "build": {
-          "dependsOn": ["^build"],
-          "outputs": ["{projectRoot}/dist"]
-        },
-        "test": {
-          "dependsOn": ["build"],
-          "inputs": ["default", "^default"]
-        },
-        "lint": {
-          "inputs": ["default", "{workspaceRoot}/.eslintrc.js"]
-        }
-      },
-      "defaultBase": "main"
-    }
-    ```
-  - [ ] Define projects in nx.json for each package/app:
-    ```json
-    // nx.json (additional section)
-    {
-      "projects": {
-        "types": {
-          "root": "packages/types",
-          "sourceRoot": "packages/types/src",
-          "projectType": "library",
-          "targets": {
-            "build": {
-              "executor": "@nx/js:tsc",
-              "options": {
-                "outputPath": "packages/types/dist",
-                "tsConfig": "packages/types/tsconfig.lib.json",
-                "packageJson": "packages/types/package.json",
-                "main": "packages/types/src/index.ts",
-                "assets": ["packages/types/*.md"]
-              }
-            },
-            "test": {
-              "executor": "@nx/vite:test",
-              "options": {
-                "config": "packages/types/vite.config.ts"
-              }
-            },
-            "lint": {
-              "executor": "@nx/eslint:lint",
-              "options": {
-                "lintFilePatterns": ["packages/types/**/*.ts"]
-              }
-            }
-          },
-          "tags": ["scope:shared"]
-        },
-        // Repeat similar configuration for other packages and apps
-      }
-    }
-    ```
+- [x] **Install Nx**
+  - [x] Install Nx dependencies: `npm install -D nx @nx/js`
+- [ ] **Configure Nx using inferred targets**
+  - [x] Create initial nx.json configuration
+  - [ ] Verify Nx correctly discovers targets from package.json scripts
+  - [ ] Add appropriate target defaults for build dependencies
   - [ ] Test Nx commands: `npx nx run-many --target=build`
+  - [x] **IMPORTANT**: Remove explicit project definitions, as Nx uses automatic project discovery
 
 ## Phase 4: Vitest Configuration
 
 - [ ] **Create package-specific Vitest configurations**
+
   - [ ] Create workspace configuration for running all tests:
-    ```javascript
+
+    ```js
     // vitest.workspace.js
     import { defineWorkspace } from 'vitest/config';
 
-    export default defineWorkspace([
-      'packages/*/vitest.config.ts',
-      'apps/*/vitest.config.ts',
-    ]);
+    export default defineWorkspace(['packages/*/vitest.config.ts', 'apps/*/vitest.config.ts']);
     ```
-  - [ ] Create package-specific configuration:
-    ```typescript
+
+  - [ ] Create package-specific configuration for each package:
+
+    ```ts
     // packages/core/vitest.config.ts
-    import { defineConfig } from 'vitest/config';
+    import path from 'path';
+
     import { mergeConfig } from 'vite';
-    import * as path from 'path';
+    import { defineConfig } from 'vitest/config';
+
     import baseConfig from '../../config/vitest/base.config';
 
     export default mergeConfig(
@@ -365,88 +93,58 @@ This checklist provides a structured approach to implementing the build system i
         resolve: {
           alias: {
             '@src': path.resolve(__dirname, './src'),
-            '@tests': path.resolve(__dirname, './tests')
-          }
+            '@tests': path.resolve(__dirname, './tests'),
+          },
         },
         test: {
           coverage: {
             reporter: ['text', 'json', 'html'],
-            reportsDirectory: './coverage'
-          }
-        }
+            reportsDirectory: './coverage',
+          },
+        },
       })
     );
     ```
+
   - [ ] Validate tests run correctly: `npx nx run-many --target=test`
 
-## Phase 5: ESLint Configuration
+## Phase 5: ESLint Integration
 
-- [ ] **Update package-level ESLint configurations**
-  - [ ] Create package-specific ESLint configuration:
-    ```javascript
-    // packages/core/.eslintrc.js
-    module.exports = {
-      extends: ['../../config/eslint/base.config.js'],
-      parserOptions: {
-        project: './tsconfig.json',
-        tsconfigRootDir: __dirname
-      }
-    };
-    ```
-  - [ ] Create React app ESLint configuration:
-    ```javascript
-    // apps/obsidian-plugin/.eslintrc.js
-    module.exports = {
-      extends: ['../../config/eslint/react.config.js'],
-      parserOptions: {
-        project: './tsconfig.json',
-        tsconfigRootDir: __dirname
-      }
-    };
-    ```
+- [x] **Use modern ESLint flat config format**
+  - [x] Leverage existing `eslint.config.js` in root
+  - [ ] Update project-specific ESLint settings if needed
+  - [x] Remove any legacy `.eslintrc.js` files
+  - [ ] Fix TypeScript errors reported in VS Code extension and Obsidian plugin
   - [ ] Run lint check across all packages: `npx nx run-many --target=lint`
 
 ## Phase 6: Package Scripts Standardization
 
 - [ ] **Update all package.json files with consistent scripts**
-  - [ ] Update core package.json:
+  - [ ] Create standard script template for library packages:
     ```json
-    // packages/core/package.json
     {
-      "name": "@obsidian-magic/core",
-      "version": "0.1.0",
       "scripts": {
         "build": "tsc -b",
-        "clean": "rimraf ./dist ./out-tsc",
+        "clean": "rimraf ./dist ./out-tsc ./coverage",
         "test": "vitest run",
         "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
         "lint": "eslint .",
-        "lint:fix": "eslint . --fix"
-      },
-      "dependencies": {
-        "@obsidian-magic/types": "workspace:*",
-        "@obsidian-magic/utils": "workspace:*"
-      },
-      "devDependencies": {
-        // Development dependencies
+        "lint:fix": "eslint . --fix",
+        "typecheck": "tsc --noEmit"
       }
     }
     ```
-  - [ ] Create root-level convenience scripts:
+  - [ ] Create standard script template for application packages
+  - [ ] Update root-level convenience scripts:
     ```json
-    // package.json (root)
     {
-      "name": "obsidian-magic",
-      "private": true,
-      "workspaces": [
-        "packages/*",
-        "apps/*"
-      ],
       "scripts": {
         "build": "nx run-many --target=build",
         "test": "nx run-many --target=test",
         "lint": "nx run-many --target=lint",
         "clean": "nx run-many --target=clean",
+        "typecheck": "nx run-many --target=typecheck",
         "prepare": "husky install"
       }
     }
@@ -455,131 +153,81 @@ This checklist provides a structured approach to implementing the build system i
 
 ## Phase 7: Git Hooks Implementation
 
-- [ ] **Set up Git hooks for code quality**
-  - [ ] Install Husky and lint-staged: `npm install -D husky lint-staged @commitlint/cli @commitlint/config-conventional`
-  - [ ] Configure pre-commit hook in `.husky/pre-commit`:
-    ```bash
-    #!/bin/sh
-    . "$(dirname "$0")/_/husky.sh"
-
-    npx lint-staged
-    ```
-  - [ ] Set up lint-staged configuration:
-    ```javascript
-    // config/lint-staged/config.js
-    module.exports = {
-      '*.{js,ts,tsx}': ['eslint --fix', 'vitest related --run'],
-      '*.{json,md}': ['prettier --write']
-    };
-    ```
-  - [ ] Configure commitlint:
-    ```javascript
-    // config/commitlint/config.js
-    module.exports = {
-      extends: ['@commitlint/config-conventional'],
-      rules: {
-        'scope-enum': [2, 'always', ['core', 'cli', 'plugin', 'vscode', 'types', 'utils', 'docs', 'build', 'ci']],
-        'body-max-line-length': [0]
-      }
-    };
-    ```
-  - [ ] Create commitlint config in the root:
-    ```javascript
-    // .commitlintrc.js
-    module.exports = require('./config/commitlint/config');
-    ```
-  - [ ] Create `.lintstagedrc.js` in the root:
-    ```javascript
-    // .lintstagedrc.js
-    module.exports = require('./config/lint-staged/config');
-    ```
+- [x] **Set up Git hooks for code quality**
+  - [x] Install Husky and lint-staged
+  - [x] Configure pre-commit hook
+  - [x] Set up lint-staged configuration
+  - [x] Configure commitlint
   - [ ] Test Git hooks with sample commits
 
 ## Phase 8: Production Build Collection
 
 - [ ] **Implement unified build system**
-  - [ ] Create build scripts for aggregating package outputs:
-    ```javascript
-    // scripts/build-all.js
+
+  - [ ] Define project-specific build tasks in package.json
+  - [ ] Set up specialized build targets for each app type:
+    - Obsidian plugin (output: bundled .js file)
+    - VS Code extension (output: VSIX package)
+    - CLI (output: executable)
+  - [ ] Create specialized build scripts for each application:
+
+    ```js
+    // apps/cli/scripts/build.js
     const { execSync } = require('child_process');
-    const { existsSync, mkdirSync } = require('fs');
-    
-    // Ensure dist directory exists
-    if (!existsSync('./dist')) {
-      mkdirSync('./dist');
-    }
-    
-    console.log('Building all packages...');
-    execSync('npx nx run-many --target=build --all', { stdio: 'inherit' });
-    
-    console.log('Copying build artifacts...');
-    execSync('cp -r packages/*/dist/* dist/', { stdio: 'inherit' });
-    
+
+    console.log('Building CLI app...');
+    execSync('tsc -b', { stdio: 'inherit' });
+
+    console.log('Bundling CLI for distribution...');
+    execSync('esbuild src/index.js --bundle --platform=node --outfile=dist/cli.js', { stdio: 'inherit' });
+
+    console.log('Setting executable permissions...');
+    execSync('chmod +x dist/cli.js', { stdio: 'inherit' });
+
     console.log('Build complete!');
     ```
-  - [ ] Set up specialized build targets for each app type
-  - [ ] Configure clean build process
-  - [ ] Validate complete build process: `npm run build:all`
+
+  - [ ] Configure clean build process for each package
+  - [ ] Validate complete build process: `npm run build`
 
 ## Phase 9: Package Generators
 
 - [ ] **Create package generators with Nx**
-  - [ ] Define generator templates for different package types:
-    ```typescript
-    // generators/library/index.ts
-    import type {
-      Tree} from '@nx/devkit';
-    import {
-      formatFiles,
-      generateFiles,
-      names,
-      offsetFromRoot
-    } from '@nx/devkit';
-    import * as path from 'path';
-
-    interface LibraryGeneratorOptions {
-      name: string;
-      directory?: string;
-      tags?: string;
-    }
-
-    export default async function (
-      tree: Tree,
-      options: LibraryGeneratorOptions
-    ) {
-      const normalizedOptions = normalizeOptions(options);
-      
-      generateFiles(
-        tree, 
-        path.join(__dirname, 'files'),
-        normalizedOptions.projectRoot,
-        normalizedOptions
-      );
-      
-      await formatFiles(tree);
-    }
-
-    function normalizeOptions(options: LibraryGeneratorOptions) {
-      const name = names(options.name).fileName;
-      const projectDirectory = options.directory
-        ? `${names(options.directory).fileName}/${name}`
-        : name;
-      const projectName = projectDirectory.replace(/\//g, '-');
-      const projectRoot = `packages/${projectDirectory}`;
-      const tags = options.tags ? options.tags.split(',') : [];
-      
-      return {
-        ...options,
-        name,
-        projectName,
-        projectRoot,
-        projectDirectory,
-        tags,
-      };
+  - [ ] Install Nx generator dependencies: `npm install -D @nx/devkit`
+  - [ ] Create generator template for library packages:
+    ```
+    generators/
+    ├── library/
+    │   ├── index.ts
+    │   └── files/
+    │       ├── package.json
+    │       ├── tsconfig.json
+    │       ├── tsconfig.lib.json
+    │       ├── tsconfig.test.json
+    │       ├── vitest.config.ts
+    │       ├── src/
+    │       │   └── index.ts
+    │       └── README.md
+    ```
+  - [ ] Create generator template for application packages
+  - [ ] Configure generator in workspace.json:
+    ```json
+    {
+      "generators": {
+        "library": {
+          "factory": "./generators/library",
+          "schema": "./generators/library/schema.json",
+          "description": "Create a new library package"
+        },
+        "app": {
+          "factory": "./generators/app",
+          "schema": "./generators/app/schema.json",
+          "description": "Create a new application"
+        }
+      }
     }
     ```
-  - [ ] Create generator scripts for different package types
-  - [ ] Test generators with sample package creation
+  - [ ] Test generators with sample package creation: `npx nx g library my-new-package`
 
 ## Phase 10: Developer Experience Improvements
 
@@ -593,11 +241,7 @@ This checklist provides a structured approach to implementing the build system i
         "source.fixAll.eslint": true
       },
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "eslint.validate": [
-        "javascript",
-        "typescript",
-        "typescriptreact"
-      ],
+      "eslint.validate": ["javascript", "typescript", "typescriptreact"],
       "typescript.tsdk": "node_modules/typescript/lib",
       "typescript.enablePromptUseWorkspaceTsdk": true,
       "explorer.fileNesting.enabled": true,
@@ -622,7 +266,7 @@ This checklist provides a structured approach to implementing the build system i
         "vitest.explorer",
         "editorconfig.editorconfig",
         "ms-vscode.vscode-typescript-next",
-        "aaron-bond.better-comments",
+        "nrwl.angular-console",
         "streetsidesoftware.code-spell-checker"
       ]
     }
@@ -678,22 +322,94 @@ This checklist provides a structured approach to implementing the build system i
       ]
     }
     ```
-  - [ ] Document development workflow
+  - [ ] Document development workflow in README.md
+
+## Phase 11: Continuous Integration Setup
+
+- [ ] **Set up GitHub Actions for CI/CD**
+
+  - [ ] Create workflow for pull requests:
+
+    ```yaml
+    # .github/workflows/pull-request.yml
+    name: Pull Request
+
+    on:
+      pull_request:
+        branches: [main]
+
+    jobs:
+      validate:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+            with:
+              fetch-depth: 0
+          - uses: actions/setup-node@v3
+            with:
+              node-version: 18
+              cache: 'pnpm'
+          - run: pnpm install --frozen-lockfile
+          - run: npx nx affected --target=lint --parallel=3
+          - run: npx nx affected --target=test --parallel=3
+          - run: npx nx affected --target=build --parallel=3
+    ```
+
+  - [ ] Create workflow for main branch:
+
+    ```yaml
+    # .github/workflows/main.yml
+    name: Main
+
+    on:
+      push:
+        branches: [main]
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+            with:
+              fetch-depth: 0
+          - uses: actions/setup-node@v3
+            with:
+              node-version: 18
+              cache: 'pnpm'
+          - run: pnpm install --frozen-lockfile
+          - run: npx nx affected --target=build --parallel=3 --base=HEAD~1
+          - run: npx nx affected --target=test --parallel=3 --base=HEAD~1
+    ```
+
+  - [ ] Test CI/CD workflows locally with GitHub CLI: `gh workflow run pull-request.yml`
 
 ## Completion Checklist
 
 - [ ] All centralized configurations in place
 - [ ] TypeScript project references working correctly
-- [ ] Nx workspace fully configured
+- [ ] Nx workspace fully configured with inferred targets
 - [ ] Tests running correctly across all packages
-- [ ] Linting working correctly
+- [ ] Linting working correctly with flat ESLint config
 - [ ] Git hooks enforcing code quality
 - [ ] Production builds generating correctly
 - [ ] Package generators functioning
+- [ ] CI/CD pipeline set up
+
+## Key Lessons Learned
+
+1. **Nx Configuration Must Be Flat** - Nx doesn't support nested configuration files via the "extends" property, all
+   configuration must be in the root nx.json file
+2. **TypeScript Configuration Is Stricter** - We've implemented more stringent TypeScript rules
+3. **Project References Are Working** - We've successfully set up TypeScript project references for better build
+   performance
+4. **ESLint Uses Flat Config** - Modern ESLint configuration uses the flat config format with a single eslint.config.js
+5. **Nx Uses Inferred Targets** - Nx can automatically discover and infer targets from package.json scripts
+6. **Standardized Build Process** - Each package follows the same build process, making maintenance easier
+7. **Developer Experience Matters** - VS Code configuration and debug settings improve productivity
 
 ## References
 
 - [TypeScript Project References Documentation](https://www.typescriptlang.org/docs/handbook/project-references.html)
 - [Nx Documentation](https://nx.dev/getting-started/intro)
 - [Vitest Documentation](https://vitest.dev/guide/)
-- [ESLint Documentation](https://eslint.org/docs/latest/)
+- [ESLint Flat Config Documentation](https://eslint.org/docs/latest/use/configure/configuration-files)
