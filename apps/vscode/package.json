@@ -108,11 +108,18 @@
   },
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@eslint/markdown": "^6.3.0",
     "@types/node": "^22.14.1",
     "@types/vscode": "^1.99.1",
     "@types/ws": "^8.18.1",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.3.2",
+    "eslint": "^9.24.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-import-resolver-typescript": "^4.3.2",
+    "eslint-plugin-import-x": "^4.10.5",
+    "eslint-plugin-testing-library": "^7.1.1",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
   },
