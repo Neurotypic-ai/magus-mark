@@ -185,8 +185,8 @@ describe('Taxonomy Constants', () => {
 
       expect(extendedTaxonomy.domains).toContain('architecture');
       expect(extendedTaxonomy.domains).toContain('languages');
-      expect(extendedTaxonomy.subdomains.architecture).toContain('residential');
-      expect(extendedTaxonomy.subdomains.languages).toContain('mandarin');
+      expect(extendedTaxonomy.subdomains['architecture']).toContain('residential');
+      expect(extendedTaxonomy.subdomains['languages']).toContain('mandarin');
     });
   });
 });
