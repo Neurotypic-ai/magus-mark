@@ -3,9 +3,14 @@
  */
 import { z } from 'zod';
 
-import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '../models/taxonomy';
+import { CONVERSATION_TYPES, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from '../tagging/taxonomy';
 
-import type { ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainTag, TagSet, YearTag } from '../models/tags';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { DomainTag } from '../models/DomainTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { SubdomainTag } from '../models/SubdomainTag';
+import type { TagSet } from '../models/TagSet';
+import type { YearTag } from '../models/YearTag';
 
 /**
  * Validates and ensures a value is between min and max (inclusive)

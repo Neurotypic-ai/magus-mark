@@ -4,9 +4,11 @@
 import { TaxonomyManager } from '../tagging/TaxonomyManager';
 import { PromptEngineering } from './OpenAIClient';
 
-import type { Document, TaggingOptions, TaggingResult } from '../models/api';
-import type { TagSet } from '../models/tags';
-import type { Taxonomy } from '../models/taxonomy';
+import type { Document } from '../models/Document';
+import type { TagSet } from '../models/TagSet';
+import type { TaggingOptions } from '../models/TaggingOptions';
+import type { TaggingResult } from '../models/TaggingResult';
+import type { Taxonomy } from '../models/Taxonomy';
 import type { OpenAIClient } from './OpenAIClient';
 
 /**

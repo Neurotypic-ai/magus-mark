@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentProcessor } from './DocumentProcessor';
 import { FrontmatterProcessor } from './FrontmatterProcessor';
 
-import type { Document } from '../models/api';
-import type { TagSet } from '../models/tags';
+import type { Document } from '../models/Document';
+import type { TagSet } from '../models/TagSet';
 
 // Set up mocks
 const mockExtractFrontmatter = vi.fn().mockReturnValue({});

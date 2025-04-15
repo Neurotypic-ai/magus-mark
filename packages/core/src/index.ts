@@ -12,7 +12,7 @@ import { TaggingService } from './openai/TaggingService';
 import { BatchProcessingService } from './tagging/BatchProcessingService';
 import { TaxonomyManager } from './tagging/TaxonomyManager';
 
-import type { AIModel } from './models/api';
+import type { AIModel } from './models/AIModel';
 
 // Export version information
 export const VERSION = '0.1.0';

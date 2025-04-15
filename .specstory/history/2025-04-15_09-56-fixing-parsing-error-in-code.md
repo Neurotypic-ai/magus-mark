@@ -87,6 +87,171 @@ Cancelled
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Forbidden non-null assertion.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+My Liege, the linter forbids using non-null assertions (`!`) as they bypass TypeScript's type safety. Here's a fix:
+
+---
+
+```diff
+  
+      // Fix circular references
+-     rootNode.children[0]!.parent = rootNode;
+-     rootNode.children[0]!.children[0]!.parent = rootNode.children[0];
++     if (rootNode.children[0]) {
++       rootNode.children[0].parent = rootNode;
++       
++       if (rootNode.children[0].children[0]) {
++         rootNode.children[0].children[0].parent = rootNode.children[0];
++       }
++     }
+  
+      expect(rootNode.id).toBe('root');
+      const validNodeTypes: TagTreeNode['type'][] = ['tag-category', 'tag', 'document'];
+      expect(validNodeTypes).toContain(rootNode.type);
+-     expect(validNodeTypes).toContain(rootNode.children[0]?.type!);
++     expect(validNodeTypes).toContain(rootNode.children[0]?.type || '');
+    });
+  
+```
+
+---
+
+Let me fix the new linter error:
+
+---
+
+```diff
+      const validNodeTypes: TagTreeNode['type'][] = ['tag-category', 'tag', 'document'];
+      expect(validNodeTypes).toContain(rootNode.type);
+-     expect(validNodeTypes).toContain(rootNode.children[0]?.type || '');
++     expect(validNodeTypes).toContain(rootNode.children[0]?.type ?? '');
+    });
+  
+```
+
+---
+
+The fix replaces forbidden non-null assertions with:
+
+1. Explicit null checks using if statements
+2. Optional chaining (`?.`) to safely access nested properties
+3. Nullish coalescing operator (`??`) instead of logical OR for safer fallbacks
+
+This approach maintains type safety while ensuring the code behaves as intended.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Unsafe member access .year on an `error` typed value.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, the issue is that TypeScript doesn't trust the structure of `existingTags` even after checking its existence. We need a proper type guard:
+
+---
+
+```diff
+      });
+  
+-     if (doc.existingTags) {
++     if (doc.existingTags && 
++         typeof doc.existingTags === 'object' && 
++         'year' in doc.existingTags && 
++         'topical_tags' in doc.existingTags && 
++         Array.isArray(doc.existingTags.topical_tags)) {
+        expect(doc.existingTags.year).toBe('2023');
+        expect(doc.existingTags.topical_tags[0]?.domain).toBe('technology');
+```
+
+---
+
+Let me fix the new linter error:
+
+---
+
+```diff
+      });
+  
+-     if (doc.existingTags) {
+-       const tags = doc.existingTags;
+-       expect(tags.year).toBe('2023');
+-       expect(tags.topical_tags[0]?.domain).toBe('technology');
++     if (doc.existingTags && 
++         typeof doc.existingTags === 'object' && 
++         'year' in doc.existingTags && 
++         'topical_tags' in doc.existingTags) {
++       expect(doc.existingTags.year).toBe('2023');
++       expect(doc.existingTags.topical_tags[0]?.domain).toBe('technology');
+      }
+    });
+```
+
+---
+
+The fix ensures TypeScript can properly determine the structure of `existingTags` before accessing its properties. The type guard confirms:
+
+1. `existingTags` exists
+2. It's an object
+3. It has the specific properties we're trying to access
+
+This properly resolves the "unsafe member access" error by establishing the structure through type narrowing.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Please make any last tests for @models we need done
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, I see several model files missing corresponding test files. I'll create tests for each missing model, starting with Taxonomy:
+
+---
+
+Read file: packages/core/src/models/Taxonomy.ts
+
+---
+
+Read file: packages/core/src/models/ContextualTag.ts
+
+---
+
 
 
 ---

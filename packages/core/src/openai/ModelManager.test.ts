@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelManager } from './ModelManager';
 import { OpenAIClient } from './OpenAIClient';
 
-import type { AIModel } from '../models/api';
+import type { AIModel } from '../models/AIModel';
 import type { ModelValidationResult } from './ModelManager';
 import type { ModelPricing } from './OpenAIClient';
 

@@ -1,25 +1,12 @@
 /**
  * Export directly usable typed arrays for validation
  */
-import type { ContextualTag, ConversationTypeTag, DomainTag, LifeAreaTag, SubdomainMap } from './tags';
-
-/**
- * Taxonomy constants - single source of truth for tag values
- *
- * These constants define all possible values for the tagging system
- * and are used to generate both TypeScript types and runtime values.
- */
-
-/**
- * Complete taxonomy for the tagging system
- */
-export interface Taxonomy {
-  domains: DomainTag[];
-  subdomains: SubdomainMap;
-  lifeAreas: LifeAreaTag[];
-  conversationTypes: ConversationTypeTag[];
-  contextualTags: ContextualTag[];
-}
+import type { ContextualTag } from '../models/ContextualTag';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { DomainTag } from '../models/DomainTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { SubdomainMap } from '../models/SubdomainMap';
+import type { Taxonomy } from '../models/Taxonomy';
 
 /**
  * Domain tags

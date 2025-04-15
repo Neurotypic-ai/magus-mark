@@ -8,7 +8,7 @@ import { APIError } from '../errors/APIError';
 import { normalizeError } from '../errors/utils';
 import { ErrorCodes } from '../types/ErrorCodes';
 
-import type { AIModel } from '../models/api';
+import type { AIModel } from '../models/AIModel';
 
 /**
  * OpenAI API Client configuration

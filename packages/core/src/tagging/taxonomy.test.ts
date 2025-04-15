@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { CONTEXTUAL_TAGS, CONVERSATION_TYPES, DEFAULT_TAXONOMY, DOMAINS, LIFE_AREAS, SUBDOMAINS_MAP } from './taxonomy';
 
-import type { ContextualTag, ConversationTypeTag, DomainTag, LifeAreaTag } from './tags';
-import type { Taxonomy } from './taxonomy';
+import type { ContextualTag } from '../models/ContextualTag';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { DomainTag } from '../models/DomainTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { Taxonomy } from '../models/Taxonomy';
 
 describe('Taxonomy Constants', () => {
   describe('Domain Tags', () => {
@@ -182,8 +185,8 @@ describe('Taxonomy Constants', () => {
 
       expect(extendedTaxonomy.domains).toContain('architecture');
       expect(extendedTaxonomy.domains).toContain('languages');
-      expect(extendedTaxonomy.subdomains['architecture']).toContain('residential');
-      expect(extendedTaxonomy.subdomains['languages']).toContain('mandarin');
+      expect(extendedTaxonomy.subdomains.architecture).toContain('residential');
+      expect(extendedTaxonomy.subdomains.languages).toContain('mandarin');
     });
   });
 });

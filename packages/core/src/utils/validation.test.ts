@@ -19,7 +19,11 @@ import {
   yearTagSchema,
 } from './validation';
 
-import type { ConversationTypeTag, DomainTag, LifeAreaTag, TagSet, YearTag } from '../models/tags';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { DomainTag } from '../models/DomainTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { TagSet } from '../models/TagSet';
+import type { YearTag } from '../models/YearTag';
 
 describe('Validation Utilities', () => {
   describe('clamp', () => {

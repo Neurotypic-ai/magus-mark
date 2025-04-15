@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AIModel, APIKeyStorage } from '../models/api';
-import type { TagBehavior } from '../models/tags';
+import type { AIModel } from '../models/AIModel';
+import type { APIKeyStorage } from '../models/APIKeyStorage';
+import type { TagBehavior } from '../models/TagBehavior';
 import type { LogLevel } from '../utils/Logger';
 import type { CoreConfig, OnLimitReached, OutputFormat } from './CoreConfig';
 

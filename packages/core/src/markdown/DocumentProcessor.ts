@@ -1,15 +1,13 @@
 import { FrontmatterProcessor } from './FrontmatterProcessor';
 
-import type { Document } from '../models/api';
-import type {
-  ContextualTag,
-  ConversationTypeTag,
-  DomainTag,
-  LifeAreaTag,
-  SubdomainTag,
-  TagSet,
-  YearTag,
-} from '../models/tags';
+import type { ContextualTag } from '../models/ContextualTag';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { Document } from '../models/Document';
+import type { DomainTag } from '../models/DomainTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { SubdomainTag } from '../models/SubdomainTag';
+import type { TagSet } from '../models/TagSet';
+import type { YearTag } from '../models/YearTag';
 import type { FrontmatterOptions } from './FrontmatterProcessor';
 
 /**

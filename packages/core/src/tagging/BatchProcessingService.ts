@@ -1,7 +1,9 @@
 /**
  * Batch processing service for tagging multiple documents
  */
-import type { Document, TaggingOptions, TaggingResult } from '../models/api';
+import type { Document } from '../models/Document';
+import type { TaggingOptions } from '../models/TaggingOptions';
+import type { TaggingResult } from '../models/TaggingResult';
 import type { TaggingService } from '../openai/TaggingService';
 
 /**

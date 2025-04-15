@@ -1,10 +1,13 @@
 /**
  * Taxonomy management for the tagging system
  */
-import { DEFAULT_TAXONOMY } from '../models/taxonomy';
+import { DEFAULT_TAXONOMY } from './taxonomy';
 
-import type { ContextualTag, ConversationTypeTag, LifeAreaTag, SubdomainMap } from '../models/tags';
-import type { Taxonomy } from '../models/taxonomy';
+import type { ContextualTag } from '../models/ContextualTag';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { SubdomainMap } from '../models/SubdomainMap';
+import type { Taxonomy } from '../models/Taxonomy';
 
 /**
  * TaxonomyManager provides methods for working with the tagging taxonomy

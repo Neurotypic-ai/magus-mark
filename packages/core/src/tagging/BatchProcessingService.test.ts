@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BatchProcessingService } from './BatchProcessingService';
 
-import type { Document, TaggingResult } from '../models/api';
-import type { TagSet } from '../models/tags';
+import type { Document } from '../models/Document';
+import type { TagSet } from '../models/TagSet';
+import type { TaggingResult } from '../models/TaggingResult';
 import type { TaggingService } from '../openai/TaggingService';
 import type { BatchProcessingOptions } from './BatchProcessingService';
 

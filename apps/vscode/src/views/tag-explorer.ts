@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 
 import { initializeCore } from '@obsidian-magic/core';
 
-import type { Category } from '@obsidian-magic/core/models/categories';
-import type { Tag } from '@obsidian-magic/core/models/tags';
-import type { Taxonomy } from '@obsidian-magic/core/models/taxonomy';
 import type { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
 import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
+
+import { Taxonomy } from '@obsidian-magic/core/models/taxonomy';
+import type { Category, Taxonomy } from '../../../../packages/core/dist/src/tagging/taxonomy';
 
 // Tag node representation for the tree view
 interface TagNode {
@@ -31,6 +31,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
   private disposables: vscode.Disposable[] = [];
   private taxonomyManager: TaxonomyManager;
   private taggingService: TaggingService;
+  private displayTaxonomy: DisplayTaxonomy = { categories: {} };
 
   /**
    * Creates a new TagExplorer instance
@@ -52,9 +53,8 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
     this.registerEventHandlers();
 
     // Listen for taxonomy changes
-    const onChanged = this.taxonomyManager.onTaxonomyChanged;
-    if (typeof onChanged === 'function') {
-      onChanged(() => {
+    if (this.taxonomyManager.onTaxonomyChanged) {
+      this.taxonomyManager.onTaxonomyChanged(() => {
         void this.loadTagData().catch((error: unknown) => {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           void vscode.window.showErrorMessage(`Failed to refresh tags: ${errorMessage}`);
@@ -145,23 +145,51 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
   private async loadTagData(): Promise<void> {
     try {
       // Get the full taxonomy
-      const taxonomy = await this.taxonomyManager.getTaxonomy();
+      const taxonomy = this.taxonomyManager.getTaxonomy();
 
-      // Convert taxonomy to TagNode structure
-      this.tags = Object.entries(taxonomy.categories ?? {}).map(([categoryId, category]) => {
-        const typedCategory = category as Category;
+      // We need to adapt the taxonomy to our display format
+      // In this case, we'll create a categories object with domain tags as categories
+      const categories: Record<string, Category> = {};
+
+      // Create categories from domains
+      for (const domain of taxonomy.domains) {
+        categories[domain] = {
+          name: domain,
+          description: `${domain} domain`,
+          tags: [],
+        };
+
+        // Add subdomains as tags
+        const subdomains = taxonomy.subdomains[domain] || [];
+        if (Array.isArray(subdomains)) {
+          for (const subdomain of subdomains) {
+            categories[domain].tags?.push({
+              id: subdomain,
+              name: subdomain,
+              description: `${subdomain} subdomain of ${domain}`,
+              usageCount: 0,
+            });
+          }
+        }
+      }
+
+      // Store our display taxonomy
+      this.displayTaxonomy = { categories };
+
+      // Convert display taxonomy to TagNode structure
+      this.tags = Object.entries(this.displayTaxonomy.categories).map(([categoryId, category]) => {
         return {
           id: categoryId,
-          name: typedCategory.name,
+          name: category.name,
           type: 'category' as const,
-          description: typedCategory.description,
-          count: typedCategory.tags?.length ?? 0,
-          children: (typedCategory.tags ?? []).map((tag: Tag) => ({
-            id: `${categoryId}.${tag.id ?? ''}`,
-            name: tag.name ?? '',
+          description: category.description,
+          count: category.tags?.length || 0,
+          children: (category.tags || []).map((tag) => ({
+            id: `${categoryId}.${tag.id || ''}`,
+            name: tag.name || '',
             type: 'tag' as const,
             description: tag.description,
-            count: tag.usageCount ?? 0,
+            count: tag.usageCount || 0,
             children: [],
           })),
         };
@@ -172,7 +200,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       void vscode.window.showErrorMessage(`Failed to load tag taxonomy: ${errorMessage}`);
-      throw error; // Re-throw to be handled by caller
+      throw new Error(errorMessage); // Re-throw as proper Error
     }
   }
 
@@ -191,12 +219,6 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
         if (!tagName) return;
 
-        // Prompt for description
-        const description = await vscode.window.showInputBox({
-          placeHolder: 'Enter tag description (optional)',
-          prompt: 'Enter a description for the tag',
-        });
-
         // Prompt for category
         const categories = this.tags.map((tag) => tag.name);
         const category = await vscode.window.showQuickPick(['<New Category>', ...categories], {
@@ -213,29 +235,20 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
           if (!newCategory) return;
 
-          // Create new category in taxonomy
-          const categoryDescription = await vscode.window.showInputBox({
-            placeHolder: 'Enter category description (optional)',
-            prompt: 'Enter a description for the category',
-          });
+          // Add domain to taxonomy
+          this.taxonomyManager.addDomain(newCategory);
 
-          await this.taxonomyManager.addCategory({
-            name: newCategory,
-            description: categoryDescription ?? undefined,
-          });
+          void vscode.window.showInformationMessage(`Category '${newCategory}' added`);
         }
 
-        // Add new tag to taxonomy
-        await this.taxonomyManager.addTag({
-          name: tagName,
-          description: description ?? undefined,
-          categoryId: this.tags.find((t) => t.name === category)?.id ?? '',
-        });
+        // Add subdomain to taxonomy
+        if (category !== '<New Category>') {
+          this.taxonomyManager.addSubdomain(category, tagName);
+          void vscode.window.showInformationMessage(`Tag '${tagName}' added to ${category}`);
+        }
 
         // Refresh the tree view
         await this.loadTagData();
-
-        void vscode.window.showInformationMessage(`Tag '${tagName}' added to category '${category}'`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         void vscode.window.showErrorMessage(`Failed to add tag: ${errorMessage}`);
@@ -254,16 +267,12 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
         if (confirmation !== 'Yes') return;
 
-        if (node.type === 'tag') {
-          await this.taxonomyManager.deleteTag(node.id);
-        } else {
-          await this.taxonomyManager.deleteCategory(node.id);
-        }
+        // The core TaxonomyManager doesn't have direct delete methods
+        // We would need to implement custom deletion logic
+        void vscode.window.showInformationMessage('Deleting tags is not yet implemented in the core API');
 
         // Refresh the tree view
         await this.loadTagData();
-
-        void vscode.window.showInformationMessage(`${node.type === 'tag' ? 'Tag' : 'Category'} '${node.name}' deleted`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         void vscode.window.showErrorMessage(`Failed to delete ${node.type}: ${errorMessage}`);

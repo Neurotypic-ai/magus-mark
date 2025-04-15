@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { TaxonomyManager } from './TaxonomyManager';
 
-import type { ContextualTag, ConversationTypeTag, DomainTag, SubdomainMap } from '../models/tags';
-import type { Taxonomy } from '../models/taxonomy';
+import type { ContextualTag } from '../models/ContextualTag';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { DomainTag } from '../models/DomainTag';
+import type { SubdomainMap } from '../models/SubdomainMap';
+import type { Taxonomy } from '../models/Taxonomy';
 
 describe('TaxonomyManager', () => {
   // Sample default taxonomy structure

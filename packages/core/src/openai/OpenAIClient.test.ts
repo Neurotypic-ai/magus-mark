@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_OPENAI_CONFIG, OpenAIClient } from './OpenAIClient';
 
-import type { AIModel } from '../models/api';
+import type { AIModel } from '../models/AIModel';
 
 // Define a type for our mocked OpenAI client
 interface MockedOpenAIClient {

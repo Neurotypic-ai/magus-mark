@@ -157,8 +157,13 @@ describe('VS Code Extension Types', () => {
     };
 
     // Fix circular references
-    rootNode.children[0]!.parent = rootNode;
-    rootNode.children[0]!.children[0]!.parent = rootNode.children[0];
+    if (rootNode.children[0]) {
+      rootNode.children[0].parent = rootNode;
+
+      if (rootNode.children[0].children[0]) {
+        rootNode.children[0].children[0].parent = rootNode.children[0];
+      }
+    }
 
     expect(rootNode.id).toBe('root');
     expect(rootNode.type).toBe('tag-category');
@@ -172,7 +177,7 @@ describe('VS Code Extension Types', () => {
     // Verify enum values
     const validNodeTypes: TagTreeNode['type'][] = ['tag-category', 'tag', 'document'];
     expect(validNodeTypes).toContain(rootNode.type);
-    expect(validNodeTypes).toContain(rootNode.children[0]?.type!);
+    expect(validNodeTypes).toContain(rootNode.children[0]?.type ?? '');
   });
 
   it('validates tag view state', () => {

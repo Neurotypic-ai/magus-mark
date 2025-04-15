@@ -2,7 +2,8 @@
  * VS Code extension-specific type definitions for Obsidian Magic
  */
 
-import type { APIConfig, TagSet, TaggingOptions } from '@obsidian-magic/core';
+import type { APIConfig, TaggingOptions } from '@obsidian-magic/core/models/api';
+import type { TagSet } from '@obsidian-magic/core/models/tags';
 
 /**
  * VS Code extension settings

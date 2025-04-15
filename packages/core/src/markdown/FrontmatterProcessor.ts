@@ -1,6 +1,6 @@
 import { MarkdownError } from '../errors/MarkdownError';
 
-import type { TagSet } from '../models/tags';
+import type { TagSet } from '../models/TagSet';
 
 /**
  * Markdown processing module for handling files and frontmatter

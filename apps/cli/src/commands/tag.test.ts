@@ -6,7 +6,6 @@ import { tagCommand } from './tag';
 import '@obsidian-magic/core';
 import '../utils/config';
 import 'fs-extra';
-import '@obsidian-magic/core';
 
 import type { Argv } from 'yargs';
 

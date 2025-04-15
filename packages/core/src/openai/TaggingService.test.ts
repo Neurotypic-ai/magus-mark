@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TaxonomyManager } from '../tagging/TaxonomyManager';
 import { TaggingService } from './TaggingService';
 
-import type { Document } from '../models/api';
-import type { TagSet } from '../models/tags';
+import type { Document } from '../models/Document';
+import type { TagSet } from '../models/TagSet';
 import type { OpenAIClient } from './OpenAIClient';
 
 // Create mock functions outside

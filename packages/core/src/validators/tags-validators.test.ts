@@ -15,16 +15,14 @@ import {
   yearTagSchema,
 } from './tags-validators';
 
-import type {
-  ConfidenceScore,
-  ConversationTypeTag,
-  DomainTag,
-  LifeAreaTag,
-  TagConfidence,
-  TagSet,
-  TopicalTag,
-  YearTag,
-} from '../models/tags';
+import type { ConfidenceScore } from '../models/ConfidenceScore';
+import type { ConversationTypeTag } from '../models/ConversationTypeTag';
+import type { DomainTag } from '../models/DomainTag';
+import type { LifeAreaTag } from '../models/LifeAreaTag';
+import type { TagConfidence } from '../models/TagConfidence';
+import type { TagSet } from '../models/TagSet';
+import type { TopicalTag } from '../models/TopicalTag';
+import type { YearTag } from '../models/YearTag';
 
 describe('Tag Validators', () => {
   describe('Basic Tag Schema', () => {

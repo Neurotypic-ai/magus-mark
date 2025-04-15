@@ -1,15 +1,13 @@
 /**
  * Tag utility functions for Obsidian Magic
  */
-import type {
-  ConfidenceScore,
-  DomainTag,
-  SubdomainTag,
-  TagBehavior,
-  TagConfidence,
-  TagSet,
-  TopicalTag,
-} from '../models/tags';
+import type { ConfidenceScore } from '../models/ConfidenceScore';
+import type { DomainTag } from '../models/DomainTag';
+import type { SubdomainTag } from '../models/SubdomainTag';
+import type { TagBehavior } from '../models/TagBehavior';
+import type { TagConfidence } from '../models/TagConfidence';
+import type { TagSet } from '../models/TagSet';
+import type { TopicalTag } from '../models/TopicalTag';
 
 /**
  * Formats a tag for display (adds # prefix)

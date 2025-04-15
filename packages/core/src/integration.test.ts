@@ -6,7 +6,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { initializeCore } from '.';
 
 import type { DocumentProcessor } from './markdown/DocumentProcessor';
-import type { Document } from './models/api';
+import type { Document } from './models/Document';
 import type { OpenAIClient } from './openai/OpenAIClient';
 import type { TaggingService } from './openai/TaggingService';
 import type { BatchProcessingService } from './tagging/BatchProcessingService';
