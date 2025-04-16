@@ -1,0 +1,14 @@
+import * as vscode from 'vscode';
+
+export function activate(context: vscode.ExtensionContext) {
+  console.log('Congratulations, your extension "<%= displayName %>" is now active!');
+
+  // Register the command for the extension
+  const disposable = vscode.commands.registerCommand('<%= fileName %>.activate', () => {
+    vscode.window.showInformationMessage('Hello from <%= displayName %>!');
+  });
+
+  context.subscriptions.push(disposable);
+}
+
+export function deactivate() {} 

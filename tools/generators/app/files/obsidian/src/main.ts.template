@@ -1,0 +1,22 @@
+import { Plugin } from 'obsidian';
+
+export default class <%= className %>Plugin extends Plugin {
+	async onload() {
+		console.log('Loading <%= name %> plugin');
+
+		// Register a command
+		this.addCommand({
+			id: 'example-command',
+			name: 'Example Command',
+			callback: () => {
+				console.log('Executed example command');
+			}
+		});
+
+		// Additional setup...
+	}
+
+	onunload() {
+		console.log('Unloading <%= name %> plugin');
+	}
+} 

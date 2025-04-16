@@ -1,9 +1,9 @@
 import { createESLintConfig } from '../../../config/eslint/index.js';
 
-// <%= name %> package specific configuration
+// VS Code app specific configuration
 const <%= fileName %>SpecificConfig = [
   {
-    files: ['src/**/*.ts'<% if (withReact) { %>, 'src/**/*.tsx'<% } %>],
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
     rules: {
       // Add <%= name %>-specific rules here if needed
     },

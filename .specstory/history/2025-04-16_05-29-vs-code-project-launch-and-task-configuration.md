@@ -2222,7 +2222,853 @@ To test these generators, you can now run:
 npx nx g library my-new-library --withReact=true
 
 # Create a new CLI application
-npx nx g app my-cli
+npx nx g app my-cli --type=cli
+```
+
+Would you like me to add more template files for the VS Code extension and Obsidian plugin generators, or would you prefer to review what's been implemented so far?
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Alright. This looks pretty good. Let's make these better though. 
+
+These are some files that we should adapt into our @Nx generators:
+
+1. @templates @templates @index.js contain quite a few default configuration type things. Let's move any template to the generators
+2. @core @eslint.config.js @package.json @tsconfig.json @tsconfig.build.json @vitest.config.js - this is an example of a working library. 
+3. @cli @eslint.config.js @package.json @tsconfig.json @tsconfig.build.json @vitest.config.js @README.md @src - This is our CLI app type
+4. @vscode @eslint.config.js @package.json @tsconfig.json @tsconfig.build.json @README.md - this is a starter vscode plugin. 
+5. @obsidian-plugin @eslint.config.js @manifest.json @package.json @tsconfig.json @vitest.config.js @tsconfig.build.json @styles.css - this is our starter obsidian plugin
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, I shall enhance our Nx generators with these real-world file templates. Let me update each generator with actual working configurations from the project.
+
+---
+
+```diff
+- import { defineFlatConfig } from 'eslint-define-config';
+- import baseConfig from '../../../eslint.config.js';
++ import { createESLintConfig } from '../../../config/eslint/index.js';
+  
+- export default defineFlatConfig([
+-   ...baseConfig,
++ // <%= name %> package specific configuration
++ const <%= fileName %>SpecificConfig = [
+    {
+      files: ['src/**/*.ts'<% if (withReact) { %>, 'src/**/*.tsx'<% } %>],
+      rules: {
+-       // Add any project-specific rules here
+-     }
+-   }
+- ]); 
++       // Add <%= name %>-specific rules here if needed
++     },
++   },
++ ];
++ 
++ export default createESLintConfig(<%= fileName %>SpecificConfig); 
+```
+
+---
+
+```diff
+    "name": "<%= name %>",
+    "version": "0.1.0",
+-   "description": "<%= description %>",
+-   "keywords": [<%= tags ? tags.split(',').map(tag => `"${tag.trim()}"`) : '' %>],
+-   "author": "Obsidian Magic",
+-   "license": "MIT",
++   "private": true,
++   "type": "module",
+    "main": "dist/index.js",
+-   "types": "dist/index.d.ts",
++   "types": "dist/types/index.d.ts",
+    "scripts": {
+      "build": "tsc -b",
+-     "clean": "rm -rf ./dist ./out-tsc ./coverage",
++     "clean": "rm -rf dist",
+      "test": "<%= unitTestRunner === 'vitest' ? 'vitest run' : 'echo \"No tests configured\"' %>",
+-     "test:watch": "<%= unitTestRunner === 'vitest' ? 'vitest' : 'echo \"No tests configured\"' %>",
++     "test:watch": "<%= unitTestRunner === 'vitest' ? 'vitest watch' : 'echo \"No tests configured\"' %>",
+      "test:coverage": "<%= unitTestRunner === 'vitest' ? 'vitest run --coverage' : 'echo \"No tests configured\"' %>",
+      "lint": "eslint .",
+      "react-dom": "^18.2.0"<% } %>
+    },
+-   "devDependencies": {<% if (withReact) { %>
++   "devDependencies": {
++     "@eslint/js": "^9.24.0",
++     "@eslint/markdown": "^6.3.0",<% if (withReact) { %>
+      "@types/react": "^18.2.0",
+-     "@types/react-dom": "^18.2.0",<% } %><% if (unitTestRunner === 'vitest') { %>
+-     "vitest": "^1.3.1",
+-     "@vitest/coverage-v8": "^1.3.1",<% } %>
++     "@types/react-dom": "^18.2.0",<% } %>
++     "@typescript-eslint/eslint-plugin": "^8.30.1",
++     "@typescript-eslint/parser": "^8.30.1",
++     "@typescript-eslint/utils": "^8.30.1",<% if (unitTestRunner === 'vitest') { %>
++     "@vitest/coverage-v8": "^3.1.1",<% } %>
++     "eslint": "^9.24.0",
++     "eslint-config-prettier": "^10.1.2",
++     "eslint-import-resolver-typescript": "^4.3.2",
++     "eslint-plugin-import-x": "^4.10.5",
++     "eslint-plugin-testing-library": "^7.1.1",
+      "typescript": "^5.8.3",
+-     "eslint": "^8.56.0"
++     "typescript-eslint": "^8.30.1"<% if (unitTestRunner === 'vitest') { %>,
++     "vitest": "^3.1.1"<% } %>
++   },
++   "exports": {
++     ".": {
++       "types": "./dist/index.d.ts",
++       "import": "./dist/index.js"
++     },
++     "./*": {
++       "types": "./dist/*.d.ts",
++       "import": "./dist/*.js"
++     }
+    }
+  } 
+```
+
+---
+
+```diff
+  {
+-   "extends": "../../../tsconfig.base.json",
+-   "references": [
+-     {
+-       "path": "./tsconfig.lib.json"
+-     },
+-     {
+-       "path": "./tsconfig.test.json"
+-     }
+-   ],
+-   "compilerOptions": {
+-     "baseUrl": ".",
+-     "paths": {
+-       "@/*": ["src/*"]
+-     }
+-   }
++   "extends": "../../config/typescript/test.json"
+  } 
+```
+
+---
+
+```diff
+- 
++ {
++   "extends": "../../config/typescript/lib.json",
++   "compilerOptions": {
++     "tsBuildInfoFile": "./dist/<%= fileName %>.tsbuildinfo"
++   }
++ } 
+```
+
+---
+
+```diff
+- 
++ import tsconfigPaths from 'vite-tsconfig-paths';
++ import { defineConfig } from 'vitest/config';
++ 
++ export default defineConfig({
++   plugins: [tsconfigPaths()],
++   test: {
++     environment: <% if (withReact) { %>'jsdom'<% } else { %>'node'<% } %>,
++     include: ['src/**/*.test.ts', 'src/**/*.spec.ts'<% if (withReact) { %>, 'src/**/*.test.tsx', 'src/**/*.spec.tsx'<% } %>],
++     exclude: ['**/node_modules/**', '**/dist/**'],
++     globals: true,
++     coverage: {
++       provider: 'v8',
++       reporter: ['text', 'json', 'html'],
++       exclude: ['config/**', '**/*.d.ts', '**/*.test.ts', '**/*.spec.ts', '**/index.ts'<% if (withReact) { %>, '**/*.test.tsx', '**/*.spec.tsx'<% } %>],
++     },
++   },
++ }); 
+```
+
+---
+
+```diff
+- 
++ import { createESLintConfig } from '../../../config/eslint/index.js';
++ 
++ // CLI app specific configuration
++ const <%= fileName %>SpecificConfig = [
++   {
++     files: ['src/**/*.ts'],
++     rules: {
++       // Add <%= name %>-specific rules here if needed
++     },
++   },
++ ];
++ 
++ export default createESLintConfig(<%= fileName %>SpecificConfig); 
+```
+
+---
+
+```diff
+- 
++ {
++   "extends": "../../config/typescript/test.json"
++ } 
+```
+
+---
+
+```diff
+- 
++ {
++   "extends": "../../config/typescript/lib.json",
++   "compilerOptions": {
++     "tsBuildInfoFile": "./dist/<%= fileName %>.tsbuildinfo"
++   }
++ } 
+```
+
+---
+
+```diff
+- 
++ import tsconfigPaths from 'vite-tsconfig-paths';
++ import { defineConfig } from 'vitest/config';
++ 
++ export default defineConfig({
++   plugins: [tsconfigPaths()],
++   test: {
++     environment: 'node',
++     include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
++     exclude: ['**/node_modules/**', '**/dist/**'],
++     globals: true,
++     coverage: {
++       provider: 'v8',
++       reporter: ['text', 'json', 'html'],
++       exclude: ['config/**', '**/*.d.ts', '**/*.test.ts', '**/*.spec.ts', '**/index.ts'],
++     },
++   },
++ }); 
+```
+
+---
+
+```diff
+- 
++ # <%= name %>
++ 
++ <%= description %>
++ 
++ ## Installation
++ 
++ ```bash
++ # From the project root
++ pnpm install
++ 
++ # Or globally
++ npm install -g <%= name %>
++ ```
++ 
++ ## Usage
++ 
++ ```bash
++ # Run the CLI
++ <%= name %> --help
++ 
++ # Example command
++ <%= name %> hello "Your Name"
++ ```
++ 
++ ## Commands
++ 
++ - `hello [name]` - Say hello to someone
++   - Options:
++     - `-u, --uppercase` - Output in uppercase
++ 
++ ## Development
++ 
++ ### Building
++ 
++ ```bash
++ pnpm build
++ ```
++ 
++ <% if (unitTestRunner === 'vitest') { %>
++ ### Testing
++ 
++ ```bash
++ pnpm test
++ ```
++ 
++ Run tests in watch mode:
++ 
++ ```bash
++ pnpm test:watch
++ ```
++ 
++ Generate code coverage:
++ 
++ ```bash
++ pnpm test:coverage
++ ```
++ <% } %>
++ 
++ ### Linting
++ 
++ ```bash
++ pnpm lint
++ ```
++ 
++ Fix linting issues:
++ 
++ ```bash
++ pnpm lint:fix
++ ```
++ 
++ ## License
++ 
++ MIT 
+```
+
+---
+
+```diff
+    "version": "0.1.0",
+    "description": "<%= description %>",
+-   "keywords": [<%= tags ? tags.split(',').map(tag => `"${tag.trim()}"`) : '' %>],
++   "private": true,
++   "type": "module",
++   "keywords": [<%= tags ? tags.split(',').map(tag => `"${tag.trim()}"`) : '"cli"' %>],
+    "author": "Obsidian Magic",
+    "license": "MIT",
+    "scripts": {
+      "build": "tsc -b",
+-     "clean": "rm -rf ./dist ./out-tsc ./coverage",
++     "clean": "rm -rf dist",
+      "start": "node dist/index.js",
+-     "dev": "ts-node src/index.ts",
++     "dev": "ts-node --esm src/index.ts",
+      "test": "<%= unitTestRunner === 'vitest' ? 'vitest run' : 'echo \"No tests configured\"' %>",
+-     "test:watch": "<%= unitTestRunner === 'vitest' ? 'vitest' : 'echo \"No tests configured\"' %>",
++     "test:watch": "<%= unitTestRunner === 'vitest' ? 'vitest watch' : 'echo \"No tests configured\"' %>",
+      "test:coverage": "<%= unitTestRunner === 'vitest' ? 'vitest run --coverage' : 'echo \"No tests configured\"' %>",
+      "lint": "eslint .",
+      "chalk": "^5.3.0",
+      "commander": "^11.1.0",
+-     "inquirer": "^9.2.12"
++     "inquirer": "^9.2.12",
++     "@obsidian-magic/core": "workspace:*"
+    },
+    "devDependencies": {
+-     "@types/node": "^18.18.0",
++     "@eslint/js": "^9.24.0",
++     "@eslint/markdown": "^6.3.0",
++     "@types/node": "^22.14.1",
++     "@typescript-eslint/eslint-plugin": "^8.30.1",
++     "@typescript-eslint/parser": "^8.30.1",
++     "@typescript-eslint/utils": "^8.30.1",
+      <% if (unitTestRunner === 'vitest') { %>
+-     "vitest": "^1.3.1",
+-     "@vitest/coverage-v8": "^1.3.1",
++     "@vitest/coverage-v8": "^3.1.1",
+      <% } %>
++     "eslint": "^9.24.0",
++     "eslint-config-prettier": "^10.1.2",
++     "eslint-import-resolver-typescript": "^4.3.2",
++     "eslint-plugin-import-x": "^4.10.5",
++     "eslint-plugin-testing-library": "^7.1.1",
+      "ts-node": "^10.9.2",
+      "typescript": "^5.8.3",
+-     "eslint": "^8.56.0"
++     "typescript-eslint": "^8.30.1"
++     <% if (unitTestRunner === 'vitest') { %>,
++     "vitest": "^3.1.1"
++     <% } %>
+    },
+    "engines": {
+```
+
+---
+
+```bash
+mkdir -p tools/generators/app/files/vscode/src tools/generators/app/files/obsidian/src
+```
+
+```
+khallmark in obsidian-magic …
+
+```
+
+---
+
+```diff
+- 
++ {
++   "activationEvents": [
++     "onStartupFinished"
++   ],
++   "categories": [
++     "Other"
++   ],
++   "contributes": {
++     "commands": [
++       {
++         "command": "<%= fileName %>.helloWorld",
++         "title": "<%= name %>: Hello World"
++       }
++     ],
++     "configuration": {
++       "properties": {
++         "<%= fileName %>.enabled": {
++           "default": true,
++           "description": "Enable <%= name %> extension",
++           "type": "boolean"
++         }
++       },
++       "title": "<%= name %>"
++     }
++   },
++   "dependencies": {
++     "@obsidian-magic/core": "workspace:*"
++   },
++   "description": "<%= description %>",
++   "devDependencies": {
++     "@eslint/js": "^9.24.0",
++     "@eslint/markdown": "^6.3.0",
++     "@types/mocha": "^10.0.10",
++     "@types/node": "^22.14.1",
++     "@types/vscode": "^1.99.1",
++     "@typescript-eslint/eslint-plugin": "^8.30.1",
++     "@typescript-eslint/parser": "^8.30.1",
++     "@typescript-eslint/utils": "^8.30.1",
++     "@vscode/test-cli": "^0.0.10",
++     "@vscode/test-electron": "^2.5.2",
++     "@vscode/vsce": "^3.3.2",
++     "eslint": "^9.24.0",
++     "eslint-config-prettier": "^10.1.2",
++     "eslint-import-resolver-typescript": "^4.3.2",
++     "eslint-plugin-import-x": "^4.10.5",
++     "eslint-plugin-testing-library": "^7.1.1",
++     "glob": "^11.0.1",
++     "mocha": "^11.1.0",
++     "typescript": "^5.8.3",
++     "typescript-eslint": "^8.30.1",
++     "vitest": "^3.1.1"
++   },
++   "displayName": "<%= className %>",
++   "engines": {
++     "vscode": "^1.99.0"
++   },
++   "main": "./dist/extension.js",
++   "name": "<%= fileName %>-vscode",
++   "private": true,
++   "publisher": "obsidian-magic",
++   "type": "module",
++   "repository": {
++     "type": "git",
++     "url": "https://github.com/obsidian-magic/obsidian-magic.git"
++   },
++   "scripts": {
++     "build": "tsc -b",
++     "dev": "tsc -b --watch",
++     "clean": "rm -rf dist",
++     "lint": "eslint .",
++     "lint:fix": "eslint . --fix",
++     "package": "vsce package --no-dependencies",
++     "test": "npm run compile && vscode-test",
++     "test:debug": "npm run compile && vscode-test --debug",
++     "compile": "tsc -p ./",
++     "watch": "tsc -watch -p ./",
++     "pretest": "npm run compile",
++     "vscode:prepublish": "tsc -b"
++   },
++   "version": "0.1.0"
++ } 
+```
+
+---
+
+```diff
+- 
++ {
++   "extends": "../../config/typescript/test.json",
++   "compilerOptions": {
++     "outDir": "out"
++   }
++ } 
+```
+
+---
+
+```diff
+- 
++ {
++   "extends": "../../config/typescript/lib.json",
++   "compilerOptions": {
++     "tsBuildInfoFile": "./dist/<%= fileName %>.tsbuildinfo"
++   }
++ } 
+```
+
+---
+
+```diff
+- 
++ import { createESLintConfig } from '../../../config/eslint/index.js';
++ 
++ // VS Code app specific configuration
++ const <%= fileName %>SpecificConfig = [
++   {
++     files: ['src/**/*.ts', 'src/**/*.tsx'],
++     rules: {
++       // Add <%= name %>-specific rules here if needed
++     },
++   },
++ ];
++ 
++ export default createESLintConfig(<%= fileName %>SpecificConfig); 
+```
+
+---
+
+```diff
+- 
++ # <%= name %> VS Code Extension
++ 
++ <%= description %>
++ 
++ ## Features
++ 
++ - **Hello World Command**: Simple hello world command to demonstrate extension functionality
++ - **Configuration Settings**: Customizable settings
++ 
++ ## Installation
++ 
++ ### From VS Code Marketplace
++ 
++ 1. Open VS Code
++ 2. Go to the Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
++ 3. Search for "<%= name %>"
++ 4. Click "Install"
++ 
++ ### Manual Installation
++ 
++ 1. Download the latest `.vsix` file from the GitHub releases page
++ 2. Open VS Code
++ 3. Go to the Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
++ 4. Click on the "..." menu and select "Install from VSIX..."
++ 5. Navigate to the downloaded file and open it
++ 
++ ## Getting Started
++ 
++ 1. After installation, open the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
++ 2. Type "<%= name %>: Hello World" to run the example command
++ 
++ ## Commands
++ 
++ - **Hello World**: Displays a simple greeting
++ 
++ ## Configuration
++ 
++ Open VS Code settings and search for "<%= name %>" to configure:
++ 
++ - **Enabled**: Enable/disable the extension
++ 
++ ## Development
++ 
++ ### Building
++ 
++ ```bash
++ pnpm build
++ ```
++ 
++ ### Testing
++ 
++ ```bash
++ pnpm test
++ ```
++ 
++ ### Packaging
++ 
++ ```bash
++ pnpm package
++ ```
++ 
++ ## Requirements
++ 
++ - VS Code 1.99.0 or higher
++ 
++ ## License
++ 
++ This project is licensed under the MIT License. 
+```
+
+---
+
+```diff
+- 
++ import * as vscode from 'vscode';
++ 
++ /**
++  * This method is called when your extension is activated.
++  * Your extension is activated the first time the command is executed.
++  */
++ export function activate(context: vscode.ExtensionContext) {
++   // Use the console to output diagnostic information (console.log) and errors (console.error)
++   console.log('<%= name %> extension is now active!');
++ 
++   // The command has been defined in the package.json file
++   // Now provide the implementation of the command with registerCommand
++   // The commandId parameter must match the command field in package.json
++   const disposable = vscode.commands.registerCommand('<%= fileName %>.helloWorld', () => {
++     // Display a message box to the user
++     vscode.window.showInformationMessage('Hello World from <%= name %>!');
++   });
++ 
++   context.subscriptions.push(disposable);
++ }
++ 
++ /**
++  * This method is called when your extension is deactivated
++  */
++ export function deactivate() {
++   console.log('<%= name %> extension is now deactivated!');
++ } 
+```
+
+---
+
+```diff
+  {
+-   "activationEvents": [
+-     "onStartupFinished"
+-   ],
++   "name": "<%= fileName %>",
++   "displayName": "<%= name %>",
++   "description": "<%= description %>",
++   "version": "0.0.1",
++   "publisher": "your-publisher-name",
++   "private": true,
++   "engines": {
++     "vscode": "^1.99.0"
++   },
+    "categories": [
+      "Other"
+    ],
++   "activationEvents": [],
++   "main": "./dist/extension.js",
+    "contributes": {
+      "commands": [
+        {
+          "command": "<%= fileName %>.helloWorld",
+-         "title": "<%= name %>: Hello World"
++         "title": "Hello World"
+        }
+      ],
+      "configuration": {
++       "title": "<%= name %>",
+        "properties": {
+-         "<%= fileName %>.enabled": {
++         "<%= fileName %>.enable": {
++           "type": "boolean",
+            "default": true,
+-           "description": "Enable <%= name %> extension",
+-           "type": "boolean"
+-         }
+-       },
+-       "title": "<%= name %>"
+-     }
+-   },
+-   "dependencies": {
+-     "@obsidian-magic/core": "workspace:*"
+-   },
+-   "description": "<%= description %>",
++           "description": "Enable/disable this extension."
++         }
++       }
++     }
++   },
++   "scripts": {
++     "vscode:prepublish": "pnpm run build",
++     "package": "pnpm run build && vsce package",
++     "esbuild-watch": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
++     "esbuild": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap"
++   },
+    "devDependencies": {
+-     "@eslint/js": "^9.24.0",
+-     "@eslint/markdown": "^6.3.0",
+-     "@types/mocha": "^10.0.10",
+-     "@types/node": "^22.14.1",
+-     "@types/vscode": "^1.99.1",
+-     "@typescript-eslint/eslint-plugin": "^8.30.1",
+-     "@typescript-eslint/parser": "^8.30.1",
+-     "@typescript-eslint/utils": "^8.30.1",
+-     "@vscode/test-cli": "^0.0.10",
+-     "@vscode/test-electron": "^2.5.2",
+-     "@vscode/vsce": "^3.3.2",
+-     "eslint": "^9.24.0",
+-     "eslint-config-prettier": "^10.1.2",
+-     "eslint-import-resolver-typescript": "^4.3.2",
+-     "eslint-plugin-import-x": "^4.10.5",
+-     "eslint-plugin-testing-library": "^7.1.1",
+-     "glob": "^11.0.1",
+-     "mocha": "^11.1.0",
+-     "typescript": "^5.8.3",
+-     "typescript-eslint": "^8.30.1",
+-     "vitest": "^3.1.1"
+-   },
+-   "displayName": "<%= className %>",
+-   "engines": {
+-     "vscode": "^1.99.0"
+-   },
+-   "main": "./dist/extension.js",
+-   "name": "<%= fileName %>-vscode",
+-   "private": true,
+-   "publisher": "obsidian-magic",
+-   "type": "module",
+-   "repository": {
+-     "type": "git",
+-     "url": "https://github.com/obsidian-magic/obsidian-magic.git"
+-   },
+-   "scripts": {
+-     "build": "tsc -b",
+-     "dev": "tsc -b --watch",
+-     "clean": "rm -rf dist",
+-     "lint": "eslint .",
+-     "lint:fix": "eslint . --fix",
+-     "package": "vsce package --no-dependencies",
+-     "test": "npm run compile && vscode-test",
+-     "test:debug": "npm run compile && vscode-test --debug",
+-     "compile": "tsc -p ./",
+-     "watch": "tsc -watch -p ./",
+-     "pretest": "npm run compile",
+-     "vscode:prepublish": "tsc -b"
+-   },
+-   "version": "0.1.0"
++     "@types/node": "^20.11.22",
++     "@types/vscode": "^1.99.0",
++     "esbuild": "^0.20.1",
++     "vsce": "^2.15.0"
++   }
+  } 
+```
+
+---
+
+```diff
+  {
+-   "extends": "../../config/typescript/test.json",
+    "compilerOptions": {
+-     "outDir": "out"
+-   }
++     "module": "Node16",
++     "target": "ES2022",
++     "outDir": "dist",
++     "lib": ["ES2022"],
++     "sourceMap": true,
++     "rootDir": "src",
++     "strict": true,
++     "noImplicitReturns": true,
++     "noFallthroughCasesInSwitch": true,
++     "noUnusedParameters": true,
++     "esModuleInterop": true,
++     "skipLibCheck": true
++   },
++   "include": ["src"],
++   "exclude": ["node_modules", ".vscode-test"]
+  } 
+```
+
+---
+
+```diff
+- 
++ import * as vscode from 'vscode';
++ 
++ export function activate(context: vscode.ExtensionContext) {
++   console.log('Congratulations, your extension "<%= displayName %>" is now active!');
++ 
++   // Register the command for the extension
++   const disposable = vscode.commands.registerCommand('<%= fileName %>.activate', () => {
++     vscode.window.showInformationMessage('Hello from <%= displayName %>!');
++   });
++ 
++   context.subscriptions.push(disposable);
++ }
++ 
++ export function deactivate() {} 
+```
+
+---
+
+```diff
++ {
++   "name": "<%= fileName %>",
+  {
+    "name": "<%= fileName %>",
+```
+
+---
+
+Your Grace, I notice the package.json template is showing some issues with the edit. Let me create a proper VS Code extension template with all the necessary configuration files to ensure your generator works correctly.
+
+---
+
+Read file: tools/generators/app/files/vscode/package.json.template
+
+---
+
+```diff
+- {
+-   "name": "<%= fileName %>",
+  {
+    "name": "<%= fileName %>",
+```
+
+---
+
+Read file: tools/generators/app/files/vscode/package.json.template
+
+---
+
+```bash
+find tools/generators/app/files -type f | sort
+```
+
+```
+tools/generators/app/files/cli/eslint.config.js.template
+tools/generators/app/files/cli/package.json.template
+tools/generators/app/files/cli/README.md.template
+tools/generators/app/files/cli/src/index.ts.template
+tools/generators/app/files/cli/tsconfig.build.json.template
+tools/generators/app/files/cli/tsconfig.json.template
+tools/generators/app/files/cli/vitest.config.js.template
+tools/generators/app/files/vscode/eslint.config.js.template
+tools/generators/app/files/vscode/extension.ts.template
+tools/generators/app/files/vscode/package.json.template
+tools/generators/app/files/vscode/README.md.template
+tools/generators/app/files/vscode/src/extension.ts.template
+tools/generators/app/files/vscode/tsconfig.build.json.template
+tools/generators/app/files/vscode/tsconfig.json.template
+khallmark in obsidian-magic …                                                                                                                      02:21:27 at Voyager 
+➜
+```
+
+---
+
+
+
+
 
 ---
 
