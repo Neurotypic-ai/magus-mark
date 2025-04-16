@@ -1,0 +1,6 @@
+{
+  "extends": "../../config/typescript/lib.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./dist/core.tsbuildinfo"
+  }
+}

@@ -134,10 +134,11 @@
   "main": "./dist/extension.js",
   "name": "obsidian-magic-vscode",
   "private": true,
-  "publisher": "YourName",
+  "publisher": "khallmark",
+  "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/obsidian-magic.git"
+    "url": "https://github.com/khallmark/obsidian-magic.git"
   },
   "scripts": {
     "build": "tsc -b",

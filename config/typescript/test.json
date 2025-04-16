@@ -1,10 +1,33 @@
 {
-  "extends": "./base.json",
   "compilerOptions": {
     "outDir": "${configDir}/dist/test",
     "rootDir": "${configDir}/src",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["${configDir}/src/**/*.test.ts", "${configDir}/src/**/*.spec.ts"],
-  "references": [{ "path": "${configDir}/tsconfig.lib.json" }]
+  "exclude": [
+    "${configDir}/**/node_modules",
+    "${configDir}/**/node_modules/**/*",
+    "${configDir}/**/dist",
+    "${configDir}/**/dist/**/*",
+    "${configDir}/**/build/**/*",
+    "${configDir}/**/documentation",
+    "${configDir}/**/.cursor/**",
+    "${configDir}/**/examples/**/*",
+    "${configDir}/**/node_modules/.pnpm/**/*"
+  ],
+  "extends": "./base.json",
+  "include": ["${configDir}/src/**/*"],
+  "references": [
+    {
+      "path": "${configDir}/tsconfig.build.json"
+    },
+    {
+      "path": "${configDir}/../../packages/core"
+    }
+  ],
+  "watchOptions": {
+    "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"],
+    "watchDirectory": "useFsEvents",
+    "watchFile": "useFsEvents"
+  }
 }

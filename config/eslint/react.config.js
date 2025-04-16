@@ -1,6 +1,6 @@
-const baseConfig = require('./base.config');
+import baseConfig from './base.config';
 
-module.exports = {
+export const config = {
   ...baseConfig,
   extends: [
     ...baseConfig.extends,
