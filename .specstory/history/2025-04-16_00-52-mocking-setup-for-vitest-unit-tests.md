@@ -2679,6 +2679,24 @@ khallmark in obsidian-magic …                                                 
 
 ---
 
+_**User**_
+
+Let's continue but you need to tweak the plan. We use esm js for our @vitest.config.js not the ts. 
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship,
+
+Let's update our approach to use ESM for Vitest configuration. I'll create a simpler solution using JavaScript instead of TypeScript for the configuration files.
+
+---
+
 
 
 ---
