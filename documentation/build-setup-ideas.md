@@ -56,18 +56,18 @@ This checklist provides a structured approach to implementing the build system i
 
 - [x] **Install Nx**
   - [x] Install Nx dependencies: `npm install -D nx @nx/js`
-- [ ] **Configure Nx using inferred targets**
+- [x] **Configure Nx using inferred targets**
   - [x] Create initial nx.json configuration
-  - [ ] Verify Nx correctly discovers targets from package.json scripts
-  - [ ] Add appropriate target defaults for build dependencies
-  - [ ] Test Nx commands: `npx nx run-many --target=build`
+  - [x] Verify Nx correctly discovers targets from package.json scripts
+  - [x] Add appropriate target defaults for build dependencies
+  - [x] Test Nx commands: `npx nx run-many --target=build`
   - [x] **IMPORTANT**: Remove explicit project definitions, as Nx uses automatic project discovery
 
 ## Phase 4: Vitest Configuration
 
-- [ ] **Create package-specific Vitest configurations**
+- [x] **Create package-specific Vitest configurations**
 
-  - [ ] Create workspace configuration for running all tests:
+  - [x] Create workspace configuration for running all tests:
 
     ```js
     // vitest.workspace.js
@@ -76,7 +76,7 @@ This checklist provides a structured approach to implementing the build system i
     export default defineWorkspace(['packages/*/vitest.config.ts', 'apps/*/vitest.config.ts']);
     ```
 
-  - [ ] Create package-specific configuration for each package:
+  - [x] Create package-specific configuration for each package:
 
     ```ts
     // packages/core/vitest.config.ts
@@ -106,26 +106,28 @@ This checklist provides a structured approach to implementing the build system i
     );
     ```
 
-  - [ ] Validate tests run correctly: `npx nx run-many --target=test`
+  - [x] Validate tests run correctly: `npx nx run-many --target=test`
+  - [ ] **IMPORTANT**: Complete the transition from Vitest to Mocha for VS Code testing (currently using both)
 
 ## Phase 5: ESLint Integration
 
 - [x] **Use modern ESLint flat config format**
   - [x] Leverage existing `eslint.config.js` in root
-  - [ ] Update project-specific ESLint settings if needed
+  - [x] Update project-specific ESLint settings if needed
   - [x] Remove any legacy `.eslintrc.js` files
-  - [ ] Fix TypeScript errors reported in VS Code extension and Obsidian plugin
-  - [ ] Run lint check across all packages: `npx nx run-many --target=lint`
+  - [x] Fix TypeScript errors reported in VS Code extension and Obsidian plugin
+  - [x] Run lint check across all packages: `npx nx run-many --target=lint`
+  - [ ] Fix remaining linter errors in some files
 
 ## Phase 6: Package Scripts Standardization
 
-- [ ] **Update all package.json files with consistent scripts**
-  - [ ] Create standard script template for library packages:
+- [x] **Update all package.json files with consistent scripts**
+  - [x] Create standard script template for library packages:
     ```json
     {
       "scripts": {
         "build": "tsc -b",
-        "clean": "rimraf ./dist ./out-tsc ./coverage",
+        "clean": "rm -rf ./dist ./out-tsc ./coverage",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
@@ -135,8 +137,8 @@ This checklist provides a structured approach to implementing the build system i
       }
     }
     ```
-  - [ ] Create standard script template for application packages
-  - [ ] Update root-level convenience scripts:
+  - [x] Create standard script template for application packages
+  - [x] Update root-level convenience scripts:
     ```json
     {
       "scripts": {
@@ -149,7 +151,8 @@ This checklist provides a structured approach to implementing the build system i
       }
     }
     ```
-  - [ ] Validate scripts work correctly
+  - [x] Validate scripts work correctly
+  - [ ] **IMPORTANT**: Replace all `rimraf` usages with native `rm -rf` or Node.js fs methods
 
 ## Phase 7: Git Hooks Implementation
 
@@ -158,18 +161,18 @@ This checklist provides a structured approach to implementing the build system i
   - [x] Configure pre-commit hook
   - [x] Set up lint-staged configuration
   - [x] Configure commitlint
-  - [ ] Test Git hooks with sample commits
+  - [x] Test Git hooks with sample commits
 
 ## Phase 8: Production Build Collection
 
-- [ ] **Implement unified build system**
+- [x] **Implement unified build system**
 
-  - [ ] Define project-specific build tasks in package.json
-  - [ ] Set up specialized build targets for each app type:
+  - [x] Define project-specific build tasks in package.json
+  - [x] Set up specialized build targets for each app type:
     - Obsidian plugin (output: bundled .js file)
     - VS Code extension (output: VSIX package)
     - CLI (output: executable)
-  - [ ] Create specialized build scripts for each application:
+  - [x] Create specialized build scripts for each application:
 
     ```js
     // apps/cli/scripts/build.js
@@ -187,8 +190,8 @@ This checklist provides a structured approach to implementing the build system i
     console.log('Build complete!');
     ```
 
-  - [ ] Configure clean build process for each package
-  - [ ] Validate complete build process: `npm run build`
+  - [x] Configure clean build process for each package
+  - [x] Validate complete build process: `npm run build`
 
 ## Phase 9: Package Generators
 
@@ -231,8 +234,8 @@ This checklist provides a structured approach to implementing the build system i
 
 ## Phase 10: Developer Experience Improvements
 
-- [ ] **Set up VS Code workspace settings**
-  - [ ] Configure VS Code settings:
+- [x] **Set up VS Code workspace settings**
+  - [x] Configure VS Code settings:
     ```json
     // .vscode/settings.json
     {
@@ -256,7 +259,7 @@ This checklist provides a structured approach to implementing the build system i
       }
     }
     ```
-  - [ ] Configure recommended extensions:
+  - [x] Configure recommended extensions:
     ```json
     // .vscode/extensions.json
     {
@@ -271,7 +274,7 @@ This checklist provides a structured approach to implementing the build system i
       ]
     }
     ```
-  - [ ] Create debug configurations:
+  - [x] Create debug configurations:
     ```json
     // .vscode/launch.json
     {
@@ -301,7 +304,7 @@ This checklist provides a structured approach to implementing the build system i
       ]
     }
     ```
-  - [ ] Create tasks configuration:
+  - [x] Create tasks configuration:
     ```json
     // .vscode/tasks.json
     {
@@ -322,7 +325,7 @@ This checklist provides a structured approach to implementing the build system i
       ]
     }
     ```
-  - [ ] Document development workflow in README.md
+  - [x] Document development workflow in README.md
 
 ## Phase 11: Continuous Integration Setup
 
@@ -385,15 +388,42 @@ This checklist provides a structured approach to implementing the build system i
 
 ## Completion Checklist
 
-- [ ] All centralized configurations in place
-- [ ] TypeScript project references working correctly
-- [ ] Nx workspace fully configured with inferred targets
-- [ ] Tests running correctly across all packages
-- [ ] Linting working correctly with flat ESLint config
-- [ ] Git hooks enforcing code quality
-- [ ] Production builds generating correctly
+- [x] All centralized configurations in place
+- [x] TypeScript project references working correctly
+- [x] Nx workspace fully configured with inferred targets
+- [x] Tests running correctly across all packages
+- [x] Linting working correctly with flat ESLint config
+- [x] Git hooks enforcing code quality
+- [x] Production builds generating correctly
 - [ ] Package generators functioning
 - [ ] CI/CD pipeline set up
+
+## Remaining Tasks
+
+1. **Testing Framework Transition**:
+
+   - Complete the transition from Vitest to Mocha for VS Code extension testing
+   - Currently, the VS Code extension uses both Mocha for integration tests and Vitest for unit tests
+   - Standardize on one testing approach for VS Code extension
+
+2. **Linter Error Fixing**:
+
+   - Fix remaining linter errors in some TypeScript files
+   - Focus on type safety errors in test files related to optional chaining and non-null assertions
+
+3. **Clean Script Update**:
+
+   - Replace all instances of `rimraf` with native `rm -rf` or Node.js fs methods
+   - Update clean scripts in all package.json files
+
+4. **Package Generators**:
+
+   - Implement Nx generators for creating new packages and applications
+   - Create templates based on established patterns
+
+5. **CI/CD Setup**:
+   - Implement GitHub Actions workflows for CI/CD
+   - Set up automated testing and linting
 
 ## Key Lessons Learned
 
@@ -406,6 +436,12 @@ This checklist provides a structured approach to implementing the build system i
 5. **Nx Uses Inferred Targets** - Nx can automatically discover and infer targets from package.json scripts
 6. **Standardized Build Process** - Each package follows the same build process, making maintenance easier
 7. **Developer Experience Matters** - VS Code configuration and debug settings improve productivity
+8. **Config Structure Implementation** - We deviated from the original plan for config structure, but the implemented
+   version is more effective and maintainable
+9. **Mixed Testing Frameworks** - Using Mocha for VS Code extension and Vitest for other packages requires careful
+   configuration
+10. **Native Commands Preferred** - Native shell commands are preferred over dependencies like rimraf for simple
+    operations
 
 ## References
 
@@ -413,3 +449,5 @@ This checklist provides a structured approach to implementing the build system i
 - [Nx Documentation](https://nx.dev/getting-started/intro)
 - [Vitest Documentation](https://vitest.dev/guide/)
 - [ESLint Flat Config Documentation](https://eslint.org/docs/latest/use/configure/configuration-files)
+- [Mocha Documentation](https://mochajs.org/)
+- [VS Code Extension Testing](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
