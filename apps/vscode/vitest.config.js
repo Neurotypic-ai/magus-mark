@@ -1,17 +1,27 @@
-import tsconfigPaths from 'vite-tsconfig-paths';
+import { resolve } from 'path';
+
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**'],
     globals: true,
+    environment: 'node',
+    setupFiles: ['./src/__mocks__/setup.js'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
-      exclude: ['config/**', '**/*.d.ts', '**/*.test.ts', '**/*.spec.ts', '**/index.ts'],
+      reportsDirectory: './coverage',
+    },
+    // Disable TypeScript errors during tests
+    typecheck: {
+      enabled: false,
+    },
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
     },
   },
 });
