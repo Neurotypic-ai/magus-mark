@@ -113,5 +113,8 @@
   "eslint.lintTask.enable": true,
   "eslint.useESLintClass": true,
   "eslint.useFlatConfig": true,
-  "prettier.configPath": "./prettier.config.js"
+  "prettier.configPath": "./prettier.config.js",
+  "vitest.experimentalStaticAstCollect": true,
+  "vitest.shellType": "terminal",
+  "vitest.filesWatcherInclude": "**/src/**/*.{ts|tsx}"
 }

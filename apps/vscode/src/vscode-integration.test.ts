@@ -3,16 +3,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-// Import after mocking
+// Import from vscode
 import * as vscode from 'vscode';
 
 import { activate, deactivate } from './extension';
 
-// Mock VS Code module before importing it
-vi.mock('vscode', async () => {
-  const mockModule = await import('./tests/mocks/VSCode.mock');
-  return mockModule.default;
-});
+// No need to mock vscode here as it's now handled by the setup file and aliasing
 
 // We're testing with mocks, so we need to silence TypeScript's complaints
 // about the mocked context vs. the real context
@@ -24,7 +20,6 @@ describe('VS Code Integration', () => {
   let context: MockedContext;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     context = new (vscode as any).ExtensionContext();
   });

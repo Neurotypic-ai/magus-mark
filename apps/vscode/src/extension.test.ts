@@ -1,29 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 
-// Mock VS Code API
-vi.mock('vscode', () => ({
-  extensions: {
-    getExtension: vi.fn().mockImplementation((extensionId: string) => ({
-      id: extensionId,
-      isActive: true,
-      activate: vi.fn().mockResolvedValue(undefined),
-    })),
-  },
-  commands: {
-    getCommands: vi
-      .fn()
-      .mockResolvedValue([
-        'obsidian-magic.tagFile',
-        'obsidian-magic.openTagExplorer',
-        'obsidian-magic.cursorTagFile',
-        'obsidian-magic.manageVaults',
-        'obsidian-magic.addVault',
-        'obsidian-magic.removeVault',
-        'obsidian-magic.syncVault',
-      ]),
-  },
-}));
+// No need to mock vscode here as it's now handled by the setup file and aliasing
+// Our tests can use the vscode import directly
 
 describe('Extension Tests', () => {
   it('Extension should be present', () => {
@@ -42,6 +21,17 @@ describe('Extension Tests', () => {
   });
 
   it('Commands should be registered', async () => {
+    // Mock the commands.getCommands to return our expected commands
+    vi.spyOn(vscode.commands, 'getCommands').mockResolvedValue([
+      'obsidian-magic.tagFile',
+      'obsidian-magic.openTagExplorer',
+      'obsidian-magic.cursorTagFile',
+      'obsidian-magic.manageVaults',
+      'obsidian-magic.addVault',
+      'obsidian-magic.removeVault',
+      'obsidian-magic.syncVault',
+    ]);
+
     const commands = await vscode.commands.getCommands(true);
 
     expect(commands).toContain('obsidian-magic.tagFile');

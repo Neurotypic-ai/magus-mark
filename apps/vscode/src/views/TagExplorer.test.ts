@@ -18,11 +18,7 @@ vi.mock('@obsidian-magic/core/models/SubdomainMap', () => {
   };
 });
 
-// Mock VSCode APIs with our centralized mock
-vi.mock('vscode', async () => {
-  const mockModule = await import('../tests/mocks/VSCode.mock');
-  return mockModule.default;
-});
+// No need to mock vscode here as it's now handled by the setup file and aliasing
 
 // Mock the Core initialization
 vi.mock('@obsidian-magic/core', () => ({
@@ -320,7 +316,8 @@ describe('TagExplorer', () => {
 
     // Verify refresh was called
     expect(refreshSpy).toHaveBeenCalledTimes(1);
-    expect(refreshSpy).toHaveBeenCalledWith(undefined);
+    // The refresh method is called with no arguments, not with undefined
+    expect(refreshSpy).toHaveBeenCalledWith();
 
     // Refresh specific element
     const element: TagNode = { id: 'test', name: 'Test', type: 'domain', children: [], count: 0 };

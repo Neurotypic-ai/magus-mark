@@ -17,10 +17,13 @@ export default defineConfig({
     typecheck: {
       enabled: false,
     },
+    // Setup mocks for testing
+    setupFiles: ['./src/tests/setup.ts'],
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      // The vscode module is now mocked directly in setup.ts
     },
   },
 });
