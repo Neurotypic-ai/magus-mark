@@ -11,7 +11,7 @@ export class ApiKeyError extends AppError {
       code: options.code ?? 'API_KEY_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true,
+      recoverable: options.recoverable ?? false,
     });
   }
 }

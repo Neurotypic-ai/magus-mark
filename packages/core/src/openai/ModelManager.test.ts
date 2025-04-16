@@ -92,6 +92,8 @@ describe('ModelManager', () => {
     });
 
     it('should return empty array with no API key', async () => {
+      vi.spyOn(manager, 'getAvailableModels').mockRestore();
+
       const result = await manager.getAvailableModels('');
       expect(result).toEqual([]);
     });

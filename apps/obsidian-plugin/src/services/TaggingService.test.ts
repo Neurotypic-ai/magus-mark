@@ -4,7 +4,7 @@ import { Result } from '@obsidian-magic/core/errors/Result';
 
 import { TaggingService } from './TaggingService';
 
-import type { TagSet } from '@obsidian-magic/core/models/tags';
+import type { TagSet } from '@obsidian-magic/core/models/TagSet';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';

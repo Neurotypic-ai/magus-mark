@@ -179,9 +179,20 @@ export class BatchProcessingService {
         inProgress.add(promise);
       }
 
-      // Wait for at least one promise to complete if we've reached concurrency limit
-      if (inProgress.size >= this.options.concurrency || (queue.length === 0 && inProgress.size > 0)) {
-        await Promise.race(inProgress);
+      // Wait for at least one promise to complete if we've reached concurrency limit or queue is empty
+      if (inProgress.size > 0) {
+        try {
+          await Promise.race(inProgress);
+        } catch (error) {
+          if (!this.options.continueOnError) {
+            // Re-throw to exit the function
+            if (error instanceof Error) {
+              throw error;
+            } else {
+              throw new Error(String(error));
+            }
+          }
+        }
       }
     }
 

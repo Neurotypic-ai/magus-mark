@@ -127,7 +127,8 @@ export const tagSetSchema = z.object({
  * @returns True if the domain has the subdomain
  */
 export function isDomainWithSubdomain(domain: DomainTag, subdomain: string): boolean {
-  return SUBDOMAINS[domain]?.includes(subdomain) ?? false;
+  const subdomainsForDomain = SUBDOMAINS_MAP[domain as keyof typeof SUBDOMAINS_MAP];
+  return subdomainsForDomain?.includes(subdomain) ?? false;
 }
 
 /**

@@ -67,7 +67,9 @@ describe('Logger', () => {
 
     // In JSON mode, it uses console.log instead of console.info
     expect(console.log).toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(JSON.stringify({ level: 'info', message: 'Test message' }));
+    expect(console.log).toHaveBeenCalledWith(
+      JSON.stringify({ level: 'info', message: 'Test message', namespace: 'Logger' })
+    );
   });
 
   it('should not log in silent mode', () => {

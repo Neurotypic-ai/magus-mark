@@ -3,7 +3,7 @@
  */
 import path from 'node:path';
 
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import { z } from 'zod';
 
 import { FileSystemError } from '../errors/FileSystemError';

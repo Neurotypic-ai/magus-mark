@@ -13,7 +13,7 @@ export class TaggingError extends AppError {
       code: options.code ?? 'TAGGING_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true,
+      recoverable: options.recoverable ?? false,
     });
     this.documentId = options.documentId;
   }

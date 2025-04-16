@@ -5,7 +5,6 @@ import { tagCommand } from './tag';
 // Imports are kept for mocking purposes
 import '@obsidian-magic/core';
 import '../utils/config';
-import 'fs-extra';
 
 import type { Argv } from 'yargs';
 

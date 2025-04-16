@@ -15,6 +15,19 @@ vi.mock('../../src/utils/logger', () => ({
   },
 }));
 
+// Mock ModelManager
+vi.mock('@obsidian-magic/core/openai/ModelManager', () => ({
+  ModelManager: {
+    getInstance: vi.fn().mockReturnValue({
+      validateModel: vi.fn().mockResolvedValue({ valid: true }),
+      getAvailableModels: vi.fn().mockResolvedValue([
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', inputPrice: 1, outputPrice: 2 },
+        { id: 'gpt-4', name: 'GPT-4', inputPrice: 10, outputPrice: 20 },
+      ]),
+    }),
+  },
+}));
+
 vi.mock('../../src/utils/config', () => ({
   config: {
     get: vi.fn(),

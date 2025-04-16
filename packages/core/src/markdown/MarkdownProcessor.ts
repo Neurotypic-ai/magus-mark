@@ -22,7 +22,10 @@ export class MarkdownProcessor {
   extractFrontmatter(content: string): string | null {
     const match = /^---\n([\s\S]*?)\n---/.exec(content);
 
-    return match?.[1] ?? null;
+    if (match?.[1] === undefined) return null;
+
+    // Return an empty string for empty frontmatter
+    return match[1];
   }
 
   /**
@@ -31,7 +34,8 @@ export class MarkdownProcessor {
    * @returns Content without frontmatter
    */
   removeFrontmatter(content: string): string {
-    return content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+    // Make sure to preserve the newlines after removing frontmatter
+    return content.replace(/^---\n[\s\S]*?\n---/, '');
   }
 
   /**
@@ -123,6 +127,7 @@ export class MarkdownProcessor {
       return content.replace(frontmatterRegex, `---\n${formattedFrontmatter}\n---`);
     } catch (error) {
       console.error('Error updating frontmatter:', error);
+      // Return the original content with the original frontmatter in case of error
       return content;
     }
   }

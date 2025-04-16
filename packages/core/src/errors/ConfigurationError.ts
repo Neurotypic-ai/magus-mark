@@ -11,7 +11,7 @@ export class ConfigurationError extends AppError {
       code: options.code ?? 'CONFIGURATION_ERROR',
       cause: options.cause,
       context: options.context,
-      recoverable: options.recoverable ?? true,
+      recoverable: options.recoverable ?? false,
     });
   }
 }

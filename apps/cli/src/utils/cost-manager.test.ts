@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { costManager } from './cost-manager';

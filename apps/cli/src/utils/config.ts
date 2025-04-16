@@ -6,7 +6,7 @@ import path from 'path';
 
 import Conf from 'conf';
 import { cosmiconfig } from 'cosmiconfig';
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 import { z } from 'zod';
 
 // Import deepMerge utility

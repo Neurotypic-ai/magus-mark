@@ -1,28 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TaxonomyManager } from '../tagging/TaxonomyManager';
+import { PromptEngineering } from './OpenAIClient';
 import { TaggingService } from './TaggingService';
 
 import type { Document } from '../models/Document';
 import type { TagSet } from '../models/TagSet';
 import type { OpenAIClient } from './OpenAIClient';
 
-// Create mock functions outside
-const mockCreateTaggingPrompt = vi.fn().mockReturnValue('mocked-prompt');
-const mockExtractRelevantSections = vi.fn((content: string, size: number) =>
-  content.length > size ? content.substring(0, size) : content
-);
-
-// Mock dependencies
-vi.mock('./openai-client', () => ({
-  PromptEngineering: {
-    createTaggingPrompt: mockCreateTaggingPrompt,
-    extractRelevantSections: mockExtractRelevantSections,
-  },
+// Create mock functions for PromptEngineering
+vi.mock('./OpenAIClient', () => ({
   OpenAIClient: vi.fn(),
+  PromptEngineering: {
+    createTaggingPrompt: vi.fn().mockReturnValue('mocked-prompt'),
+    extractRelevantSections: vi.fn((content: string, size: number): string => {
+      return content.length > size ? content.substring(0, size) : content;
+    }),
+  },
 }));
 
-vi.mock('./tagging/taxonomy-manager', () => ({
+// Mock TaxonomyManager
+vi.mock('../tagging/TaxonomyManager', () => ({
   TaxonomyManager: vi.fn().mockImplementation(() => ({
     getTaxonomyForPrompt: vi.fn().mockReturnValue({ domains: [], lifeAreas: [] }),
   })),
@@ -111,7 +109,7 @@ describe('TaggingService', () => {
 
       expect(result.success).toBe(true);
       expect(result.tags).toBeDefined();
-      expect(mockCreateTaggingPrompt).toHaveBeenCalled();
+      expect(PromptEngineering.createTaggingPrompt).toHaveBeenCalled();
       expect(mockOpenAIClient.makeRequest).toHaveBeenCalledWith(
         'mocked-prompt',
         expect.any(String),
@@ -169,7 +167,7 @@ describe('TaggingService', () => {
 
       await taggingService.tagDocument(longDocument);
 
-      expect(mockExtractRelevantSections).toHaveBeenCalledWith(expect.any(String), 8000);
+      expect(PromptEngineering.extractRelevantSections).toHaveBeenCalledWith(expect.any(String), 8000);
     });
   });
 

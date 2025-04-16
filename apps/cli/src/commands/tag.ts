@@ -4,7 +4,7 @@ import path from 'path';
 
 import chalk from 'chalk';
 import cliProgress from 'cli-progress';
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 
 import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
 import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
@@ -105,8 +105,8 @@ export const tagCommand: CommandModule = {
       // Parse arguments with proper types
       const options = argv as unknown as TagOptions;
       const verbose = options.verbose;
-      const model = options.model as AIModel | undefined;
-      const tagMode = options.tagMode as TagBehavior | undefined;
+      const model = options.model;
+      const tagMode = options.tagMode;
       const minConfidence = options.minConfidence;
       const reviewThreshold = options.reviewThreshold;
       const concurrency = options.concurrency ?? 3;

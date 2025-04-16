@@ -3,7 +3,7 @@ import path from 'path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
 import chalk from 'chalk';
-import * as fsExtra from 'fs-extra';
+import * as fs from 'fs-extra';
 
 import { ModelManager } from '@obsidian-magic/core/openai/ModelManager';
 
@@ -183,7 +183,7 @@ export const configInteractiveCommand: CommandModule = {
             // Safely check if path exists
             let exists = false;
             try {
-              exists = await fsExtra.pathExists(inputValue);
+              exists = await fs.pathExists(inputValue);
             } catch {
               return 'Error checking path existence';
             }
@@ -273,14 +273,14 @@ export const configInteractiveCommand: CommandModule = {
 
           // Safely ensure directory exists
           try {
-            await fsExtra.ensureDir(exportDir);
+            await fs.ensureDir(exportDir);
           } catch (error) {
             throw new Error(`Failed to create directory: ${error instanceof Error ? error.message : String(error)}`);
           }
 
           // Safely write config file
           try {
-            await fsExtra.writeJson(exportPath, configData, { spaces: 2 });
+            await fs.writeJson(exportPath, configData, { spaces: 2 });
             console.log(`Configuration exported to ${exportPath}`);
           } catch (error) {
             throw new Error(`Failed to write config file: ${error instanceof Error ? error.message : String(error)}`);

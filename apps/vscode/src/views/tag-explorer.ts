@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 
 import { initializeCore } from '@obsidian-magic/core';
 
-import type { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
 import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
 
 // Tag node representation for the tree view
@@ -32,9 +31,8 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    * Creates a new TagExplorer instance
    * @param context The extension context
    * @param taxonomyManager The taxonomy manager instance
-   * @param taggingService The tagging service instance
    */
-  constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager, _taggingService: TaggingService) {
+  constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager) {
     this.taxonomyManager = taxonomyManager;
 
     // Load initial tag data
@@ -144,35 +142,37 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
 
       // Convert taxonomy to TagNode structure
       // Create domain level nodes
-      this.tags = taxonomy.domains.map((domain) => {
-        // Get subdomains for this domain, ensuring we have an array
-        const subdomains = taxonomy.subdomains[domain];
-        const subdomainArray = Array.isArray(subdomains)
-          ? subdomains
-          : typeof subdomains === 'string'
-            ? [subdomains]
-            : [];
+      this.tags = await Promise.resolve(
+        taxonomy.domains.map((domain) => {
+          // Get subdomains for this domain, ensuring we have an array
+          const subdomains = taxonomy.subdomains[domain];
+          const subdomainArray = Array.isArray(subdomains)
+            ? subdomains
+            : typeof subdomains === 'string'
+              ? [subdomains]
+              : [];
 
-        // Create domain node
-        return {
-          id: domain,
-          name: domain,
-          type: 'domain' as const,
-          description: `${domain} domain`,
-          count: subdomainArray.length,
-          children: subdomainArray.map((subdomain: string) => {
-            // Create subdomain nodes
-            return {
-              id: `${domain}.${subdomain}`,
-              name: subdomain,
-              type: 'subdomain' as const,
-              description: `${subdomain} subdomain of ${domain}`,
-              count: 0, // We don't have usage count in the data model
-              children: [],
-            };
-          }),
-        };
-      });
+          // Create domain node
+          return {
+            id: domain,
+            name: domain,
+            type: 'domain' as const,
+            description: `${domain} domain`,
+            count: subdomainArray.length,
+            children: subdomainArray.map((subdomain: string) => {
+              // Create subdomain nodes
+              return {
+                id: `${domain}.${subdomain}`,
+                name: subdomain,
+                type: 'subdomain' as const,
+                description: `${subdomain} subdomain of ${domain}`,
+                count: 0, // We don't have usage count in the data model
+                children: [],
+              };
+            }),
+          };
+        })
+      );
 
       // Notify tree view of data changes
       this.refresh();
@@ -333,7 +333,7 @@ export function registerTagExplorer(context: vscode.ExtensionContext): vscode.Tr
   const core = initializeCore({});
 
   // Create tag explorer with core services
-  const tagExplorer = new TagExplorer(context, core.taxonomyManager, core.taggingService);
+  const tagExplorer = new TagExplorer(context, core.taxonomyManager);
 
   // Register the tree data provider
   const treeView = vscode.window.createTreeView('obsidianMagicTags', {

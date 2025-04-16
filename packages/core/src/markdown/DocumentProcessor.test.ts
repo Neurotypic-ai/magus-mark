@@ -12,7 +12,7 @@ const mockUpdateFrontmatter = vi.fn((content: string) => `UPDATED: ${content}`);
 const mockExtractTags = vi.fn().mockReturnValue([]);
 
 // Mock the FrontmatterProcessor class
-vi.mock('./frontmatter-processor', () => ({
+vi.mock('./FrontmatterProcessor', () => ({
   FrontmatterProcessor: vi.fn().mockImplementation(() => ({
     extractFrontmatter: mockExtractFrontmatter,
     updateFrontmatter: mockUpdateFrontmatter,

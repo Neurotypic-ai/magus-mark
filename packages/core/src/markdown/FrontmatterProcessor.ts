@@ -76,6 +76,10 @@ export class FrontmatterProcessor {
 
           // Handle array values
           if (value.startsWith('[') && value.endsWith(']')) {
+            // Check for malformed array
+            if (value.includes('[') && !value.includes(']')) {
+              throw new Error('Malformed array in frontmatter');
+            }
             value = value.substring(1, value.length - 1);
             frontmatter[key] = value.split(',').map((v) => v.trim());
           } else {
@@ -203,7 +207,14 @@ export class FrontmatterProcessor {
 
     try {
       const existingFrontmatter = this.extractFrontmatter(content);
-      const updatedFrontmatter = { ...existingFrontmatter };
+      const updatedFrontmatter: Record<string, unknown> = {};
+
+      // Copy all existing frontmatter except tags if we're replacing
+      for (const [key, value] of Object.entries(existingFrontmatter)) {
+        if (this.options.preserveExistingTags || key !== this.options.tagsKey) {
+          updatedFrontmatter[key] = value;
+        }
+      }
 
       // Update or replace tags
       if (this.options.preserveExistingTags) {
@@ -215,8 +226,8 @@ export class FrontmatterProcessor {
         const mergedTags = Array.from(new Set([...existingTags, ...newTagsArray]));
         updatedFrontmatter[this.options.tagsKey] = mergedTags;
       } else {
-        // Replace existing tags
-        Object.assign(updatedFrontmatter, newTags);
+        // Replace existing tags with new ones
+        updatedFrontmatter[this.options.tagsKey] = newTags[this.options.tagsKey];
       }
 
       // If using nested keys, update those as well

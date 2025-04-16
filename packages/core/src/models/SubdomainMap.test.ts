@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import type { SubdomainMap } from './SubdomainMap';
-import type { SubdomainTag } from './SubdomainTag';
 
 describe('SubdomainMap', () => {
   it('allows accessing subdomains by domain key', () => {
@@ -35,11 +34,6 @@ describe('SubdomainMap', () => {
   });
 
   it('extends Record<string, string[]>', () => {
-    // Test that SubdomainMap behaves like a string record
-    const testFn = (map: Record<string, readonly string[]>): void => {
-      // Function just for type checking
-    };
-
     // This should compile if SubdomainMap extends Record correctly
     const partial: Partial<SubdomainMap> = {
       'custom-domain': ['test1', 'test2'],

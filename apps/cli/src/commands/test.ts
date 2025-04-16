@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 
 import { Logger } from '@obsidian-magic/core/utils/Logger';
 import { formatCurrency, formatDuration } from '@obsidian-magic/core/utils/string';

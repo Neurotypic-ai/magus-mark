@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '@obsidian-magic/core/utils/Logger';
 
+import { benchmark } from '../utils/Chronometer';
 import { testCommand } from './test';
 
 import type { ArgumentsCamelCase, Argv } from 'yargs';
@@ -18,6 +19,10 @@ vi.mock('@obsidian-magic/core/utils/Logger', () => ({
       debug: vi.fn(),
       box: vi.fn(),
       configure: vi.fn(),
+      spinner: vi.fn().mockReturnValue({
+        stop: vi.fn(),
+        succeed: vi.fn(),
+      }),
     }),
   },
 }));
@@ -29,20 +34,77 @@ vi.mock('../../src/utils/config', () => ({
   },
 }));
 
-vi.mock('@obsidian-magic/core', () => ({
-  OpenAIClient: vi.fn().mockImplementation(() => ({
-    tagDocument: vi.fn().mockResolvedValue({
-      success: true,
-      result: {
-        content: 'Test response',
-        tokens: {
-          prompt: 100,
-          completion: 50,
-          total: 150,
+vi.mock('../utils/Chronometer', () => ({
+  benchmark: {
+    runBenchmark: vi.fn().mockResolvedValue({
+      isFail: () => false,
+      getValue: () => ({
+        models: [],
+        summary: {
+          bestOverall: 'gpt-4',
+          bestAccuracy: 'gpt-4',
+          bestCostEfficiency: 'gpt-3.5-turbo',
+          bestLatency: 'gpt-3.5-turbo',
         },
-      },
+        timestamp: new Date().toISOString(),
+        settings: {
+          samples: 10,
+          testSet: 'default',
+        },
+      }),
     }),
-  })),
+  },
+}));
+
+// Create a mock OpenAIClient
+const mockOpenAIClient = vi.fn().mockImplementation(() => ({
+  setApiKey: vi.fn(),
+  setModel: vi.fn(),
+  test: vi.fn().mockResolvedValue({
+    success: true,
+    result: {
+      content: 'Test response',
+      tokens: {
+        prompt: 100,
+        completion: 50,
+        total: 150,
+      },
+    },
+  }),
+}));
+
+vi.mock('@obsidian-magic/core', () => ({
+  OpenAIClient: mockOpenAIClient,
+}));
+
+// Mock fs-extra
+vi.mock('fs-extra', () => ({
+  pathExists: vi.fn().mockResolvedValue(true),
+  stat: vi.fn().mockResolvedValue({
+    isDirectory: () => false,
+  }),
+}));
+
+// Mock process.exit
+const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+// Get reference to the mocked benchmark function for assertions
+const mockBenchmarkRun = vi.mocked(benchmark.runBenchmark);
+
+// Mock the Result class
+vi.mock('@obsidian-magic/core/errors/Result', () => ({
+  Result: {
+    ok: vi.fn().mockImplementation((value) => ({
+      isFail: () => false,
+      getValue: () => value,
+      isOk: () => true,
+    })),
+    fail: vi.fn().mockImplementation((error) => ({
+      isFail: () => true,
+      getError: () => error,
+      isOk: () => false,
+    })),
+  },
 }));
 
 describe('testCommand', () => {
@@ -70,34 +132,20 @@ describe('testCommand', () => {
     expect(builderFn).toBeDefined();
     builderFn(yargsInstance);
 
-    expect(yargsInstance.option).toHaveBeenCalledWith('prompt', expect.any(Object));
-    expect(yargsInstance.option).toHaveBeenCalledWith('model', expect.any(Object));
+    // Check that expected options are defined
+    expect(yargsInstance.option).toHaveBeenCalledWith('benchmark', expect.any(Object));
+    expect(yargsInstance.option).toHaveBeenCalledWith('samples', expect.any(Object));
+    expect(yargsInstance.option).toHaveBeenCalledWith('test-set', expect.any(Object));
+    expect(yargsInstance.option).toHaveBeenCalledWith('models', expect.any(Object));
   });
 
   it('should call OpenAI with the specified prompt', async () => {
-    // Prepare mock OpenAIClient
-    const mockOpenAIClient = vi.fn().mockImplementation(() => ({
-      test: vi.fn().mockResolvedValue({
-        success: true,
-        result: {
-          content: 'Test response',
-          tokens: {
-            prompt: 100,
-            completion: 50,
-            total: 150,
-          },
-        },
-      }),
-    }));
-
-    vi.doMock('@obsidian-magic/core', () => ({
-      OpenAIClient: mockOpenAIClient,
-    }));
-
     // Call the handler with mock arguments
     const args = {
-      prompt: 'Test prompt',
-      model: 'gpt-4o',
+      benchmark: true, // Use the benchmark option
+      models: 'gpt-4o',
+      samples: 1,
+      verbose: true,
       _: [],
       $0: 'obsidian-magic',
     } as unknown as ArgumentsCamelCase;
@@ -106,65 +154,96 @@ describe('testCommand', () => {
     expect(handlerFn).toBeDefined();
     await handlerFn(args);
 
-    // Verify OpenAIClient was instantiated
-    expect(mockOpenAIClient).toHaveBeenCalled();
+    // Verify the benchmark function was called
+    expect(mockBenchmarkRun).toHaveBeenCalled();
 
     // Verify logger was called with results
-    expect(logger.info).toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Running benchmark'));
     expect(logger.box).toHaveBeenCalled();
   });
 
   it('should handle errors from OpenAI API', async () => {
-    // Mock the OpenAIClient to throw an error
-    const errorMessage = 'API Error';
-    const mockOpenAIClient = vi.fn().mockImplementation(() => ({
-      test: vi.fn().mockRejectedValue(new Error(errorMessage)),
-    }));
-
-    vi.doMock('@obsidian-magic/core', () => ({
-      OpenAIClient: mockOpenAIClient,
-    }));
+    // Mock the benchmark to throw an error
+    mockBenchmarkRun.mockRejectedValueOnce(new Error('API Error'));
 
     // Call the handler
     const args = {
-      prompt: 'Test prompt',
-      model: 'gpt-4o',
+      benchmark: true,
+      models: 'gpt-4o',
+      samples: 1,
       _: [],
       $0: 'obsidian-magic',
     } as unknown as ArgumentsCamelCase;
 
     const handlerFn = testCommand.handler;
     expect(handlerFn).toBeDefined();
+
+    // Execute handler
     await handlerFn(args);
 
     // Verify error handling
-    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining(errorMessage));
+    expect(logger.error).toHaveBeenCalledWith('Test command failed: API Error');
+    expect(mockExit).toHaveBeenCalledWith(1);
   });
 
   it('should display token usage information', async () => {
-    // Mock successful OpenAI response
-    const mockOpenAIClient = vi.fn().mockImplementation(() => ({
-      test: vi.fn().mockResolvedValue({
-        success: true,
-        result: {
-          content: 'Test response',
-          tokens: {
-            prompt: 100,
-            completion: 50,
-            total: 150,
+    // Mock successful benchmark with token info
+    const mockResult = {
+      isFail: () => false,
+      getValue: () => ({
+        models: [
+          {
+            model: 'gpt-4o',
+            accuracy: 0.95,
+            precision: 0.92,
+            recall: 0.9,
+            f1Score: 0.91,
+            tokensUsed: {
+              total: 1500,
+              input: 1000,
+              output: 500,
+            },
+            costIncurred: {
+              total: 0.05,
+              input: 0.02,
+              output: 0.03,
+            },
+            latency: {
+              average: 2000,
+              min: 1000,
+              max: 3000,
+              p50: 2000,
+              p90: 2800,
+              p95: 2900,
+            },
+            samples: 10,
+            failedSamples: 0,
+            duration: 15000,
           },
+        ],
+        summary: {
+          bestOverall: 'gpt-4o',
+          bestAccuracy: 'gpt-4o',
+          bestCostEfficiency: 'gpt-4o',
+          bestLatency: 'gpt-4o',
+        },
+        timestamp: new Date().toISOString(),
+        settings: {
+          samples: 10,
+          testSet: 'default',
         },
       }),
-    }));
+      isOk: () => true,
+    };
 
-    vi.doMock('@obsidian-magic/core', () => ({
-      OpenAIClient: mockOpenAIClient,
-    }));
+    // @ts-expect-error Mock return doesn't match full Result signature
+    mockBenchmarkRun.mockResolvedValueOnce(mockResult);
 
     // Call the handler
     const args = {
-      prompt: 'Test prompt',
-      model: 'gpt-4o',
+      benchmark: true,
+      models: 'gpt-4o',
+      samples: 10,
       _: [],
       $0: 'obsidian-magic',
     } as unknown as ArgumentsCamelCase;
@@ -174,6 +253,6 @@ describe('testCommand', () => {
     await handlerFn(args);
 
     // Verify token information was displayed
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('tokens'));
+    expect(logger.box).toHaveBeenCalledWith(expect.stringContaining('Tokens: 1,500'), expect.any(String));
   });
 });

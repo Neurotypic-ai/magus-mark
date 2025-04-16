@@ -1,6 +1,6 @@
 import path from 'path';
 
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 
 import { AppError } from '@obsidian-magic/core/errors/AppError';
 import { Result } from '@obsidian-magic/core/errors/Result';
