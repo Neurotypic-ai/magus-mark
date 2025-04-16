@@ -3,17 +3,6 @@ import { vi } from 'vitest';
 import { EventEmitter } from './EventEmitter.mock';
 
 /**
- * Embedded HTTP Service mock for MCPServer
- * Not exported - only for internal use by MCPServer
- */
-class HttpService {
-  get = vi.fn().mockResolvedValue({ status: 200, data: {} });
-  post = vi.fn().mockResolvedValue({ status: 200, data: {} });
-  put = vi.fn().mockResolvedValue({ status: 200, data: {} });
-  delete = vi.fn().mockResolvedValue({ status: 200, data: {} });
-}
-
-/**
  * Embedded WebSocket Service mock for MCPServer
  * Not exported - only for internal use by MCPServer
  */
@@ -48,7 +37,6 @@ class WebSocketService {
  * Contains embedded HTTP and WebSocket functionality
  */
 export class MCPServer {
-  private httpService = new HttpService();
   private webSocketService = new WebSocketService();
 
   initialize = vi.fn().mockResolvedValue(true);
