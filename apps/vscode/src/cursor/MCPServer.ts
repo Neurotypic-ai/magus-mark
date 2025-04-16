@@ -3,8 +3,8 @@ import * as http from 'http';
 import * as vscode from 'vscode';
 import { WebSocketServer } from 'ws';
 
-import { LanguageModelAPI } from './language-model-api';
-import { VSCodeParticipant } from './participants/vscode-participant';
+import { LanguageModelAPI } from './LanguageModelAPI';
+import { VSCodeParticipant } from './participants/VSCodeParticipants';
 
 import type { IncomingMessage } from 'http';
 import type { WebSocket } from 'ws';

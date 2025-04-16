@@ -1076,6 +1076,429 @@ That covers all the key components. Let's now implement the mocks according to t
 
 ---
 
+```diff
+  import { vi } from 'vitest';
++ import { EventEmitter } from './EventEmitter.mock';
+  
+  // Define types for VS Code related objects
+    ),
+  };
++ 
++ // VS Code extensions namespace
++ export const extensions = {
++   getExtension: vi.fn().mockImplementation((extensionId: string) => ({
++     id: extensionId,
++     isActive: true,
++     activate: vi.fn().mockResolvedValue(undefined),
++   })),
++ };
+  
+  // VS Code env namespace
+    };
+  }
+- 
+- export class EventEmitter<T = unknown> {
+-   event = vi.fn();
+-   fire = vi.fn();
+-   dispose = vi.fn();
+- }
+  
+  export class TreeItem {
+    commands,
+    workspace,
++   extensions,
+    env,
+    ExtensionContext,
+```
+
+---
+
+```diff
+- 
++ import { vi } from 'vitest';
++ 
++ /**
++  * Mock for LanguageModelAPI
++  */
++ export class LanguageModelAPI {
++   initializeApiKey = vi.fn();
++   getApiKey = vi.fn().mockReturnValue('test-api-key');
++   setDefaultModel = vi.fn();
++   registerLanguageModelProvider = vi.fn();
++   dispose = vi.fn();
++ }
++ 
++ export default LanguageModelAPI; 
+```
+
+---
+
+```diff
+- 
++ import { vi } from 'vitest';
++ import { EventEmitter } from './EventEmitter.mock';
++ 
++ /**
++  * Embedded HTTP Service mock for MCPServer
++  * Not exported - only for internal use by MCPServer
++  */
++ class HttpService {
++   get = vi.fn().mockResolvedValue({ status: 200, data: {} });
++   post = vi.fn().mockResolvedValue({ status: 200, data: {} });
++   put = vi.fn().mockResolvedValue({ status: 200, data: {} });
++   delete = vi.fn().mockResolvedValue({ status: 200, data: {} });
++ }
++ 
++ /**
++  * Embedded WebSocket Service mock for MCPServer
++  * Not exported - only for internal use by MCPServer
++  */
++ class WebSocketService {
++   connected = false;
++   
++   // Event emitters
++   onMessage = new EventEmitter();
++   onOpen = new EventEmitter();
++   onClose = new EventEmitter();
++   onError = new EventEmitter();
++   
++   connect = vi.fn().mockImplementation(() => {
++     this.connected = true;
++     return Promise.resolve(true);
++   });
++   
++   disconnect = vi.fn().mockImplementation(() => {
++     this.connected = false;
++     return Promise.resolve(true);
++   });
++   
++   send = vi.fn().mockResolvedValue(true);
++   
++   isConnected = vi.fn().mockImplementation(() => this.connected);
++   
++   dispose = vi.fn();
++ }
++ 
++ /**
++  * Mock for MCPServer class
++  * Contains embedded HTTP and WebSocket functionality
++  */
++ export class MCPServer {
++   private httpService = new HttpService();
++   private webSocketService = new WebSocketService();
++   
++   initialize = vi.fn().mockResolvedValue(true);
++   registerTools = vi.fn();
++   start = vi.fn().mockImplementation(() => {
++     this.webSocketService.connect();
++     return Promise.resolve(true);
++   });
++   
++   stop = vi.fn().mockImplementation(() => {
++     this.webSocketService.disconnect();
++     return Promise.resolve(true);
++   });
++   
++   sendMessage = vi.fn().mockImplementation((message: unknown) => {
++     return this.webSocketService.send(message);
++   });
++   
++   dispose = vi.fn();
++ }
++ 
++ export default MCPServer; 
+```
+
+---
+
+```diff
+  
+    sendMessage = vi.fn().mockImplementation((message: unknown) => {
+-     return this.webSocketService.send(message);
++     return this.webSocketService.send(message) as Promise<boolean>;
+    });
+  
+```
+
+---
+
+```diff
+- 
++ import { vi } from 'vitest';
++ import { EventEmitter } from './EventEmitter.mock';
++ 
++ /**
++  * Mock for VaultIntegration class
++  */
++ export class VaultIntegration {
++   // Event emitters
++   private _onVaultChanged = new EventEmitter();
++   onVaultChanged = this._onVaultChanged.event;
++   
++   private _onFileSynced = new EventEmitter();
++   onFileSynced = this._onFileSynced.event;
++   
++   // Methods
++   initialize = vi.fn().mockResolvedValue(true);
++   getVaultPath = vi.fn().mockReturnValue('/test/vault/path');
++   listFiles = vi.fn().mockResolvedValue([]);
++   readFile = vi.fn().mockResolvedValue('# Test note content');
++   writeFile = vi.fn().mockResolvedValue(true);
++   deleteFile = vi.fn().mockResolvedValue(true);
++   ensureDirectory = vi.fn().mockResolvedValue(true);
++   
++   // Simulates a file change event
++   triggerFileChange = vi.fn().mockImplementation((path: string) => {
++     this._onFileSynced.fire({ path, content: '# Updated content' });
++     return true;
++   });
++   
++   dispose = vi.fn();
++ }
++ 
++ export default VaultIntegration; 
+```
+
+---
+
+_**User**_
+
+Sorry to pause you so suddenly. I wanted to clean up some messed up files myself. We're all done. You can check @Refactor Mocks for VS Code Extension with PascalCase Naming @Enhance Vitest Configuration and Introduce VS Code Mocks to see what I did.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, excellent work on completing the mock refactoring! I see you've successfully implemented the PascalCase naming convention and properly organized the mock structure with encapsulated dependencies. 
+
+The approach you took with:
+- Separating `EventEmitter.mock.ts` as a foundation
+- Creating a comprehensive `VSCode.mock.ts` that imports the EventEmitter
+- Embedding HTTP and WebSocket functionality within `MCPServer.mock.ts`
+- Implementing standalone `LanguageModelAPI.mock.ts`
+- Building a proper `VaultIntegration.mock.ts` with event emitters
+
+This structure is clean, well-organized, and follows best practices for test mocks. The encapsulation of dependencies will make tests more maintainable and focused.
+
+Is there anything specific about your implementation that you'd like me to review or any additional testing scenarios you're considering for these mock components?
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Let's finish updating all these tests once and for all. Fix the remaining @Linter errors and issues with my @vscode tests and let's get this settled once and for all
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, I'll examine the remaining linter errors in the VS Code mocks and tests, then fix them. Let me first check the current test files:
+
+---
+
+Read file: apps/vscode/src/extension.test.ts
+
+---
+
+Read file: apps/vscode/src/vscode-integration.test.ts
+
+---
+
+<details>
+            <summary>Searched codebase "linter errors in VSCode.mock.ts" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L114-119 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L105-114 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L45-74 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L160-175 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L74-84 |
+| `apps/vscode/src/mocks/MCPServer.mock.ts` | L44-71 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L33-39 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L24-29 |
+| `apps/vscode/src/mocks/MCPServer.mock.ts` | L14-44 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L20-24 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L1-8 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L15-20 |
+| `apps/vscode/src/mocks/EventEmitter.mock.ts` | L1-10 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L140-153 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L153-160 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L8-15 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L39-45 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L29-33 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L119-140 |
+| `apps/vscode/src/mocks/LanguageModelAPI.mock.ts` | L12-14 |
+| `apps/vscode/src/mocks/LanguageModelAPI.mock.ts` | L1-12 |
+| `apps/vscode/src/mocks/EventEmitter.mock.ts` | L10-12 |
+| `apps/vscode/src/mocks/MCPServer.mock.ts` | L71-73 |
+| `apps/vscode/src/mocks/MCPServer.mock.ts` | L1-14 |
+| `apps/vscode/src/mocks/VSCode.mock.ts` | L84-105 |
+
+</details>
+
+---
+
+Let me check for linter errors in the mock files:
+
+---
+
+```bash
+cd /Users/khallmark/Desktop/Code/obsidian-magic && npx eslint ./apps/vscode/src/mocks/ --format=json
+```
+
+```
+Removing from PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.b
+in
+Added to PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.bin
+[{"filePath":"/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/mocks
+/EventEmitter.mock.ts","mess
+ages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCoun
+t":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[]},{"f
+ilePath":"/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/mocks/Lan
+guageModelAPI.mock.ts","messages":[],"suppressedMessages":[],"errorCount":0,"fat
+alErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"
+usedDeprecatedRules":[]},{"filePath":"/Users/khallmark/Desktop/Code/obsidian-mag
+ic/apps/vscode/src/mocks/MCPServer.mock.ts","messages":[],"suppressedMessages":[
+],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fix
+ableWarningCount":0,"usedDeprecatedRules":[]},{"filePath":"/Users/khallmark/Desk
+top/Code/obsidian-magic/apps/vscode/src/mocks/VSCode.mock.ts","messages":[{"rule
+Id":"@typescript-eslint/no-unused-vars","severity":2,"message":"'_name' is defin
+ed but never used.","line":68,"column":6,"nodeType":null,"messageId":"unusedVar"
+,"endLine":68,"endColumn":11},{"ruleId":"@typescript-eslint/no-unused-vars","sev
+erity":2,"message":"'_command' is defined but never used.","line":79,"column":6,
+"nodeType":null,"messageId":"unusedVar","endLine":79,"endColumn":14},{"ruleId":"
+@typescript-eslint/no-unused-vars","severity":2,"message":"'_callback' is define
+d but never used.","line":79,"column":24,"nodeType":null,"messageId":"unusedVar"
+,"endLine":79,"endColumn":33},{"ruleId":"@typescript-eslint/no-unused-vars","sev
+erity":2,"message":"'_listener' is defined but never used.","line":101,"column":
+6,"nodeType":null,"messageId":"unusedVar","endLine":101,"endColumn":15}],"suppre
+ssedMessages":[],"errorCount":4,"fatalErrorCount":0,"warningCount":0,"fixableErr
+orCount":0,"fixableWarningCount":0,"source":"import { vi } from 'vitest';\n\nimp
+ort { EventEmitter } from './EventEmitter.mock';\n\n// Define types for VS Code
+related objects\ninterface Disposable {\n  dispose(): void;\n}\n\ninterface Stat
+usBarItem extends Disposable {\n  text: string;\n  tooltip: string;\n  command:
+string;\n  show(): void;\n}\n\ninterface OutputChannel extends Disposable {\n  a
+ppendLine(value: string): void;\n  show(): void;\n}\n\ninterface TreeView extend
+s Disposable {\n  visible: boolean;\n}\n\ninterface Configuration {\n  get<T>(se
+ction: string, defaultValue?: T): T;\n  update(section: string, value: unknown,
+configurationTarget?: boolean | number): Promise<void>;\n}\n\ninterface Configur
+ationChangeEvent {\n  affectsConfiguration(section: string): boolean;\n}\n\n// V
+S Code enumerations\nexport const StatusBarAlignment = {\n  Left: 1,\n  Right: 2
+,\n} as const;\n\nexport const TreeItemCollapsibleState = {\n  None: 0,\n  Colla
+psed: 1,\n  Expanded: 2,\n} as const;\n\n// VS Code window namespace\nexport con
+st window = {\n  createStatusBarItem: vi.fn(\n    (): StatusBarItem => ({\n
+ text: '',\n      tooltip: '',\n      command: '',\n      show: vi.fn(),\n
+dispose: vi.fn(),\n    })\n  ),\n  showInformationMessage: vi.fn(),\n  showError
+Message: vi.fn(),\n  showWarningMessage: vi.fn(),\n  createTreeView: vi.fn(\n
+ (): TreeView => ({\n      visible: true,\n      dispose: vi.fn(),\n    })\n  ),
+\n  createOutputChannel: vi.fn(\n    (_name: string): OutputChannel => ({\n
+ appendLine: vi.fn(),\n      show: vi.fn(),\n      dispose: vi.fn(),\n    })\n
+),\n};\n\n// VS Code commands namespace\nexport const commands = {\n  registerCo
+mmand: vi.fn(\n    (_command: string, _callback: (...args: unknown[]) => unknown
+): Disposable => ({\n      dispose: vi.fn(),\n    })\n  ),\n  executeCommand: vi
+.fn(),\n};\n\n// VS Code workspace namespace\nexport const workspace = {\n  getC
+onfiguration: vi.fn(\n    (section: string): Configuration => ({\n      get: vi.
+fn(<T>(key: string, defaultValue?: T): T => {\n        if (section === 'obsidian
+Magic') {\n          if (key === 'vaults') return [] as unknown as T;\n
+ if (key === 'openAiApiKey') return 'test-api-key' as unknown as T;\n        }\n
+        return defaultValue as T;\n      }),\n      update: vi.fn(),\n    })\n
+),\n  onDidChangeConfiguration: vi.fn(\n    (_listener: (e: ConfigurationChangeE
+vent) => unknown): Disposable => ({\n      dispose: vi.fn(),\n    })\n  ),\n};\n
+\n// VS Code extensions namespace\nexport const extensions = {\n  getExtension:
+vi.fn().mockImplementation((extensionId: string) => ({\n    id: extensionId,\n
+  isActive: true,\n    activate: vi.fn().mockResolvedValue(undefined),\n  })),\n
+};\n\n// VS Code env namespace\nexport const env = {\n  appName: 'Visual Studio
+Code',\n};\n\n// VS Code classes\nexport class ExtensionContext {\n  subscriptio
+ns: Disposable[] = [];\n  extensionPath = '/test/extension/path';\n  globalState
+ = {\n    get: vi.fn((key: string): unknown => {\n      if (key === 'openAiApiKe
+y') return 'test-api-key';\n      return undefined;\n    }),\n    update: vi.fn(
+),\n  };\n  secrets = {\n    get: vi.fn((key: string): string | undefined => {\n
+      if (key === 'openAiApiKey') return 'test-api-key';\n      return undefined
+;\n    }),\n    store: vi.fn(),\n    delete: vi.fn(),\n  };\n}\n\nexport class T
+reeItem {\n  tooltip = '';\n  description = '';\n  contextValue = '';\n  command
+ = undefined;\n  iconPath = undefined;\n\n  constructor(\n    public label: stri
+ng,\n    public collapsibleState?: number\n  ) {}\n}\n\nexport class ThemeIcon {
+\n  constructor(\n    public id: string,\n    public color?: string\n  ) {}\n}\n
+\n// Default export of all VS Code mocks for easy module mocking\nexport default
+ {\n  window,\n  commands,\n  workspace,\n  extensions,\n  env,\n  ExtensionCont
+ext,\n  EventEmitter,\n  StatusBarAlignment,\n  TreeItemCollapsibleState,\n  Tre
+eItem,\n  ThemeIcon,\n};\n","usedDeprecatedRules":[]},{"filePath":"/Users/khallm
+ark/Desktop/Code/obsidian-magic/apps/vscode/src/mocks/VaultIntegration.mock.ts",
+"messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warnin
+gCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[]
+}]                  
+```
+
+---
+
+Now, let's check the test files for linter errors:
+
+---
+
+```bash
+cd /Users/khallmark/Desktop/Code/obsidian-magic && npx eslint ./apps/vscode/src/*.test.ts --format=json
+```
+
+```
+Removing from PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.bin
+Added to PATH: /Users/khallmark/Desktop/Code/obsidian-magic/node_modules/.bin
+[{"filePath":"/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscode/src/extension.test.ts","messages":[],
+"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWa
+rningCount":0,"usedDeprecatedRules":[]},{"filePath":"/Users/khallmark/Desktop/Code/obsidian-magic/apps/vscod
+e/src/vscode-integration.test.ts","messages":[{"ruleId":"@typescript-eslint/no-unsafe-assignment","severity"
+:2,"message":"Unsafe assignment of an error typed value.","line":16,"column":5,"nodeType":"AssignmentExpress
+ion","messageId":"anyAssignment","endLine":16,"endColumn":44},{"ruleId":"@typescript-eslint/no-unsafe-call",
+"severity":2,"message":"Unsafe construction of a(n) `error` type typed value.","line":16,"column":15,"nodeTy
+pe":"NewExpression","messageId":"unsafeNew","endLine":16,"endColumn":44},{"ruleId":"@typescript-eslint/no-un
+safe-argument","severity":2,"message":"Unsafe argument of type `any` assigned to a parameter of type `Extens
+ionContext`.","line":25,"column":14,"nodeType":"Identifier","messageId":"unsafeArgument","endLine":25,"endCo
+lumn":21},{"ruleId":"@typescript-eslint/no-unsafe-argument","severity":2,"message":"Unsafe argument of type
+`any` assigned to a parameter of type `ExtensionContext`.","line":32,"column":14,"nodeType":"Identifier","me
+ssageId":"unsafeArgument","endLine":32,"endColumn":21},{"ruleId":"@typescript-eslint/no-unsafe-argument","se
+verity":2,"message":"Unsafe argument of type `any` assigned to a parameter of type `ExtensionContext`.","lin
+e":37,"column":14,"nodeType":"Identifier","messageId":"unsafeArgument","endLine":37,"endColumn":21},{"ruleId
+":"@typescript-eslint/no-unsafe-argument","severity":2,"message":"Unsafe argument of type `any` assigned to
+a parameter of type `ExtensionContext`.","line":42,"column":14,"nodeType":"Identifier","messageId":"unsafeAr
+gument","endLine":42,"endColumn":21},{"ruleId":"@typescript-eslint/no-unsafe-argument","severity":2,"message
+":"Unsafe argument of type `any` assigned to a parameter of type `ExtensionContext`.","line":53,"column":14,
+"nodeType":"Identifier","messageId":"unsafeArgument","endLine":53,"endColumn":21}],"suppressedMessages":[],"
+errorCount":7,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"source":"/
+**\n * Test file for VS Code integration using Vitest\n */\n\nimport { afterEach, beforeEach, describe, expe
+ct, it, vi } from 'vitest';\nimport * as vscode from 'vscode';\n\nimport { activate, deactivate } from './ex
+tension';\n\ndescribe('VS Code Integration', () => {\n  // Mock context for testing\n  let context;\n\n  bef
+oreEach(() => {\n    vi.clearAllMocks();\n    context = new vscode.ExtensionContext();\n  });\n\n  afterEach
+(() => {\n    deactivate();\n    vi.restoreAllMocks();\n  });\n\n  it('should activate successfully in VS Co
+de environment', () => {\n    activate(context);\n    expect(vscode.window.createStatusBarItem).toHaveBeenCa
+lled();\n  });\n\n  it('should detect and handle Cursor environment', () => {\n    vi.spyOn(vscode.env, 'app
+Name', 'get').mockReturnValue('Cursor');\n\n    activate(context);\n    expect(vscode.window.createStatusBar
+Item).toHaveBeenCalled();\n  });\n\n  it('should register tag explorer view', () => {\n    activate(context)
+;\n    expect(vscode.window.createTreeView).toHaveBeenCalledWith('obsidianMagicTags', expect.any(Object));\n
+  });\n\n  it('should register commands', () => {\n    activate(context);\n    expect(vscode.commands.regist
+erCommand).toHaveBeenCalledWith('obsidian-magic.tagFile', expect.any(Function));\n    expect(vscode.commands
+.registerCommand).toHaveBeenCalledWith(\n      'obsidian-magic.openTagExplorer',\n      expect.any(Function)
+\n    );\n  });\n\n  it('should initialize MCP server in Cursor environment', () => {\n    vi.spyOn(vscode.e
+nv, 'appName', 'get').mockReturnValue('Cursor');\n\n    activate(context);\n    expect(vscode.window.createS
+tatusBarItem).toHaveBeenCalled();\n  });\n});\n","usedDeprecatedRules":[]}]
+
+```
+
+---
+
+Now let's fix these issues one by one. First, let's fix the linter errors in `VSCode.mock.ts`:
+
+---
+
 Cancelled
 
 ---

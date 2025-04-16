@@ -2,9 +2,9 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { LanguageModelAPI } from './cursor/language-model-api';
-import { MCPServer } from './cursor/mcp-server';
-import { VaultIntegrationService } from './services/vault-integration';
+import { LanguageModelAPI } from './cursor/LanguageModelAPI';
+import { MCPServer } from './cursor/MCPServer';
+import { VaultIntegrationService } from './services/VaultIntegrationService';
 import { registerTagExplorer } from './views/tag-explorer';
 
 // Store service instances for access from commands

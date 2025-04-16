@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import type { Tool } from '../mcp-server';
+import type { Tool } from '../MCPServer';
 
 /**
  * Interface for setting metadata

@@ -1,15 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type {
-  CursorCommand,
-  CursorDocument,
-  MCPContext,
-  TagDecoration,
-  TagTreeNode,
-  TagViewState,
-  VSCodeSettings,
-  WorkspaceDocument,
-} from './vscode';
+import type { CursorCommand } from './CursorCommand';
+import type { CursorDocument } from './CursorDocument';
+import type { MCPContext } from './MCPContext';
+import type { TagDecoration } from './TagDecoration';
+import type { TagTreeNode } from './TagTreeNode';
+import type { TagViewState } from './TagViewState';
+import type { VSCodeSettings } from './VSCodeSettings';
+import type { WorkspaceDocument } from './WorkspaceDocument';
 
 describe('VS Code Extension Types', () => {
   it('validates VS Code settings', () => {
