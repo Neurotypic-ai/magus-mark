@@ -2091,6 +2091,244 @@ _**Assistant**_
 
 ---
 
+Your Lordship, after consulting the VS Code documentation, it seems our approach isn't quite aligned with their recommended best practices. While we've successfully fixed our immediate issues, there's a more "VS Code approved" way to test extensions.
+
+VS Code's recommended testing approach is quite different from what we've implemented:
+
+1. **Our current approach:**
+   - Mocking the VS Code API in Node.js environment
+   - Using Vitest as the test runner
+   - Creating dummy modules in node_modules
+
+2. **VS Code's recommended approach:**
+   - Running tests in an actual VS Code "Extension Development Host"
+   - Using the `@vscode/test-cli` and `@vscode/test-electron` packages
+   - Using Mocha as the test runner
+   - Accessing the real VS Code API, not mocks
+
+Their approach launches a real VS Code instance to run your tests, which provides a more accurate testing environment. Your tests would have access to the genuine VS Code API, not mocks.
+
+Would you like me to:
+
+1. Keep our current solution (which works for your immediate needs)
+2. Outline how to transition to VS Code's recommended testing approach
+3. Create a hybrid approach where simple tests use our current solution and integration tests use VS Code's approach
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Let's look into option 2 with a comparison of our current vitest solution vs a mocha solution. vitest does couple us to vite, which we don't use.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+# VS Code Testing Approaches: Vitest vs VS Code's Recommended Mocha
+
+Your Grace, here's a comprehensive comparison of our current solution versus the VS Code-recommended approach, along with implementation steps for transitioning.
+
+## Current Vitest Approach vs. VS Code Recommended Approach
+
+| Aspect | Our Current Vitest Solution | VS Code Recommended Mocha Solution |
+|--------|---------------------------|-----------------------------------|
+| Test Runner | Vitest | Mocha (via @vscode/test-cli) |
+| Environment | Node.js with mocked VS Code API | Actual VS Code instance ("Extension Development Host") |
+| API Access | Complex mock implementation | Real VS Code API (no mocking needed) |
+| Dependencies | Coupled to Vite (unnecessary) | @vscode/test-cli, @vscode/test-electron |
+| Configuration | Manual vitest.config.js | Simple .vscode-test.js configuration |
+| Test Fidelity | Limited by mock quality | High (tests in real VS Code environment) |
+| Debug Support | Complex setup | Built-in VS Code debugging |
+| Integration | Requires manual mocking of all aspects | Automatic VS Code integration |
+| Maintenance | High (update mocks as VS Code changes) | Low (real VS Code APIs) |
+
+## Implementation Plan for Transitioning to VS Code's Approach
+
+### 1. Install Required Dependencies
+
+```bash
+npm install --save-dev @vscode/test-cli @vscode/test-electron mocha @types/mocha
+```
+
+### 2. Create VS Code Test Configuration
+
+Create a `.vscode-test.js` file in your project root:
+
+```javascript
+const { defineConfig } = require('@vscode/test-cli');
+
+module.exports = defineConfig({
+  files: 'out/test/**/*.test.js',
+  workspaceFolder: './test-fixtures',
+  mocha: {
+    ui: 'tdd',
+    timeout: 20000
+  }
+});
+```
+
+### 3. Update package.json Scripts
+
+```json
+"scripts": {
+  "test": "vscode-test",
+  "pretest": "npm run compile",
+  "compile": "tsc -p ./",
+  "watch": "tsc -watch -p ./"
+}
+```
+
+### 4. Create Test Runner
+
+Create a test setup file (e.g., `src/test/suite/index.ts`):
+
+```typescript
+import * as path from 'path';
+import * as Mocha from 'mocha';
+import * as glob from 'glob';
+
+export function run(): Promise<void> {
+  // Create the mocha test
+  const mocha = new Mocha({
+    ui: 'tdd',
+    color: true
+  });
+
+  const testsRoot = path.resolve(__dirname, '..');
+
+  return new Promise((resolve, reject) => {
+    glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
+      if (err) {
+        return reject(err);
+      }
+
+      // Add files to the test suite
+      files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+
+      try {
+        // Run the mocha test
+        mocha.run(failures => {
+          if (failures > 0) {
+            reject(new Error(`${failures} tests failed.`));
+          } else {
+            resolve();
+          }
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
+```
+
+### 5. Convert a Test Example
+
+Here's how our TagExplorer.test.ts would look using the VS Code approach:
+
+```typescript
+import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { TagExplorer } from '../../views/TagExplorer';
+import { before, after, describe, it } from 'mocha';
+
+// Test suite using VS Code's approach
+suite('TagExplorer Tests', () => {
+  let tagExplorer: TagExplorer;
+  let mockContext: vscode.ExtensionContext;
+
+  suiteSetup(async () => {
+    // Access the actual extension
+    const ext = vscode.extensions.getExtension('YourName.obsidian-magic-vscode');
+    await ext?.activate();
+    
+    // Get the real extension context and services
+    mockContext = (global as any).testContext || {};
+    
+    // Create real TagExplorer with some test data
+    tagExplorer = new TagExplorer(mockContext, {
+      // Provide necessary test data/mocks
+    });
+  });
+  
+  test('should initialize with taxonomy data', async () => {
+    // No need to mock - use real VS Code APIs
+    assert.ok(tagExplorer);
+    // ... rest of test
+  });
+  
+  // ... other tests
+});
+```
+
+### 6. Configure tsconfig.json for Test Outputs
+
+Ensure your tsconfig.json includes test files and outputs them to a location that matches your test configuration:
+
+```json
+{
+  "compilerOptions": {
+    "outDir": "out",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/**/*"
+  ]
+}
+```
+
+### 7. Create Extension Debugging Configuration
+
+Add a launch.json configuration for extension testing:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Extension Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
+      "preLaunchTask": "npm: compile"
+    }
+  ]
+}
+```
+
+## Advantages of Transitioning
+
+1. **Simplified Testing**: No complex mocking required
+2. **Higher Fidelity**: Tests run in an actual VS Code instance
+3. **Better Debugging**: Native debugging support through VS Code
+4. **Official Support**: Following VS Code's recommended approach
+5. **Future-Proof**: Tests automatically adapt to VS Code API changes
+6. **Removing Vite Dependency**: Eliminate coupling to a build tool you don't use elsewhere
+
+## Implementation Challenges
+
+1. **Migration Effort**: Converting existing tests takes time
+2. **Different Test Syntax**: Mocha uses different patterns than Vitest
+3. **Test Performance**: Tests might be slightly slower as they launch VS Code instances
+
+Would you like me to elaborate on any specific aspect of this transition plan?
+
+Your Humble Servant, Sebastien
+
+---
+
 
 
 ---
