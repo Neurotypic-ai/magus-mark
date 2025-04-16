@@ -1,0 +1,12 @@
+import { defineFlatConfig } from 'eslint-define-config';
+import baseConfig from '../../../eslint.config.js';
+
+export default defineFlatConfig([
+  ...baseConfig,
+  {
+    files: ['src/**/*.ts'<% if (withReact) { %>, 'src/**/*.tsx'<% } %>],
+    rules: {
+      // Add any project-specific rules here
+    }
+  }
+]); 

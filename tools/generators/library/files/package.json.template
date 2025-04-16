@@ -1,0 +1,32 @@
+{
+  "name": "<%= name %>",
+  "version": "0.1.0",
+  "description": "<%= description %>",
+  "keywords": [<%= tags ? tags.split(',').map(tag => `"${tag.trim()}"`) : '' %>],
+  "author": "Obsidian Magic",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf ./dist ./out-tsc ./coverage",
+    "test": "<%= unitTestRunner === 'vitest' ? 'vitest run' : 'echo \"No tests configured\"' %>",
+    "test:watch": "<%= unitTestRunner === 'vitest' ? 'vitest' : 'echo \"No tests configured\"' %>",
+    "test:coverage": "<%= unitTestRunner === 'vitest' ? 'vitest run --coverage' : 'echo \"No tests configured\"' %>",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {<% if (withReact) { %>
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"<% } %>
+  },
+  "devDependencies": {<% if (withReact) { %>
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",<% } %><% if (unitTestRunner === 'vitest') { %>
+    "vitest": "^1.3.1",
+    "@vitest/coverage-v8": "^1.3.1",<% } %>
+    "typescript": "^5.8.3",
+    "eslint": "^8.56.0"
+  }
+} 

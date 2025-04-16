@@ -1,0 +1,12 @@
+/**
+ * <%= description %>
+ *
+ * @packageDocumentation
+ */
+
+export const VERSION = '0.1.0';
+
+// TODO: Add your library exports here
+<% if (withReact) { %>
+export { default as Example } from './components/Example';
+<% } %> 

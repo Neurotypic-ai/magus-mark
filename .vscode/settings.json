@@ -6,7 +6,12 @@
     "**/.hg": true,
     "**/.svn": true,
     "**/CVS": true,
-    "**/Thumbs.db": true
+    "**/Thumbs.db": true,
+    "**/dist": false,
+    "**/out": false,
+    "**/coverage": true,
+    "**/.nx": true,
+    "**/*.tsbuildinfo": true
   },
   "files.watcherExclude": {
     "**/build/**": true,
@@ -15,14 +20,18 @@
     "**/documentation/**": true,
     "**/node_modules/**": true,
     "**/out/**": true,
-    "**/public/build/**": true
+    "**/public/build/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
   },
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
-    "*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.d.ts",
-    "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx",
-    "*.js": "${capture}.test.js, ${capture}.spec.js"
+    "*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.d.ts, ${capture}.ts.map",
+    "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx, ${capture}.tsx.map",
+    "*.js": "${capture}.test.js, ${capture}.spec.js, ${capture}.js.map",
+    "tsconfig.json": "tsconfig.*.json",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .npmrc"
   },
   "js/ts.implicitProjectConfig.checkJs": true,
   "js/ts.implicitProjectConfig.experimentalDecorators": true,
@@ -66,7 +75,7 @@
     "node:test",
     "react-router-dom"
   ],
-  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifier": "shortest",
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.preferTypeOnlyAutoImports": true,
   "typescript.surveys.enabled": false,
@@ -88,6 +97,12 @@
   },
   "typescript.workspaceSymbols.excludeLibrarySymbols": false,
   "typescript.workspaceSymbols.scope": "allOpenProjects",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.suggest.completeFunctionCalls": true,
+  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+  "eslint.workingDirectories": [{ "pattern": "apps/*/" }, { "pattern": "packages/*/" }],
+  "eslint.codeActionsOnSave.rules": ["!@typescript-eslint/no-unsafe-*"],
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#47395f",
     "activityBar.background": "#47395f",
@@ -107,7 +122,8 @@
     "titleBar.activeBackground": "#2f263f",
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#2f263f99",
-    "titleBar.inactiveForeground": "#e7e7e799"
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "statusBar.noFolderBackground": "#007acc"
   },
   "peacock.color": "#2f263f",
   "eslint.lintTask.enable": true,
@@ -116,5 +132,20 @@
   "prettier.configPath": "./prettier.config.js",
   "vitest.experimentalStaticAstCollect": true,
   "vitest.shellType": "terminal",
-  "vitest.filesWatcherInclude": "**/src/**/*.{ts|tsx}"
+  "vitest.filesWatcherInclude": "**/src/**/*.{ts|tsx}",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "markdown.preview.breaks": true,
+  "markdown.preview.linkify": true,
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "on",
+      "strings": "on",
+      "other": "on"
+    }
+  }
 }

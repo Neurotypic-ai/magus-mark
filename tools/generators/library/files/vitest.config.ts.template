@@ -1,0 +1,24 @@
+import path from 'node:path';
+import { mergeConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
+
+import baseConfig from '../../../config/vitest/base.config';
+
+export default mergeConfig(
+  baseConfig,
+  defineConfig({
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@test': path.resolve(__dirname, './test')
+      }
+    },
+    test: {
+      environment: <% if (withReact) { %>'jsdom'<% } else { %>'node'<% } %>,
+      coverage: {
+        reporter: ['text', 'json', 'html'],
+        reportsDirectory: './coverage'
+      }
+    }
+  })
+); 

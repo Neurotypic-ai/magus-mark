@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+/**
+ * <%= name %> - <%= description %>
+ */
+import { program } from 'commander';
+
+// Define the CLI
+program
+  .name('<%= name %>')
+  .description('<%= description %>')
+  .version('0.1.0');
+
+// Add commands
+program
+  .command('hello')
+  .description('Say hello')
+  .argument('<name>', 'Name to greet')
+  .option('-u, --uppercase', 'Output in uppercase')
+  .action((name, options) => {
+    let message = `Hello, ${name}!`;
+    if (options.uppercase) {
+      message = message.toUpperCase();
+    }
+    console.log(message);
+  });
+
+// Error handling for unknown commands
+program.on('command:*', (operands) => {
+  console.error(`Error: Unknown command '${operands[0]}'`);
+  const availableCommands = program.commands.map((cmd) => cmd.name());
+  console.error(`Available commands: ${availableCommands.join(', ')}`);
+  process.exitCode = 1;
+});
+
+// Parse the command line arguments
+program.parse(); 

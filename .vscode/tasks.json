@@ -1,37 +1,225 @@
 {
   "version": "2.0.0",
   "tasks": [
+    // Workspace-level tasks
     {
-      "type": "npm",
-      "script": "watch",
-      "problemMatcher": "$tsc-watch",
+      "label": "build:all",
+      "type": "shell",
+      "command": "npx nx run-many --target=build --all",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "test:all",
+      "type": "shell",
+      "command": "npx nx run-many --target=test --all",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint:all",
+      "type": "shell",
+      "command": "npx nx run-many --target=lint --all",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "clean:all",
+      "type": "shell",
+      "command": "npx nx run-many --target=clean --all",
+      "problemMatcher": []
+    },
+
+    // VS Code extension tasks
+    {
+      "label": "build:vscode",
+      "type": "shell",
+      "command": "npx nx build vscode",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "build:vscode-tests",
+      "type": "shell",
+      "command": "cd apps/vscode && npm run compile",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "watch:vscode",
+      "type": "shell",
+      "command": "cd apps/vscode && npm run watch",
+      "group": "build",
       "isBackground": true,
+      "problemMatcher": ["$tsc-watch"],
       "presentation": {
         "reveal": "never"
-      },
+      }
+    },
+    {
+      "label": "test:vscode",
+      "type": "shell",
+      "command": "npx nx test vscode",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "package:vscode",
+      "type": "shell",
+      "command": "cd apps/vscode && npx vsce package",
+      "group": "build",
+      "problemMatcher": []
+    },
+
+    // CLI tasks
+    {
+      "label": "build:cli",
+      "type": "shell",
+      "command": "npx nx build cli",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "test:cli",
+      "type": "shell",
+      "command": "npx nx test cli",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "watch:cli",
+      "type": "shell",
+      "command": "cd apps/cli && npm run watch",
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"]
+    },
+    {
+      "label": "run:cli",
+      "type": "shell",
+      "command": "node apps/cli/dist/index.js",
+      "dependsOn": ["build:cli"],
+      "problemMatcher": []
+    },
+
+    // Obsidian plugin tasks
+    {
+      "label": "build:obsidian-plugin",
+      "type": "shell",
+      "command": "npx nx build obsidian-plugin",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "test:obsidian-plugin",
+      "type": "shell",
+      "command": "npx nx test obsidian-plugin",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "watch:obsidian-plugin",
+      "type": "shell",
+      "command": "cd apps/obsidian-plugin && npm run watch",
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"]
+    },
+    {
+      "label": "dev:obsidian-plugin",
+      "type": "shell",
+      "command": "cd apps/obsidian-plugin && npm run dev",
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"]
+    },
+
+    // Core package tasks
+    {
+      "label": "build:core",
+      "type": "shell",
+      "command": "npx nx build core",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "test:core",
+      "type": "shell",
+      "command": "npx nx test core",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "test:core:watch",
+      "type": "shell",
+      "command": "cd packages/core && npm run test:watch",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+
+    // Vitest tasks
+    {
+      "label": "test:current-file",
+      "type": "shell",
+      "command": "npx vitest run ${relativeFile}",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "test:current-file:watch",
+      "type": "shell",
+      "command": "npx vitest ${relativeFile}",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "test:coverage",
+      "type": "shell",
+      "command": "npx nx run-many --target=test:coverage --all",
+      "group": "test",
+      "problemMatcher": []
+    },
+
+    // MCP Server tasks
+    {
+      "label": "start:mcp-server",
+      "type": "shell",
+      "command": "node apps/cli/dist/mcp-server.js",
+      "dependsOn": ["build:cli"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+
+    // Type checking tasks
+    {
+      "label": "typecheck:all",
+      "type": "shell",
+      "command": "npx nx run-many --target=typecheck --all",
+      "problemMatcher": ["$tsc"]
+    },
+
+    // Project-specific linting tasks
+    {
+      "label": "lint:fix:all",
+      "type": "shell",
+      "command": "npx nx run-many --target=lint:fix --all",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+
+    // Default build task (used by VS Code when pressing Ctrl+Shift+B)
+    {
+      "label": "build:default",
+      "dependsOn": ["build:vscode"],
       "group": {
         "kind": "build",
         "isDefault": true
       }
     },
+
+    // Default test task (used by VS Code when pressing Ctrl+Shift+T)
     {
-      "type": "npm",
-      "script": "test",
+      "label": "test:default",
+      "dependsOn": ["test:all"],
       "group": {
         "kind": "test",
         "isDefault": true
-      },
-      "problemMatcher": [],
-      "label": "npm: test",
-      "detail": "npm run compile && vscode-test"
-    },
-    {
-      "type": "npm",
-      "script": "compile",
-      "group": "build",
-      "problemMatcher": "$tsc",
-      "label": "npm: compile",
-      "detail": "tsc -p ./"
+      }
     }
   ]
 }

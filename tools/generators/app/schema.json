@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "$id": "app",
+  "title": "Create a new application",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Application name",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What name would you like to use for the application?",
+      "pattern": "^[a-zA-Z].*$"
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of application to create",
+      "enum": ["cli", "vscode", "obsidian"],
+      "default": "cli",
+      "x-prompt": {
+        "message": "What type of application would you like to create?",
+        "type": "list",
+        "items": [
+          {
+            "value": "cli",
+            "label": "CLI application"
+          },
+          {
+            "value": "vscode",
+            "label": "VS Code extension"
+          },
+          {
+            "value": "obsidian",
+            "label": "Obsidian plugin"
+          }
+        ]
+      }
+    },
+    "description": {
+      "type": "string",
+      "description": "Application description",
+      "x-prompt": "Provide a brief description of the application:"
+    },
+    "tags": {
+      "type": "string",
+      "description": "Add tags to the application (comma-separated)",
+      "x-prompt": "Add tags to the application (comma-separated):"
+    },
+    "unitTestRunner": {
+      "type": "string",
+      "enum": ["vitest", "mocha", "none"],
+      "description": "Test runner to use for unit tests",
+      "default": "vitest"
+    },
+    "linter": {
+      "type": "string",
+      "enum": ["eslint", "none"],
+      "description": "Linting tool to use",
+      "default": "eslint"
+    }
+  },
+  "required": ["name", "type"]
+}

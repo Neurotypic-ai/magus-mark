@@ -1,24 +1,116 @@
 {
   "version": "0.2.0",
   "configurations": [
+    // VS Code Extension debugging
     {
-      "name": "Extension",
+      "name": "VS Code Extension",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "preLaunchTask": "${defaultBuildTask}"
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/vscode"],
+      "outFiles": ["${workspaceFolder}/apps/vscode/dist/**/*.js"],
+      "preLaunchTask": "build:vscode"
     },
     {
-      "name": "Extension Tests",
+      "name": "VS Code Extension Tests",
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode",
+        "--extensionTestsPath=${workspaceFolder}/apps/vscode/out/test/suite/index"
       ],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "npm: compile"
+      "outFiles": ["${workspaceFolder}/apps/vscode/out/**/*.js"],
+      "preLaunchTask": "build:vscode-tests"
+    },
+
+    // CLI debugging
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug CLI",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/apps/cli/dist/index.js",
+      "args": ["tag", "--input", "example.md"],
+      "outFiles": ["${workspaceFolder}/apps/cli/dist/**/*.js"],
+      "preLaunchTask": "build:cli",
+      "console": "integratedTerminal"
+    },
+
+    // Obsidian Plugin debugging (using Obsidian Developer Mode)
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Debug Obsidian Plugin",
+      "url": "obsidian://open?vault=YourVaultName",
+      "webRoot": "${workspaceFolder}/apps/obsidian-plugin",
+      "sourceMapPathOverrides": {
+        "webpack:///src/*": "${webRoot}/src/*"
+      },
+      "preLaunchTask": "build:obsidian-plugin"
+    },
+
+    // Core library tests debugging
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Core Tests",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${relativeFile}"],
+      "cwd": "${workspaceFolder}/packages/core",
+      "smartStep": true,
+      "console": "integratedTerminal"
+    },
+
+    // MCP Server debugging
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug MCP Server",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/apps/cli/dist/mcp-server.js",
+      "args": [],
+      "outFiles": ["${workspaceFolder}/apps/cli/dist/**/*.js"],
+      "preLaunchTask": "build:cli",
+      "console": "integratedTerminal"
+    },
+
+    // Vitest debugging
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Current Test File",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${relativeFile}"],
+      "smartStep": true,
+      "console": "integratedTerminal"
+    },
+
+    // Nx Tasks debugging
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Nx Task",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/node_modules/nx/bin/nx.js",
+      "args": ["${input:nxTask}", "${input:nxProject}"],
+      "console": "integratedTerminal"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "nxTask",
+      "type": "pickString",
+      "description": "What Nx task do you want to run?",
+      "options": ["build", "test", "lint", "serve", "clean"]
+    },
+    {
+      "id": "nxProject",
+      "type": "pickString",
+      "description": "Which project?",
+      "options": ["cli", "vscode", "obsidian-plugin", "core"]
     }
   ]
 }

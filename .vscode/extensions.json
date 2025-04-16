@@ -1,0 +1,41 @@
+{
+  "recommendations": [
+    // Essential extensions
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "EditorConfig.EditorConfig",
+
+    // Nx support
+    "nrwl.angular-console",
+
+    // Markdown/Obsidian
+    "DavidAnson.vscode-markdownlint",
+
+    // Code quality tools
+    "usernamehw.errorlens",
+
+    // Git tools
+    "eamodio.gitlens",
+
+    // Productivity
+    "christian-kohler.path-intellisense",
+    "formulahendry.code-runner",
+    "naumovs.color-highlight",
+
+    // Go
+    "golang.go",
+
+    // Mocha
+    "coderline.mocha-vscode",
+
+    "ms-vscode.hexeditor",
+    "DutchIgor.json-viewer",
+    "johnpapa.vscode-peacock",
+    "SpecStory.specstory-vscode",
+    "spmeesseman.vscode-taskexplorer",
+    "vitest.explorer",
+    "nguyenngoclong.terminal-keeper",
+    "bierner.markdown-mermaid",
+    "foxundermoon.shell-format"
+  ]
+}

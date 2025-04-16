@@ -1,0 +1,65 @@
+# <%= name %>
+
+<%= description %>
+
+## Installation
+
+```bash
+pnpm add <%= name %>
+```
+
+## Usage
+
+```typescript
+import { /* ... */ } from '<%= name %>';
+
+// Your code here
+```
+
+## API
+
+TODO: Document the API
+
+## Development
+
+### Building
+
+```bash
+pnpm build
+```
+
+<% if (unitTestRunner === 'vitest') { %>
+### Testing
+
+```bash
+pnpm test
+```
+
+Run tests in watch mode:
+
+```bash
+pnpm test:watch
+```
+
+Generate code coverage:
+
+```bash
+pnpm test:coverage
+```
+<% } %>
+
+### Linting
+
+```bash
+pnpm lint
+```
+
+Fix linting issues:
+
+```bash
+pnpm lint:fix
+```
+
+## License
+
+MIT 

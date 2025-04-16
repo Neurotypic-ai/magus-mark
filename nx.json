@@ -44,13 +44,12 @@
       "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
-    "lint": {
-      "dependsOn": ["^lint"],
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["{projectRoot}/coverage"],
       "cache": true
     },
-    "test": {
-      "dependsOn": ["^test"],
-      "outputs": ["{projectRoot}/coverage"],
+    "lint": {
       "cache": true
     },
     "bundle-analysis": {
@@ -116,5 +115,29 @@
   "namedInputs": {
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"],
     "default": ["sharedGlobals"]
+  },
+  "extends": "nx/presets/npm.json",
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "test", "lint"]
+      }
+    }
+  },
+  "affected": {
+    "defaultBase": "main"
+  },
+  "generators": {
+    "library": {
+      "factory": "./tools/generators/library/index.mjs",
+      "schema": "./tools/generators/library/schema.json",
+      "description": "Create a new library package"
+    },
+    "app": {
+      "factory": "./tools/generators/app/index.mjs",
+      "schema": "./tools/generators/app/schema.json",
+      "description": "Create a new application"
+    }
   }
 }

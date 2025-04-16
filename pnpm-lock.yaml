@@ -17,6 +17,9 @@ importers:
       '@ianvs/prettier-plugin-sort-imports':
         specifier: ^4.4.1
         version: 4.4.1(prettier@3.5.3)
+      '@nx/devkit':
+        specifier: ^20.8.0
+        version: 20.8.0(nx@20.8.0)
       '@nx/eslint':
         specifier: 20.8.0
         version: 20.8.0(@babel/traverse@7.27.0)(@zkochan/js-yaml@0.0.7)(eslint@9.24.0(jiti@2.4.2))(nx@20.8.0)

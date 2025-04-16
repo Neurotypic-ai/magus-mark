@@ -1,0 +1,19 @@
+<% if (withReact) { %>import React from 'react';
+
+interface ExampleProps {
+  message?: string;
+}
+
+/**
+ * An example React component
+ */
+const Example: React.FC<ExampleProps> = ({ message = 'Hello from <%= name %>!' }) => {
+  return (
+    <div className="<%= name %>-example">
+      <p>{message}</p>
+    </div>
+  );
+};
+
+export default Example;
+<% } %> 
