@@ -32,6 +32,12 @@ interface ConfigurationChangeEvent {
   affectsConfiguration(section: string): boolean;
 }
 
+interface MarkdownStringInterface {
+  appendMarkdown(value: string): MarkdownStringInterface;
+  isTrusted: boolean;
+  supportHtml: boolean;
+}
+
 // VS Code enumerations
 export const StatusBarAlignment = {
   Left: 1,
@@ -58,6 +64,8 @@ export const window = {
   showInformationMessage: vi.fn(),
   showErrorMessage: vi.fn(),
   showWarningMessage: vi.fn(),
+  showInputBox: vi.fn(),
+  showQuickPick: vi.fn(),
   createTreeView: vi.fn(
     (): TreeView => ({
       visible: true,
@@ -159,6 +167,18 @@ export class ThemeIcon {
   ) {}
 }
 
+export class MarkdownString implements MarkdownStringInterface {
+  isTrusted = false;
+  supportHtml = false;
+
+  constructor(public value = '') {}
+
+  appendMarkdown(value: string): this {
+    this.value += value;
+    return this;
+  }
+}
+
 // Default export of all VS Code mocks for easy module mocking
 export default {
   window,
@@ -172,4 +192,5 @@ export default {
   TreeItemCollapsibleState,
   TreeItem,
   ThemeIcon,
+  MarkdownString,
 };

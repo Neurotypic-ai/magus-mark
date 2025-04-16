@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { LanguageModelAPI } from './cursor/LanguageModelAPI';
 import { MCPServer } from './cursor/MCPServer';
 import { VaultIntegrationService } from './services/VaultIntegrationService';
-import { registerTagExplorer } from './views/tag-explorer';
+import { registerTagExplorer } from './views/TagExplorer';
 
 // Store service instances for access from commands
 let mcpServer: MCPServer | undefined;

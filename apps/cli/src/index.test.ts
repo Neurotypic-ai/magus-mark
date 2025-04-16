@@ -1,24 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Now we can import Logger after the mock is set up
 import { Logger } from '@obsidian-magic/core/utils/Logger';
 
+// Import and setup Logger mock first - this MUST be done before importing Logger
+import { mockLoggerInstance, resetLoggerMock, setupLoggerMock } from './__mocks__/Logger';
 import { costManager } from './utils/cost-manager';
 
-const logger = Logger.getInstance('cli');
+setupLoggerMock();
 
-// Mock dependencies
-vi.mock('@obsidian-magic/core/utils/Logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    box: vi.fn(),
-    configure: vi.fn(),
-  },
-}));
-
-vi.mock('../src/utils/cost-manager', () => ({
+// Other mocks
+vi.mock('./utils/cost-manager', () => ({
   costManager: {
     saveUsageData: vi.fn(),
   },
@@ -44,56 +36,54 @@ vi.mock('yargs', () => {
 });
 
 // Mock command modules
-vi.mock('../src/commands/tag', () => ({
+vi.mock('./commands/tag', () => ({
   tagCommand: { command: 'tag', describe: 'Tag command', builder: vi.fn(), handler: vi.fn() },
 }));
 
-vi.mock('../src/commands/test', () => ({
+vi.mock('./commands/test', () => ({
   testCommand: { command: 'test', describe: 'Test command', builder: vi.fn(), handler: vi.fn() },
 }));
 
-vi.mock('../src/commands/config', () => ({
+vi.mock('./commands/config', () => ({
   configCommand: { command: 'config', describe: 'Config command', builder: vi.fn(), handler: vi.fn() },
 }));
 
-vi.mock('../src/commands/config-interactive', () => ({
+vi.mock('./commands/config-interactive', () => ({
   configInteractiveCommand: { command: 'setup', describe: 'Setup command', builder: vi.fn(), handler: vi.fn() },
 }));
 
-vi.mock('../src/commands/stats', () => ({
+vi.mock('./commands/stats', () => ({
   statsCommand: { command: 'stats', describe: 'Stats command', builder: vi.fn(), handler: vi.fn() },
 }));
 
-vi.mock('../src/commands/taxonomy', () => ({
+vi.mock('./commands/taxonomy', () => ({
   taxonomyCommand: { command: 'taxonomy', describe: 'Taxonomy command', builder: vi.fn(), handler: vi.fn() },
 }));
 
 describe('CLI Application', () => {
+  // Create a reference to the logger instance for tests
+  const logger = Logger.getInstance('cli');
+
   beforeEach(() => {
+    // Reset all mocks before each test
     vi.clearAllMocks();
+    resetLoggerMock();
   });
 
-  // In a real test, we would test the main function
-  // but for now, we'll just test that our mocks are correctly set up
   it('should have mocked dependencies correctly', () => {
     expect(logger.configure).toBeDefined();
     expect(costManager.saveUsageData).toBeDefined();
   });
 
-  // Testing error handling would be important in real tests
   it('should handle errors correctly', () => {
     // Verify error handler is registered
     const errorHandlers = process.listeners('uncaughtException');
     expect(errorHandlers.length).toBeGreaterThan(0);
 
-    // Mock error logging for verification
-    const mockErrorLog = vi.spyOn(logger, 'error');
-
-    // In a real test we would trigger the error handler
-    // and verify error handling behavior
-
-    // For now we're just verifying the logger is available
+    // Log an error
     logger.error('Test error log');
-    expect(mockErrorLog).toHaveBeenCalledWith('Test error log');
+
+    // Verify the mock was called with the expected arguments
+    expect(mockLoggerInstance.error).toHaveBeenCalledWith('Test error log');
   });
 });

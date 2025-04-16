@@ -5,7 +5,7 @@ import { initializeCore } from '@obsidian-magic/core';
 import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
 
 // Tag node representation for the tree view
-interface TagNode {
+export interface TagNode {
   id: string;
   name: string;
   description?: string | undefined;
