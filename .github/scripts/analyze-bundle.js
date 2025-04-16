@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Bundle analysis script for Obsidian Magic plugin
+ * Bundle analysis script for Obsidian Magic components
  *
- * This script analyzes the plugin bundle size and composition
- * using the source-map package from Mozilla instead of the outdated source-map-explorer.
+ * This script analyzes bundle size and composition
+ * using the source-map package from Mozilla.
+ *
+ * Usage: node analyze-bundle.js <component-type> <bundle-path> <output-path>
+ *
+ * Example: node analyze-bundle.js obsidian-plugin ../apps/obsidian-plugin/dist/main.js ../apps/obsidian-plugin/bundle-analysis.html
+ * Example: node analyze-bundle.js vscode ../apps/vscode/dist/extension.js ../apps/vscode/bundle-analysis.html
  */
 
 const fs = require('fs');
@@ -13,11 +18,28 @@ const sourceMap = require('source-map');
 const zlib = require('zlib');
 const ejs = require('ejs');
 
+// Parse command line arguments
+const componentType = process.argv[2] || 'unknown';
+const bundlePath = process.argv[3] || '';
+const outputPath = process.argv[4] || '';
+
+if (!bundlePath) {
+  console.error('❌ Error: Bundle path is required');
+  console.log('Usage: node analyze-bundle.js <component-type> <bundle-path> <output-path>');
+  process.exit(1);
+}
+
+if (!outputPath) {
+  console.error('❌ Error: Output path is required');
+  console.log('Usage: node analyze-bundle.js <component-type> <bundle-path> <output-path>');
+  process.exit(1);
+}
+
 // Configuration
-const MAIN_BUNDLE = path.resolve(__dirname, '../../dist/main.js');
-const MAIN_SOURCE_MAP = path.resolve(__dirname, '../../dist/main.js.map');
-const OUTPUT_HTML = path.resolve(__dirname, '../../bundle-analysis.html');
-const OUTPUT_JSON = path.resolve(__dirname, '../../bundle-analysis.json');
+const MAIN_BUNDLE = path.resolve(process.cwd(), bundlePath);
+const MAIN_SOURCE_MAP = `${MAIN_BUNDLE}.map`;
+const OUTPUT_HTML = path.resolve(process.cwd(), outputPath);
+const OUTPUT_JSON = path.resolve(process.cwd(), path.dirname(outputPath), 'bundle-analysis.json');
 const TEMPLATE_PATH = path.resolve(__dirname, './bundle-analysis-template.ejs');
 
 // Check if bundle exists
@@ -32,7 +54,7 @@ if (!fs.existsSync(MAIN_SOURCE_MAP)) {
   process.exit(1);
 }
 
-console.log('🔍 Analyzing bundle size and composition...');
+console.log(`🔍 Analyzing ${componentType} bundle size and composition...`);
 
 async function analyzeBundleSize() {
   try {
@@ -59,7 +81,7 @@ async function analyzeBundleSize() {
         const source = pos.source.replace(/^webpack:\/\/\//, '');
 
         // Skip if the source is the bundle itself or null
-        if (!source || source === 'main.js') continue;
+        if (!source || source === path.basename(MAIN_BUNDLE)) continue;
 
         // Group by package or file
         const packageName = getPackageName(source);
@@ -89,7 +111,7 @@ async function analyzeBundleSize() {
       totalBytes,
       bundles: [
         {
-          name: 'main.js',
+          name: path.basename(MAIN_BUNDLE),
           files: sortedFiles.reduce((acc, file) => {
             acc[file.name] = { size: file.size };
             return acc;
@@ -106,6 +128,7 @@ async function analyzeBundleSize() {
       const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
       const html = ejs.render(template, {
         data: {
+          componentType,
           totalSize: (totalBytes / 1024).toFixed(2) + ' KB',
           files: sortedFiles,
         },
@@ -113,7 +136,7 @@ async function analyzeBundleSize() {
       fs.writeFileSync(OUTPUT_HTML, html);
     } else {
       // Generate a simple HTML report if template doesn't exist
-      generateSimpleHtmlReport(sortedFiles, totalBytes);
+      generateSimpleHtmlReport(sortedFiles, totalBytes, componentType);
     }
 
     // Display summary
@@ -162,13 +185,13 @@ function getPackageName(source) {
 }
 
 // Generate a simple HTML report
-function generateSimpleHtmlReport(files, totalBytes) {
+function generateSimpleHtmlReport(files, totalBytes, componentType) {
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Bundle Analysis Report</title>
+      <title>${componentType} Bundle Analysis Report</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
@@ -182,7 +205,7 @@ function generateSimpleHtmlReport(files, totalBytes) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>Bundle Analysis Report</h1>
+          <h1>${componentType} Bundle Analysis Report</h1>
           <p>Total Size: ${(totalBytes / 1024).toFixed(2)} KB</p>
         </div>
         <table class="file-list">
