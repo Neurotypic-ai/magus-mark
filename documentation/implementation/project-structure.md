@@ -1,36 +1,39 @@
 # Project Structure
 
-This document outlines the project structure of Obsidian Magic, explaining the organization of packages, files, and key directories.
+This document outlines the project structure of Obsidian Magic, explaining the organization of packages, files, and key
+directories.
 
 ## Repository Structure
 
-Obsidian Magic is organized as a monorepo using pnpm workspaces and Nx for build orchestration. The repository is structured as follows:
+Obsidian Magic is organized as a monorepo using pnpm workspaces and Nx for build orchestration. The repository is
+structured as follows:
 
 ```
 obsidian-magic/
-├── apps/                  # Application packages
-│   ├── cli/               # Command-line interface
-│   ├── desktop/           # Desktop application (Electron)
-│   ├── obsidian-plugin/   # Obsidian plugin integration
-│   └── vscode-extension/  # VS Code extension
-├── packages/              # Library packages
-│   ├── core/              # Core functionality and shared logic
-│   ├── tagging/           # Tagging and classification services
-│   ├── ui/                # Shared UI components
-│   └── utils/             # Utility functions and helpers
-├── config/                # Shared configuration
-│   ├── eslint/            # ESLint configurations
-│   ├── jest/              # Jest configurations
-│   ├── prettier/          # Prettier configurations
-│   ├── tsconfig/          # TypeScript configurations
-│   └── vitest/            # Vitest configurations
-├── scripts/               # Build and utility scripts
-├── documentation/         # Project documentation
-│   ├── architecture/      # Architecture documentation
-│   ├── api/               # API documentation
-│   └── implementation/    # Implementation details
-├── e2e/                   # End-to-end tests
-└── examples/              # Example usage and configurations
+├── apps/                    # Application packages
+│   ├── cli/                 # Command-line interface
+│   ├── obsidian-plugin/     # Obsidian plugin integration
+│   └── vscode/              # VS Code extension with MCP server
+├── packages/                # Library packages
+│   ├── core/                # Core functionality and shared logic
+│   ├── types/               # Shared type definitions
+│   ├── testing/             # Test utilities and mocks
+│   └── utils/               # Utility functions and helpers
+├── config/                  # Shared configuration
+│   ├── eslint/              # ESLint configurations
+│   ├── typescript/          # TypeScript configurations
+│   └── vitest/              # Vitest configurations
+├── .cursor/                 # Cursor AI rules
+│   └── rules/               # Project rules for AI assistance
+├── documentation/           # Project documentation
+│   ├── cli/                 # CLI documentation
+│   ├── core/                # Core documentation
+│   ├── implementation/      # Implementation details
+│   ├── obsidian-plugin/     # Plugin documentation
+│   └── vscode-integration/  # VS Code extension documentation
+├── prompts/                 # OpenAI prompt templates
+└── .specstory/              # Project history and specifications
+    └── history/             # Historical project updates
 ```
 
 ## Package Organization
@@ -39,59 +42,74 @@ obsidian-magic/
 
 #### CLI (`apps/cli`)
 
-The command-line interface for Obsidian Magic, allowing users to interact with magic functionality from the terminal.
+The command-line interface for Obsidian Magic, allowing users to interact with tagging functionality from the terminal.
 
 ```
 apps/cli/
 ├── src/
-│   ├── commands/          # Command implementations
-│   ├── services/          # CLI-specific services
-│   └── utils/             # CLI utilities
-├── package.json
-└── tsconfig.json
-```
-
-#### Desktop App (`apps/desktop`)
-
-The Electron-based desktop application for Obsidian Magic.
-
-```
-apps/desktop/
-├── src/
-│   ├── main/              # Main process code
-│   ├── preload/           # Preload scripts
-│   └── renderer/          # Renderer process code (UI)
-├── package.json
-└── tsconfig.json
+│   ├── commands/           # Command implementations
+│   │   ├── tag-command.ts
+│   │   └── tag-command.test.ts # Co-located tests
+│   ├── services/           # CLI-specific services
+│   │   ├── cli-service.ts
+│   │   └── cli-service.test.ts
+│   └── utils/              # CLI utilities
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+├── tsconfig.test.json      # Test build config
+├── vitest.config.ts        # Vitest configuration
+└── package.json            # Package dependencies and scripts
 ```
 
 #### Obsidian Plugin (`apps/obsidian-plugin`)
 
-The Obsidian plugin implementation for integrating Magic functionality into Obsidian.
+The Obsidian plugin implementation for integrating tagging functionality into Obsidian.
 
 ```
 apps/obsidian-plugin/
 ├── src/
-│   ├── components/        # UI components specific to Obsidian
-│   ├── services/          # Plugin-specific services
-│   ├── main.ts            # Plugin entry point
-│   └── manifest.json      # Plugin manifest
-├── package.json
-└── tsconfig.json
+│   ├── components/         # UI components specific to Obsidian
+│   │   ├── TagEditor.tsx
+│   │   └── TagEditor.test.tsx
+│   ├── services/           # Plugin-specific services
+│   │   ├── obsidian-service.ts
+│   │   └── obsidian-service.test.ts
+│   ├── main.ts             # Plugin entry point
+│   └── manifest.json       # Plugin manifest
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+├── tsconfig.test.json      # Test build config
+├── vitest.config.ts        # Vitest configuration
+└── package.json            # Package dependencies and scripts
 ```
 
-#### VS Code Extension (`apps/vscode-extension`)
+#### VS Code Extension (`apps/vscode`)
 
-The VS Code extension for integrating Magic functionality into VS Code.
+The VS Code extension for integrating tagging functionality with MCP server capabilities.
 
 ```
-apps/vscode-extension/
+apps/vscode/
 ├── src/
-│   ├── commands/          # Extension commands
-│   ├── providers/         # VS Code providers
-│   └── extension.ts       # Extension entry point
-├── package.json
-└── tsconfig.json
+│   ├── commands/           # Extension commands
+│   │   ├── tag-command.ts
+│   │   └── tag-command.test.ts # Currently Vitest tests
+│   ├── providers/          # VS Code providers
+│   │   ├── tag-provider.ts
+│   │   └── tag-provider.test.ts
+│   ├── mcp/                # Model Context Protocol server
+│   │   ├── server.ts       # MCP server implementation
+│   │   ├── tools/          # Tool implementations
+│   │   │   ├── tag-tool.ts
+│   │   │   └── content-tool.ts
+│   │   └── context/        # Context management
+│   ├── extension.ts        # Extension entry point
+│   └── extension.test.ts   # Mocha integration tests
+├── .mocharc.js             # Mocha configuration
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+├── tsconfig.test.json      # Test build config
+├── vitest.config.ts        # Vitest configuration (unit tests)
+└── package.json            # Package dependencies and scripts
 ```
 
 ### Library Packages
@@ -103,42 +121,68 @@ Core functionality and shared logic used across multiple applications.
 ```
 packages/core/
 ├── src/
-│   ├── analyzers/         # Content analysis
-│   ├── models/            # Core data models
-│   ├── parsers/           # Content parsing
-│   └── services/          # Core services
-├── package.json
-└── tsconfig.json
+│   ├── config/             # Configuration management
+│   │   ├── config.ts
+│   │   └── config.test.ts
+│   ├── errors/             # Error handling and Result pattern
+│   │   ├── result.ts
+│   │   └── result.test.ts
+│   ├── logger/             # Logging utilities
+│   │   ├── logger.ts
+│   │   └── logger.test.ts
+│   ├── markdown/           # Markdown parsing
+│   │   ├── parser.ts
+│   │   └── parser.test.ts
+│   ├── openai/             # OpenAI integration
+│   │   ├── client.ts
+│   │   └── client.test.ts
+│   ├── tagging/            # Content tagging and classification
+│   │   ├── classifier.ts
+│   │   └── classifier.test.ts
+│   └── index.ts            # Package exports
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+├── tsconfig.test.json      # Test build config
+├── vitest.config.ts        # Vitest configuration
+└── package.json            # Package dependencies and scripts
 ```
 
-#### Tagging (`packages/tagging`)
+#### Types (`packages/types`)
 
-Tagging and classification services for auto-tagging content.
+Shared type definitions used across all packages.
 
 ```
-packages/tagging/
+packages/types/
 ├── src/
-│   ├── classifiers/       # Content classifiers
-│   ├── models/            # Tagging models
-│   ├── extractors/        # Key information extractors
-│   └── services/          # Tagging services
-├── package.json
-└── tsconfig.json
+│   ├── config/             # Configuration types
+│   ├── tagging/            # Tagging-related types
+│   ├── openai/             # OpenAI-related types
+│   ├── errors/             # Error and Result types
+│   └── index.ts            # Package exports
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+└── package.json            # Package dependencies and scripts
 ```
 
-#### UI (`packages/ui`)
+#### Testing (`packages/testing`)
 
-Shared UI components used across multiple applications.
+Testing utilities and mocks for consistent testing across packages.
 
 ```
-packages/ui/
+packages/testing/
 ├── src/
-│   ├── components/        # UI components
-│   ├── hooks/             # React hooks
-│   ├── styles/            # Shared styles and themes
-│   └── utils/             # UI utilities
-├── package.json
-└── tsconfig.json
+│   ├── mocks/              # Shared mock implementations
+│   │   ├── config.ts       # Configuration mocks
+│   │   ├── openai.ts       # OpenAI mocks
+│   │   └── logger.ts       # Logger mocks
+│   ├── factories/          # Test data factories
+│   │   ├── tag-factory.ts  # Tag data factory
+│   │   └── config-factory.ts # Configuration factory
+│   ├── assertions/         # Custom test assertions
+│   └── index.ts            # Package exports
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+└── package.json            # Package dependencies and scripts
 ```
 
 #### Utils (`packages/utils`)
@@ -148,68 +192,99 @@ Utility functions and helpers used across multiple packages.
 ```
 packages/utils/
 ├── src/
-│   ├── date/              # Date utilities
-│   ├── file/              # File handling utilities
-│   ├── string/            # String manipulation utilities
-│   └── testing/           # Testing utilities
-├── package.json
-└── tsconfig.json
+│   ├── file/               # File handling utilities
+│   │   ├── file-utils.ts
+│   │   └── file-utils.test.ts
+│   ├── string/             # String manipulation utilities
+│   │   ├── string-utils.ts
+│   │   └── string-utils.test.ts
+│   ├── date/               # Date utilities
+│   │   ├── date-utils.ts
+│   │   └── date-utils.test.ts
+│   └── index.ts            # Package exports
+├── tsconfig.json           # TS config with references
+├── tsconfig.lib.json       # Production build config
+├── tsconfig.test.json      # Test build config
+├── vitest.config.ts        # Vitest configuration
+└── package.json            # Package dependencies and scripts
 ```
 
 ## Configuration Organization
 
-### ESLint Configuration
+### Centralized Configuration
 
-ESLint configuration is centralized in the `config/eslint` directory:
-
-```
-config/eslint/
-├── base.js                # Base ESLint configuration
-├── react.js               # React-specific ESLint configuration
-├── node.js                # Node.js-specific ESLint configuration
-└── typescript.js          # TypeScript-specific ESLint configuration
-```
-
-### TypeScript Configuration
-
-TypeScript configuration is centralized in the `config/tsconfig` directory:
+Configuration is centralized in the `config/` directory:
 
 ```
-config/tsconfig/
-├── base.json              # Base TypeScript configuration
-├── react.json             # React-specific TypeScript configuration
-├── node.json              # Node.js-specific TypeScript configuration
-└── library.json           # Library-specific TypeScript configuration
+config/
+├── typescript/
+│   ├── base.json           # Base TypeScript configuration
+│   ├── library.json        # Library package configuration
+│   └── test.json           # Test configuration
+├── eslint/
+│   ├── base.js             # Base ESLint configuration
+│   └── react.js            # React-specific configuration
+└── vitest/
+    ├── base.ts             # Base Vitest configuration
+    └── react.ts            # React-specific test configuration
 ```
 
-### Prettier Configuration
+Each package extends these base configurations in their local config files.
 
-Prettier configuration is centralized in the `config/prettier` directory:
+### TypeScript Project References
 
-```
-config/prettier/
-└── config.js              # Prettier configuration
-```
-
-### Jest Configuration
-
-Jest configuration is centralized in the `config/jest` directory:
+The project uses TypeScript project references for efficient builds:
 
 ```
-config/jest/
-├── base.js                # Base Jest configuration
-├── react.js               # React-specific Jest configuration
-└── node.js                # Node.js-specific Jest configuration
+// Root tsconfig.json
+{
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/utils" },
+    { "path": "./packages/core" },
+    { "path": "./packages/testing" },
+    { "path": "./apps/cli" },
+    { "path": "./apps/obsidian-plugin" },
+    { "path": "./apps/vscode" }
+  ]
+}
+
+// Package tsconfig.json
+{
+  "extends": "../../config/typescript/base.json",
+  "references": [
+    { "path": "../types" }
+  ]
+}
 ```
 
-### Vitest Configuration
+### Nx Workspace Configuration
 
-Vitest configuration is centralized in the `config/vitest` directory:
+The project uses Nx with inferred targets for build orchestration:
 
-```
-config/vitest/
-├── base.config.ts         # Base Vitest configuration
-└── react.config.ts        # React-specific Vitest configuration
+```json
+// nx.json
+{
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "dependsOn": []
+    }
+  },
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "test", "lint"]
+      }
+    }
+  }
+}
 ```
 
 ## Documentation Organization
@@ -218,17 +293,23 @@ Documentation is organized in the `documentation` directory:
 
 ```
 documentation/
-├── architecture/          # Architecture documentation
-│   ├── overview.md        # System overview
-│   ├── decisions/         # Architecture decision records
-│   └── diagrams/          # Architecture diagrams
-├── api/                   # API documentation
-│   ├── core/              # Core API documentation
-│   └── tagging/           # Tagging API documentation
-└── implementation/        # Implementation documentation
-    ├── code-quality.md    # Code quality standards
-    ├── testing.md         # Testing strategy
-    └── project-structure.md # Project structure
+├── cli/                    # CLI documentation
+│   ├── cli-overview.md
+│   ├── command-structure.md
+│   └── workflow-orchestration.md
+├── core/                   # Core documentation
+│   ├── tagging-model.md
+│   └── openai-integration.md
+├── implementation/         # Implementation documentation
+│   ├── project-structure.md
+│   ├── build-system.md
+│   ├── testing-strategy.md
+│   └── error-handling.md
+├── obsidian-plugin/        # Obsidian plugin documentation
+│   └── plugin-overview.md
+├── vscode-integration/     # VS Code integration documentation
+│   └── vscode-overview.md
+└── README.md               # Documentation overview
 ```
 
 ## Key Files
@@ -237,10 +318,10 @@ documentation/
 
 - `package.json`: Root package configuration for the monorepo
 - `pnpm-workspace.yaml`: pnpm workspace configuration
-- `nx.json`: Nx configuration
-- `tsconfig.json`: Root TypeScript configuration
-- `.eslintrc.js`: Root ESLint configuration
-- `.prettierrc.js`: Root Prettier configuration
+- `nx.json`: Nx configuration with inferred targets
+- `tsconfig.json`: Root TypeScript configuration with project references
+- `eslint.config.js`: ESLint flat configuration
+- `prettier.config.js`: Prettier configuration
 - `.gitignore`: Git ignore file
 - `.github/workflows/`: GitHub Actions CI/CD workflows
 
@@ -248,104 +329,36 @@ documentation/
 
 Each package contains the following key configuration files:
 
-- `package.json`: Package metadata and dependencies
-- `tsconfig.json`: Package-specific TypeScript configuration
-- `README.md`: Package documentation
+- `package.json`: Package dependencies and scripts
+- `tsconfig.json`: TS config with project references
+- `tsconfig.lib.json`: Production build configuration
+- `tsconfig.test.json`: Test configuration
+- `vitest.config.ts`: Test runner configuration
 
-## Dependency Management
+## Testing Strategy
 
-Dependencies are managed using pnpm, with the following organizational principles:
+The project implements a robust testing strategy:
 
-1. **Shared Dependencies**: Common dependencies used across multiple packages are defined in the root `package.json` as devDependencies.
-2. **Package-specific Dependencies**: Dependencies used only by a specific package are defined in that package's `package.json`.
-3. **Peer Dependencies**: Libraries that should be provided by the consuming application are defined as peerDependencies.
+- **Co-located Tests**: Test files are placed next to the files they test
+- **Vitest**: Primary testing framework for most packages
+- **Mocha**: Used for VS Code extension integration tests
+- **Testing Package**: Shared mocks and test utilities
+- **Result Pattern**: Consistent error handling and testing
 
-## Build and Execution Flow
+## Build System
 
-The build process is orchestrated using Nx, with the following key targets:
+The project uses an Nx-based build system with:
 
-- `build`: Compiles the package
-- `test`: Runs tests for the package
-- `lint`: Runs ESLint on the package
-- `e2e`: Runs end-to-end tests (for application packages)
+- **Nx Commands**: `nx build`, `nx test`, `nx lint`
+- **TypeScript Project References**: Incremental builds
+- **Centralized Configuration**: Shared configs in `config/`
+- **Git Hooks**: Pre-commit linting with Husky and lint-staged
 
-The dependency graph is managed by Nx, ensuring that packages are built in the correct order.
+## More Information
 
-## Import Conventions
+For more detailed information on specific aspects of the project architecture, refer to the following documents:
 
-Internal imports follow these conventions:
-
-1. **Absolute Imports**: Packages use absolute imports from the root of the package:
-   ```typescript
-   // Preferred
-   import { parseMarkdown } from 'src/parsers/markdown';
-   
-   // Avoid
-   import { parseMarkdown } from '../../parsers/markdown';
-   ```
-
-2. **Inter-package Imports**: Packages import from other packages using their package name:
-   ```typescript
-   import { parseMarkdown } from '@obsidian-magic/core';
-   ```
-
-## Asset Management
-
-Static assets are organized as follows:
-
-```
-<package>/
-├── src/
-│   └── assets/            # Static assets
-│       ├── images/        # Image assets
-│       ├── styles/        # Style assets
-│       └── fonts/         # Font assets
-```
-
-## Tests Organization
-
-Tests are co-located with the source code they are testing:
-
-```
-<package>/src/
-├── feature/
-│   ├── feature.ts         # Feature implementation
-│   └── feature.test.ts    # Feature tests
-```
-
-Integration tests are placed in a `__tests__` directory at the appropriate level:
-
-```
-<package>/
-├── src/
-│   └── feature/
-├── __tests__/
-│   └── feature-integration.test.ts
-```
-
-## Adding New Packages
-
-To add a new package to the monorepo:
-
-1. Create a new directory in the appropriate location (`apps/` or `packages/`).
-2. Create a `package.json` file with the appropriate dependencies.
-3. Create a `tsconfig.json` file extending from the appropriate base configuration.
-4. Update the `pnpm-workspace.yaml` file if needed.
-5. Add the package to the Nx configuration if needed.
-
-## Resource and Configuration Sharing
-
-Shared resources and configurations are organized as follows:
-
-1. **Environment Variables**: Environment variables are managed using `.env` files at the root of the repository and in each application package.
-2. **Shared Constants**: Shared constants are defined in the `packages/utils` package.
-3. **Shared Types**: Shared types are defined in the appropriate packages and exported for use by other packages.
-
-## Scalability Considerations
-
-The project structure is designed to scale with the following considerations:
-
-1. **Modular Architecture**: New functionality can be added by creating new packages or extending existing ones.
-2. **Clear Boundaries**: Packages have clear boundaries and responsibilities, making it easier to understand and modify the codebase.
-3. **Shared Infrastructure**: Common infrastructure (configuration, testing, etc.) is shared across packages, reducing duplication and maintenance costs.
-4. **Dependency Management**: Dependencies are managed at the package level, allowing for fine-grained control over what each package depends on.
+- [Build System](./build-system.md)
+- [Testing Strategy](./testing-strategy.md)
+- [Error Handling](./error-handling.md)
+- [CI/CD Workflows](./ci-cd-workflows.md)

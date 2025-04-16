@@ -6,44 +6,42 @@ alwaysApply: false
 
 # Build System
 
-The project uses a unified workspace build system with TypeScript project references for efficient builds:
+The project uses a modern Nx-based workspace with TypeScript project references for efficient builds:
 
 ## Workspace Structure
 
 - **pnpm Workspace**: Manages dependencies across multiple packages
+- **Nx Build System**: Coordinates builds, tests, and other operations using inferred targets
 - **TypeScript Project References**: Enables incremental builds and proper dependency tracking
 - **ESLint Flat Config**: Single configuration file for consistent linting across the workspace
 - **Prettier**: Consistent code formatting across all packages
+- **Centralized Configuration**: Shared configurations in the `config/` directory
 
-## App Builds
+## Nx Implementation
 
-### CLI Build
+The project uses Nx with inferred targets:
 
-- TypeScript compilation with Node.js target
-- Bundle dependencies for distribution
-- Generate executable with shebang
-- Create standalone packages for different platforms
+- **Automatic Project Discovery**: No explicit project definitions in `nx.json`
+- **Target Defaults**: Common build, test, and lint configurations defined in `nx.json`
+- **Dependency Management**: Builds respect project dependencies via `targetDefaults`
+- **Task Caching**: Improved build performance with Nx caching
 
-### Obsidian Plugin Build
+## Centralized Configuration Structure
 
-- TypeScript compilation for browser environment
-- CSS and asset processing
-- Manifest generation
-- Package for direct installation or submission to Obsidian community plugins
-
-### VS Code Extension Build
-
-- VS Code extension packaging
-- Web extension compatibility
-- Extension manifest generation
-- Package for direct installation or marketplace submission
-
-## Package Builds
-
-- Shared packages are built as ES modules
-- Type declaration generation
-- Source maps for debugging
-- Publishing configuration for npm registry
+```
+obsidian-magic/
+├── config/
+│   ├── typescript/
+│   │   ├── base.json           # Base TypeScript configuration
+│   │   ├── library.json        # Library-specific configuration
+│   │   └── test.json           # Test-specific configuration
+│   ├── eslint/
+│   │   ├── base.js             # Base ESLint configuration
+│   │   └── react.js            # React-specific rules
+│   └── vitest/
+│       ├── base.ts             # Base Vitest configuration
+│       └── react.ts            # React-specific test config
+```
 
 ## TypeScript Configuration
 
@@ -51,37 +49,48 @@ The project uses a hierarchical TypeScript configuration:
 
 ```
 obsidian-magic/
-├── tsconfig.base.json         # Base compiler options shared by all projects
-├── tsconfig.json              # Root configuration with project references
+├── tsconfig.base.json          # Base compiler options shared by all projects
+├── tsconfig.json               # Root configuration with project references
 ├── apps/
 │   ├── cli/
-│   │   └── tsconfig.json      # CLI-specific configuration
+│   │   ├── tsconfig.json       # CLI-specific configuration
+│   │   ├── tsconfig.lib.json   # Production build configuration
+│   │   └── tsconfig.test.json  # Test-specific configuration
 │   ├── obsidian-plugin/
-│   │   └── tsconfig.json      # Plugin-specific configuration
+│   │   ├── tsconfig.json       # Plugin-specific configuration
+│   │   ├── tsconfig.lib.json   # Production build configuration
+│   │   └── tsconfig.test.json  # Test-specific configuration
 │   └── vscode/
-│       └── tsconfig.json      # VS Code extension configuration
+│       ├── tsconfig.json       # VS Code extension configuration
+│       ├── tsconfig.lib.json   # Production build configuration
+│       └── tsconfig.test.json  # Test-specific configuration
 └── packages/
     ├── core/
-    │   └── tsconfig.json      # Core package configuration
+    │   ├── tsconfig.json       # Core package configuration
+    │   ├── tsconfig.lib.json   # Production build configuration
+    │   └── tsconfig.test.json  # Test-specific configuration
     ├── types/
-    │   └── tsconfig.json      # Types package configuration
+    │   ├── tsconfig.json       # Types package configuration
+    │   ├── tsconfig.lib.json   # Production build configuration
+    │   └── tsconfig.test.json  # Test-specific configuration
     └── utils/
-        └── tsconfig.json      # Utils package configuration
+        ├── tsconfig.json       # Utils package configuration
+        ├── tsconfig.lib.json   # Production build configuration
+        └── tsconfig.test.json  # Test-specific configuration
 ```
 
-Each package's tsconfig.json extends the base configuration and adds package-specific settings.
+Each package's configuration extends the centralized base configs and adds package-specific settings.
 
 ## Build Commands
 
-Common build commands are defined in package.json scripts:
+Common build commands using Nx:
 
-- `build`: Build all packages and applications
-- `build:apps`: Build only applications
-- `build:packages`: Build only shared packages
-- `dev`: Start development mode with watch
-- `clean`: Remove build artifacts
-- `lint`: Run ESLint across the codebase
-- `test`: Run tests for all packages and applications
+- **Build all packages and applications**: `nx run-many --target=build`
+- **Build specific project**: `nx build <project-name>`
+- **Build only applications**: `nx run-many --target=build --projects=tag:app`
+- **Build only packages**: `nx run-many --target=build --projects=tag:package`
+- **Watch mode**: `nx run-many --target=dev`
+- **Clean all**: `nx run-many --target=clean`
 
 ## Dependency Management
 
@@ -91,6 +100,24 @@ pnpm is used for dependency management with workspace protocol linking:
 - Each package/app has its own package.json with specific dependencies
 - Shared packages are referenced using workspace: protocol
 - Version management is enforced through pnpm workspace
+
+## Package Generators
+
+Nx generators are available for creating new packages and components:
+
+- **Create new library**: `nx g library <library-name>`
+- **Create new application**: `nx g application <app-name>`
+- **Project templates**: Configured for CLI, Obsidian plugin, and VS Code extension
+
+## Git Hooks
+
+The project uses Git hooks for code quality enforcement:
+
+- **Husky**: Manages Git hooks
+- **lint-staged**: Runs linters on staged files
+- **commitlint**: Enforces commit message conventions
+- **Pre-commit**: Runs linting and formatting
+- **Pre-push**: Runs tests
 
 ## Related Documentation
 

@@ -51,7 +51,7 @@ This checklist provides a structured approach to implementing the build system i
   - [x] Create workspace configuration for running all tests
   - [x] Create package-specific configuration for each package
   - [x] Validate tests run correctly: `npx nx run-many --target=test`
-  - [ ] **IMPORTANT**: Complete the transition from Vitest to Mocha for VS Code testing (currently using both)
+  - [x] **IMPORTANT**: Complete the transition from Vitest to Mocha for VS Code testing (currently using both)
 
 ## Phase 5: ESLint Integration ✅
 
@@ -120,6 +120,78 @@ This checklist provides a structured approach to implementing the build system i
   - [x] Set up artifact packaging and publishing
   - [x] Configure bundle analysis for VS Code extension
 
+## Phase 12: VS Code Test Framework Migration (Vitest to Mocha)
+
+**Goal:** Consolidate testing in the `@obsidian-magic/vscode` package to use Mocha exclusively, removing Vitest.
+
+**Sub-Phase 1: Analysis and Preparation**
+
+- [x] **Inventory Existing Tests:**
+  - [x] Locate all test files within `apps/vscode/src/`. Identify which use Vitest (likely unit tests) and which use
+        Mocha (likely integration tests).
+  - [x] Review a sample of Vitest unit tests to identify specific Vitest APIs used (e.g., `vi.fn()`, `vi.spyOn()`,
+        `vi.mock()`, `expect()`, timer mocks, matchers).
+- [x] **Examine Configuration:**
+  - [x] Review `apps/vscode/package.json` for test dependencies (`vitest`, `mocha`, `@vscode/test-electron`) and test
+        scripts.
+  - [x] Locate and review existing Mocha configuration (e.g., `.mocharc.js`, `mocha.opts`).
+  - [x] Locate and review any Vitest configuration files (`vitest.config.ts`).
+  - [x] Review `apps/vscode/tsconfig.test.json` for Vitest-specific types.
+- [x] **Choose Supporting Libraries:**
+  - [x] **Assertion Library:** Confirm if `chai` is used with Mocha. If not, select one (Chai recommended).
+  - [x] **Mocking/Spying Library:** Select a library like `sinon` if mocking/spying is needed for migrated unit tests.
+
+**Sub-Phase 2: Dependency and Configuration Updates**
+
+- [x] **Manage Dependencies:**
+  - [x] In `apps/vscode/package.json`, remove Vitest dependencies.
+  - [x] Add/Confirm Mocha, assertion (`chai`, `@types/chai`), and mocking (`sinon`, `@types/sinon`) dependencies. Ensure
+        `@vscode/test-electron` is present.
+  - [x] Run `pnpm install --filter @obsidian-magic/vscode`.
+- [x] **Update TypeScript Configuration:**
+  - [x] In `apps/vscode/tsconfig.test.json`, remove `"vitest/globals"` from `types` array.
+  - [x] Add `"mocha"`, `"chai"` to `types` array. Ensure `"node"` is present.
+- [x] **Consolidate Mocha Configuration:**
+  - [x] Update/Create Mocha configuration file (e.g., `.mocharc.js`).
+  - [x] Configure it to run TypeScript files (e.g., `require: 'tsx'`).
+  - [x] Define test file pattern to include all tests (e.g., `spec: ['src/**/*.test.ts']`).
+  - [x] Configure necessary options (timeout, UI).
+  - [x] Remove any Vitest configuration files.
+
+**Sub-Phase 3: Test Code Migration**
+
+- [x] **Update Imports:**
+  - [x] In each migrated test file, remove `vitest` imports.
+  - [x] Add imports for assertion (`chai`) and mocking (`sinon`) libraries.
+- [x] **Replace Vitest APIs:**
+  - [x] **Globals:** `describe`, `it`, etc., usually require no change.
+  - [x] **Assertions:** Replace Vitest `expect()` calls and matchers with Chai equivalents.
+  - [x] **Mocks/Spies:** Replace `vi.fn()`, `vi.spyOn()`, `vi.mock()` with Sinon equivalents.
+  - [x] **Timer Mocks:** Replace `vi.useFakeTimers()`, `vi.advanceTimersByTime()` with Sinon equivalents.
+  - [x] **Snapshots:** Decide strategy (remove, find plugin, convert to value checks).
+  - [x] **Async/Callbacks:** Ensure tests use `async/await` or return Promises.
+
+**Sub-Phase 4: Scripting and CI**
+
+- [x] **Update `package.json` Scripts:**
+  - [x] Modify `test` script(s) to run all tests using the consolidated Mocha setup (likely via `@vscode/test-electron`
+        runner).
+  - [x] Remove scripts specific to Vitest.
+  - [x] Update watch mode scripts for Mocha (`mocha --watch`).
+- [ ] **Update CI Workflows:**
+  - [ ] Check `.github/workflows/` for VS Code test steps.
+  - [ ] Update steps invoking `vitest` to use the unified `pnpm --filter @obsidian-magic/vscode test` command.
+
+**Sub-Phase 5: Validation and Cleanup**
+
+- [x] **Run All Tests:**
+  - [x] Execute `pnpm --filter @obsidian-magic/vscode test` locally and ensure all pass.
+- [x] **Linting and Type Checking:**
+  - [x] Run linter and TypeScript compiler for the package.
+- [x] **Documentation:**
+  - [x] Update this checklist item to mark it as complete.
+  - [x] Update relevant READMEs or developer guides.
+
 ## Completion Checklist
 
 - [x] All centralized configurations in place
@@ -135,49 +207,16 @@ This checklist provides a structured approach to implementing the build system i
 
 ## Remaining Tasks
 
-1. **Testing Framework Transition**:
-
-   - Complete the transition from Vitest to Mocha for VS Code extension testing
-   - Currently, the VS Code extension uses both Mocha for integration tests and Vitest for unit tests
-   - Standardize on one testing approach for VS Code extension
-
-2. **Linter Error Fixing**:
+1. **Linter Error Fixing**:
 
    - Fix remaining linter errors in some TypeScript files
    - Focus on type safety errors in test files related to optional chaining and non-null assertions
 
-3. **Clean Script Update**:
+2. **Clean Script Update**:
 
    - Replace all instances of `rimraf` with native `rm -rf` or Node.js fs methods
    - Update clean scripts in all package.json files
 
-4. **Template Testing**:
+3. **Template Testing**:
    - Test all package generators with sample creation
    - Verify template functionality and consistency across different app types
-
-## Key Lessons Learned
-
-1. **Nx Configuration Must Be Flat** - Nx doesn't support nested configuration files via the "extends" property, all
-   configuration must be in the root nx.json file
-2. **TypeScript Configuration Is Stricter** - We've implemented more stringent TypeScript rules
-3. **Project References Are Working** - We've successfully set up TypeScript project references for better build
-   performance
-4. **ESLint Uses Flat Config** - Modern ESLint configuration uses the flat config format with a single eslint.config.js
-5. **Nx Uses Inferred Targets** - Nx can automatically discover and infer targets from package.json scripts
-6. **Standardized Build Process** - Each package follows the same build process, making maintenance easier
-7. **Developer Experience Matters** - VS Code configuration and debug settings improve productivity
-8. **Config Structure Implementation** - We deviated from the original plan for config structure, but the implemented
-   version is more effective and maintainable
-9. **Mixed Testing Frameworks** - Using Mocha for VS Code extension and Vitest for other packages requires careful
-   configuration
-10. **Native Commands Preferred** - Native shell commands are preferred over dependencies like rimraf for simple
-    operations
-
-## References
-
-- [TypeScript Project References Documentation](https://www.typescriptlang.org/docs/handbook/project-references.html)
-- [Nx Documentation](https://nx.dev/getting-started/intro)
-- [Vitest Documentation](https://vitest.dev/guide/)
-- [ESLint Flat Config Documentation](https://eslint.org/docs/latest/use/configure/configuration-files)
-- [Mocha Documentation](https://mochajs.org/)
-- [VS Code Extension Testing](https://code.visualstudio.com/api/working-with-extensions/testing-extension)

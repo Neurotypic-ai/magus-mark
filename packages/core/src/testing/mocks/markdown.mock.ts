@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import type { Document } from '../models/Document';
+import type { Document } from '../../models/Document';
 
 /**
  * Creates a mock for the FrontmatterProcessor

@@ -1,4 +1,4 @@
-import type { Document } from '../models/Document';
+import type { Document } from '../../models/Document';
 
 /**
  * Sample React hooks tutorial document for tests

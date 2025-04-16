@@ -13,6 +13,7 @@ This project uses:
 - ESLint flat config with typescript-eslint
 - Prettier with import sorting
 - React with JSX (react-jsx transform)
+- Nx build system with inferred targets
 
 Always follow these configurations when generating code.
 
@@ -246,11 +247,22 @@ When writing tests, follow these patterns:
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
+// For VS Code tests with Mocha
+// import { describe, it } from 'mocha';
+// import { expect } from 'chai';
+// import * as sinon from 'sinon';
+
 // ✅ Properly type mocks
 const mockFn = vi.fn<[string], number>();
 const mockService = {
   getData: vi.fn<[], Promise<Data>>().mockResolvedValue({ id: '1' }),
 };
+
+// For VS Code tests with Sinon
+// const mockFn = sinon.stub().returns(42);
+// const mockService = {
+//   getData: sinon.stub().resolves({ id: '1' })
+// };
 
 // ✅ Use proper assertions
 describe('Component', () => {
@@ -294,14 +306,12 @@ describe('Component', () => {
      return data.value; // What if fetchData throws?
    }
    
-   // ✅ USE: Proper error handling with try/catch or Result
+   // ✅ USE: Proper error handling with Result
    async function getData(): Promise<Result<Value>> {
-     try {
-       const data = await fetchData();
-       return Result.ok(data.value);
-     } catch (err) {
-       return Result.fail(toAppError(err));
-     }
+     return Result.fromPromise(
+       fetchData(),
+       err => toAppError(err)
+     ).andThen(data => Result.ok(data.value));
    }
    ```
 
@@ -372,6 +382,6 @@ describe('Component', () => {
    ```
 
 Reference the project configurations:
-- [TypeScript Config](mdc:tsconfig.base.json)
-- [ESLint Config](mdc:eslint.config.js)
+- [TypeScript Base Config](mdc:config/typescript/base.json)
+- [ESLint Config](mdc:config/eslint/base.js)
 - [Prettier Config](mdc:prettier.config.js)

@@ -105,4 +105,195 @@ Key methods:
 
 For implementation details, refer to:
 - [Core Error Handling System](documentation/core/error-handling.md)
-- [Error Class Implementation](packages/core/src/errors.ts) 
+- [Error Class Implementation](packages/core/src/errors.ts)
+
+# Error Handling
+
+The project uses a consistent error handling pattern based on the Result type:
+
+## Result Pattern
+
+The core of our error handling is the `Result<T, E = AppError>` type:
+
+```typescript
+// Type definition (simplified)
+export type Result<T, E = AppError> = 
+  | { isOk: true; isErr: false; value: T }
+  | { isOk: false; isErr: true; error: E };
+```
+
+### Creating Results
+
+```typescript
+// Success case
+const success = Result.ok(value);
+
+// Error case
+const failure = Result.fail(new ValidationError('Invalid input'));
+
+// From nullable
+const fromValue = Result.fromNullable(maybeValue, () => new NotFoundError('Value not found'));
+
+// From promise/try-catch
+const fromPromise = await Result.fromPromise(
+  asyncOperation(),
+  (err) => toAppError(err)
+);
+```
+
+### Working with Results
+
+```typescript
+// Checking result status
+if (result.isOk()) {
+  // TypeScript knows result.value is available here
+  const value = result.value;
+} else {
+  // TypeScript knows result.error is available here
+  const error = result.error;
+}
+
+// Result chaining
+const finalResult = result
+  .andThen(value => processStep1(value))
+  .andThen(intermediateResult => processStep2(intermediateResult))
+  .orElse(error => {
+    if (error instanceof ResourceNotFoundError) {
+      return createResource().andThen(newResource => processStep1(newResource));
+    }
+    return Result.fail(error);
+  });
+
+// Result mapping
+const mappedResult = result
+  .map(value => transformValue(value))
+  .mapErr(error => new UserFriendlyError('Operation failed', { cause: error }));
+
+// Unwrapping (use sparingly, prefer pattern matching)
+try {
+  const value = result.unwrap(); // Throws if result is an error
+} catch (err) {
+  // Handle error
+}
+```
+
+## Error Types
+
+We use a hierarchical error system:
+
+```
+AppError (base error type)
+├── ValidationError
+│   └── SchemaValidationError
+├── NotFoundError
+│   ├── FileNotFoundError
+│   └── ResourceNotFoundError
+├── PermissionError
+├── NetworkError
+│   ├── ApiError
+│   │   └── OpenAIError
+│   └── TimeoutError
+├── ConfigurationError
+├── OperationCancelledError
+└── InternalError
+    └── UnreachableError
+```
+
+### Creating Custom Errors
+
+```typescript
+// Extending the base error class
+export class CustomError extends AppError {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, { ...options, code: 'CUSTOM_ERROR' });
+  }
+}
+
+// Using in context
+function processData(input: unknown): Result<ProcessedData> {
+  if (!isValidInput(input)) {
+    return Result.fail(new ValidationError('Invalid input format'));
+  }
+  
+  try {
+    // Processing logic
+    return Result.ok(processed);
+  } catch (err) {
+    return Result.fail(toAppError(err));
+  }
+}
+```
+
+## Error Conversion
+
+We use utilities to convert unknown errors:
+
+```typescript
+// Convert any error to a typed AppError
+const appError = toAppError(unknownError);
+
+// Convert with context
+const contextualError = toAppError(err, {
+  defaultMessage: 'Failed to process file',
+  context: { fileName }
+});
+```
+
+## Async Error Handling
+
+For asynchronous operations, we combine async/await with Result:
+
+```typescript
+async function processFile(path: string): Promise<Result<ProcessedFile>> {
+  // Read file with Result handling
+  const fileResult = await Result.fromPromise(
+    fs.readFile(path, 'utf-8'),
+    err => toAppError(err, { context: { path } })
+  );
+  
+  // Early return on error
+  if (fileResult.isErr()) {
+    return fileResult;
+  }
+  
+  // Chain processing
+  return parseFile(fileResult.value)
+    .andThen(parsed => validateFile(parsed))
+    .andThen(validated => transformFile(validated));
+}
+```
+
+## Testing Errors
+
+Testing code that uses Result pattern:
+
+```typescript
+describe('processFile', () => {
+  it('should return an error for invalid file', async () => {
+    const result = await processFile('nonexistent.txt');
+    
+    expect(result.isErr()).toBe(true);
+    expect(result.error).toBeInstanceOf(FileNotFoundError);
+  });
+  
+  it('should process valid file successfully', async () => {
+    const result = await processFile('valid.txt');
+    
+    expect(result.isOk()).toBe(true);
+    expect(result.value).toEqual(expect.objectContaining({
+      id: expect.any(String)
+    }));
+  });
+});
+```
+
+## Best Practices
+
+1. **Be Explicit**: Use specific error types that clearly indicate what went wrong
+2. **Provide Context**: Include relevant data in errors (file paths, IDs, etc.)
+3. **Handle Early**: Check for errors at the boundary of operations
+4. **Chain Operations**: Use `andThen` to compose operations that return Results
+5. **Avoid Exceptions**: Prefer returning Result over throwing exceptions
+6. **Convert External Errors**: Always convert external library errors to our types
+7. **Document Error Paths**: Document possible error types in function JSDoc
+8. **Test Error Cases**: Always test both success and error paths 

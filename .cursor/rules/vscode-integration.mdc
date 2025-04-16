@@ -4,7 +4,200 @@ globs: **/vscode/**/*.ts,**/vscode/**/*.tsx,**/cursor/**/*.ts,**/cursor/**/*.tsx
 alwaysApply: false
 ---
 
-# VS Code & Cursor Integration Guidelines
+# VS Code & Cursor Integration
+
+## Extension Architecture
+
+The VS Code extension uses a component-based architecture:
+
+### Core Components
+
+1. **Extension Activation**
+   - Entry point: `extension.ts`
+   - Dependency initialization
+   - Command registration
+   - View registration
+   - Context subscriptions
+
+2. **Command Handlers**
+   - Discrete command implementations
+   - Clear separation of concerns
+   - Command context awareness
+   - Result pattern for error handling
+
+3. **View Providers**
+   - WebView implementation
+   - Tree View providers
+   - Custom editor providers
+   - Message passing protocols
+
+4. **API Integration**
+   - Workspace document processing
+   - OpenAI integration via core package
+
+5. **Configuration**
+   - VS Code settings integration
+   - Secure secrets storage
+   - User preferences management
+
+6. **Model Context Protocol (MCP) Server**
+   - Framework for stateful LLM interactions
+   - Extensible tool registration
+   - Context window management
+   - Prompt engineering utilities
+   - Secure token handling
+
+## Extension Capabilities
+
+The extension provides several capabilities:
+
+1. **Tag Management**
+   - Manual tag editing
+   - AI-powered tag suggestion
+   - Tag visualization
+   - Tag filtering and searching
+
+2. **Content Processing**
+   - Conversation extraction
+   - Markdown parsing and formatting
+   - Tag injection
+   - Export functionality
+
+3. **Integration with Obsidian**
+   - Vault synchronization
+   - Bidirectional file updates
+   - Metadata consistency
+
+4. **AI Assistant**
+   - Context-aware tag suggestions
+   - Content summarization
+   - Document organization recommendations
+
+5. **MCP Integration**
+   - AI-powered document analysis
+   - Conversation understanding
+   - Named entity recognition
+   - Knowledge extraction and organization
+
+## Implementation Details
+
+### Extension Manifest
+
+The extension is defined in `package.json` with:
+
+- Commands
+- Menu items
+- View containers
+- Configuration schema
+- MCP server registration
+- API context consumers
+
+### Command Registration
+
+Commands follow a consistent pattern:
+
+```typescript
+// Register commands with clear naming and categorization
+context.subscriptions.push(
+  vscode.commands.registerCommand('obsidian-magic.tagFile', tagFileCommand),
+  vscode.commands.registerCommand('obsidian-magic.analyzeConversation', analyzeConversationCommand),
+  // MCP specific commands
+  vscode.commands.registerCommand('obsidian-magic.startMcpServer', startMcpServerCommand),
+  vscode.commands.registerCommand('obsidian-magic.registerTools', registerToolsCommand)
+);
+```
+
+### View Implementation
+
+Views use WebView API:
+
+```typescript
+// Create and configure WebView
+const panel = vscode.window.createWebviewPanel(
+  'obsidianMagic.tagEditor',
+  'Tag Editor',
+  vscode.ViewColumn.Beside,
+  {
+    enableScripts: true,
+    retainContextWhenHidden: true,
+    localResourceRoots: [uri]
+  }
+);
+
+// Setup message passing
+panel.webview.onDidReceiveMessage(
+  message => handleWebViewMessage(panel, message),
+  undefined,
+  context.subscriptions
+);
+```
+
+### MCP Server Integration
+
+The extension registers and manages MCP servers:
+
+```typescript
+// MCP Server registration
+export function activateMcpServer(context: vscode.ExtensionContext): void {
+  // Register server factories
+  const mcpServerManager = new McpServerManager();
+  
+  // Register with default tools
+  mcpServerManager.registerTools([
+    new TagExtractionTool(),
+    new DocumentAnalysisTool(),
+    new ContentOrganizationTool()
+  ]);
+  
+  // Start server based on user configuration
+  const server = await mcpServerManager.startServer({
+    port: vscode.workspace.getConfiguration('obsidianMagic').get('mcpServerPort') || 7777,
+    maxConnections: 5
+  });
+  
+  // Add cleanup on deactivation
+  context.subscriptions.push({
+    dispose: () => server.shutdown()
+  });
+}
+```
+
+## Testing Approach
+
+The extension uses a hybrid testing approach:
+
+- **Integration Tests**: Mocha tests with `@vscode/test-electron`
+- **Unit Tests**: Currently Vitest, migrating to Mocha for consistency
+- **Mocking**: Vitest mocks (transitioning to Sinon for Mocha tests)
+- **VS Code API**: Extension Host mocking
+
+## Development Workflow
+
+1. **Setup**
+   - Install dependencies with `pnpm install`
+   - Build extension with `nx build vscode`
+
+2. **Development**
+   - Run extension with `nx dev vscode` or F5 in VS Code
+   - Automatically watches for changes
+   - Configure launch.json for debugging
+
+3. **Testing**
+   - Run tests with `nx test vscode`
+   - Debug tests with provided launch configurations
+
+4. **Packaging**
+   - Package extension with `nx package vscode`
+   - Results in VSIX file for distribution
+
+## Related Documentation
+
+For more information, refer to:
+
+- [Testing Strategy](mdc:.cursor/rules/testing-strategy.mdc)
+- [TypeScript Best Practices](mdc:.cursor/rules/typescript-best-practices.mdc)
+- [Error Handling](mdc:.cursor/rules/error-handling.mdc)
+- [API Integration](mdc:.cursor/rules/api-integration.mdc)
 
 ## Architecture Overview
 

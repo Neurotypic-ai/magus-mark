@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Testing Strategy
 
-The project implements a comprehensive testing strategy using Vitest, a Vite-native test runner:
+The project implements a comprehensive testing strategy primarily using Vitest, with Mocha for VS Code extension integration tests:
 
 ## Test Organization
 
@@ -29,6 +29,13 @@ obsidian-magic/
 │   │           ├── components/
 │   │           │   ├── TagEditor.tsx
 │   │           │   └── TagEditor.test.tsx
+│   └── vscode/
+│       └── src/
+│           ├── extension.ts
+│           ├── extension.test.ts           # Mocha integration test
+│           └── commands/
+│               ├── tag-command.ts
+│               └── tag-command.test.ts     # Currently Vitest unit test
 ├── packages/
 │   ├── core/
 │   │   └── src/
@@ -58,9 +65,11 @@ We use VS Code file nesting to keep the explorer view clean while maintaining th
 
 This visually groups test files with their source files in the explorer.
 
-## Vitest Setup
+## Testing Framework Configuration
 
-We use Vitest workspace mode for efficient test running across packages:
+### Vitest (Primary Framework)
+
+Most packages use Vitest with a workspace configuration:
 
 ```javascript
 // vitest.workspace.js
@@ -72,39 +81,54 @@ export default defineWorkspace([
 ])
 ```
 
-Each package and app has its own `vitest.config.ts` with specific configurations:
+Each package and app has its own `vitest.config.ts` extending centralized base configuration:
 
 ```typescript
-import { defineConfig } from 'vitest/config';
+// apps/cli/vitest.config.ts
+import { defineConfig, mergeConfig } from 'vitest/config';
+import baseConfig from '../../config/vitest/base';
 
-export default defineConfig({
+export default mergeConfig(baseConfig, defineConfig({
   test: {
+    // Package-specific overrides
     environment: 'node',
-    include: ['**/*.{test,spec}.{ts,tsx}'], // Find all test files
-    globals: true,
-    coverage: {
-      provider: 'istanbul',
-      reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage'
-    }
+    include: ['**/*.{test,spec}.{ts,tsx}']
   }
-});
+}));
 ```
+
+### Mocha (VS Code Integration Tests)
+
+VS Code integration tests use Mocha with the `@vscode/test-electron` runner:
+
+```javascript
+// .mocharc.js
+module.exports = {
+  require: 'tsx',
+  spec: ['src/**/*.test.ts'],
+  timeout: 60000,
+  ui: 'bdd'
+};
+```
+
+This configuration is used for VS Code integration tests. A migration is in progress to move VS Code unit tests from Vitest to Mocha for consistency.
 
 ## Unit Tests
 
-- Component-level tests with Vitest
-- Mocked dependencies via `vi.mock()` and `vi.spyOn()`
+- Component-level tests with Vitest (in most packages) and Mocha (in VS Code)
+- Mocked dependencies via appropriate mocking library (Vitest: `vi.mock()`, Mocha: `sinon`)
 - High coverage of core business logic
 - Consistent use of `describe`/`it` blocks for organization
 - Type-safe testing with TypeScript
+- Organized mock files in dedicated directories for complex mocks
 
 ## Integration Tests
 
 - Cross-component integration testing
 - API interaction testing with mocked responses
-- File system operation testing with fs-extra mocks
+- File system operation testing with mocked file system
 - Testing service composition and interaction
+- VS Code extension activation testing with `@vscode/test-electron`
 
 ## End-to-End Tests
 
@@ -115,9 +139,9 @@ export default defineConfig({
 
 ## Mocking Strategy
 
-### Module Mocking
+### Vitest Mocking
 
-We use Vitest's mocking capabilities to mock modules:
+For packages using Vitest, we use its built-in mocking capabilities:
 
 ```typescript
 // Mock fs-extra module
@@ -142,6 +166,42 @@ vi.mock('../logger', () => ({
   }
 }));
 ```
+
+### Mocha/Sinon Mocking (VS Code)
+
+For VS Code tests using Mocha, we use Sinon for mocking:
+
+```typescript
+import * as sinon from 'sinon';
+import * as fs from 'fs-extra';
+
+// Create stubs
+const readFileStub = sinon.stub(fs, 'readFile')
+  .resolves('file contents');
+
+// Reset stubs after test
+afterEach(() => {
+  sinon.restore();
+});
+```
+
+### Organized Mock Files
+
+Complex mocks are now organized into dedicated files:
+
+```
+src/
+├── __mocks__/
+│   ├── fs-extra.ts
+│   ├── logger.ts
+│   └── openai.ts
+└── services/
+    ├── __mocks__/
+    │   └── tagging-service.ts
+    └── tagging-service.ts
+```
+
+This approach encourages reuse and consistency in mocking.
 
 ### Service Mocking
 
@@ -171,8 +231,25 @@ We maintain a dedicated `@obsidian-magic/testing` package for:
 - Mock service implementations
 - Utility functions for test setup
 - Shared fixtures and helpers
+- Logger mocks for consistent log capture and verification
 
 This promotes consistency and reduces duplication across tests.
+
+## VS Code Test Migration (Vitest to Mocha)
+
+A migration is in progress to consolidate VS Code testing into Mocha:
+
+- **Current Status**: VS Code integration tests use Mocha, unit tests use Vitest
+- **Migration Goal**: Standardize all VS Code tests to use Mocha with Sinon for mocking
+- **Completed Steps**:
+  - Inventory of existing tests
+  - Configuration setup for Mocha in VS Code package
+  - Selection of supporting libraries (Sinon, Chai)
+  - Dependency and TypeScript configuration updates
+- **Remaining Steps**:
+  - Convert Vitest unit tests to Mocha/Sinon
+  - Update CI workflows to use unified test command
+  - Validate all tests passing with new framework
 
 ## Testing Best Practices
 
@@ -184,15 +261,17 @@ This promotes consistency and reduces duplication across tests.
    - Co-locate tests with the code they test
 
 2. **Mocking Strategy**:
-   - Use `vi.mock()` for module-level mocks
-   - Use `vi.spyOn()` for specific function mocks
-   - Reset mocks between tests with `beforeEach(vi.clearAllMocks)`
+   - Use appropriate mocking library for the framework (Vitest: `vi.mock()`, Mocha: `sinon`)
+   - Reset mocks between tests
+   - Use organized mock files for complex mocks
    - Use the testing package for consistent mock data
+   - Prefer dependency injection for easier component testing
 
 3. **Assertions**:
    - Write focused assertions for specific behaviors
    - Test edge cases and error conditions
    - Use type-safe assertions with TypeScript
+   - Properly test `Result` pattern returns
    - Avoid testing implementation details when possible
 
 4. **Test Performance**:
@@ -210,7 +289,8 @@ This promotes consistency and reduces duplication across tests.
 
 To run tests:
 
-- All tests: `pnpm test` (runs tests in all packages)
-- Single package: `pnpm --filter @obsidian-magic/core test`
-- Watch mode: `pnpm --filter @obsidian-magic/core test -- --watch`
-- Coverage: `pnpm --filter @obsidian-magic/core test -- --coverage` 
+- All tests: `nx run-many --target=test` (runs tests in all packages)
+- Single package: `nx test <package-name>` (e.g., `nx test core`)
+- VS Code tests: `nx test vscode` (runs both Mocha integration tests and current Vitest unit tests)
+- Watch mode: `nx test <package-name> --watch`
+- Coverage: `nx test <package-name> --coverage` 

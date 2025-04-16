@@ -12,7 +12,7 @@ Obsidian Magic is a tool for organizing exports of ChatGPT conversations and oth
 
 ## Repository Structure
 
-The project uses a modern TypeScript (5.8.3) workspace with pnpm, ESLint flat config, and project references:
+The project uses a modern TypeScript (5.8.3) workspace with pnpm, Nx build system, ESLint flat config, and project references:
 
 ```
 obsidian-magic/
@@ -22,10 +22,11 @@ obsidian-magic/
 │   └── vscode/              # VS Code extension
 ├── packages/                # Shared packages (publishable)
 │   ├── core/                # Core library package
-│   ├── types/               # Shared type definitions
-│   └── utils/               # Shared utilities
+├── config/                  # Centralized configuration files
+│   ├── typescript/          # TypeScript configuration templates
+│   ├── eslint/              # ESLint configuration templates
+│   └── vitest/              # Vitest configuration templates
 ├── documentation/           # Project documentation
-├── config/                  # Configuration files
 └── prompts/                 # OpenAI prompt templates
 ```
 
@@ -38,6 +39,8 @@ The project implements a modular workspace architecture with the following compo
   - OpenAI API integration
   - Markdown parsing and manipulation
   - Shared utilities and helpers
+  - Error handling with Result pattern
+  - Configuration management
 
 - **CLI App**: Command-line interface implementation
   - Command structure with Yargs integration
@@ -57,8 +60,30 @@ The project implements a modular workspace architecture with the following compo
   - Extension activation and registration
   - VS Code UI components and views
   - Cursor-specific integration with MCP server
+  - Model Context Protocol (MCP) servers
   - Bidirectional vault synchronization
   - AI-assisted tagging and knowledge retrieval
+
+## Build System
+
+The project uses an Nx-based build system with inferred targets:
+
+- **Nx Workspace**: Coordinates builds, tests, and other operations
+- **TypeScript Project References**: Enables incremental builds and proper dependency tracking
+- **Centralized Configuration**: Shared configs in the `config/` directory
+- **ESLint Flat Config**: Modern ESLint configuration with TypeScript integration
+- **Git Hooks**: Husky, lint-staged, and commitlint for code quality
+- **Standardized Scripts**: Consistent commands across packages
+
+## Testing Approach
+
+The project implements a comprehensive testing strategy:
+
+- **Vitest**: Primary framework for most packages
+- **Mocha**: Used for VS Code integration tests (migration in progress for VS Code unit tests)
+- **Co-located Tests**: Tests located alongside the code they test
+- **Organized Mocks**: Dedicated mock files for complex dependencies
+- **Shared Testing Utilities**: Common mock factories and testing helpers
 
 ## Implementation Guides
 
