@@ -1,0 +1,17 @@
+<document>
+{{content}}
+</document>
+
+<instructions>
+Create a concise summary of the document focused on elements that would help with topic classification.
+
+Your summary should identify:
+1. The main subject domains and topics discussed
+2. Any specific technologies, methodologies, or frameworks mentioned
+3. The general context and purpose of the conversation
+4. The conversation style or modality (theoretical, practical, question-based, etc.)
+5. Any specific life areas it relates to (career, health, learning, etc.)
+
+Keep your summary under 400 words and focus only on extracting factual information.
+Do not include your own analysis or commentary on the quality or correctness of the content.
+</instructions> 

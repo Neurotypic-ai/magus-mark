@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { TagViewState } from './TagViewState';
 
-describe('TagViewState', () => {
-  it('validates tag view state', () => {
+suite('TagViewState', () => {
+  test('validates tag view state', () => {
+    const now = new Date(); // Use a single date for consistency
     const viewState: TagViewState = {
       documents: [
         {
@@ -16,8 +17,8 @@ describe('TagViewState', () => {
             conversation_type: 'deep-dive',
             confidence: { overall: 0.92 },
           },
-          lastModified: new Date(),
-          lastTagged: new Date(),
+          lastModified: now,
+          lastTagged: now,
         },
         {
           uri: 'file:///path/to/doc2.md',
@@ -29,8 +30,8 @@ describe('TagViewState', () => {
             conversation_type: 'analysis',
             confidence: { overall: 0.88 },
           },
-          lastModified: new Date(),
-          lastTagged: new Date(),
+          lastModified: now,
+          lastTagged: now,
         },
       ],
       selectedDocument: {
@@ -43,18 +44,18 @@ describe('TagViewState', () => {
           conversation_type: 'deep-dive',
           confidence: { overall: 0.92 },
         },
-        lastModified: new Date(),
-        lastTagged: new Date(),
+        lastModified: now,
+        lastTagged: now,
       },
       selectedTags: ['technology', 'deep-dive'],
       expandedCategories: ['domains', 'conversation-types'],
       filterQuery: 'tech',
     };
 
-    expect(viewState.documents).toHaveLength(2);
-    expect(viewState.selectedDocument?.name).toBe('doc1.md');
-    expect(viewState.selectedTags).toContain('technology');
-    expect(viewState.expandedCategories).toContain('domains');
-    expect(viewState.filterQuery).toBe('tech');
+    expect(viewState.documents).to.have.lengthOf(2);
+    expect(viewState.selectedDocument?.name).to.equal('doc1.md');
+    expect(viewState.selectedTags).to.include('technology');
+    expect(viewState.expandedCategories).to.include('domains');
+    expect(viewState.filterQuery).to.equal('tech');
   });
 });

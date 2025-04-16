@@ -96,12 +96,12 @@ vi.mock('@obsidian-magic/core/errors/Result', () => ({
   Result: {
     ok: vi.fn().mockImplementation((value) => ({
       isFail: () => false,
-      getValue: () => value,
+      getValue: () => value as unknown,
       isOk: () => true,
     })),
     fail: vi.fn().mockImplementation((error) => ({
       isFail: () => true,
-      getError: () => error,
+      getError: () => error as unknown,
       isOk: () => false,
     })),
   },

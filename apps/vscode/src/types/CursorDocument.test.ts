@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { CursorDocument } from './CursorDocument';
 
-describe('CursorDocument', () => {
-  it('validates cursor document', () => {
+suite('CursorDocument', () => {
+  test('validates cursor document', () => {
     const doc: CursorDocument = {
       uri: 'file:///path/to/doc.md',
       path: '/path/to/doc.md',
@@ -27,10 +27,10 @@ describe('CursorDocument', () => {
       },
     };
 
-    expect(doc.uri).toBe('file:///path/to/doc.md');
-    expect(doc.path).toBe('/path/to/doc.md');
-    expect(doc.tags.year).toBe('2023');
-    expect(doc.content).toBe('This is a document about AI technology');
-    expect(doc.metadata).toHaveProperty('wordCount');
+    expect(doc.uri).to.equal('file:///path/to/doc.md');
+    expect(doc.path).to.equal('/path/to/doc.md');
+    expect(doc.tags.year).to.equal('2023');
+    expect(doc.content).to.equal('This is a document about AI technology');
+    expect(doc.metadata).to.have.property('wordCount');
   });
 });

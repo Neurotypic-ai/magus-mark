@@ -1,3 +1,4 @@
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 import * as vscode from 'vscode';
@@ -63,6 +64,20 @@ function generateResponseWebviewHtml(query: string): string {
       </body>
     </html>
   `;
+}
+
+// Utility to load prompt templates from the prompts folder
+async function loadPromptTemplate(
+  context: vscode.ExtensionContext,
+  filename: string,
+  variables: Record<string, string> = {}
+): Promise<string> {
+  const promptPath = path.join(context.extensionPath, 'prompts', filename);
+  let template = await fs.readFile(promptPath, 'utf8');
+  for (const [key, value] of Object.entries(variables)) {
+    template = template.replace(new RegExp(`{{${key}}}`, 'g'), value);
+  }
+  return template;
 }
 
 /**
@@ -166,27 +181,18 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
       vscode.window.showErrorMessage('Cursor integration not initialized');
       return;
     }
-
-    // Get active editor document
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       vscode.window.showInformationMessage('No active file to tag');
       return;
     }
-
-    // Get document content
     const text = editor.document.getText();
     const fileName = editor.document.fileName;
-
-    // Use Language Model API to analyze content and suggest tags
     const lmAPI = languageModelAPI;
     if (!lmAPI) {
-      // Fallback to basic information message if Language Model API is not available
       vscode.window.showInformationMessage('Tagging current file with Cursor AI assistance');
       return;
     }
-
-    // Show progress notification
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -195,39 +201,26 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
       },
       async () => {
         try {
-          // Check if language model API is available
           if (!languageModelAPI) {
             vscode.window.showErrorMessage('Language model API not available');
             return;
           }
-
-          // Store a local reference
-          const lmAPI = languageModelAPI;
-
-          // Generate tag suggestions
-          const prompt = `Analyze this document and suggest relevant tags for it:
-Filename: ${fileName}
-Content: ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}
-
-Provide a JSON array of suggested tags, with each tag having a name and description.`;
-
-          const response = await lmAPI.generateCompletion(prompt, {
-            systemPrompt:
-              'You are a helpful tagging assistant. Generate concise, relevant tags based on document content.',
+          const prompt = await loadPromptTemplate(context, 'vscode-tagging.txt', {
+            fileName,
+            content: `${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`,
           });
-
-          // Show suggestions in a quick pick
+          const systemPrompt = await loadPromptTemplate(context, 'vscode-tagging.txt', {}); // fallback, can be replaced with a dedicated system prompt if needed
+          const response = await lmAPI.generateCompletion(prompt, {
+            systemPrompt,
+          });
           vscode.window.showInformationMessage('Tag suggestions generated', 'View Suggestions').then((selection) => {
             if (selection === 'View Suggestions') {
-              // In a real implementation, we would parse the JSON and show a proper UI
-              // For now, just show the raw response
               const panel = vscode.window.createWebviewPanel(
                 'tagSuggestions',
                 'Tag Suggestions',
                 vscode.ViewColumn.Beside,
                 {}
               );
-
               panel.webview.html = `
                 <html>
                   <head>
@@ -249,7 +242,6 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
             `Error generating tag suggestions: ${error instanceof Error ? error.message : String(error)}`
           );
         }
-
         return Promise.resolve();
       }
     );
@@ -285,16 +277,11 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
       vscode.window.showErrorMessage('Language Model API not initialized');
       return;
     }
-
-    // Prompt for query
     const query = await vscode.window.showInputBox({
       prompt: 'Ask a question about VS Code',
       placeHolder: 'How do I enable autosave?',
     });
-
     if (!query) return;
-
-    // Show progress indicator
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -302,13 +289,10 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
         cancellable: true,
       },
       async () => {
-        // Create output channel for response
         const outputChannel = vscode.window.createOutputChannel('@vscode Participant');
         outputChannel.show();
         outputChannel.appendLine(`Query: ${query}\n`);
         outputChannel.appendLine('Generating response...\n');
-
-        // Create webview panel for formatted response
         const panel = vscode.window.createWebviewPanel(
           'vscodeResponse',
           `@vscode: ${query.substring(0, 30)}${query.length > 30 ? '...' : ''}`,
@@ -318,19 +302,14 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
             retainContextWhenHidden: true,
           }
         );
-
-        // Load initial HTML with skeleton for response
         panel.webview.html = generateResponseWebviewHtml(query);
-
         try {
           let fullResponse = '';
-
+          const systemPrompt = await loadPromptTemplate(context, 'vscode-participant.txt', {});
           await lmAPI.generateStreamingCompletion(
             query,
             (response) => {
-              // Update both output channel and webview
               fullResponse = response.content;
-
               if (!response.isComplete) {
                 outputChannel.clear();
                 outputChannel.appendLine(`Query: ${query}\n`);
@@ -341,8 +320,6 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
                 outputChannel.appendLine(response.content);
                 outputChannel.appendLine('\n\nResponse complete.');
               }
-
-              // Update webview with markdown-formatted content
               panel.webview.postMessage({
                 type: 'update',
                 content: response.content,
@@ -350,32 +327,22 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
               });
             },
             {
-              systemPrompt: `You are the @vscode participant in Cursor/VS Code. 
-You have expert knowledge about VS Code, its features, settings, and extensions.
-Provide helpful, accurate, and concise responses to questions about VS Code.
-If applicable, provide specific commands, keyboard shortcuts, or settings that can help the user.`,
+              systemPrompt,
             }
           );
-
-          // Add event listener for webview messages
           panel.webview.onDidReceiveMessage((message: { type: string }) => {
             if (message.type === 'copy') {
               vscode.env.clipboard.writeText(fullResponse);
               vscode.window.showInformationMessage('Response copied to clipboard');
             } else if (message.type === 'execute') {
-              // In a real implementation, we would parse the response for commands
               vscode.window.showInformationMessage('Command execution not implemented yet');
             }
           });
         } catch (error) {
-          outputChannel.appendLine(`\nError: ${error instanceof Error ? error.message : String(error)}`);
-          panel.webview.postMessage({
-            type: 'update',
-            content: `Error generating response: ${error instanceof Error ? error.message : String(error)}`,
-            isComplete: true,
-          });
+          vscode.window.showErrorMessage(
+            `Error generating response: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
-
         return Promise.resolve();
       }
     );

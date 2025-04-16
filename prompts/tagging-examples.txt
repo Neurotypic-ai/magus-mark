@@ -1,0 +1,99 @@
+# Example 1: Programming Discussion
+Input: A conversation about React hooks, state management, and component optimization
+
+Output:
+{
+  "year": "2023",
+  "life_area": "career",
+  "topical_tags": [
+    {"domain": "software-development", "subdomain": "frontend"},
+    {"contextual": "advanced"}
+  ],
+  "conversation_type": "practical",
+  "confidence": {
+    "overall": 0.93,
+    "year": 0.85,
+    "life_area": 0.78,
+    "domain": 0.96,
+    "subdomain": 0.94,
+    "contextual": 0.82,
+    "conversation_type": 0.91
+  }
+}
+
+# Example 2: Philosophy Discussion
+Input: A debate about determinism, free will, and moral responsibility in light of neuroscience findings
+
+Output:
+{
+  "year": "2022",
+  "life_area": "learning",
+  "topical_tags": [
+    {"domain": "philosophy", "subdomain": "ethics"},
+    {"domain": "psychology", "subdomain": "cognitive"},
+    {"contextual": "deep-dive"}
+  ],
+  "conversation_type": "theory",
+  "confidence": {
+    "overall": 0.89,
+    "year": 0.76,
+    "life_area": 0.72,
+    "domain": 0.95,
+    "subdomain": 0.87,
+    "contextual": 0.85,
+    "conversation_type": 0.96
+  }
+}
+
+# Example 3: Personal Development Conversation
+Input: A discussion about forming better productivity habits, managing time, and overcoming procrastination
+
+Output:
+{
+  "year": "2023",
+  "life_area": "personal-growth",
+  "topical_tags": [
+    {"domain": "productivity", "subdomain": "time-management"},
+    {"domain": "psychology", "subdomain": "behavioral"},
+    {"contextual": "techniques"}
+  ],
+  "conversation_type": "practical",
+  "confidence": {
+    "overall": 0.92,
+    "year": 0.79,
+    "life_area": 0.94,
+    "domain": 0.95,
+    "subdomain": 0.88,
+    "contextual": 0.81,
+    "conversation_type": 0.93
+  },
+  "explanations": {
+    "contextual_tag": "Selected 'techniques' because the conversation focuses on specific actionable methods rather than theory or tools."
+  }
+}
+
+# Example 4: Technical Question
+Input: A question about setting up Docker with Kubernetes and troubleshooting deployment issues
+
+Output:
+{
+  "year": "2023",
+  "life_area": "career",
+  "topical_tags": [
+    {"domain": "software-development", "subdomain": "devops"},
+    {"contextual": "troubleshooting"}
+  ],
+  "conversation_type": "question",
+  "confidence": {
+    "overall": 0.94,
+    "year": 0.82,
+    "life_area": 0.76,
+    "domain": 0.97,
+    "subdomain": 0.95,
+    "contextual": 0.88,
+    "conversation_type": 0.96
+  },
+  "explanations": {
+    "contextual_tag": "Suggested 'troubleshooting' as it specifically focuses on resolving technical issues rather than learning or implementation."
+  }
+} 

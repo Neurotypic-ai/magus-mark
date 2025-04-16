@@ -1,3 +1,6 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
 import * as vscode from 'vscode';
 
 /**
@@ -21,14 +24,20 @@ export interface ChatMessage {
  */
 export class LanguageModelAPI implements vscode.Disposable {
   private disposables: vscode.Disposable[] = [];
-  private defaultSystemPrompt = `You are a helpful assistant integrated with VS Code and Obsidian.
-You have access to the user's tags and notes in their knowledge base.
-Always provide clear, accurate information and useful suggestions.`;
+  private systemPromptCache: string | null = null;
   private readonly API_KEY_STORAGE_KEY = 'obsidianMagic.apiKey';
 
   constructor(private readonly context: vscode.ExtensionContext) {
     // Initialize the API key if needed
     void this.initializeApiKey();
+  }
+
+  private async loadSystemPrompt(): Promise<string> {
+    if (this.systemPromptCache) return this.systemPromptCache;
+    // __dirname is not available in ESM, so use context.extensionPath
+    const promptPath = path.join(this.context.extensionPath, 'prompts', 'vscode-system.txt');
+    this.systemPromptCache = await fs.readFile(promptPath, 'utf8');
+    return this.systemPromptCache;
   }
 
   /**
@@ -80,7 +89,6 @@ Always provide clear, accurate information and useful suggestions.`;
     } = {}
   ): Promise<string> {
     try {
-      // Check if VS Code API is available (introduced in VS Code June 2024)
       const hasLanguageModelAPI =
         'languages' in vscode && 'invokeModelRequest' in (vscode.languages as Record<string, unknown>);
 
@@ -89,10 +97,11 @@ Always provide clear, accurate information and useful suggestions.`;
       }
 
       // Prepare chat messages
+      const systemPrompt = options.systemPrompt ?? (await this.loadSystemPrompt());
       const messages: ChatMessage[] = [
         {
           role: 'system',
-          content: options.systemPrompt ?? this.defaultSystemPrompt,
+          content: systemPrompt,
         },
         {
           role: 'user',
@@ -126,7 +135,6 @@ Always provide clear, accurate information and useful suggestions.`;
     } = {}
   ): Promise<void> {
     try {
-      // Check if VS Code API is available
       const hasLanguageModelAPI =
         'languages' in vscode && 'invokeModelRequestStream' in (vscode.languages as Record<string, unknown>);
 
@@ -136,11 +144,11 @@ Always provide clear, accurate information and useful suggestions.`;
         return;
       }
 
-      // Prepare chat messages
+      const systemPrompt = options.systemPrompt ?? (await this.loadSystemPrompt());
       const messages: ChatMessage[] = [
         {
           role: 'system',
-          content: options.systemPrompt ?? this.defaultSystemPrompt,
+          content: systemPrompt,
         },
         {
           role: 'user',
@@ -148,7 +156,6 @@ Always provide clear, accurate information and useful suggestions.`;
         },
       ];
 
-      // Call VS Code API with streaming support
       await this.callVSCodeLanguageModelStreaming(messages, callback);
     } catch (error) {
       console.error('Error generating streaming completion:', error);

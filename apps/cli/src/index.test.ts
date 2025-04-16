@@ -8,7 +8,7 @@ import { mockLoggerInstance, resetLoggerMock } from './__mocks__/Logger';
 import { costManager } from './utils/cost-manager';
 
 // Add formatCost to the mockLoggerInstance
-mockLoggerInstance['formatCost'] = vi.fn((cost: number) => `$${cost}`);
+mockLoggerInstance['formatCost'] = vi.fn((cost: number) => `$${cost.toString()}`);
 
 // Hoisted mocks - these are processed before module imports regardless of import order
 vi.mock('@obsidian-magic/core/utils/Logger', () => ({
@@ -79,7 +79,7 @@ describe('CLI Application', () => {
     vi.clearAllMocks();
     resetLoggerMock();
     // Re-add formatCost after reset
-    mockLoggerInstance['formatCost'] = vi.fn((cost: number) => `$${cost}`);
+    mockLoggerInstance['formatCost'] = vi.fn((cost: number) => `$${cost.toString()}`);
   });
 
   it('should have mocked dependencies correctly', () => {

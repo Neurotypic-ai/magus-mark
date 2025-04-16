@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { TagDecoration } from './TagDecoration';
 
-describe('TagDecoration', () => {
-  it('validates tag decoration', () => {
+suite('TagDecoration', () => {
+  test('validates tag decoration', () => {
     const decoration: TagDecoration = {
       tag: 'technology',
       style: {
@@ -16,9 +16,9 @@ describe('TagDecoration', () => {
       hoverMessage: 'Technology tag (confidence: 0.92)',
     };
 
-    expect(decoration.tag).toBe('technology');
-    expect(decoration.style.backgroundColor).toBe('#e6f7ff');
-    expect(decoration.style.color).toBe('#0077cc');
-    expect(decoration.hoverMessage).toBe('Technology tag (confidence: 0.92)');
+    expect(decoration.tag).to.equal('technology');
+    expect(decoration.style.backgroundColor).to.equal('#e6f7ff');
+    expect(decoration.style.color).to.equal('#0077cc');
+    expect(decoration.hoverMessage).to.equal('Technology tag (confidence: 0.92)');
   });
 });

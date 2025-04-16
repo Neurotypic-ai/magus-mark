@@ -1,0 +1,8 @@
+{
+  "ui": "tdd",
+  "color": true,
+  "timeout": 10000,
+  "require": ["tsx/esm"],
+  "node-option": ["experimental-specifier-resolution=node"],
+  "loader": "tsx"
+}

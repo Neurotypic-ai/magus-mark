@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { TagTreeNode } from './TagTreeNode';
 
-describe('TagTreeNode', () => {
-  it('validates tag tree node', () => {
+suite('TagTreeNode', () => {
+  test('validates tag tree node', () => {
     // Root node with children
     const rootNode: TagTreeNode = {
       id: 'root',
@@ -35,27 +35,27 @@ describe('TagTreeNode', () => {
       iconPath: '/path/to/folder-icon.svg',
     };
 
-    // Fix circular references
+    // Assign parent references - Parent property is optional
     if (rootNode.children[0]) {
       rootNode.children[0].parent = rootNode;
-
       if (rootNode.children[0].children[0]) {
         rootNode.children[0].children[0].parent = rootNode.children[0];
       }
     }
 
-    expect(rootNode.id).toBe('root');
-    expect(rootNode.type).toBe('tag-category');
-    expect(rootNode.children).toHaveLength(1);
-    expect(rootNode.children[0]?.label).toBe('Technology');
-    expect(rootNode.children[0]?.type).toBe('tag');
-    expect(rootNode.children[0]?.children[0]?.type).toBe('document');
-    expect(rootNode.children[0]?.tag).toBe('technology');
-    expect(rootNode.children[0]?.children[0]?.documentUri).toBe('file:///path/to/document.md');
+    expect(rootNode.id).to.equal('root');
+    expect(rootNode.type).to.equal('tag-category');
+    expect(rootNode.children).to.have.lengthOf(1);
+    // Use optional chaining for potentially undefined children
+    expect(rootNode.children[0]?.label).to.equal('Technology');
+    expect(rootNode.children[0]?.type).to.equal('tag');
+    expect(rootNode.children[0]?.children[0]?.type).to.equal('document');
+    expect(rootNode.children[0]?.tag).to.equal('technology');
+    expect(rootNode.children[0]?.children[0]?.documentUri).to.equal('file:///path/to/document.md');
 
     // Verify enum values
     const validNodeTypes: TagTreeNode['type'][] = ['tag-category', 'tag', 'document'];
-    expect(validNodeTypes).toContain(rootNode.type);
-    expect(validNodeTypes).toContain(rootNode.children[0]?.type ?? '');
+    expect(validNodeTypes).to.include(rootNode.type);
+    expect(validNodeTypes).to.include(rootNode.children[0]?.type ?? '');
   });
 });

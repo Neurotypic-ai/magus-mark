@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { VSCodeSettings } from './VSCodeSettings';
 
-describe('VSCodeSettings', () => {
-  it('validates VS Code settings', () => {
+suite('VSCodeSettings', () => {
+  test('validates VS Code settings', () => {
     const settings: VSCodeSettings = {
       api: {
         apiKey: 'test-api-key',
@@ -48,18 +48,18 @@ describe('VSCodeSettings', () => {
     };
 
     // Type checking verification
-    expect(settings.api.defaultModel).toBe('gpt-4o');
-    expect(settings.tagging.behavior).toBe('append');
-    expect(settings.ui.tagDecorationStyle).toBe('background');
-    expect(settings.integration.enableSidebarView).toBe(true);
-    expect(settings.workspace.vaultPath).toBe('/path/to/vault');
-    expect(settings.advanced.logLevel).toBe('info');
+    expect(settings.api.defaultModel).to.equal('gpt-4o');
+    expect(settings.tagging.behavior).to.equal('append');
+    expect(settings.ui.tagDecorationStyle).to.equal('background');
+    expect(settings.integration.enableSidebarView).to.equal(true);
+    expect(settings.workspace.vaultPath).to.equal('/path/to/vault');
+    expect(settings.advanced.logLevel).to.equal('info');
 
     // Verify enum values
     const validDecorationStyles: VSCodeSettings['ui']['tagDecorationStyle'][] = ['background', 'underline', 'outline'];
-    expect(validDecorationStyles).toContain(settings.ui.tagDecorationStyle);
+    expect(validDecorationStyles).to.include(settings.ui.tagDecorationStyle);
 
     const validLogLevels: VSCodeSettings['advanced']['logLevel'][] = ['debug', 'info', 'warn', 'error'];
-    expect(validLogLevels).toContain(settings.advanced.logLevel);
+    expect(validLogLevels).to.include(settings.advanced.logLevel);
   });
 });

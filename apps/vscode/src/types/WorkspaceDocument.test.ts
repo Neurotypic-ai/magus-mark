@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { WorkspaceDocument } from './WorkspaceDocument';
 
-describe('WorkspaceDocument', () => {
-  it('validates workspace document', () => {
+suite('WorkspaceDocument', () => {
+  test('validates workspace document', () => {
     const modifiedDate = new Date(Date.now() - 3600000); // 1 hour ago
     const taggedDate = new Date();
 
@@ -28,11 +28,11 @@ describe('WorkspaceDocument', () => {
       lastTagged: taggedDate,
     };
 
-    expect(document.uri).toBe('file:///path/to/document.md');
-    expect(document.path).toBe('/path/to/document.md');
-    expect(document.name).toBe('document.md');
-    expect(document.tags.year).toBe('2023');
-    expect(document.lastModified).toBe(modifiedDate);
-    expect(document.lastTagged).toBe(taggedDate);
+    expect(document.uri).to.equal('file:///path/to/document.md');
+    expect(document.path).to.equal('/path/to/document.md');
+    expect(document.name).to.equal('document.md');
+    expect(document.tags.year).to.equal('2023');
+    expect(document.lastModified).to.equal(modifiedDate);
+    expect(document.lastTagged).to.equal(taggedDate);
   });
 });

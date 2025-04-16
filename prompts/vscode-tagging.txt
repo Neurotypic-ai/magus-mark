@@ -1,0 +1,5 @@
+Analyze this document and suggest relevant tags for it:
+Filename: {{fileName}}
+Content: {{content}}
+
+Provide a JSON array of suggested tags, with each tag having a name and description. 

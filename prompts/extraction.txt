@@ -1,0 +1,18 @@
+<document>
+{{content}}
+</document>
+
+<instructions>
+The document above is very long. Your task is to extract the most relevant sections that would help with classifying the document's topic and content.
+
+Focus on sections that contain:
+1. Clear indications of the subject matter or domain
+2. Key concepts, technologies, or methodologies discussed
+3. Statements about the purpose or context of the conversation
+4. Important questions or problems being solved
+
+Extract approximately {{word_count}} words ({{max_tokens}} tokens) that best represent the document's content.
+Preserve the original wording of the selected sections.
+Format your response as a continuous text with paragraph breaks where appropriate.
+Do not include your own analysis or commentary.
+</instructions> 

@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { expect } from 'chai';
 
 import type { MCPContext } from './MCPContext';
 
-describe('MCPContext', () => {
-  it('validates MCP context', () => {
+suite('MCPContext', () => {
+  test('validates MCP context', () => {
     const context: MCPContext = {
       extensionPath: '/path/to/extension',
       workspacePath: '/path/to/workspace',
@@ -16,12 +16,12 @@ describe('MCPContext', () => {
       },
     };
 
-    expect(context.extensionPath).toBe('/path/to/extension');
-    expect(context.workspacePath).toBe('/path/to/workspace');
-    expect(context.serverPort).toBe(9000);
-    expect(context.sessionId).toBe('session-123');
-    expect(context.capabilities.tagging).toBe(true);
-    expect(context.capabilities.modelAccess).toBe(true);
-    expect(context.capabilities.fileAccess).toBe(true);
+    expect(context.extensionPath).to.equal('/path/to/extension');
+    expect(context.workspacePath).to.equal('/path/to/workspace');
+    expect(context.serverPort).to.equal(9000);
+    expect(context.sessionId).to.equal('session-123');
+    expect(context.capabilities.tagging).to.equal(true);
+    expect(context.capabilities.modelAccess).to.equal(true);
+    expect(context.capabilities.fileAccess).to.equal(true);
   });
 });

@@ -8,10 +8,15 @@ import { EventEmitter } from './EventEmitter.mock';
 export class VaultIntegration {
   // Event emitters
   private _onVaultChanged = new EventEmitter();
-  onVaultChanged = this._onVaultChanged.event;
+  onVaultChanged: typeof this._onVaultChanged.event;
 
   private _onFileSynced = new EventEmitter();
-  onFileSynced = this._onFileSynced.event;
+  onFileSynced: typeof this._onFileSynced.event;
+
+  constructor() {
+    this.onVaultChanged = this._onVaultChanged.event.bind(this);
+    this.onFileSynced = this._onFileSynced.event.bind(this);
+  }
 
   // Methods
   initialize = vi.fn().mockResolvedValue(true);

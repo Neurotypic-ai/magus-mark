@@ -1,11 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { expect } from 'chai';
+import * as sinon from 'sinon';
 
 import type { CursorCommand } from './CursorCommand';
 import type { MCPContext } from './MCPContext';
 
-describe('CursorCommand', () => {
-  it('validates cursor command', () => {
-    const mockExecute = vi.fn().mockResolvedValue({ success: true });
+suite('CursorCommand', () => {
+  test('validates cursor command', async () => {
+    const mockExecute = sinon.stub().resolves({ success: true });
 
     const command: CursorCommand = {
       name: 'Tag Document',
@@ -13,8 +14,8 @@ describe('CursorCommand', () => {
       execute: mockExecute,
     };
 
-    expect(command.name).toBe('Tag Document');
-    expect(command.id).toBe('obsidian-magic.tagDocument');
+    expect(command.name).to.equal('Tag Document');
+    expect(command.id).to.equal('obsidian-magic.tagDocument');
 
     // Test execution
     const context: MCPContext = {
@@ -29,7 +30,10 @@ describe('CursorCommand', () => {
       },
     };
 
-    void command.execute(context, { documentUri: 'file:///path/to/doc.md' });
-    expect(mockExecute).toHaveBeenCalledWith(context, { documentUri: 'file:///path/to/doc.md' });
+    const args = { documentUri: 'file:///path/to/doc.md' };
+    await command.execute(context, args);
+
+    // Use Sinon's assertion API
+    sinon.assert.calledWith(mockExecute, context, args);
   });
 });

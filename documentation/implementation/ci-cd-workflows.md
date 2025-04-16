@@ -101,7 +101,7 @@ The release process is automated through the `release.yml` workflow:
 Accessibility checks might be integrated into the testing phase for relevant UI packages (e.g., Obsidian Plugin) using
 tools like `axe-core` within Vitest/React Testing Library tests.
 
-```typescript
+```text
 // Example within a Vitest test
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
