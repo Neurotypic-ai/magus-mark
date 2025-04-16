@@ -1,0 +1,85 @@
+# <%= name %>
+
+<%= description %>
+
+## Features
+
+- Example command to demonstrate functionality
+- More features to be added
+
+## Installation
+
+### From Obsidian Community Plugins
+
+1. Open Obsidian
+2. Go to Settings > Community Plugins
+3. Turn off Safe Mode
+4. Click Browse and search for "<%= name %>"
+5. Install the plugin
+6. Enable the plugin in the Community Plugins tab
+
+### Manual Installation
+
+1. Download the latest release from GitHub
+2. Extract the zip file to your Obsidian plugins folder: `<vault>/.obsidian/plugins/`
+3. Reload Obsidian
+4. Enable the plugin in Settings > Community Plugins
+
+## Usage
+
+1. Open the command palette (Ctrl/Cmd + P)
+2. Search for "<%= name %>: Example Command"
+3. Click on the command to execute it
+
+## Configuration
+
+The plugin currently has no configuration options. More settings will be added in future releases.
+
+## Development
+
+### Prerequisites
+
+- Node.js
+- pnpm
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/<%= fileName %>.git
+
+# Navigate to the project directory
+cd <%= fileName %>
+
+# Install dependencies
+pnpm install
+
+# Build the plugin
+pnpm build
+```
+
+### Development Workflow
+
+```bash
+# Start development build with auto-reload
+pnpm dev
+```
+
+<% if (unitTestRunner === 'vitest') { %>
+### Testing
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Generate coverage report
+pnpm test:coverage
+```
+<% } %>
+
+## License
+
+MIT License 

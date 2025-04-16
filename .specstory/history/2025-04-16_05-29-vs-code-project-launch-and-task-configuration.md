@@ -3072,6 +3072,145 @@ khallmark in obsidian-magic …                                                 
 
 ---
 
+```bash
+mkdir -p tools/generators/app/files/obsidian/src
+```
+
+```
+khallmark in obsidian-magic …
+
+```
+
+---
+
+```diff
+- 
++ {
++   "id": "<%= fileName %>",
++   "name": "<%= name %>",
++   "version": "0.1.0",
++   "minAppVersion": "1.4.0",
++   "description": "<%= description %>",
++   "author": "Your Name",
++   "authorUrl": "https://github.com/yourusername",
++   "isDesktopOnly": false
++ } 
+```
+
+---
+
+```diff
+- 
++ {
++   "name": "<%= fileName %>",
++   "version": "0.1.0",
++   "description": "<%= description %>",
++   "private": true,
++   "type": "module",
++   "main": "dist/main.js",
++   "scripts": {
++     "build": "tsc -b && node scripts/build.js",
++     "dev": "tsc -b --watch",
++     "clean": "rm -rf dist",
++     "test": "<%= unitTestRunner === 'vitest' ? 'vitest run' : 'echo \"No tests configured\"' %>",
++     "test:watch": "<%= unitTestRunner === 'vitest' ? 'vitest watch' : 'echo \"No tests configured\"' %>",
++     "test:coverage": "<%= unitTestRunner === 'vitest' ? 'vitest run --coverage' : 'echo \"No tests configured\"' %>",
++     "lint": "eslint .",
++     "lint:fix": "eslint . --fix"
++   },
++   "keywords": [
++     "obsidian",
++     "obsidian-plugin"<% if (tags) { %>,
++     <%= tags.split(',').map(tag => `"${tag.trim()}"`).join(',\n    ') %><% } %>
++   ],
++   "author": "Your Name",
++   "license": "MIT",
++   "dependencies": {
++     "@obsidian-magic/core": "workspace:*"
++   },
++   "devDependencies": {
++     "@eslint/js": "^9.24.0",
++     "@eslint/markdown": "^6.3.0",
++     "@types/node": "^22.14.1",
++     "@typescript-eslint/eslint-plugin": "^8.30.1",
++     "@typescript-eslint/parser": "^8.30.1",
++     "@typescript-eslint/utils": "^8.30.1",<% if (unitTestRunner === 'vitest') { %>
++     "@vitest/coverage-v8": "^3.1.1",<% } %>
++     "eslint": "^9.24.0",
++     "eslint-config-prettier": "^10.1.2",
++     "eslint-import-resolver-typescript": "^4.3.2",
++     "eslint-plugin-import-x": "^4.10.5",
++     "eslint-plugin-testing-library": "^7.1.1",
++     "obsidian": "^1.4.0",
++     "typescript": "^5.8.3",
++     "typescript-eslint": "^8.30.1"<% if (unitTestRunner === 'vitest') { %>,
++     "vitest": "^3.1.1"<% } %>
++   }
++ } 
+```
+
+---
+
+```diff
+- 
++ import { Plugin } from 'obsidian';
++ 
++ export default class <%= className %>Plugin extends Plugin {
++ 	async onload() {
++ 		console.log('Loading <%= name %> plugin');
++ 
++ 		// Register a command
++ 		this.addCommand({
++ 			id: 'example-command',
++ 			name: 'Example Command',
++ 			callback: () => {
++ 				console.log('Executed example command');
++ 			}
++ 		});
++ 
++ 		// Additional setup...
++ 	}
++ 
++ 	onunload() {
++ 		console.log('Unloading <%= name %> plugin');
++ 	}
++ } 
+```
+
+---
+
+Your Grace, I've created the main template file for Obsidian plugins. This template includes the essential structure with proper plugin activation, command registration, and cleanup. The file uses template variables like `<%= className %>` and `<%= name %>` that will be replaced with actual values when generating a new plugin.
+
+Would you like me to create any additional files for the Obsidian plugin template structure?
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+This is a nice start. Can you update @build-setup-ideas.md ? We've gotta be almost done
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Read file: documentation/build-setup-ideas.md
+
+---
+
+Cancelled
+
+---
+
+
+
+---
+
 
 
 ---
