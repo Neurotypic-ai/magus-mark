@@ -14,6 +14,8 @@ interface ElementAttrs {
 export interface MockObsidianElement extends HTMLElement {
   /** Value for input elements */
   value?: string;
+  type?: string;
+  placeholder?: string;
   /** Checked state for checkbox elements */
   checked?: boolean;
   createEl: ReturnType<typeof vi.fn>;
@@ -30,7 +32,7 @@ export interface MockObsidianElement extends HTMLElement {
 }
 
 export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): MockObsidianElement => {
-  const el = document.createElement(tag) as any; // Use 'any' for easier mocking
+  const el = document.createElement(tag) as unknown as MockObsidianElement; // Use 'any' for easier mocking
   if (attrs) {
     if (attrs.cls) el.className = attrs.cls;
     if (attrs.text) el.textContent = attrs.text;
@@ -65,15 +67,9 @@ export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): Mo
   });
   el.removeChild = vi.fn();
   el.remove = vi.fn();
-  if (!el.dataset) {
-    el.dataset = {};
-  }
-  if (!el.style) {
-    el.style = {};
-  } // Ensure style exists
   el.doc = document; // Add doc property
 
-  return el as MockObsidianElement;
+  return el;
 };
 
 /** Minimal TFolder stub */
@@ -243,7 +239,7 @@ export class Vault {
     if (path.endsWith('.md')) {
       return new TFile();
     }
-    if (!path.includes('.') || (/\.\w+$/.exec(path)) === null || !['md'].includes(path.split('.').pop() ?? '')) {
+    if (!path.includes('.') || /\.\w+$/.exec(path) === null || !['md'].includes(path.split('.').pop() ?? '')) {
       return new TFolder(path);
     }
     return null;

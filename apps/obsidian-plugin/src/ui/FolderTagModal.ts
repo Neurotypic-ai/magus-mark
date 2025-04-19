@@ -2,7 +2,17 @@ import { Modal, Notice, Setting, TFolder } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
 
-export class FolderTagModal extends Modal {
+export interface FolderTagModalType {
+  folderItems: HTMLElement[];
+  searchInput: HTMLInputElement;
+  selectedFolderPath: string;
+  includeSubfoldersCheckbox: HTMLInputElement;
+  handleFolderClick(evt: { currentTarget: HTMLElement }): void;
+  handleFolderSearch(evt: { target: HTMLInputElement }): void;
+  handleTagButtonClick(): void;
+}
+
+export class FolderTagModal extends Modal implements FolderTagModalType {
   private selectedFolder: TFolder | null = null;
   private includeSubfolders = true;
   private onSubmit: (folder: TFolder, includeSubfolders: boolean) => void;
@@ -10,6 +20,19 @@ export class FolderTagModal extends Modal {
   constructor(plugin: ObsidianMagicPlugin, onSubmit: (folder: TFolder, includeSubfolders: boolean) => void) {
     super(plugin.app);
     this.onSubmit = onSubmit;
+  }
+  folderItems: HTMLElement[] = [];
+  searchInput: HTMLInputElement = document.createElement('input');
+  selectedFolderPath = '';
+  includeSubfoldersCheckbox: HTMLInputElement = document.createElement('input');
+  handleFolderClick(evt: { currentTarget: HTMLElement }): void {
+    console.log('handleFolderClick', evt);
+  }
+  handleFolderSearch(evt: { target: HTMLInputElement }): void {
+    console.log('handleFolderSearch', evt);
+  }
+  handleTagButtonClick(): void {
+    console.log('handleTagButtonClick');
   }
 
   override onOpen(): void {

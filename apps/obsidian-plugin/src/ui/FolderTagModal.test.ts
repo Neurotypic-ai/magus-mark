@@ -1,89 +1,33 @@
 // Import Setting to mock it (though mock is now in __mocks__)
 // We might still need the type, or remove if unused after cleanup
 import { Setting } from 'obsidian';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createMockObsidianElement } from '../__mocks__/obsidian';
 import { FolderTagModal } from './FolderTagModal';
 
-import type { App, TFolder } from 'obsidian';
+import type { App, App as ObsidianApp, TFolder } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
-
-// --- Mocks for Plugin and App ---
-interface MockFileOrFolder {
-  path: string;
-  name: string;
-  extension?: string;
-  isFolder: () => boolean;
-  children?: MockFileOrFolder[];
-}
-
-// Mock Obsidian API (App and Vault parts)
-const mockApp = {
-  vault: {
-    getAllLoadedFiles: vi.fn().mockReturnValue([
-      { path: 'folder1', name: 'folder1', isFolder: () => true, children: [] },
-      { path: 'folder1/subfolder', name: 'subfolder', isFolder: () => true, children: [] },
-      { path: 'folder2', name: 'folder2', isFolder: () => true, children: [] },
-      { path: 'test.md', name: 'test', isFolder: () => false },
-    ] as MockFileOrFolder[]),
-    getMarkdownFiles: vi.fn().mockReturnValue([
-      { path: 'folder1/file1.md', name: 'file1', extension: 'md' },
-      { path: 'folder1/file2.md', name: 'file2', extension: 'md' },
-      { path: 'folder1/subfolder/file3.md', name: 'file3', extension: 'md' },
-    ]),
-    getAbstractFileByPath: vi.fn((path: string) => {
-      if (path === '/') return { path: '/', name: 'Root', children: [], isFolder: () => true } as unknown as TFolder;
-      return mockApp.vault.getAllLoadedFiles().find((f) => f.path === path) as TFolder | undefined;
-    }),
-    getRoot: vi.fn(
-      () =>
-        ({
-          path: '/',
-          name: 'Root',
-          children: mockApp.vault.getAllLoadedFiles(),
-          isFolder: () => true,
-        }) as unknown as TFolder
-    ),
-  },
-} as unknown as App;
-
-// Create proper type for our mock plugin
-const mockPlugin = {
-  app: mockApp,
-  tagFolder: vi.fn().mockResolvedValue(undefined),
-} as unknown as ObsidianMagicPlugin;
 
 // Callback for tagging folder functionality
 const onSubmitCallback = vi.fn();
 
+const mockApp: ObsidianApp = {
+  vault: {
+    getAllLoadedFiles: vi.fn().mockReturnValue([]),
+    getAbstractFileByPath: vi.fn(),
+    getRoot: vi.fn(),
+  },
+  // add any other minimal methods/properties needed
+} as unknown as ObsidianApp;
+
+const mockPlugin = {
+  app: mockApp, // now typed, not `any`
+} as ObsidianMagicPlugin;
+
 describe('FolderTagModal', () => {
-  let modal: FolderTagModal;
-
-  beforeEach(() => {
-    // Create clean DOM
-    document.body.innerHTML = '';
-
-    // Create modal instance - constructor uses mocked App from __mocks__
-    modal = new FolderTagModal(mockPlugin, onSubmitCallback);
-
-    // Mock the base Modal properties/methods AFTER instantiation
-    // These are now likely handled by the __mocks__/obsidian.ts Modal mock
-    // modal.contentEl = createMockObsidianElement('div'); // Base element
-    // modal.modalEl = createMockObsidianElement('div', { cls: 'modal' }); // Mock modalEl too
-    // modal.containerEl = createMockObsidianElement('div', { cls: 'modal-container' }); // Mock containerEl
-    modal.app = mockApp; // Ensure it uses our specific app mock if needed
-    modal.open = vi.fn(); // Keep instance mocks if needed
-    modal.close = vi.fn();
-
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    document.body.innerHTML = '';
-    vi.resetAllMocks();
-  });
+  const modal = new FolderTagModal(mockPlugin, onSubmitCallback);
 
   describe('UI Initialization', () => {
     it('should create necessary UI elements on open using Setting mock', () => {
@@ -102,7 +46,7 @@ describe('FolderTagModal', () => {
     it('should display a list of folders', () => {
       // Mock querySelector to return a mock list element for renderFolderList
       const mockFolderList = createMockObsidianElement('div');
-      (modal.contentEl as any).querySelector = vi.fn().mockReturnValue(mockFolderList);
+      (modal.contentEl as unknown as HTMLElement).querySelector = vi.fn().mockReturnValue(mockFolderList);
 
       modal.onOpen();
 
@@ -121,7 +65,7 @@ describe('FolderTagModal', () => {
       modal.onOpen();
 
       // Simulate the creation of folder items (assuming renderFolderList was called)
-      const mockFolderList = (modal.contentEl as any).querySelector('.folder-list');
+      const mockFolderList = (modal.contentEl as unknown as HTMLElement).querySelector('.folder-list');
       const folderItem1 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
       folderItem1.dataset['path'] = 'folder1';
       const folderItem2 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder2' });
@@ -133,7 +77,7 @@ describe('FolderTagModal', () => {
       }
 
       // Access private members - requires careful typing or casting
-      const privateModal = modal as any;
+      const privateModal = modal as unknown as FolderTagModal;
 
       privateModal.folderItems = [folderItem1, folderItem2]; // Assuming this property exists and is set
 
@@ -152,7 +96,7 @@ describe('FolderTagModal', () => {
     it('should handle folder search', () => {
       modal.onOpen();
 
-      const privateModal = modal as any;
+      const privateModal = modal as unknown as FolderTagModal;
 
       // Assume renderFolderList creates items and assigns to privateModal.folderItems
       const items = [
@@ -185,7 +129,7 @@ describe('FolderTagModal', () => {
     it('should tag selected folder when Tag button is clicked', () => {
       modal.onOpen();
 
-      const privateModal = modal as any;
+      const privateModal = modal as unknown as FolderTagModal;
       privateModal.selectedFolderPath = 'folder1';
       privateModal.includeSubfoldersCheckbox = createMockObsidianElement('input', {
         type: 'checkbox',
@@ -205,7 +149,7 @@ describe('FolderTagModal', () => {
 
     it('should not tag if no folder is selected', () => {
       modal.onOpen();
-      const privateModal = modal as any;
+      const privateModal = modal as unknown as FolderTagModal;
       privateModal.selectedFolderPath = '';
       privateModal.close = vi.fn();
       privateModal.handleTagButtonClick();
@@ -215,7 +159,7 @@ describe('FolderTagModal', () => {
 
     it('should respect the include subfolders option', () => {
       modal.onOpen();
-      const privateModal = modal as any;
+      const privateModal = modal as unknown as FolderTagModal;
       privateModal.selectedFolderPath = 'folder1';
       privateModal.includeSubfoldersCheckbox = createMockObsidianElement('input', {
         type: 'checkbox',

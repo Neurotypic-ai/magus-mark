@@ -1,6 +1,7 @@
 # Document Integration
 
-The Obsidian Magic plugin provides seamless integration with Obsidian documents, enhancing the editing and viewing experience with advanced tag-related features.
+The Obsidian Magic plugin provides seamless integration with Obsidian documents, enhancing the editing and viewing
+experience with advanced tag-related features.
 
 ## Frontmatter Enhancement
 
@@ -16,81 +17,83 @@ The Obsidian Magic plugin provides seamless integration with Obsidian documents,
 
 ```typescript
 // Register a CodeMirror extension to detect and style frontmatter tags
-import type { EditorView, DecorationSet, ViewUpdate } from "@codemirror/view";
-import { Decoration, ViewPlugin } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
-import { RangeSetBuilder } from "@codemirror/state";
+import { syntaxTree } from '@codemirror/language';
+import { RangeSetBuilder } from '@codemirror/state';
+import { Decoration, ViewPlugin } from '@codemirror/view';
+
+import type { DecorationSet, EditorView, ViewUpdate } from '@codemirror/view';
 
 // Define decoration types for different tag categories
-const topicTagMark = Decoration.mark({ class: "obsidian-magic-topic-tag" });
-const yearTagMark = Decoration.mark({ class: "obsidian-magic-year-tag" });
-const lowConfidenceMark = Decoration.mark({ class: "obsidian-magic-low-confidence-tag" });
-const aiGeneratedMark = Decoration.mark({ class: "obsidian-magic-ai-generated" });
+const topicTagMark = Decoration.mark({ class: 'obsidian-magic-topic-tag' });
+const yearTagMark = Decoration.mark({ class: 'obsidian-magic-year-tag' });
+const lowConfidenceMark = Decoration.mark({ class: 'obsidian-magic-low-confidence-tag' });
+const aiGeneratedMark = Decoration.mark({ class: 'obsidian-magic-ai-generated' });
 
 // Create the view plugin
-const tagHighlighter = ViewPlugin.fromClass(class {
-  decorations: DecorationSet;
-  
-  constructor(view: EditorView) {
-    this.decorations = this.buildDecorations(view);
-  }
-  
-  update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged)
-      this.decorations = this.buildDecorations(update.view);
-  }
-  
-  buildDecorations(view: EditorView) {
-    const builder = new RangeSetBuilder<Decoration>();
-    const tagManager = this.plugin.tagManager;
-    
-    // Scan the document for the YAML frontmatter section
-    const tree = syntaxTree(view.state);
-    let inFrontmatter = false;
-    
-    tree.iterate({
-      enter(node) {
-        // Detect YAML frontmatter section
-        if (node.type.name === "yaml") {
-          inFrontmatter = true;
-        }
-        
-        // Process tag nodes within frontmatter
-        if (inFrontmatter && node.type.name === "tag") {
-          const from = node.from;
-          const to = node.to;
-          const tagText = view.state.doc.sliceString(from, to);
-          
-          // Determine tag type and apply appropriate decoration
-          const tagInfo = tagManager.getTagInfo(tagText);
-          
-          if (tagInfo.category === "topic") {
-            builder.add(from, to, topicTagMark);
-          } else if (tagInfo.category === "year") {
-            builder.add(from, to, yearTagMark);
+const tagHighlighter = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+
+    constructor(view: EditorView) {
+      this.decorations = this.buildDecorations(view);
+    }
+
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) this.decorations = this.buildDecorations(update.view);
+    }
+
+    buildDecorations(view: EditorView) {
+      const builder = new RangeSetBuilder<Decoration>();
+      const tagManager = this.plugin.tagManager;
+
+      // Scan the document for the YAML frontmatter section
+      const tree = syntaxTree(view.state);
+      let inFrontmatter = false;
+
+      tree.iterate({
+        enter(node) {
+          // Detect YAML frontmatter section
+          if (node.type.name === 'yaml') {
+            inFrontmatter = true;
           }
-          
-          // Add confidence indicator if confidence is low
-          if (tagInfo.confidence < 0.7) {
-            builder.add(from, to, lowConfidenceMark);
+
+          // Process tag nodes within frontmatter
+          if (inFrontmatter && node.type.name === 'tag') {
+            const from = node.from;
+            const to = node.to;
+            const tagText = view.state.doc.sliceString(from, to);
+
+            // Determine tag type and apply appropriate decoration
+            const tagInfo = tagManager.getTagInfo(tagText);
+
+            if (tagInfo.category === 'topic') {
+              builder.add(from, to, topicTagMark);
+            } else if (tagInfo.category === 'year') {
+              builder.add(from, to, yearTagMark);
+            }
+
+            // Add confidence indicator if confidence is low
+            if (tagInfo.confidence < 0.7) {
+              builder.add(from, to, lowConfidenceMark);
+            }
+
+            // Mark AI-generated tags
+            if (tagInfo.source === 'ai') {
+              builder.add(from, to, aiGeneratedMark);
+            }
           }
-          
-          // Mark AI-generated tags
-          if (tagInfo.source === "ai") {
-            builder.add(from, to, aiGeneratedMark);
+        },
+        leave(node) {
+          if (node.type.name === 'yaml') {
+            inFrontmatter = false;
           }
-        }
-      },
-      leave(node) {
-        if (node.type.name === "yaml") {
-          inFrontmatter = false;
-        }
-      }
-    });
-    
-    return builder.finish();
+        },
+      });
+
+      return builder.finish();
+    }
   }
-});
+);
 
 // Register the plugin with Obsidian's editor
 this.registerEditorExtension([tagHighlighter]);
@@ -135,33 +138,32 @@ this.registerStyles(css);
 
 ```typescript
 // Extend Obsidian's built-in YAML highlighting with custom token types for tags
-import { HighlightStyle, tags as t } from "@codemirror/highlight";
-import { EditorView } from "@codemirror/view";
+import { HighlightStyle, tags as t } from '@codemirror/highlight';
+import { StreamLanguage } from '@codemirror/language';
+import { EditorView } from '@codemirror/view';
+// Use a language extension to validate tag formats and mark invalid ones
+import { parseMixed } from '@lezer/common';
 
 // Define custom syntax node types
 const customHighlighting = HighlightStyle.define([
   // Year tags (e.g., #year/2023)
-  { tag: t.meta, matcher: /year\/\d{4}/g, color: "var(--color-green)" },
-  
+  { tag: t.meta, matcher: /year\/\d{4}/g, color: 'var(--color-green)' },
+
   // Life area tags (e.g., #life/work)
-  { tag: t.meta, matcher: /life\/[a-z-]+/g, color: "var(--color-yellow)" },
-  
+  { tag: t.meta, matcher: /life\/[a-z-]+/g, color: 'var(--color-yellow)' },
+
   // Topic tags (e.g., #topic/technology/ai)
-  { tag: t.meta, matcher: /topic\/[a-z-]+\/[a-z-]+/g, color: "var(--color-blue)" },
-  
+  { tag: t.meta, matcher: /topic\/[a-z-]+\/[a-z-]+/g, color: 'var(--color-blue)' },
+
   // Conversation type tags (e.g., #conversation/brainstorming)
-  { tag: t.meta, matcher: /conversation\/[a-z-]+/g, color: "var(--color-purple)" },
-  
+  { tag: t.meta, matcher: /conversation\/[a-z-]+/g, color: 'var(--color-purple)' },
+
   // Invalid tag format
-  { tag: t.invalid, color: "var(--color-red)" }
+  { tag: t.invalid, color: 'var(--color-red)' },
 ]);
 
 // Register the custom highlighting with the editor
 this.registerEditorExtension(customHighlighting);
-
-// Use a language extension to validate tag formats and mark invalid ones
-import { parseMixed } from "@lezer/common";
-import { StreamLanguage } from "@codemirror/language";
 
 // Custom parser to detect and flag invalid tag formats
 const tagValidator = StreamLanguage.define({
@@ -174,24 +176,26 @@ const tagValidator = StreamLanguage.define({
       const lifePattern = /^#life\/[a-z-]+$/;
       const topicPattern = /^#topic\/[a-z-]+\/[a-z-]+$/;
       const conversationPattern = /^#conversation\/[a-z-]+$/;
-      
+
       const tag = stream.match(/#[^\s:]+/);
-      
+
       if (tag) {
         const tagStr = tag[0];
-        if (yearPattern.test(tagStr) || 
-            lifePattern.test(tagStr) ||
-            topicPattern.test(tagStr) ||
-            conversationPattern.test(tagStr)) {
-          return "meta";
+        if (
+          yearPattern.test(tagStr) ||
+          lifePattern.test(tagStr) ||
+          topicPattern.test(tagStr) ||
+          conversationPattern.test(tagStr)
+        ) {
+          return 'meta';
         } else {
-          return "invalid";
+          return 'invalid';
         }
       }
     }
-    
+
     // Rest of the parser implementation...
-  }
+  },
 });
 
 this.registerEditorExtension(tagValidator);
@@ -209,11 +213,12 @@ this.registerEditorExtension(tagValidator);
 
 ```typescript
 // Register a custom autocomplete provider for tags
-import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { autocompletion } from "@codemirror/autocomplete";
-import { syntaxTree } from "@codemirror/language";
+import { autocompletion } from '@codemirror/autocomplete';
+import { syntaxTree } from '@codemirror/language';
 
-// Access to plugin's tag taxonomy 
+import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
+
+// Access to plugin's tag taxonomy
 const tagTaxonomy = this.plugin.tagManager.taxonomy;
 
 // Create the autocomplete source
@@ -221,61 +226,61 @@ const tagCompletion = (context: CompletionContext): CompletionResult | null => {
   // Only provide completions in frontmatter section
   const tree = syntaxTree(context.state);
   const node = tree.resolveInner(context.pos, -1);
-  
-  if (!node || !node.parent || node.parent.name !== "yaml") return null;
-  
+
+  if (!node || !node.parent || node.parent.name !== 'yaml') return null;
+
   // Check if we're typing a tag
   const line = context.state.doc.lineAt(context.pos);
   const lineText = line.text.slice(0, context.pos - line.from);
-  
+
   // Match start of a tag or continuation of a tag hierarchy
   const tagMatch = lineText.match(/(^|\s)(#[a-z\/]*)?$/);
   if (!tagMatch) return null;
-  
-  const tagPrefix = tagMatch[2] || "#";
-  const isHierarchical = tagPrefix.includes("/");
-  
+
+  const tagPrefix = tagMatch[2] || '#';
+  const isHierarchical = tagPrefix.includes('/');
+
   let options = [];
-  
+
   // If we're in a hierarchical tag, suggest appropriate completions based on the hierarchy
   if (isHierarchical) {
-    const parts = tagPrefix.slice(1).split("/");
+    const parts = tagPrefix.slice(1).split('/');
     const category = parts[0];
-    
-    if (category === "topic" && parts.length === 2) {
+
+    if (category === 'topic' && parts.length === 2) {
       // Suggest subdomains for the selected domain
       const domain = parts[1];
       const subdomains = tagTaxonomy.getSubdomains(domain);
-      
-      options = subdomains.map(subdomain => ({
+
+      options = subdomains.map((subdomain) => ({
         label: `#topic/${domain}/${subdomain}`,
-        type: "tag",
+        type: 'tag',
         info: tagTaxonomy.getDescription(`topic/${domain}/${subdomain}`),
-        apply: `#topic/${domain}/${subdomain}`
+        apply: `#topic/${domain}/${subdomain}`,
       }));
     } else if (parts.length === 1) {
       // Suggest next level based on category
-      if (category === "year") {
-        const years = ["2020", "2021", "2022", "2023", "2024"];
-        options = years.map(year => ({
+      if (category === 'year') {
+        const years = ['2020', '2021', '2022', '2023', '2024'];
+        options = years.map((year) => ({
           label: `#year/${year}`,
-          type: "tag",
-          apply: `#year/${year}`
+          type: 'tag',
+          apply: `#year/${year}`,
         }));
-      } else if (category === "life") {
-        const areas = ["work", "personal", "health", "learning", "projects"];
-        options = areas.map(area => ({
+      } else if (category === 'life') {
+        const areas = ['work', 'personal', 'health', 'learning', 'projects'];
+        options = areas.map((area) => ({
           label: `#life/${area}`,
-          type: "tag",
-          apply: `#life/${area}`
+          type: 'tag',
+          apply: `#life/${area}`,
         }));
-      } else if (category === "topic") {
+      } else if (category === 'topic') {
         const domains = tagTaxonomy.getDomains();
-        options = domains.map(domain => ({
+        options = domains.map((domain) => ({
           label: `#topic/${domain}`,
-          type: "tag",
+          type: 'tag',
           info: `Select to see ${domain} subdomains`,
-          apply: `#topic/${domain}/`
+          apply: `#topic/${domain}/`,
         }));
       }
     }
@@ -283,82 +288,84 @@ const tagCompletion = (context: CompletionContext): CompletionResult | null => {
     // Suggest top-level categories
     options = [
       {
-        label: "#year/",
-        type: "tag",
-        info: "Chronological classification",
-        apply: "#year/"
+        label: '#year/',
+        type: 'tag',
+        info: 'Chronological classification',
+        apply: '#year/',
       },
       {
-        label: "#life/",
-        type: "tag",
-        info: "Life area classification",
-        apply: "#life/"
+        label: '#life/',
+        type: 'tag',
+        info: 'Life area classification',
+        apply: '#life/',
       },
       {
-        label: "#topic/",
-        type: "tag",
-        info: "Topical classification",
-        apply: "#topic/"
+        label: '#topic/',
+        type: 'tag',
+        info: 'Topical classification',
+        apply: '#topic/',
       },
       {
-        label: "#conversation/",
-        type: "tag",
-        info: "Conversation type classification",
-        apply: "#conversation/"
-      }
+        label: '#conversation/',
+        type: 'tag',
+        info: 'Conversation type classification',
+        apply: '#conversation/',
+      },
     ];
-    
+
     // Add document-specific tag suggestions based on content analysis
     const docContent = context.state.doc.toString();
     const suggestedTags = this.plugin.tagAnalyzer.analyzeContent(docContent);
-    
-    suggestedTags.forEach(tag => {
+
+    suggestedTags.forEach((tag) => {
       options.push({
         label: `#${tag.path}`,
-        type: "tag",
+        type: 'tag',
         info: `Suggested (${Math.round(tag.confidence * 100)}% confidence)`,
         apply: `#${tag.path}`,
-        boost: tag.confidence
+        boost: tag.confidence,
       });
     });
   }
-  
+
   return {
     from: context.pos - tagPrefix.length,
     options,
-    span: /^[a-z0-9\/\-_]+$/
+    span: /^[a-z0-9\/\-_]+$/,
   };
 };
 
 // Register the autocomplete extension
-this.registerEditorExtension(autocompletion({
-  override: [tagCompletion],
-  defaultKeymap: true,
-  icons: false,
-  addToOptions: [
-    {
-      render(completion, state) {
-        // Custom rendering of completion items
-        const dom = document.createElement("div");
-        dom.classList.add("obsidian-magic-tag-completion");
-        
-        const label = document.createElement("span");
-        label.textContent = completion.label;
-        dom.appendChild(label);
-        
-        if (completion.info) {
-          const info = document.createElement("span");
-          info.classList.add("obsidian-magic-tag-completion-info");
-          info.textContent = completion.info;
-          dom.appendChild(info);
-        }
-        
-        return dom;
+this.registerEditorExtension(
+  autocompletion({
+    override: [tagCompletion],
+    defaultKeymap: true,
+    icons: false,
+    addToOptions: [
+      {
+        render(completion, state) {
+          // Custom rendering of completion items
+          const dom = document.createElement('div');
+          dom.classList.add('obsidian-magic-tag-completion');
+
+          const label = document.createElement('span');
+          label.textContent = completion.label;
+          dom.appendChild(label);
+
+          if (completion.info) {
+            const info = document.createElement('span');
+            info.classList.add('obsidian-magic-tag-completion-info');
+            info.textContent = completion.info;
+            dom.appendChild(info);
+          }
+
+          return dom;
+        },
+        position: 'below',
       },
-      position: "below"
-    }
-  ]
-}));
+    ],
+  })
+);
 ```
 
 ### Validation
@@ -373,29 +380,29 @@ this.registerEditorExtension(autocompletion({
 
 ```typescript
 // Register a post-processor for frontmatter content to validate tags
-import { Notice } from "obsidian";
+import { Notice } from 'obsidian';
 
 // Hook into the Obsidian editor's save event
 this.registerEvent(
-  this.app.workspace.on("editor-save", (editor) => {
+  this.app.workspace.on('editor-save', (editor) => {
     // Extract frontmatter
     const content = editor.getValue();
     const frontmatter = this.extractFrontmatter(content);
-    
+
     if (!frontmatter || !frontmatter.tags) return;
-    
+
     // Validate each tag
     const invalidTags = [];
     const suggestedFixes = {};
-    
-    frontmatter.tags.forEach(tag => {
+
+    frontmatter.tags.forEach((tag) => {
       // Remove # prefix for validation
-      const tagPath = tag.startsWith("#") ? tag.slice(1) : tag;
+      const tagPath = tag.startsWith('#') ? tag.slice(1) : tag;
       const isValid = this.plugin.tagManager.validateTag(tagPath);
-      
+
       if (!isValid) {
         invalidTags.push(tag);
-        
+
         // Generate suggested fixes
         const similarTags = this.plugin.tagManager.findSimilarTags(tagPath);
         if (similarTags.length > 0) {
@@ -403,43 +410,42 @@ this.registerEvent(
         }
       }
     });
-    
+
     // Show validation notices if there are invalid tags
     if (invalidTags.length > 0) {
-      let noticeMessage = `Found ${invalidTags.length} invalid tags: ${invalidTags.join(", ")}`;
-      
+      let noticeMessage = `Found ${invalidTags.length} invalid tags: ${invalidTags.join(', ')}`;
+
       // If we have suggested fixes, add them to the notice
       if (Object.keys(suggestedFixes).length > 0) {
-        noticeMessage += "\n\nSuggested fixes:";
+        noticeMessage += '\n\nSuggested fixes:';
         for (const [badTag, suggestions] of Object.entries(suggestedFixes)) {
-          noticeMessage += `\n${badTag} → ${suggestions.slice(0, 3).join(", ")}`;
+          noticeMessage += `\n${badTag} → ${suggestions.slice(0, 3).join(', ')}`;
         }
       }
-      
+
       const notice = new Notice(noticeMessage, 10000); // Show for 10 seconds
-      
+
       // Add a button to fix all automatically
-      const buttonEl = notice.noticeEl.createEl("button", {
-        text: "Fix All",
-        cls: "mod-cta"
+      const buttonEl = notice.noticeEl.createEl('button', {
+        text: 'Fix All',
+        cls: 'mod-cta',
       });
-      
-      buttonEl.addEventListener("click", () => {
+
+      buttonEl.addEventListener('click', () => {
         // Implement automatic fixing
         let newContent = content;
-        
+
         Object.entries(suggestedFixes).forEach(([badTag, suggestions]) => {
           if (suggestions.length > 0) {
             // Replace with the top suggestion
-            const goodTag = suggestions[0].startsWith("#") ? 
-              suggestions[0] : `#${suggestions[0]}`;
+            const goodTag = suggestions[0].startsWith('#') ? suggestions[0] : `#${suggestions[0]}`;
             newContent = newContent.replace(badTag, goodTag);
           }
         });
-        
+
         editor.setValue(newContent);
         notice.hide();
-        new Notice("Tags fixed automatically");
+        new Notice('Tags fixed automatically');
       });
     }
   })
@@ -449,17 +455,17 @@ this.registerEvent(
 function extractFrontmatter(content: string): Record<string, unknown> | null {
   const fmRegex = /^---\n([\s\S]*?\n)---/;
   const match = content.match(fmRegex);
-  
+
   if (match && match[1]) {
     try {
       // Parse YAML content
       return yaml.parse(match[1]);
     } catch (e) {
-      console.error("Failed to parse frontmatter:", e);
+      console.error('Failed to parse frontmatter:', e);
       return null;
     }
   }
-  
+
   return null;
 }
 ```
@@ -478,22 +484,22 @@ function extractFrontmatter(content: string): Record<string, unknown> | null {
 
 ```typescript
 // Register a post-processor for Markdown that converts tag syntax into visual chips
-import type { MarkdownPostProcessor } from "obsidian";
+import type { MarkdownPostProcessor } from 'obsidian';
 
 // Create a post-processor for tags
 const tagChipProcessor: MarkdownPostProcessor = (el, ctx) => {
   // Find all tag elements (they'll be <a> elements with href starting with #)
   const tagElements = el.querySelectorAll('a.tag');
-  
+
   tagElements.forEach((tagEl: HTMLElement) => {
     // Get the tag text without the # prefix
     const tagText = tagEl.textContent.slice(1);
     const tagPath = tagText.split('/');
-    
+
     // Create the chip container
     const chipEl = document.createElement('span');
     chipEl.addClass('obsidian-magic-tag-chip');
-    
+
     // Set category-specific class and styling
     if (tagPath[0] === 'year') {
       chipEl.addClass('obsidian-magic-year-tag');
@@ -504,67 +510,67 @@ const tagChipProcessor: MarkdownPostProcessor = (el, ctx) => {
     } else if (tagPath[0] === 'conversation') {
       chipEl.addClass('obsidian-magic-conversation-tag');
     }
-    
+
     // Get tag metadata
     const tagInfo = this.plugin.tagManager.getTagInfo(tagText);
-    
+
     // Create inner elements
     const iconEl = document.createElement('span');
     iconEl.addClass('obsidian-magic-tag-icon');
-    
+
     // Use different icons based on tag category
     let iconName = 'tag';
     if (tagPath[0] === 'year') iconName = 'calendar';
     else if (tagPath[0] === 'life') iconName = 'activity';
     else if (tagPath[0] === 'topic') iconName = 'hash';
     else if (tagPath[0] === 'conversation') iconName = 'message-circle';
-    
+
     // Set the Obsidian icon
     iconEl.innerHTML = `<svg class="svg-icon"><use href="#${iconName}"></use></svg>`;
-    
+
     // Create the label element
     const labelEl = document.createElement('span');
     labelEl.addClass('obsidian-magic-tag-label');
     labelEl.textContent = tagPath.slice(1).join('/');
-    
+
     // Assemble the chip
     chipEl.appendChild(iconEl);
     chipEl.appendChild(labelEl);
-    
+
     // Add confidence indicator if available
     if (tagInfo && tagInfo.confidence) {
       const confidenceEl = document.createElement('span');
       confidenceEl.addClass('obsidian-magic-tag-confidence');
-      
+
       // Visual indicator of confidence
       const confidenceValue = Math.round(tagInfo.confidence * 100);
       confidenceEl.innerHTML = `<div class="confidence-bar" style="width: ${confidenceValue}%"></div>`;
-      
+
       chipEl.appendChild(confidenceEl);
     }
-    
+
     // Set up drag-and-drop functionality
     chipEl.setAttribute('draggable', 'true');
-    
+
     chipEl.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', tagText);
       e.dataTransfer.setData('application/obsidian-tag', tagText);
       chipEl.addClass('is-dragging');
     });
-    
+
     chipEl.addEventListener('dragend', () => {
       chipEl.removeClass('is-dragging');
     });
-    
+
     // Set up click handler for filtering
     chipEl.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Trigger tag search/filter
       this.plugin.tagManager.filterByTag(tagText);
     });
-    
+
     // Replace the original tag element with our custom chip
     tagEl.replaceWith(chipEl);
   });
@@ -657,56 +663,57 @@ this.registerStyles(css);
 
 ```typescript
 // Implement tag tooltips with HoverParent API
-import type { HoverParent} from "obsidian";
-import { HoverPopover } from "obsidian";
+import { HoverPopover } from 'obsidian';
+
+import type { HoverParent } from 'obsidian';
 
 // Create hover provider for tag chips
 class TagTooltipProvider implements HoverParent {
   hoverPopover: HoverPopover;
-  
+
   constructor(private plugin: ObsidianMagicPlugin) {}
-  
+
   // Set up the hover behavior for all tag chips
   registerHoverEvents() {
     // Get all tag chips in the document
     document.on('mouseover', '.obsidian-magic-tag-chip', (event, target: HTMLElement) => {
       // Only create tooltip if we don't already have one
       if (this.hoverPopover) return;
-      
+
       // Extract tag data
       const labelEl = target.querySelector('.obsidian-magic-tag-label');
       if (!labelEl) return;
-      
+
       const tagType = target.className.match(/obsidian-magic-(.*)-tag/)?.[1];
       if (!tagType) return;
-      
+
       const label = labelEl.textContent;
       const fullTag = `${tagType}/${label}`;
-      
+
       // Get detailed tag information
       const tagInfo = this.plugin.tagManager.getTagInfo(fullTag);
       if (!tagInfo) return;
-      
+
       // Create tooltip content
       this.hoverPopover = new HoverPopover(target, this.plugin.app);
-      
+
       const tooltipContent = document.createElement('div');
       tooltipContent.addClass('obsidian-magic-tag-tooltip');
-      
+
       // Tag header
       const headerEl = document.createElement('div');
       headerEl.addClass('obsidian-magic-tooltip-header');
-      
+
       const titleEl = document.createElement('h4');
       titleEl.textContent = fullTag;
       headerEl.appendChild(titleEl);
-      
+
       tooltipContent.appendChild(headerEl);
-      
+
       // Tag metadata
       const metadataEl = document.createElement('div');
       metadataEl.addClass('obsidian-magic-tooltip-metadata');
-      
+
       // Confidence score
       if (tagInfo.confidence) {
         const confidenceEl = document.createElement('div');
@@ -714,7 +721,7 @@ class TagTooltipProvider implements HoverParent {
         confidenceEl.innerHTML = `<span class="label">Confidence:</span> <span class="value">${Math.round(tagInfo.confidence * 100)}%</span>`;
         metadataEl.appendChild(confidenceEl);
       }
-      
+
       // Source information
       if (tagInfo.source) {
         const sourceEl = document.createElement('div');
@@ -722,7 +729,7 @@ class TagTooltipProvider implements HoverParent {
         sourceEl.innerHTML = `<span class="label">Source:</span> <span class="value">${tagInfo.source}</span>`;
         metadataEl.appendChild(sourceEl);
       }
-      
+
       // Creation date
       if (tagInfo.created) {
         const dateEl = document.createElement('div');
@@ -731,87 +738,87 @@ class TagTooltipProvider implements HoverParent {
         dateEl.innerHTML = `<span class="label">Added:</span> <span class="value">${formattedDate}</span>`;
         metadataEl.appendChild(dateEl);
       }
-      
+
       tooltipContent.appendChild(metadataEl);
-      
+
       // Related tags section
       if (tagInfo.relatedTags && tagInfo.relatedTags.length > 0) {
         const relatedEl = document.createElement('div');
         relatedEl.addClass('obsidian-magic-tooltip-related');
-        
+
         const relatedTitle = document.createElement('h5');
         relatedTitle.textContent = 'Related Tags';
         relatedEl.appendChild(relatedTitle);
-        
+
         const relatedList = document.createElement('div');
         relatedList.addClass('related-tags-list');
-        
-        tagInfo.relatedTags.slice(0, 5).forEach(relatedTag => {
+
+        tagInfo.relatedTags.slice(0, 5).forEach((relatedTag) => {
           const tagEl = document.createElement('span');
           tagEl.addClass('related-tag');
           tagEl.textContent = relatedTag;
-          
+
           // Click handler to navigate to related tag
           tagEl.addEventListener('click', () => {
             this.plugin.tagManager.filterByTag(relatedTag);
             this.hoverPopover.hide();
           });
-          
+
           relatedList.appendChild(tagEl);
         });
-        
+
         relatedEl.appendChild(relatedList);
         tooltipContent.appendChild(relatedEl);
       }
-      
+
       // Related documents
       if (tagInfo.documents && tagInfo.documents.length > 0) {
         const docsEl = document.createElement('div');
         docsEl.addClass('obsidian-magic-tooltip-documents');
-        
+
         const docsTitle = document.createElement('h5');
         docsTitle.textContent = 'Documents with this tag';
         docsEl.appendChild(docsTitle);
-        
+
         const docsList = document.createElement('div');
         docsList.addClass('related-docs-list');
-        
-        tagInfo.documents.slice(0, 3).forEach(doc => {
+
+        tagInfo.documents.slice(0, 3).forEach((doc) => {
           const docEl = document.createElement('div');
           docEl.addClass('related-doc');
           docEl.textContent = doc.title;
-          
+
           // Click handler to open document
           docEl.addEventListener('click', () => {
             this.plugin.app.workspace.openLinkText(doc.path, '', true);
             this.hoverPopover.hide();
           });
-          
+
           docsList.appendChild(docEl);
         });
-        
+
         // Add "view all" link if needed
         if (tagInfo.documents.length > 3) {
           const viewAllEl = document.createElement('div');
           viewAllEl.addClass('view-all-link');
           viewAllEl.textContent = `View all ${tagInfo.documents.length} documents`;
-          
+
           viewAllEl.addEventListener('click', () => {
             this.plugin.tagManager.filterByTag(fullTag);
             this.hoverPopover.hide();
           });
-          
+
           docsList.appendChild(viewAllEl);
         }
-        
+
         docsEl.appendChild(docsList);
         tooltipContent.appendChild(docsEl);
       }
-      
+
       // Quick actions
       const actionsEl = document.createElement('div');
       actionsEl.addClass('obsidian-magic-tooltip-actions');
-      
+
       // Find similar button
       const findSimilarBtn = document.createElement('button');
       findSimilarBtn.addClass('action-button');
@@ -821,7 +828,7 @@ class TagTooltipProvider implements HoverParent {
         this.hoverPopover.hide();
       });
       actionsEl.appendChild(findSimilarBtn);
-      
+
       // Remove tag button (if user has edit permission)
       const removeBtn = document.createElement('button');
       removeBtn.addClass('action-button');
@@ -832,13 +839,13 @@ class TagTooltipProvider implements HoverParent {
         this.hoverPopover.hide();
       });
       actionsEl.appendChild(removeBtn);
-      
+
       tooltipContent.appendChild(actionsEl);
-      
+
       // Set the content to the hover popover
       this.hoverPopover.hoverEl.appendChild(tooltipContent);
     });
-    
+
     // Remove tooltip when mouse leaves
     document.on('mouseout', '.obsidian-magic-tag-chip', (event) => {
       if (this.hoverPopover) {
@@ -847,16 +854,16 @@ class TagTooltipProvider implements HoverParent {
       }
     });
   }
-  
+
   onload() {
     this.registerHoverEvents();
   }
-  
+
   onunload() {
     // Clean up event listeners
     document.off('mouseover', '.obsidian-magic-tag-chip');
     document.off('mouseout', '.obsidian-magic-tag-chip');
-    
+
     if (this.hoverPopover) {
       this.hoverPopover.hide();
       this.hoverPopover = null;
@@ -1055,7 +1062,7 @@ this.registerStyles(tooltipCSS);
 
 ```typescript
 // Implement interactive filtering for tag chips
-import { Menu, TFile } from "obsidian";
+import { Menu, TFile } from 'obsidian';
 
 // Extend the tag chip click handler with advanced filtering
 const enhanceTagChipInteractivity = () => {
@@ -1064,26 +1071,26 @@ const enhanceTagChipInteractivity = () => {
     // Get tag information
     const labelEl = target.querySelector('.obsidian-magic-tag-label');
     if (!labelEl) return;
-    
+
     const tagType = target.className.match(/obsidian-magic-(.*)-tag/)?.[1];
     if (!tagType) return;
-    
+
     const label = labelEl.textContent;
     const fullTag = `${tagType}/${label}`;
-    
+
     // Different behavior based on modifier keys
     if (event.shiftKey) {
       // Shift+click: Add to multi-tag filter
       this.plugin.tagManager.addToMultiTagFilter(fullTag);
-      
+
       // Visual feedback
       new Notice(`Added ${fullTag} to filter`);
-      
+
       // Highlight all tags that are part of the current filter
       document.querySelectorAll('.obsidian-magic-tag-chip').forEach((el: HTMLElement) => {
         const elLabel = el.querySelector('.obsidian-magic-tag-label')?.textContent;
         const elType = el.className.match(/obsidian-magic-(.*)-tag/)?.[1];
-        
+
         if (elLabel && elType) {
           const elTag = `${elType}/${elLabel}`;
           if (this.plugin.tagManager.isTagInCurrentFilter(elTag)) {
@@ -1101,105 +1108,108 @@ const enhanceTagChipInteractivity = () => {
       // Normal click: Filter by single tag
       this.plugin.tagManager.filterByTag(fullTag);
     }
-    
+
     event.preventDefault();
     event.stopPropagation();
   });
-  
+
   // Right-click context menu
   document.on('contextmenu', '.obsidian-magic-tag-chip', (event: MouseEvent, target: HTMLElement) => {
     // Get tag information
     const labelEl = target.querySelector('.obsidian-magic-tag-label');
     if (!labelEl) return;
-    
+
     const tagType = target.className.match(/obsidian-magic-(.*)-tag/)?.[1];
     if (!tagType) return;
-    
+
     const label = labelEl.textContent;
     const fullTag = `${tagType}/${label}`;
-    
+
     // Create and show context menu
     const menu = new Menu();
-    
+
     // Filter options
     menu.addItem((item) => {
-      item.setTitle("Filter by this tag")
-         .setIcon("search")
-         .onClick(() => this.plugin.tagManager.filterByTag(fullTag));
+      item
+        .setTitle('Filter by this tag')
+        .setIcon('search')
+        .onClick(() => this.plugin.tagManager.filterByTag(fullTag));
     });
-    
+
     menu.addItem((item) => {
-      item.setTitle("Add to current filter")
-         .setIcon("plus-circle")
-         .onClick(() => this.plugin.tagManager.addToMultiTagFilter(fullTag));
+      item
+        .setTitle('Add to current filter')
+        .setIcon('plus-circle')
+        .onClick(() => this.plugin.tagManager.addToMultiTagFilter(fullTag));
     });
-    
+
     menu.addItem((item) => {
-      item.setTitle("Exclude from results")
-         .setIcon("minus-circle")
-         .onClick(() => this.plugin.tagManager.excludeTagFromFilter(fullTag));
+      item
+        .setTitle('Exclude from results')
+        .setIcon('minus-circle')
+        .onClick(() => this.plugin.tagManager.excludeTagFromFilter(fullTag));
     });
-    
+
     menu.addSeparator();
-    
+
     // Tag management
     menu.addItem((item) => {
-      item.setTitle("Find similar documents")
-         .setIcon("book-open")
-         .onClick(() => this.plugin.tagManager.findSimilarDocuments(fullTag));
+      item
+        .setTitle('Find similar documents')
+        .setIcon('book-open')
+        .onClick(() => this.plugin.tagManager.findSimilarDocuments(fullTag));
     });
-    
+
     menu.addItem((item) => {
-      item.setTitle("View tag relationships")
-         .setIcon("git-branch")
-         .onClick(() => this.plugin.tagManager.showTagRelationships(fullTag));
+      item
+        .setTitle('View tag relationships')
+        .setIcon('git-branch')
+        .onClick(() => this.plugin.tagManager.showTagRelationships(fullTag));
     });
-    
+
     menu.addSeparator();
-    
+
     // Saved filters
     menu.addItem((item) => {
-      item.setTitle("Save current filter")
-         .setIcon("save")
-         .onClick(() => {
-           // Prompt for filter name
-           const currentFilter = this.plugin.tagManager.getCurrentFilter();
-           if (!currentFilter || currentFilter.tags.length === 0) {
-             new Notice("No active filter to save");
-             return;
-           }
-           
-           const modal = new SaveFilterModal(this.plugin.app, currentFilter, (name) => {
-             this.plugin.tagManager.saveFilter(name, currentFilter);
-             new Notice(`Filter saved as "${name}"`);
-           });
-           
-           modal.open();
-         });
+      item
+        .setTitle('Save current filter')
+        .setIcon('save')
+        .onClick(() => {
+          // Prompt for filter name
+          const currentFilter = this.plugin.tagManager.getCurrentFilter();
+          if (!currentFilter || currentFilter.tags.length === 0) {
+            new Notice('No active filter to save');
+            return;
+          }
+
+          const modal = new SaveFilterModal(this.plugin.app, currentFilter, (name) => {
+            this.plugin.tagManager.saveFilter(name, currentFilter);
+            new Notice(`Filter saved as "${name}"`);
+          });
+
+          modal.open();
+        });
     });
-    
+
     // Show saved filters submenu if available
     const savedFilters = this.plugin.tagManager.getSavedFilters();
     if (savedFilters && Object.keys(savedFilters).length > 0) {
       menu.addItem((item) => {
-        item.setTitle("Apply saved filter")
-           .setIcon("filter")
-           .setSubmenu();
-        
+        item.setTitle('Apply saved filter').setIcon('filter').setSubmenu();
+
         // Add each saved filter as a submenu item
         for (const [name, filter] of Object.entries(savedFilters)) {
           const submenu = item.setSubmenu();
           submenu.addItem((subItem) => {
-            subItem.setTitle(name)
-                 .onClick(() => {
-                   this.plugin.tagManager.applyFilter(filter);
-                   new Notice(`Applied filter "${name}"`);
-                 });
+            subItem.setTitle(name).onClick(() => {
+              this.plugin.tagManager.applyFilter(filter);
+              new Notice(`Applied filter "${name}"`);
+            });
           });
         }
       });
     }
-    
+
     menu.showAtMouseEvent(event);
     event.preventDefault();
     event.stopPropagation();
@@ -1209,71 +1219,72 @@ const enhanceTagChipInteractivity = () => {
 // Create a modal for saving filters
 class SaveFilterModal extends Modal {
   private nameInputEl: HTMLInputElement;
-  
+
   constructor(
-    app: App, 
+    app: App,
     private filter: TagFilter,
     private onSubmit: (name: string) => void
   ) {
     super(app);
   }
-  
+
   onOpen() {
     const { contentEl } = this;
-    
+
     contentEl.createEl('h2', { text: 'Save Filter' });
-    
+
     // Show filter preview
     const previewEl = contentEl.createEl('div', { cls: 'filter-preview' });
-    
+
     if (this.filter.tags.length > 0) {
       previewEl.createEl('div', { text: 'Included tags:' });
       const includedList = previewEl.createEl('ul');
-      
-      this.filter.tags.forEach(tag => {
+
+      this.filter.tags.forEach((tag) => {
         includedList.createEl('li', { text: tag });
       });
     }
-    
+
     if (this.filter.excludedTags && this.filter.excludedTags.length > 0) {
       previewEl.createEl('div', { text: 'Excluded tags:' });
       const excludedList = previewEl.createEl('ul');
-      
-      this.filter.excludedTags.forEach(tag => {
+
+      this.filter.excludedTags.forEach((tag) => {
         excludedList.createEl('li', { text: tag });
       });
     }
-    
+
     // Name input
     contentEl.createEl('label', { text: 'Filter Name:' });
     this.nameInputEl = contentEl.createEl('input', {
       type: 'text',
-      placeholder: 'My Saved Filter'
+      placeholder: 'My Saved Filter',
     });
-    
+
     this.nameInputEl.focus();
-    
+
     // Buttons
     const buttonContainer = contentEl.createEl('div', { cls: 'button-container' });
-    
-    buttonContainer.createEl('button', { text: 'Cancel' })
-      .addEventListener('click', () => this.close());
-    
-    buttonContainer.createEl('button', { 
-      text: 'Save',
-      cls: 'mod-cta'
-    }).addEventListener('click', () => {
-      const name = this.nameInputEl.value.trim();
-      if (!name) {
-        new Notice('Please enter a name for the filter');
-        return;
-      }
-      
-      this.onSubmit(name);
-      this.close();
-    });
+
+    buttonContainer.createEl('button', { text: 'Cancel' }).addEventListener('click', () => this.close());
+
+    buttonContainer
+      .createEl('button', {
+        text: 'Save',
+        cls: 'mod-cta',
+      })
+      .addEventListener('click', () => {
+        const name = this.nameInputEl.value.trim();
+        if (!name) {
+          new Notice('Please enter a name for the filter');
+          return;
+        }
+
+        this.onSubmit(name);
+        this.close();
+      });
   }
-  
+
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
@@ -1330,53 +1341,54 @@ this.addStyle(filterInteractivityCSS);
 
 ```typescript
 // Implement tag relation visualization with a mini-graph
-import type { MarkdownPostProcessor } from "obsidian";
 import ForceGraph from 'force-graph';
+
+import type { MarkdownPostProcessor } from 'obsidian';
 
 // Create a post-processor to add the relationship graph after the frontmatter
 const tagRelationProcessor: MarkdownPostProcessor = (el, ctx) => {
   // Only process if we're in reading view and the document has tags
   if (!ctx.sourcePath) return;
-  
+
   // Get file from path
   const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
   if (!(file instanceof TFile)) return;
-  
+
   // Check if this is the top of the document
   const isTopLevel = !el.parentElement || el.parentElement.matches('.markdown-reading-view');
   if (!isTopLevel) return;
-  
+
   // Get document metadata
-  this.app.metadataCache.getFileCache(file).then(cache => {
+  this.app.metadataCache.getFileCache(file).then((cache) => {
     if (!cache || !cache.frontmatter || !cache.frontmatter.tags || cache.frontmatter.tags.length === 0) {
       return; // No tags to visualize
     }
-    
+
     // Create the visualization container
     const graphContainer = document.createElement('div');
     graphContainer.addClass('obsidian-magic-tag-graph-container');
-    
+
     // Add header
     const headerEl = document.createElement('div');
     headerEl.addClass('tag-graph-header');
-    
+
     const titleEl = document.createElement('h4');
     titleEl.textContent = 'Tag Relationships';
     headerEl.appendChild(titleEl);
-    
+
     // Toggle button for expanding/collapsing
     const toggleButton = document.createElement('button');
     toggleButton.addClass('tag-graph-toggle');
     toggleButton.innerHTML = `<svg class="svg-icon"><use href="#expand"></use></svg>`;
     headerEl.appendChild(toggleButton);
-    
+
     graphContainer.appendChild(headerEl);
-    
+
     // Create the graph canvas
     const graphEl = document.createElement('div');
     graphEl.addClass('tag-graph-canvas');
     graphContainer.appendChild(graphEl);
-    
+
     // Insert the graph after the frontmatter
     const firstHeading = el.querySelector('h1, h2');
     if (firstHeading) {
@@ -1384,15 +1396,15 @@ const tagRelationProcessor: MarkdownPostProcessor = (el, ctx) => {
     } else {
       el.prepend(graphContainer);
     }
-    
+
     // Initialize collapsed state
     let isExpanded = false;
     graphEl.style.height = '120px';
-    
+
     // Toggle expand/collapse on click
     toggleButton.addEventListener('click', () => {
       isExpanded = !isExpanded;
-      
+
       if (isExpanded) {
         graphEl.style.height = '300px';
         toggleButton.innerHTML = `<svg class="svg-icon"><use href="#collapse"></use></svg>`;
@@ -1405,7 +1417,7 @@ const tagRelationProcessor: MarkdownPostProcessor = (el, ctx) => {
         renderGraph(graphEl, cache.frontmatter.tags, false);
       }
     });
-    
+
     // Initialize the graph
     renderGraph(graphEl, cache.frontmatter.tags, false);
   });
@@ -1415,114 +1427,111 @@ const tagRelationProcessor: MarkdownPostProcessor = (el, ctx) => {
 function renderGraph(container, documentTags, isDetailed) {
   // Get tag relationships data
   const tagData = this.plugin.tagManager.getTagRelationships(documentTags);
-  
+
   // Format data for force-graph
   const graphData = {
     nodes: [],
-    links: []
+    links: [],
   };
-  
+
   // Add current document tags as primary nodes
-  documentTags.forEach(tag => {
+  documentTags.forEach((tag) => {
     graphData.nodes.push({
       id: tag,
       name: tag,
       val: 10, // Make document tags larger
       color: getTagColor(tag),
-      isPrimary: true
+      isPrimary: true,
     });
   });
-  
+
   // Add related tags and connections
   Object.entries(tagData.relatedTags).forEach(([tag, relatedTags]) => {
     // Add related tag nodes if they don't exist yet
-    relatedTags.forEach(relatedTag => {
+    relatedTags.forEach((relatedTag) => {
       // Only add if not already in the nodes list
-      if (!graphData.nodes.some(node => node.id === relatedTag.tag)) {
+      if (!graphData.nodes.some((node) => node.id === relatedTag.tag)) {
         graphData.nodes.push({
           id: relatedTag.tag,
           name: relatedTag.tag,
           val: 5,
           color: getTagColor(relatedTag.tag),
-          isPrimary: false
+          isPrimary: false,
         });
       }
-      
+
       // Add the link
       graphData.links.push({
         source: tag,
         target: relatedTag.tag,
-        value: relatedTag.strength
+        value: relatedTag.strength,
       });
     });
   });
-  
+
   // If not detailed, limit the number of nodes for better performance
   if (!isDetailed && graphData.nodes.length > 15) {
     // Sort related tags by connection strength
     const sortedNodes = graphData.nodes
-      .filter(node => !node.isPrimary)
+      .filter((node) => !node.isPrimary)
       .sort((a, b) => {
         const aStrength = graphData.links
-          .filter(link => link.source === a.id || link.target === a.id)
+          .filter((link) => link.source === a.id || link.target === a.id)
           .reduce((sum, link) => sum + link.value, 0);
-        
+
         const bStrength = graphData.links
-          .filter(link => link.source === b.id || link.target === b.id)
+          .filter((link) => link.source === b.id || link.target === b.id)
           .reduce((sum, link) => sum + link.value, 0);
-        
+
         return bStrength - aStrength;
       });
-    
+
     // Keep only the top related tags
-    const nodesToKeep = sortedNodes.slice(0, 10).map(node => node.id);
-    
+    const nodesToKeep = sortedNodes.slice(0, 10).map((node) => node.id);
+
     // Filter nodes and links
-    graphData.nodes = graphData.nodes.filter(node => 
-      node.isPrimary || nodesToKeep.includes(node.id)
-    );
-    
-    graphData.links = graphData.links.filter(link => 
-      graphData.nodes.some(node => node.id === link.source) && 
-      graphData.nodes.some(node => node.id === link.target)
+    graphData.nodes = graphData.nodes.filter((node) => node.isPrimary || nodesToKeep.includes(node.id));
+
+    graphData.links = graphData.links.filter(
+      (link) =>
+        graphData.nodes.some((node) => node.id === link.source) &&
+        graphData.nodes.some((node) => node.id === link.target)
     );
   }
-  
+
   // Create the force graph
   const graph = ForceGraph()(container)
     .graphData(graphData)
     .nodeLabel('name')
     .nodeColor('color')
     .nodeVal('val')
-    .linkWidth(link => link.value * 2)
+    .linkWidth((link) => link.value * 2)
     .linkColor(() => 'rgba(var(--interactive-accent-rgb), 0.3)')
-    .onNodeClick(node => {
+    .onNodeClick((node) => {
       // Navigate to tag search on click
       this.plugin.tagManager.filterByTag(node.id);
     })
     .width(container.clientWidth)
     .height(container.clientHeight);
-  
+
   // Adjust physics settings based on detailed view
   if (isDetailed) {
     graph
       .d3AlphaDecay(0.01)
       .d3VelocityDecay(0.1)
       .linkDirectionalParticles(2)
-      .linkDirectionalParticleWidth(link => link.value * 2);
+      .linkDirectionalParticleWidth((link) => link.value * 2);
   } else {
-    graph
-      .d3AlphaDecay(0.02)
-      .d3VelocityDecay(0.2);
+    graph.d3AlphaDecay(0.02).d3VelocityDecay(0.2);
   }
-  
+
   // Add zoom control for detailed view
   if (isDetailed) {
     graph.controls().enableZoom(true);
   } else {
     graph.controls().enableZoom(false);
   }
-  
+
   return graph;
 }
 
@@ -1667,4 +1676,4 @@ this.addStyle(tagGraphCSS);
 - Outline creation based on topic classification
 - Summary generation informed by document tags
 - Related question suggestions based on topic
-- Draft continuation based on conversation type 
+- Draft continuation based on conversation type
