@@ -51,11 +51,11 @@ export class TaggingService {
   /**
    * Status updates emitted for UI handlers
    */
-  public readonly status$ = new BehaviorSubject<string>('Magic: Ready');
+  public readonly status: BehaviorSubject<string> = new BehaviorSubject<string>('Magic: Ready');
   /**
    * Notice messages emitted for UI handlers
    */
-  public readonly notice$ = new Subject<string>();
+  public readonly notice: Subject<string> = new Subject<string>();
   private plugin: ObsidianMagicPlugin;
   private coreServices: ReturnType<typeof initializeCore>;
 
@@ -100,7 +100,7 @@ export class TaggingService {
         throw new ApiKeyError('OpenAI API key is not configured');
       }
       // Emit processing status
-      this.status$.next('Magic: Processing file...');
+      this.status.next('Magic: Processing file...');
 
       // Read file content
       let content: string;
@@ -136,8 +136,8 @@ export class TaggingService {
         }
 
         // Emit success notice and reset status
-        this.notice$.next('Successfully tagged document');
-        this.status$.next('Magic: Ready');
+        this.notice.next('Successfully tagged document');
+        this.status.next('Magic: Ready');
 
         return Result.ok({
           file,
@@ -150,19 +150,19 @@ export class TaggingService {
       }
     } catch (error) {
       // Emit ready status
-      this.status$.next('Magic: Ready');
+      this.status.next('Magic: Ready');
 
       // Emit error notices
       if (error instanceof ApiKeyError) {
-        this.notice$.next('API key missing: Please add your OpenAI API key in settings');
+        this.notice.next('API key missing: Please add your OpenAI API key in settings');
       } else if (error instanceof APIError) {
-        this.notice$.next(
+        this.notice.next(
           `API Error: ${error.message}. ${error.statusCode === 429 ? 'Rate limit exceeded, try again later.' : ''}`
         );
       } else if (error instanceof FileSystemError) {
-        this.notice$.next(`File error: ${error.message}`);
+        this.notice.next(`File error: ${error.message}`);
       } else {
-        this.notice$.next(`Error tagging document: ${error instanceof Error ? error.message : String(error)}`);
+        this.notice.next(`Error tagging document: ${error instanceof Error ? error.message : String(error)}`);
       }
 
       return Result.fail(error instanceof Error ? error : new Error(String(error)));

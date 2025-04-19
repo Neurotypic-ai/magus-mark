@@ -31,7 +31,7 @@ let isSetup = false;
  * Setup function to configure the Logger mock for tests
  * This needs to be called before any imports of the Logger module
  */
-export function setupLoggerMock() {
+export function setupLoggerMock(): LoggerMockInstance {
   // Only setup once to avoid "Cannot redefine property" errors
   if (isSetup) {
     resetLoggerMock();
@@ -54,7 +54,7 @@ export function setupLoggerMock() {
 /**
  * Reset all mock functions between tests
  */
-export function resetLoggerMock() {
+export function resetLoggerMock(): void {
   // Reset each mock function
   for (const key of Object.keys(mockLoggerInstance)) {
     const mockFn = mockLoggerInstance[key];
@@ -69,6 +69,6 @@ export function resetLoggerMock() {
  */
 export const manualLoggerMock = {
   Logger: {
-    getInstance: vi.fn(() => mockLoggerInstance),
+    getInstance: vi.fn(() => mockLoggerInstance) as Mock<() => LoggerMockInstance>,
   },
 };

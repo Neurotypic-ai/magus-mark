@@ -21,10 +21,10 @@
   "extends": "./settings.json",
   "references": [
     {
-      "path": "${configDir}/tsconfig.build.json"
+      "path": "./build.json"
     },
     {
-      "path": "${configDir}/tsconfig.test.json"
+      "path": "./test.json"
     }
   ],
   "watchOptions": {

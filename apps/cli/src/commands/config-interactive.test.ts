@@ -1,5 +1,5 @@
 import * as inquirerPrompts from '@inquirer/prompts';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Now import after all mocks are defined
 import { config } from '../utils/config';

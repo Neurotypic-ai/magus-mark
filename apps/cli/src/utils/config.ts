@@ -21,7 +21,7 @@ import type { Config, ConfigStorage } from '../types/config';
 /**
  * Default configuration
  */
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG: Config = {
   apiKey: '',
   tagMode: 'merge',
   minConfidence: 0.7,
@@ -40,7 +40,7 @@ const DEFAULT_CONFIG = {
 } as const;
 
 // Default configuration for Conf
-const defaultConfig = {
+const defaultConfig: Config = {
   tagMode: 'merge' as TagBehavior,
   minConfidence: 0.7,
   reviewThreshold: 0.5,
@@ -75,7 +75,7 @@ function getConfigPath(): string {
 /**
  * Load configuration from file
  */
-export async function loadConfig(configPath = getDefaultConfigPath()): Promise<Config> {
+export async function loadConfig(configPath: string = getDefaultConfigPath()): Promise<Config> {
   try {
     const fileExists = await fs.pathExists(configPath);
     if (fileExists) {
@@ -94,7 +94,7 @@ export async function loadConfig(configPath = getDefaultConfigPath()): Promise<C
 /**
  * Save configuration to file
  */
-export async function saveConfig(config: Config, configPath = getDefaultConfigPath()): Promise<void> {
+export async function saveConfig(config: Config, configPath: string = getDefaultConfigPath()): Promise<void> {
   try {
     await fs.ensureDir(path.dirname(configPath));
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
@@ -252,10 +252,10 @@ class ConfigImpl implements ConfigStorage {
 }
 
 // Export singleton instance
-export const config = ConfigImpl.getInstance();
+export const config = ConfigImpl.getInstance() as ConfigImpl;
 
 // Define the schema for configuration validation
-export const configSchema = z.object({
+export const configSchema: z.ZodType<Config> = z.object({
   // Core settings
   apiKey: z.string().optional(),
   defaultModel: z.string().optional(),
@@ -322,7 +322,7 @@ function loadEnvironmentConfig(): Record<string, unknown> {
 }
 
 // Create config instance with defined schema
-const configInstance = new Conf({
+const configInstance: Conf<Config> = new Conf<Config>({
   projectName: 'obsidian-magic',
   // Provide a placeholder schema that will be compatible
   schema: {

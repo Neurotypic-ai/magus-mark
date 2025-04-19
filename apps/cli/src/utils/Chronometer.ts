@@ -481,4 +481,4 @@ class Chronometer {
 }
 
 // Export the benchmark singleton
-export const benchmark = Chronometer.getInstance();
+export const benchmark: Chronometer = Chronometer.getInstance();

@@ -102,7 +102,6 @@ describe('FolderTagModal', () => {
     });
 
     it('should display a list of folders', () => {
-      const mockCreateEl = modal.contentEl.createEl as ReturnType<typeof vi.fn>;
       // Mock querySelector to return a mock list element for renderFolderList
       const mockFolderList = createMockObsidianElement('div');
       (modal.contentEl as any).querySelector = vi.fn().mockReturnValue(mockFolderList);

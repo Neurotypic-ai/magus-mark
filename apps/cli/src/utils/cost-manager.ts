@@ -308,4 +308,4 @@ class CostManager {
 }
 
 // Export singleton instance
-export const costManager = CostManager.getInstance();
+export const costManager: CostManager = CostManager.getInstance();

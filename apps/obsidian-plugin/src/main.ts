@@ -11,7 +11,7 @@ import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementV
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
 import type { AIModel } from '@obsidian-magic/core/models/AIModel';
-import type { TagBehavior } from '@obsidian-magic/core/validators/tags-validators';
+import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
 import type { App } from 'obsidian';
 
 interface ObsidianMagicSettings {
@@ -214,6 +214,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     // Add editor context menu item
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu, editor, view) => {
+        console.log('editor-menu', menu, editor, view);
         menu.addItem((item) => {
           item
             .setTitle('Tag with Obsidian Magic')

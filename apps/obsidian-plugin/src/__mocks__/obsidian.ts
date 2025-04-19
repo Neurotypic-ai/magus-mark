@@ -1,10 +1,6 @@
+import { TFile } from 'obsidian';
 import { vi } from 'vitest';
 
-// This file provides minimal stubs for the 'obsidian' module
-// allowing tests to run without needing the full Obsidian environment.
-
-// --- Recursive Mock Element Helper (Needed by Setting/Modal mocks) ---
-// Type definition for element attributes
 interface ElementAttrs {
   cls?: string;
   text?: string;
@@ -16,6 +12,10 @@ interface ElementAttrs {
 
 // Add MockObsidianElement interface for type safety in tests
 export interface MockObsidianElement extends HTMLElement {
+  /** Value for input elements */
+  value?: string;
+  /** Checked state for checkbox elements */
+  checked?: boolean;
   createEl: ReturnType<typeof vi.fn>;
   createDiv: ReturnType<typeof vi.fn>;
   setText: ReturnType<typeof vi.fn>;
@@ -27,7 +27,6 @@ export interface MockObsidianElement extends HTMLElement {
   appendChild: ReturnType<typeof vi.fn>;
   removeChild: ReturnType<typeof vi.fn>;
   remove: ReturnType<typeof vi.fn>;
-  // ...add any other methods you mock
 }
 
 export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): MockObsidianElement => {
@@ -61,7 +60,9 @@ export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): Mo
   el.removeClass = vi.fn();
   el.toggleClass = vi.fn();
   el.setAttr = vi.fn();
-  el.appendChild = vi.fn((child: Node) => {});
+  el.appendChild = vi.fn((child: Node) => {
+    el.appendChild(child);
+  });
   el.removeChild = vi.fn();
   el.remove = vi.fn();
   if (!el.dataset) {
@@ -74,16 +75,6 @@ export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): Mo
 
   return el as MockObsidianElement;
 };
-// --- End Helper ---
-
-/** Minimal Notice stub */
-export const Notice: typeof Notice = vi.fn().mockImplementation((message: string | DocumentFragment) => {
-  console.log('NOTICE:', message);
-  return {
-    hide: vi.fn(),
-    setMessage: vi.fn(),
-  };
-});
 
 /** Minimal TFolder stub */
 export class TFolder {
@@ -97,30 +88,8 @@ export class TFolder {
     this.name = path.split('/').pop() ?? '';
     this.children = [];
   }
-  isRoot() {
+  isRoot(): boolean {
     return this.path === '/';
-  }
-}
-
-/** Minimal TFile stub */
-export class TFile {
-  path = '';
-  name = ''; // Added name property
-  basename = '';
-  extension = '';
-  stat: any = { ctime: Date.now(), mtime: Date.now(), size: 0 };
-  vault: any = {};
-  parent: TFolder | null = null;
-  constructor(init: Partial<TFile>) {
-    Object.assign(this, init);
-    this.name = init.path?.split('/').pop() ?? '';
-    this.basename = this.name.replace(/\.[^/.]+$/, ''); // More robust basename
-    this.extension = this.name.includes('.') ? (this.name.split('.').pop() ?? '') : '';
-    // Ensure parent is correctly typed if path indicates it
-    if (this.path && this.path !== '/' && this.path.includes('/')) {
-      const parentPath = this.path.substring(0, this.path.lastIndexOf('/'));
-      this.parent = new TFolder(parentPath || '/');
-    }
   }
 }
 
@@ -150,7 +119,7 @@ export class WorkspaceLeaf {
     return Promise.resolve();
   }
   open(): Promise<void> {
-    return Promise.resolve(null);
+    return Promise.resolve();
   }
   getViewState(): { type: string; state: Record<string, unknown> } {
     return { type: '', state: {} };
@@ -245,10 +214,10 @@ export class MetadataCache {
     return null;
   }
   fileToLinktext(file: TFile): string {
-    return '';
+    return file.name;
   }
   getFirstLinkpathDest(path: string): string | null {
-    return null;
+    return path?.split('.').pop() ?? null;
   }
   resolvedLinks: Record<string, string> = {};
   unresolvedLinks: Record<string, string> = {};
@@ -272,7 +241,7 @@ export class Vault {
   }
   getAbstractFileByPath(path: string): TFile | TFolder | null {
     if (path.endsWith('.md')) {
-      return new TFile({ path });
+      return new TFile();
     }
     if (!path.includes('.') || path.match(/\.\w+$/) === null || !['md'].includes(path.split('.').pop() ?? '')) {
       return new TFolder(path);
@@ -283,10 +252,10 @@ export class Vault {
     return new TFolder('/');
   }
   create(): Promise<TFile> {
-    return Promise.resolve(new TFile({ path: 'new.md' }));
+    return Promise.resolve(new TFile());
   }
   createBinary(): Promise<TFile> {
-    return Promise.resolve(new TFile({ path: 'new.bin' }));
+    return Promise.resolve(new TFile());
   }
   createFolder(): Promise<TFolder> {
     return Promise.resolve(new TFolder('new_folder'));
@@ -325,7 +294,7 @@ export class Vault {
     return Promise.resolve('');
   }
   copy(): Promise<TFile> {
-    return Promise.resolve(new TFile({ path: 'copy.md' }));
+    return Promise.resolve(new TFile());
   }
   getAllLoadedFiles(): TFile[] {
     return [];
@@ -340,6 +309,7 @@ export class Vault {
     return [];
   }
   static recurseChildren(folder: TFolder, callback: (file: TFile | TFolder) => void): void {
+    callback(folder);
     // No-op implementation
   }
 }
