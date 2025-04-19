@@ -1,0 +1,14 @@
+{
+  "extends": "./base.json",
+  "references": [
+    {
+      "path": "./build.json"
+    },
+    {
+      "path": "./test.json"
+    },
+    {
+      "path": "${configDir}/../../packages/core"
+    }
+  ]
+}

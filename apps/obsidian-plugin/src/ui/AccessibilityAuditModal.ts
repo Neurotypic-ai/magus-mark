@@ -4,7 +4,7 @@ export class AccessibilityAuditModal extends Modal {
   constructor(app: App) {
     super(app);
   }
-  override onOpen() {
+  override onOpen(): void {
     const { contentEl } = this;
     contentEl.createEl('h2', { text: 'Accessibility Audit Results', attr: { tabindex: '0', role: 'heading' } });
     // (Speculation) Example: scan for headings, alt text, contrast (stubbed for now)
@@ -21,7 +21,7 @@ export class AccessibilityAuditModal extends Modal {
     contentEl.setAttr('role', 'dialog');
     contentEl.focus();
   }
-  override onClose() {
+  override onClose(): void {
     this.contentEl.empty();
   }
 }

@@ -13,87 +13,47 @@ import type { APIKeyStorage } from './models/APIKeyStorage';
 import type { TagBehavior } from './models/TagBehavior';
 import type { LogLevel } from './utils/Logger';
 
+export type Config = {
+  defaultModel: AIModel;
+  defaultTagBehavior: TagBehavior;
+  minConfidence: number;
+  reviewThreshold: number;
+  generateExplanations: boolean;
+  apiKeyStorage: APIKeyStorage;
+  apiKey: string;
+  concurrency: number;
+  cache: {
+    enabled: boolean;
+    directory: string;
+  };
+  logging: {
+    level: LogLevel;
+    console: boolean;
+    file: boolean;
+    filePath: string;
+  };
+};
+
 /**
  * Default configuration values
  */
-const DEFAULT_CONFIG = {
-  /**
-   * Default AI model
-   */
+const DEFAULT_CONFIG: Config = {
   defaultModel: 'gpt-4' as AIModel,
-
-  /**
-   * Default tag behavior
-   */
   defaultTagBehavior: 'merge' as TagBehavior,
-
-  /**
-   * Minimum confidence score to accept tags without review
-   */
   minConfidence: 0.7,
-
-  /**
-   * Confidence score threshold for prompting user review
-   */
   reviewThreshold: 0.5,
-
-  /**
-   * Whether to generate explanations for tags
-   */
   generateExplanations: true,
-
-  /**
-   * API key storage location (local or system)
-   */
   apiKeyStorage: 'local' as APIKeyStorage,
-
-  /**
-   * OpenAI API key (if stored locally)
-   */
   apiKey: '',
-
-  /**
-   * Maximum number of concurrent API requests
-   */
   concurrency: 3,
-
-  /**
-   * Cache configuration
-   */
   cache: {
-    /**
-     * Whether to enable caching
-     */
     enabled: true,
-
-    /**
-     * Cache directory path (defaults to user's cache directory)
-     */
     directory: path.join(os.homedir(), '.cache', 'obsidian-magic'),
   },
-
-  /**
-   * Logging configuration
-   */
   logging: {
-    /**
-     * Logging level (error, warn, info, debug)
-     */
     level: 'info' as LogLevel,
-
-    /**
-     * Whether to log to console
-     */
     console: true,
-
-    /**
-     * Whether to log to file
-     */
     file: false,
-
-    /**
-     * Log file path
-     */
     filePath: path.join(os.homedir(), '.logs', 'obsidian-magic.log'),
   },
 };
@@ -121,11 +81,6 @@ const configSchema = z.object({
     filePath: z.string(),
   }),
 });
-
-/**
- * Configuration type derived from schema
- */
-export type Config = z.infer<typeof configSchema>;
 
 /**
  * Configuration error type
@@ -163,7 +118,7 @@ export class ConfigManager {
    * Creates a new ConfigManager instance
    * @param configPath - Optional custom config path
    */
-  constructor(private readonly configPath = ConfigManager.getDefaultConfigPath()) {
+  constructor(private readonly configPath: string = ConfigManager.getDefaultConfigPath()) {
     this.config = DEFAULT_CONFIG;
     this.fileUtils = new FileUtils(configPath);
   }

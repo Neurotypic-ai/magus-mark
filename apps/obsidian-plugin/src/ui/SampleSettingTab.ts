@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { PluginSettingTab, Setting } from 'obsidian';
 
 export class SampleSettingTab extends PluginSettingTab {
   display(): void {

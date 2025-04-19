@@ -2,10 +2,19 @@ import { vi } from 'vitest';
 
 import type { Document } from '../../models/Document';
 
+type MockFactory<T> = () => T;
+
 /**
  * Creates a mock for the FrontmatterProcessor
  */
-export const mockFrontmatterProcessor = () => {
+export const mockFrontmatterProcessor: MockFactory<{
+  FrontmatterProcessor: new () => {
+    extractFrontmatter(content: string): string;
+    removeFrontmatter(content: string): string;
+    parseFrontmatter(fm: string): Record<string, string | string[]>;
+    updateFrontmatter(content: string, upd: Record<string, string | string[]>): string;
+  };
+}> = () => {
   return {
     FrontmatterProcessor: vi.fn().mockImplementation(() => ({
       extractFrontmatter: vi.fn().mockImplementation((content: string): string => {
@@ -55,7 +64,14 @@ export const mockFrontmatterProcessor = () => {
 /**
  * Creates a mock for the DocumentProcessor
  */
-export const mockDocumentProcessor = () => {
+export const mockDocumentProcessor: MockFactory<{
+  DocumentProcessor: new () => {
+    parseDocument(id: string, path: string, content: string): Document;
+    extractContent(content: string): string;
+    updateDocument(document: Document, updates: Partial<Document>): Document;
+    extractMetadata(): { created: string; modified: string };
+  };
+}> = () => {
   return {
     DocumentProcessor: vi.fn().mockImplementation(() => ({
       parseDocument: vi.fn().mockImplementation((id: string, path: string, content: string): Document => {

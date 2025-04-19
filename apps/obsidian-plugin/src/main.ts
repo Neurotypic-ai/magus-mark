@@ -11,7 +11,7 @@ import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementV
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
 import type { AIModel } from '@obsidian-magic/core/models/AIModel';
-import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
+import type { TagBehavior } from '@obsidian-magic/core/validators/tags-validators';
 import type { App } from 'obsidian';
 
 interface ObsidianMagicSettings {
@@ -43,7 +43,7 @@ export default class ObsidianMagicPlugin extends Plugin {
   documentTagService!: DocumentTagService;
   keyManager!: KeyManager;
 
-  override async onload() {
+  override async onload(): Promise<void> {
     console.log('Loading Obsidian Magic plugin');
 
     // Load settings
@@ -116,23 +116,23 @@ export default class ObsidianMagicPlugin extends Plugin {
     });
   }
 
-  override onunload() {
+  override onunload(): void {
     console.log('Unloading Obsidian Magic plugin');
     // Clean up views
     this.app.workspace.detachLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE);
   }
 
-  async loadSettings() {
+  async loadSettings(): Promise<void> {
     const data = (await this.loadData()) as Partial<ObsidianMagicSettings> | undefined;
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
   }
 
-  async saveSettings() {
+  async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
   }
 
-  private registerViews() {
+  private registerViews(): void {
     // Register tag management view
     this.registerView(TAG_MANAGEMENT_VIEW_TYPE, (leaf) => new TagManagementView(leaf, this));
 
@@ -140,7 +140,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     this.registerView(TAG_VISUALIZATION_VIEW_TYPE, (leaf) => new TagVisualizationView(leaf, this));
   }
 
-  private addCommands() {
+  private addCommands(): void {
     // Add tag management command
     this.addCommand({
       id: 'open-tag-management',
@@ -185,7 +185,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     });
   }
 
-  private registerContextMenu() {
+  private registerContextMenu(): void {
     // Add file explorer context menu items
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
@@ -229,7 +229,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     );
   }
 
-  async activateTagManagementView() {
+  async activateTagManagementView(): Promise<void> {
     const { workspace } = this.app;
 
     // Check if view is already open
@@ -254,7 +254,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     }
   }
 
-  async activateTagVisualizationView() {
+  async activateTagVisualizationView(): Promise<void> {
     const { workspace } = this.app;
 
     // Check if view is already open
@@ -279,7 +279,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     }
   }
 
-  async tagCurrentFile() {
+  async tagCurrentFile(): Promise<void> {
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) return;
 
@@ -287,14 +287,14 @@ export default class ObsidianMagicPlugin extends Plugin {
     await this.taggingService.processFile(activeFile);
   }
 
-  openFolderTagModal() {
+  openFolderTagModal(): void {
     const modal = new FolderTagModal(this, (folder, includeSubfolders) => {
       void this.tagFolder(folder, includeSubfolders);
     });
     modal.open();
   }
 
-  async tagFolder(folder: TFolder, includeSubfolders = true) {
+  async tagFolder(folder: TFolder, includeSubfolders = true): Promise<void> {
     // Update status
     if (this.statusBarElement) {
       this.statusBarElement.setText('Magic: Collecting files...');

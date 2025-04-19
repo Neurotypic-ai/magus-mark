@@ -7,14 +7,14 @@ import path from 'path';
 /**
  * Maximum prompt token length to target
  */
-export const MAX_PROMPT_LENGTH = 16000;
+export const MAX_PROMPT_LENGTH: number = 16000;
 
 /**
  * Approximate token conversion for English text
  * 1 token ≈ 4 characters or 0.75 words
  */
-export const TOKENS_PER_CHARACTER = 0.25;
-export const WORDS_PER_TOKEN = 0.75;
+export const TOKENS_PER_CHARACTER: number = 0.25;
+export const WORDS_PER_TOKEN: number = 0.75;
 
 /**
  * Estimates token count from text length
@@ -31,7 +31,7 @@ export function estimateTokenCount(text: string): number {
  * @param maxTokens - Maximum token count
  * @returns Truncated text
  */
-export function truncateToTokenLimit(text: string, maxTokens = MAX_PROMPT_LENGTH): string {
+export function truncateToTokenLimit(text: string, maxTokens: number = MAX_PROMPT_LENGTH): string {
   const estimatedTokens = estimateTokenCount(text);
 
   if (estimatedTokens <= maxTokens) {
@@ -87,7 +87,7 @@ export function processTemplate(template: string, variables: Record<string, stri
  * @param maxTokens - Maximum token count to allow
  * @returns Formatted document
  */
-export function formatDocumentForPrompt(content: string, maxTokens = MAX_PROMPT_LENGTH * 0.8): string {
+export function formatDocumentForPrompt(content: string, maxTokens: number = MAX_PROMPT_LENGTH * 0.8): string {
   // Clean and normalize content
   const normalized = content.replace(/\r\n/g, '\n').replace(/\t/g, '    ').trim();
 
@@ -106,7 +106,7 @@ export function combinePromptComponents(
   systemPrompt: string,
   userContent: string,
   context?: string,
-  maxTokens = MAX_PROMPT_LENGTH
+  maxTokens: number = MAX_PROMPT_LENGTH
 ): string {
   // Start with system prompt which we never truncate
   let combinedPrompt = systemPrompt;

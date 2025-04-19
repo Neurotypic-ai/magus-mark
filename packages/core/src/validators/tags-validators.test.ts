@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  // Utility validators
+  clamp,
   confidenceScoreSchema,
   contextualTagSchema,
   conversationTypeTagSchema,
   domainTagSchema,
+  getSubdomainsForDomain,
+  isDomainWithSubdomain,
+  isValidConversationType,
+  isValidDomain,
+  isValidLifeArea,
   lifeAreaTagSchema,
   subdomainTagSchema,
   tagBehaviorSchema,
   tagConfidenceSchema,
   tagSetSchema,
   topicalTagSchema,
+  validateTagSet,
   // Tag validators
   yearTagSchema,
 } from './tags-validators';
@@ -338,5 +346,53 @@ describe('Tag Validators', () => {
       },
     };
     expect(tagSetSchema.parse(validTagSet)).toEqual(validTagSet);
+  });
+});
+
+describe('Validation Utilities', () => {
+  describe('clamp', () => {
+    it('should return value when within range', () => {
+      expect(clamp(5, 0, 10)).toBe(5);
+    });
+    it('should return min when below range', () => {
+      expect(clamp(-5, 0, 10)).toBe(0);
+    });
+    it('should return max when above range', () => {
+      expect(clamp(15, 0, 10)).toBe(10);
+    });
+    it('should handle edges', () => {
+      expect(clamp(0, 0, 10)).toBe(0);
+      expect(clamp(10, 0, 10)).toBe(10);
+    });
+  });
+  describe('validateTagSet', () => {
+    it('should parse valid tag set', () => {
+      const valid = {
+        year: '2023',
+        topical_tags: [{ domain: 'technology' }],
+        conversation_type: 'deep-dive',
+        confidence: { overall: 0.9 },
+      };
+      expect(() => validateTagSet(valid)).not.toThrow();
+    });
+    it('should throw on invalid', () => {
+      expect(() => validateTagSet({})).toThrow();
+    });
+  });
+  describe('Domain and Subdomain Helpers', () => {
+    it('getSubdomainsForDomain returns array', () => {
+      const subs = getSubdomainsForDomain('technology');
+      expect(Array.isArray(subs)).toBe(true);
+    });
+    it('isDomainWithSubdomain works', () => {
+      expect(isDomainWithSubdomain('technology', 'programming')).toBe(
+        getSubdomainsForDomain('technology').includes('programming')
+      );
+    });
+  });
+  describe('isValid* functions', () => {
+    it('isValidDomain', () => expect(isValidDomain('technology')).toBe(true));
+    it('isValidLifeArea', () => expect(isValidLifeArea('career')).toBe(true));
+    it('isValidConversationType', () => expect(isValidConversationType('deep-dive')).toBe(true));
   });
 });

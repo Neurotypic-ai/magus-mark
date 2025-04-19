@@ -17,44 +17,54 @@ import type { AIModel } from './models/AIModel';
 // Export version information
 export const VERSION = '0.1.0';
 
+export type CoreModuleOptions = {
+  openaiApiKey?: string;
+  model?: AIModel;
+  taxonomy?: Record<string, unknown>;
+};
+
+export type CoreModule = {
+  openAIClient: OpenAIClient;
+  taxonomyManager: TaxonomyManager;
+  taggingService: TaggingService;
+  documentProcessor: DocumentProcessor;
+  batchProcessingService: BatchProcessingService;
+};
 /**
  * Initialize the core module with configuration
  *
  * @param options Configuration options for the core module
  * @returns Core functionality instances
  */
-export function initializeCore(options: {
-  openaiApiKey?: string;
-  model?: AIModel;
-  taxonomy?: Record<string, unknown>;
-}) {
+export function initializeCore(options: CoreModuleOptions): CoreModule {
   // Initialize OpenAI client
-  const openAIClient = new OpenAIClient({
+  const openAIClient: OpenAIClient = new OpenAIClient({
     apiKey: options.openaiApiKey ?? process.env['OPENAI_API_KEY'] ?? '',
     model: options.model ?? 'gpt-4o',
   });
 
   // Initialize taxonomy manager
-  const taxonomyManager = new TaxonomyManager(options.taxonomy);
+  const taxonomyManager: TaxonomyManager = new TaxonomyManager(options.taxonomy);
 
   // Initialize tagging service
-  const taggingService = new TaggingService(
+  const taggingService: TaggingService = new TaggingService(
     openAIClient,
     {}, // Default tagging options
     taxonomyManager.getTaxonomyForPrompt()
   );
 
   // Initialize document processor
-  const documentProcessor = new DocumentProcessor();
+  const documentProcessor: DocumentProcessor = new DocumentProcessor();
 
   // Initialize batch processing service
-  const batchProcessingService = new BatchProcessingService(taggingService);
+  const batchProcessingService: BatchProcessingService = new BatchProcessingService(taggingService);
 
-  return {
+  const coreModule: CoreModule = {
     openAIClient,
     taxonomyManager,
     taggingService,
     documentProcessor,
     batchProcessingService,
   };
+  return coreModule;
 }

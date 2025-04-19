@@ -77,7 +77,7 @@ export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): Mo
 // --- End Helper ---
 
 /** Minimal Notice stub */
-export const Notice = vi.fn().mockImplementation((message: string | DocumentFragment) => {
+export const Notice: typeof Notice = vi.fn().mockImplementation((message: string | DocumentFragment) => {
   console.log('NOTICE:', message);
   return {
     hide: vi.fn(),
@@ -137,36 +137,38 @@ export class WorkspaceLeaf {
   constructor() {
     this.containerEl.children = [createMockObsidianElement('div'), createMockObsidianElement('div')];
   }
-  setViewState() {
+  setViewState(): Promise<void> {
     return Promise.resolve();
   }
-  getEphemeralState() {
+  getEphemeralState(): Record<string, unknown> {
     return {};
   }
-  setEphemeralState() {}
-  openFile() {
+  setEphemeralState(): Promise<void> {
     return Promise.resolve();
   }
-  open() {
+  openFile(): Promise<void> {
+    return Promise.resolve();
+  }
+  open(): Promise<void> {
     return Promise.resolve(null);
   }
-  getViewState() {
+  getViewState(): { type: string; state: Record<string, unknown> } {
     return { type: '', state: {} };
   }
-  togglePinned() {}
-  setPinned() {}
-  setGroupMember() {}
-  setGroup() {}
-  detach() {}
-  getIcon() {
+  togglePinned(): void {}
+  setPinned(): void {}
+  setGroupMember(): void {}
+  setGroup(): void {}
+  detach(): void {}
+  getIcon(): string {
     return 'document';
   }
-  getDisplayText() {
+  getDisplayText(): string {
     return 'Mock Leaf';
   }
-  onResize() {}
+  onResize(): void {}
   isDeferred = false;
-  loadIfDeferred() {
+  loadIfDeferred(): Promise<void> {
     return Promise.resolve();
   }
 }
@@ -187,75 +189,85 @@ export class ItemView {
   getViewType() {
     return 'mock-item-view';
   }
-  getState() {
+  getState(): Record<string, unknown> {
     return {};
   }
-  setState(_state: any, _result: any) {
+  setState(_state: any, _result: any): Promise<void> {
     return Promise.resolve();
   }
-  getEphemeralState() {
+  getEphemeralState(): Record<string, unknown> {
     return {};
   }
-  setEphemeralState(_state: any) {}
-  getIcon() {
+  setEphemeralState(_state: any): Promise<void> {
+    return Promise.resolve();
+  }
+  getIcon(): string {
     return this.icon;
   }
-  onResize() {}
-  getDisplayText() {
+  onResize(): void {}
+  getDisplayText(): string {
     return 'Mock Item View';
   }
-  onPaneMenu() {}
-  onOpen() {
+  onPaneMenu(): void {}
+  onOpen(): Promise<void> {
     return Promise.resolve();
   }
-  onClose() {
+  onClose(): Promise<void> {
     return Promise.resolve();
   }
-  registerDomEvent(_el: any, _type: string, _cb: any) {}
-  addAction(_icon: string, _title: string, _cb: any) {
+  registerDomEvent(_el: any, _type: string, _cb: any): void {}
+  addAction(_icon: string, _title: string, _cb: any): HTMLElement {
     return createMockObsidianElement('div');
   }
-  load() {}
-  onload() {}
-  unload() {}
-  onunload() {}
+  load(): Promise<void> {
+    return Promise.resolve();
+  }
+  onload(): Promise<void> {
+    return Promise.resolve();
+  }
+  unload(): Promise<void> {
+    return Promise.resolve();
+  }
+  onunload(): Promise<void> {
+    return Promise.resolve();
+  }
 }
 
 /** Minimal MetadataCache stub */
 export class MetadataCache {
-  on() {
+  on(): { unsubscribe: () => void } {
     return { unsubscribe: () => {} };
   }
-  getFileCache() {
+  getFileCache(): null {
     return null;
   }
-  getCache() {
+  getCache(): null {
     return null;
   }
-  fileToLinktext() {
+  fileToLinktext(file: TFile): string {
     return '';
   }
-  getFirstLinkpathDest() {
+  getFirstLinkpathDest(path: string): string | null {
     return null;
   }
-  resolvedLinks = {};
-  unresolvedLinks = {};
+  resolvedLinks: Record<string, string> = {};
+  unresolvedLinks: Record<string, string> = {};
 }
 
 /** Minimal Vault stub */
 export class Vault {
   configDir = '.obsidian';
   adapter = {};
-  on() {
+  on(): { unsubscribe: () => void } {
     return { unsubscribe: () => {} };
   }
-  getName() {
+  getName(): string {
     return 'MockVault';
   }
-  getFileByPath() {
+  getFileByPath(): TFile | null {
     return null;
   }
-  getFolderByPath() {
+  getFolderByPath(): TFolder | null {
     return null;
   }
   getAbstractFileByPath(path: string): TFile | TFolder | null {
@@ -267,67 +279,69 @@ export class Vault {
     }
     return null;
   }
-  getRoot() {
+  getRoot(): TFolder {
     return new TFolder('/');
   }
-  create() {
+  create(): Promise<TFile> {
     return Promise.resolve(new TFile({ path: 'new.md' }));
   }
-  createBinary() {
+  createBinary(): Promise<TFile> {
     return Promise.resolve(new TFile({ path: 'new.bin' }));
   }
-  createFolder() {
+  createFolder(): Promise<TFolder> {
     return Promise.resolve(new TFolder('new_folder'));
   }
-  read() {
+  read(): Promise<string> {
     return Promise.resolve('');
   }
-  cachedRead() {
+  cachedRead(): Promise<string> {
     return Promise.resolve('');
   }
-  readBinary() {
+  readBinary(): Promise<ArrayBuffer> {
     return Promise.resolve(new ArrayBuffer(0));
   }
-  getResourcePath() {
+  getResourcePath(): string {
     return '';
   }
-  delete() {
+  delete(): Promise<void> {
     return Promise.resolve();
   }
-  trash() {
+  trash(): Promise<void> {
     return Promise.resolve();
   }
-  rename() {
+  rename(): Promise<void> {
     return Promise.resolve();
   }
-  modify() {
+  modify(): Promise<void> {
     return Promise.resolve();
   }
-  modifyBinary() {
+  modifyBinary(): Promise<void> {
     return Promise.resolve();
   }
-  append() {
+  append(): Promise<void> {
     return Promise.resolve();
   }
-  process() {
+  process(): Promise<string> {
     return Promise.resolve('');
   }
-  copy() {
+  copy(): Promise<TFile> {
     return Promise.resolve(new TFile({ path: 'copy.md' }));
   }
-  getAllLoadedFiles() {
+  getAllLoadedFiles(): TFile[] {
     return [];
   }
-  getAllFolders() {
+  getAllFolders(): TFolder[] {
     return [];
   }
-  getMarkdownFiles() {
+  getMarkdownFiles(): TFile[] {
     return [];
   }
-  getFiles() {
+  getFiles(): TFile[] {
     return [];
   }
-  static recurseChildren() {}
+  static recurseChildren(folder: TFolder, callback: (file: TFile | TFolder) => void): void {
+    // No-op implementation
+  }
 }
 
 /** Minimal Workspace stub */
@@ -341,45 +355,59 @@ export class Workspace {
   containerEl: any = {};
   layoutReady = true;
   activeEditor = null;
-  on() {
+  on(): { unsubscribe: () => void } {
     return { unsubscribe: () => {} };
   }
-  onLayoutReady(cb: () => void) {
+  onLayoutReady(cb: () => void): void {
     cb();
   }
-  getLeaf() {
+  getLeaf(): WorkspaceLeaf {
     return new WorkspaceLeaf();
   }
-  getActiveViewOfType() {
+  getActiveViewOfType(): any {
     return null;
   }
-  getActiveFile() {
+  getActiveFile(): TFile | null {
     return null;
   }
-  revealLeaf() {
+  revealLeaf(): Promise<void> {
     return Promise.resolve();
   }
-  getLeavesOfType() {
+  getLeavesOfType(): WorkspaceLeaf[] {
     return [];
   }
-  detachLeavesOfType() {}
-  getRightLeaf() {
+  detachLeavesOfType(): void {
+    // No-op implementation
+  }
+  getRightLeaf(): WorkspaceLeaf {
     return new WorkspaceLeaf();
   }
 }
 
 /** Minimal Component base class stub */
 export class Component {
-  load() {}
-  onload() {}
-  unload() {}
-  onunload() {}
-  addChild(_child: any) {}
-  removeChild(_child: any) {}
-  register(_cb: any) {}
-  registerEvent(_eventRef: any) {}
-  registerDomEvent(_el: any, _type: string, _cb: any) {}
-  registerInterval(_id: number) {
+  load(): Promise<void> {
+    return Promise.resolve();
+  }
+  onload(): Promise<void> {
+    return Promise.resolve();
+  }
+  unload(): Promise<void> {
+    return Promise.resolve();
+  }
+  onunload(): Promise<void> {
+    return Promise.resolve();
+  }
+  addChild(_child: any): void {
+    // No-op implementation
+  }
+  registerEvent(_eventRef: any): void {
+    // No-op implementation
+  }
+  registerDomEvent(_el: any, _type: string, _cb: any): void {
+    // No-op implementation
+  }
+  registerInterval(_id: number): number {
     return _id;
   }
 }
@@ -390,31 +418,39 @@ export class Plugin extends Component {
   manifest: any = {};
   constructor(app: any, manifest: any) {
     super();
-    this.app = app || { vault: new Vault(), workspace: new Workspace(), metadataCache: new MetadataCache() };
+    this.app = app || { vault: new Vault(), workspacse: new Workspace(), metadataCache: new MetadataCache() };
     this.app.vault = this.app.vault || new Vault();
     this.app.workspace = this.app.workspace || new Workspace();
     this.app.metadataCache = this.app.metadataCache || new MetadataCache();
     this.manifest = manifest || { id: 'mock-plugin', name: 'Mock Plugin', version: '1.0.0' };
   }
-  addCommand() {}
-  registerView() {}
-  addSettingTab() {}
-  loadData() {
+  addCommand(): void {
+    // No-op implementation
+  }
+  registerView(): void {
+    // No-op implementation
+  }
+  addSettingTab(): void {
+    // No-op implementation
+  }
+  loadData(): Promise<Record<string, unknown>> {
     return Promise.resolve({});
   }
-  saveData() {
+  saveData(): Promise<void> {
     return Promise.resolve();
   }
-  addRibbonIcon() {
+  addRibbonIcon(): HTMLElement {
     return createMockObsidianElement('div');
   }
-  addStatusBarItem() {
+  addStatusBarItem(): HTMLElement {
     const el = createMockObsidianElement('div');
     el.setText = vi.fn(); // Add this
     el.addClass = vi.fn(); // And this, if not already present
     return el;
   }
-  registerEditorExtension(_extension: any) {}
+  registerEditorExtension(_extension: any): void {
+    // No-op implementation
+  }
 }
 
 /** Minimal PluginSettingTab base class stub */
@@ -427,8 +463,12 @@ export class PluginSettingTab {
     this.plugin = plugin;
     this.containerEl = createMockObsidianElement('div'); // Use helper
   }
-  display() {}
-  hide() {}
+  display(): void {
+    // No-op implementation
+  }
+  hide(): void {
+    // No-op implementation
+  }
 }
 
 // --- Add Minimal Modal Stub --- (From FolderTagModal.test.ts)
@@ -445,15 +485,21 @@ export class Modal {
     this.contentEl = this.modalEl.createDiv({ cls: 'modal-content' });
     this.titleEl = this.modalEl.createEl('h2', { cls: 'modal-title' });
   }
-  onOpen() {}
-  onClose() {}
-  open() {
+  onOpen(): Promise<void> {
+    return Promise.resolve();
+  }
+  onClose(): Promise<void> {
+    return Promise.resolve();
+  }
+  open(): Promise<void> {
     document.body.appendChild(this.modalEl);
     this.onOpen();
+    return Promise.resolve();
   }
-  close() {
+  close(): Promise<void> {
     this.modalEl.remove();
     this.onClose();
+    return Promise.resolve();
   }
   setTitle(title: string): this {
     this.titleEl.setText(title);

@@ -1,9 +1,31 @@
 import { vi } from 'vitest';
 
+// Helper for returning typed mocks under isolatedDeclarations
+type MockFactory<T> = () => T;
+
 /**
  * Creates a mock for the TaxonomyManager
  */
-export const mockTaxonomyManager = () => {
+export const mockTaxonomyManager: MockFactory<{
+  TaxonomyManager: new () => {
+    getInstance: () => {
+      validateTaxonomy: () => boolean;
+      validateDomain: () => boolean;
+      validateSubdomain: () => boolean;
+      validateLifeArea: () => boolean;
+      validateContextualTag: () => boolean;
+      validateConversationType: () => boolean;
+      getStandardTaxonomy: () => {
+        domains: string[];
+        subdomains: Record<string, string[]>;
+        lifeAreas: string[];
+        contextualTags: string[];
+        conversationTypes: string[];
+      };
+      getTaxonomyPrompt: () => string;
+    };
+  };
+}> = () => {
   return {
     TaxonomyManager: vi.fn().mockImplementation(() => ({
       getInstance: vi.fn().mockImplementation(() => ({

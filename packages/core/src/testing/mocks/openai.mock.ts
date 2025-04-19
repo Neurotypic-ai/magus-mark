@@ -1,5 +1,8 @@
 import { vi } from 'vitest';
 
+// Helper for returning typed mocks under isolatedDeclarations
+type MockFactory<T> = () => T;
+
 /**
  * Interface for mocked OpenAI client
  */
@@ -17,7 +20,13 @@ export interface MockedOpenAIClient {
 /**
  * Creates a mock for OpenAI API responses
  */
-export const mockOpenAI = () => {
+export const mockOpenAI: MockFactory<{
+  chat: {
+    completions: {
+      create: ReturnType<typeof vi.fn>;
+    };
+  };
+}> = () => {
   return vi.fn().mockImplementation(() => ({
     chat: {
       completions: {
@@ -75,7 +84,12 @@ export const mockOpenAI = () => {
 /**
  * Creates a mock for OpenAI client for tagging service integration tests
  */
-export const mockOpenAIClient = () => {
+export const mockOpenAIClient: MockFactory<{
+  makeRequest: ReturnType<typeof vi.fn>;
+  setApiKey: ReturnType<typeof vi.fn>;
+  setModel: ReturnType<typeof vi.fn>;
+  estimateTokenCount: ReturnType<typeof vi.fn>;
+}> = () => {
   return vi.fn().mockImplementation(() => {
     return {
       makeRequest: vi.fn().mockImplementation(() => {

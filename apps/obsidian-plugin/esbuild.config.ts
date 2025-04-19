@@ -15,16 +15,6 @@ await build({
   sourcemap: true,
   minify: !isWatch,
   external: ['obsidian', '@obsidian-magic/core'],
-  watch: isWatch && {
-    onRebuild(error, result) {
-      if (error) {
-        console.error('Build failed:', error);
-      } else {
-        console.log('Build succeeded');
-        copyAssets();
-      }
-    },
-  },
 });
 
 function copyAssets() {
@@ -33,7 +23,7 @@ function copyAssets() {
       mkdirSync(outdir, { recursive: true });
       copyFileSync(resolve(file), resolve(outdir, file));
       console.log(`Copied ${file} to ${outdir}/`);
-    } catch (e) {
+    } catch (e: any) {
       if (e.code !== 'ENOENT') throw e;
     }
   }

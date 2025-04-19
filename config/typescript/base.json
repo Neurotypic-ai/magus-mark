@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "declarationDir": "${configDir}/dist/types",
     "outDir": "${configDir}/dist",
     "rootDir": "${configDir}",
     "types": ["node"]
@@ -24,9 +25,6 @@
     },
     {
       "path": "${configDir}/tsconfig.test.json"
-    },
-    {
-      "path": "${configDir}/../../packages/core"
     }
   ],
   "watchOptions": {

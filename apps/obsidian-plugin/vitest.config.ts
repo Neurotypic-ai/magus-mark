@@ -3,9 +3,11 @@ import { resolve } from 'node:path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
+import type { ViteUserConfig } from 'vitest/config';
+
 const alias = { obsidian: resolve(__dirname, 'src/__mocks__/obsidian.ts') };
 
-export default defineConfig({
+const config: ViteUserConfig = defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: 'jsdom',
@@ -31,3 +33,5 @@ export default defineConfig({
     alias,
   },
 });
+
+export default config;

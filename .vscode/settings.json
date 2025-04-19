@@ -52,7 +52,7 @@
       "url": "node_modules/nx/schemas/workspace-schema.json"
     },
     {
-      "fileMatch": ["**/tsconfig.*.json"],
+      "fileMatch": ["**/tsconfig.*.json", "**/tsconfig.json", "config/typescript/*.json"],
       "url": "https://json.schemastore.org/tsconfig"
     }
   ],
