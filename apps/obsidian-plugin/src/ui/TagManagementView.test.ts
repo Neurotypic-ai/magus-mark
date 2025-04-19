@@ -7,21 +7,6 @@ import type { Mock } from 'vitest';
 
 import type ObsidianMagicPlugin from '../main';
 
-// Define interface for mocking
-interface MockedWorkspaceLeaf {
-  containerEl: {
-    children: {
-      empty?: () => void;
-      createEl?: (tagName: string, options?: Record<string, unknown>) => unknown;
-      createDiv?: (className?: string) => {
-        createEl: (tagName: string, options?: Record<string, unknown>) => { addEventListener: Mock };
-        createSpan: () => { setText: Mock };
-        setText: Mock;
-      };
-    }[];
-  };
-}
-
 // Define type for tag data
 interface TagData {
   id: string;
@@ -44,32 +29,17 @@ interface MockContainer extends HTMLElement {
   setText: Mock;
 }
 
-// Mock WorkspaceLeaf
-const mockLeaf: Partial<MockedWorkspaceLeaf> = {
-  containerEl: {
-    children: [
-      {}, // First child (typically header)
-      {
-        // Content container
-        empty: vi.fn(),
-        createEl: vi.fn().mockReturnThis(),
-        createDiv: vi.fn().mockReturnValue({
-          createEl: vi.fn().mockReturnThis(),
-          createDiv: vi.fn().mockReturnValue({
-            createEl: vi.fn().mockReturnValue({
-              addEventListener: vi.fn(),
-            }),
-            createSpan: vi.fn().mockReturnThis(),
-            setText: vi.fn(),
-          }),
-        }),
-      },
-    ],
+// Mock WorkspaceLeaf more accurately for ItemView constructor
+const mockLeaf = {
+  view: {
+    file: { path: 'mock-leaf-file.md', basename: 'mock-leaf-file', extension: 'md' },
   },
-};
+  // Add other WorkspaceLeaf properties if needed by the view constructor or tests
+} as unknown as WorkspaceLeaf; // Cast remains necessary for partial mock
 
 describe('TagManagementView', () => {
   let view: TagManagementView;
+  let mockContainerEl: HTMLElement; // To hold the view's container
 
   const mockPlugin = {
     app: {
@@ -87,7 +57,15 @@ describe('TagManagementView', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    view = new TagManagementView(mockLeaf as unknown as WorkspaceLeaf, mockPlugin);
+    // Create the view instance
+    view = new TagManagementView(mockLeaf, mockPlugin);
+    // Get the container created by the ItemView mock constructor
+    mockContainerEl = view.containerEl;
+    // Add spies/mocks to the container if tests need them
+    // (This assumes the mock constructor creates a basic div)
+    vi.spyOn(mockContainerEl, 'empty');
+    vi.spyOn(mockContainerEl, 'createEl');
+    // Add more spies if needed based on test expectations
   });
 
   it('should return the correct view type', () => {
@@ -104,12 +82,10 @@ describe('TagManagementView', () => {
 
   it('should render the view on open', async () => {
     await view.onOpen();
-
-    const container = mockLeaf.containerEl?.children[1];
-    if (container) {
-      expect(container.empty).toHaveBeenCalled();
-      expect(container.createEl).toHaveBeenCalledWith('h2', { text: 'Obsidian Magic Tag Management' });
-    }
+    // Use the mocked containerEl obtained in beforeEach
+    expect(mockContainerEl.empty).toHaveBeenCalled();
+    expect(mockContainerEl.createEl).toHaveBeenCalledWith('h2', { text: 'Obsidian Magic Tag Management' });
+    // Adjust other assertions if they target containerEl.children
   });
 
   it('should collect tags from the vault', () => {

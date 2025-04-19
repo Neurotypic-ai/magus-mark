@@ -132,7 +132,7 @@ async function runBenchmarkCommand(models: AIModel[], options: TestOptions): Pro
     spinner.stop();
 
     if (result.isFail()) {
-      logger.error(`Benchmark failed: ${result.getError().message}`);
+      logger.error(`Test command failed: ${result.getError().message}`);
       return;
     }
 

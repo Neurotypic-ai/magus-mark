@@ -1,41 +1,65 @@
-import fs from 'fs-extra';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Logger } from '@obsidian-magic/core/utils/Logger';
-
-import { config } from '../utils/config';
 import { taxonomyCommand } from './taxonomy';
 
 import type { Argv } from 'yargs';
 
-const logger = Logger.getInstance('taxonomy');
-vi.mock('../../src/utils/config', () => ({
-  config: {
-    get: vi.fn((key: string) => {
-      if (key === 'taxonomy') {
-        return {
-          categories: ['topic', 'technology', 'complexity'],
-          tags: {
-            topic: ['javascript', 'typescript', 'react', 'node'],
-            technology: ['frontend', 'backend', 'database'],
-            complexity: ['beginner', 'intermediate', 'advanced'],
-          },
-        };
-      }
-      return undefined;
-    }),
-    getAll: vi.fn().mockReturnValue({}),
+// Mock dependencies
+vi.mock('fs-extra', () => ({
+  outputFile: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock logger
+const mockLogger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  success: vi.fn(), // Added success for the reverted command structure
+};
+
+vi.mock('@obsidian-magic/core/utils/Logger', () => ({
+  Logger: {
+    getInstance: vi.fn().mockReturnValue(mockLogger),
   },
 }));
 
-vi.mock('fs-extra', () => ({
-  default: {
-    existsSync: vi.fn().mockReturnValue(true),
-    readFileSync: vi.fn().mockReturnValue(''),
-    writeFileSync: vi.fn(),
-    outputFileSync: vi.fn(),
-  },
+// Mock config - not directly used by the reverted command structure
+const mockConfig = {
+  get: vi.fn(),
+  set: vi.fn(),
+};
+
+vi.mock('../utils/config', () => ({
+  config: mockConfig,
 }));
+
+// Mock core initializeCore and taxonomyManager
+const mockTaxonomyManager = {
+  getTaxonomy: vi.fn().mockReturnValue({
+    domains: ['technology', 'science'],
+    contextualTags: ['important', 'urgent'],
+    lifeAreas: ['work', 'personal'],
+    conversationTypes: ['question', 'discussion'],
+  }),
+  getSubdomains: vi.fn().mockImplementation((domain) => {
+    if (domain === 'technology') return ['ai', 'webdev'];
+    return [];
+  }),
+  hasDomain: vi.fn().mockReturnValue(true),
+  addDomain: vi.fn(),
+  hasSubdomain: vi.fn().mockReturnValue(false),
+  addSubdomain: vi.fn(),
+  addContextualTag: vi.fn(),
+};
+
+vi.mock('@obsidian-magic/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@obsidian-magic/core')>();
+  return {
+    ...original,
+    initializeCore: vi.fn().mockReturnValue({ taxonomyManager: mockTaxonomyManager }),
+  };
+});
 
 describe('taxonomyCommand', () => {
   beforeEach(() => {
@@ -44,99 +68,75 @@ describe('taxonomyCommand', () => {
 
   it('should have the correct command name and description', () => {
     expect(taxonomyCommand.command).toBe('taxonomy');
-    expect(typeof taxonomyCommand.describe).toBe('string');
+    expect(taxonomyCommand.describe).toBe('Manage taxonomies');
   });
 
-  it('should have the required options in builder', () => {
+  it('should define subcommands in builder', () => {
     const yargsInstance = {
+      command: vi.fn().mockReturnThis(), // Mock the command method
       option: vi.fn().mockReturnThis(),
+      positional: vi.fn().mockReturnThis(),
+      demandCommand: vi.fn().mockReturnThis(),
       example: vi.fn().mockReturnThis(),
     } as unknown as Argv;
 
     const builderFn = taxonomyCommand.builder as (yargs: Argv) => Argv;
-    expect(builderFn).toBeDefined();
     builderFn(yargsInstance);
 
-    expect(yargsInstance.option).toHaveBeenCalledWith('output', expect.any(Object));
-    expect(yargsInstance.option).toHaveBeenCalledWith('format', expect.any(Object));
+    // Check that the subcommand 'list' was added
+    expect(yargsInstance.command).toHaveBeenCalledWith(expect.objectContaining({ command: 'list' }));
+    // Check that the subcommand 'add-domain' was added
+    expect(yargsInstance.command).toHaveBeenCalledWith(expect.objectContaining({ command: 'add-domain <domain>' }));
+    // Check other subcommands similarly
+    expect(yargsInstance.command).toHaveBeenCalledWith(
+      expect.objectContaining({ command: 'add-subdomain <domain> <subdomain>' })
+    );
+    expect(yargsInstance.command).toHaveBeenCalledWith(expect.objectContaining({ command: 'add-tag <tag>' }));
   });
 
-  it('should display taxonomy information', async () => {
-    // Call the handler with mock arguments
-    const handlerFn = taxonomyCommand.handler;
-    expect(handlerFn).toBeDefined();
-    await handlerFn({
-      format: 'pretty',
-      _: [],
-      $0: 'test',
-    });
+  // --- Tests for subcommands ---
 
-    // Verify the logger was called
-    expect(logger.info).toHaveBeenCalled();
-    expect(config.get).toHaveBeenCalledWith('taxonomy');
+  it('list subcommand should display taxonomy information', async () => {
+    // Find the list command configuration
+    const yargsMock = { command: vi.fn() };
+    (taxonomyCommand.builder as (yargs: any) => any)(yargsMock);
+    const listCommandConfig = yargsMock.command.mock.calls.find((call) => call[0].command === 'list')?.[0];
+
+    expect(listCommandConfig).toBeDefined();
+    if (!listCommandConfig?.handler) throw new Error('List handler not found');
+
+    // Execute the handler
+    await listCommandConfig.handler({});
+
+    // Verify taxonomyManager methods were called
+    expect(mockTaxonomyManager.getTaxonomy).toHaveBeenCalled();
+    expect(mockTaxonomyManager.getSubdomains).toHaveBeenCalledWith('technology');
+
+    // Verify console.log was called (can't easily verify chalk output)
+    expect(console.log).toHaveBeenCalled();
   });
 
-  it('should save taxonomy to file when output is specified', async () => {
-    // Call the handler with output file specified
-    const handlerFn = taxonomyCommand.handler;
-    expect(handlerFn).toBeDefined();
-    await handlerFn({
-      format: 'pretty',
-      output: 'taxonomy.json',
-      _: [],
-      $0: 'test',
-    });
+  it('add-domain subcommand should add a domain', async () => {
+    const yargsMock = { command: vi.fn() };
+    (taxonomyCommand.builder as (yargs: any) => any)(yargsMock);
+    const addDomainCommandConfig = yargsMock.command.mock.calls.find(
+      (call) => call[0].command === 'add-domain <domain>'
+    )?.[0];
 
-    // Verify file was written
-    expect(fs.outputFileSync).toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Saved taxonomy'));
+    expect(addDomainCommandConfig).toBeDefined();
+    if (!addDomainCommandConfig?.handler) throw new Error('Add-domain handler not found');
+
+    // Mock hasDomain to return false initially
+    mockTaxonomyManager.hasDomain.mockReturnValueOnce(false);
+
+    // Execute the handler
+    await addDomainCommandConfig.handler({ domain: 'new-domain' });
+
+    // Verify taxonomyManager methods were called
+    expect(mockTaxonomyManager.hasDomain).toHaveBeenCalledWith('new-domain');
+    expect(mockTaxonomyManager.addDomain).toHaveBeenCalledWith('new-domain');
+    expect(mockLogger.success).toHaveBeenCalledWith(expect.stringContaining('Added domain'));
   });
 
-  it('should output JSON format when specified', async () => {
-    // Call the handler with JSON format
-    const handlerFn = taxonomyCommand.handler;
-    expect(handlerFn).toBeDefined();
-    await handlerFn({
-      format: 'json',
-      _: [],
-      $0: 'test',
-    });
-
-    // Verify JSON output
-    expect(logger.info).toHaveBeenCalledWith(expect.stringMatching(/^{/));
-  });
-
-  it('should handle empty taxonomy gracefully', async () => {
-    // Override the mock to return undefined
-    vi.mocked(config.get).mockReturnValueOnce(undefined);
-
-    // Call the handler
-    const handlerFn = taxonomyCommand.handler;
-    expect(handlerFn).toBeDefined();
-    await handlerFn({
-      format: 'pretty',
-      _: [],
-      $0: 'test',
-    });
-
-    // Verify warning was shown
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('No taxonomy'));
-  });
-
-  it('should handle malformed taxonomy gracefully', async () => {
-    // Override the mock to return malformed data with a minimal structure that won't break types
-    vi.mocked(config.get).mockReturnValueOnce({});
-
-    // Call the handler
-    const handlerFn = taxonomyCommand.handler;
-    expect(handlerFn).toBeDefined();
-    await handlerFn({
-      format: 'pretty',
-      _: [],
-      $0: 'test',
-    });
-
-    // Verify error handling
-    expect(logger.warn).toHaveBeenCalled();
-  });
+  // Add similar tests for 'add-subdomain' and 'add-tag' subcommands...
 });

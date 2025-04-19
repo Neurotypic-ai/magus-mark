@@ -1,3 +1,6 @@
 {
-  "extends": "../../config/typescript/test.json"
+  "extends": "../../config/typescript/test.json",
+  "compilerOptions": {
+    "types": ["node", "obsidian", "vitest/globals"]
+  }
 }

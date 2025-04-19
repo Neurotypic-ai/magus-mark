@@ -88,7 +88,6 @@ export class MarkdownProcessor {
 
       return result;
     } catch (error) {
-      console.error('Error parsing frontmatter:', error);
       // Re-throw the error so the caller (updateFrontmatter) can catch it
       throw new Error(`Failed to parse frontmatter: ${String(error)}`);
       // Alternatively, throw a more specific custom error if available
@@ -149,7 +148,6 @@ export class MarkdownProcessor {
       const formattedFrontmatter = this.formatFrontmatter(updated);
       return content.replace(frontmatterRegex, `---\n${formattedFrontmatter}\n---`);
     } catch (error) {
-      console.error('Error updating frontmatter:', error);
       // Return the original content with the original frontmatter in case of error
       return content;
     }

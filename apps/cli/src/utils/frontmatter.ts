@@ -1,3 +1,5 @@
+import * as yaml from 'js-yaml';
+
 import type { TagSet } from '@obsidian-magic/core/models/TagSet';
 
 /**
@@ -18,7 +20,7 @@ type FrontmatterValue = FrontmatterPrimitive | FrontmatterObject | FrontmatterVa
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
 /**
- * Extract frontmatter from markdown content into a simple object
+ * Extract frontmatter from markdown content using js-yaml
  */
 export function extractFrontmatter(content: string): { frontmatter: FrontmatterObject | null; content: string } {
   const match = FRONTMATTER_REGEX.exec(content);
@@ -28,145 +30,47 @@ export function extractFrontmatter(content: string): { frontmatter: FrontmatterO
   }
 
   try {
-    // Use JSON parsing as a safe fallback - convert YAML-like to JSON
     const frontmatterText = match[1];
-    const jsonLike = simplifyFrontmatter(frontmatterText);
-    const frontmatter = JSON.parse(jsonLike) as FrontmatterObject;
+    const frontmatter = yaml.load(frontmatterText) as FrontmatterObject;
+
+    // Ensure the parsed result is an object, not null or other primitive
+    if (typeof frontmatter !== 'object' || frontmatter === null) {
+      // Treat non-object frontmatter (like empty `--- ---`) as empty object
+      if (frontmatter === null && frontmatterText.trim() === '') {
+        return {
+          frontmatter: {},
+          content: content.slice(match[0].length),
+        };
+      }
+      console.warn('Parsed frontmatter is not an object, returning null.');
+      return { frontmatter: null, content: content.slice(match[0].length) };
+    }
 
     return {
       frontmatter,
       content: content.slice(match[0].length),
     };
   } catch (error) {
-    console.warn('Failed to parse frontmatter:', error);
+    console.warn(`Failed to parse frontmatter with js-yaml: ${error instanceof Error ? error.message : String(error)}`);
+    // Keep original content if parsing fails
     return { frontmatter: null, content };
   }
 }
 
 /**
- * Convert YAML-like frontmatter to JSON for safer parsing
- */
-function simplifyFrontmatter(text: string): string {
-  // Simple YAML to JSON conversion - handles only basic cases
-  const lines = text.split('\n');
-  const result: FrontmatterObject = {};
-
-  let currentObj = result;
-  const stack: [FrontmatterObject, string][] = [];
-  let lastIndent = 0;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const indent = line.indexOf(trimmed);
-
-    // Handle indentation changes - going back up
-    if (indent < lastIndent && stack.length > 0) {
-      let lastPoppedIndent = -1;
-      while (stack.length > 0 && indent <= lastPoppedIndent) {
-        const popped = stack.pop();
-        if (popped) {
-          const [parent, indentStr] = popped;
-          currentObj = parent;
-          lastPoppedIndent = indentStr.length;
-        } else {
-          break;
-        }
-      }
-    }
-
-    // Handle key-value pairs
-    const colonIndex = trimmed.indexOf(':');
-    if (colonIndex > 0) {
-      const key = trimmed.substring(0, colonIndex).trim();
-      let value = trimmed.substring(colonIndex + 1).trim();
-
-      // Handle nested objects
-      if (!value) {
-        const newObj: FrontmatterObject = {};
-        currentObj[key] = newObj;
-        stack.push([currentObj, ' '.repeat(indent)]);
-        currentObj = newObj;
-        lastIndent = indent;
-        continue;
-      }
-
-      // Handle value types
-      if (value === 'true') {
-        currentObj[key] = true;
-      } else if (value === 'false') {
-        currentObj[key] = false;
-      } else if (value === 'null') {
-        currentObj[key] = null;
-      } else if (/^-?\d+$/.test(value)) {
-        currentObj[key] = parseInt(value, 10);
-      } else if (/^-?\d+\.\d+$/.test(value)) {
-        currentObj[key] = parseFloat(value);
-      } else if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        currentObj[key] = value.substring(1, value.length - 1);
-      } else {
-        currentObj[key] = value;
-      }
-    }
-  }
-
-  return JSON.stringify(result);
-}
-
-/**
- * Add frontmatter to markdown content
+ * Add frontmatter to markdown content using js-yaml
  */
 export function addFrontmatter(content: string, data: FrontmatterObject): string {
-  const yaml = convertToYaml(data);
-  return `---\n${yaml}\n---\n\n${content}`;
-}
-
-/**
- * Very simple object to YAML converter
- */
-function convertToYaml(obj: FrontmatterObject, level = 0): string {
-  const indent = ' '.repeat(level);
-  const lines: string[] = [];
-
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === null) {
-      lines.push(`${indent}${key}:`);
-    } else if (typeof value === 'string') {
-      // Quote strings that might cause issues in YAML
-      if (
-        value.includes('"') ||
-        value.includes("'") ||
-        value.includes('\n') ||
-        value.includes(':') ||
-        value.trim() !== value
-      ) {
-        lines.push(`${indent}${key}: "${value.replace(/"/g, '\\"')}"`);
-      } else {
-        lines.push(`${indent}${key}: ${value}`);
-      }
-    } else if (typeof value === 'number') {
-      lines.push(`${indent}${key}: ${String(value)}`);
-    } else if (typeof value === 'boolean') {
-      lines.push(`${indent}${key}: ${String(value)}`);
-    } else if (Array.isArray(value)) {
-      if (value.length === 0) {
-        lines.push(`${indent}${key}: []`);
-      } else {
-        lines.push(`${indent}${key}:`);
-        for (const item of value) {
-          const itemStr = item !== null && typeof item === 'object' ? JSON.stringify(item) : String(item);
-          lines.push(`${indent}  - ${itemStr}`);
-        }
-      }
-    } else if (typeof value === 'object') {
-      lines.push(`${indent}${key}:`);
-      // Safe because we've already checked typeof value === 'object' and value !== null
-      lines.push(convertToYaml(value, level + 2));
-    }
+  try {
+    const yamlString = yaml.dump(data, { noRefs: true, lineWidth: -1 });
+    // Ensure there's a newline after the frontmatter
+    const contentWithNewline = content.startsWith('\n') ? content : `\n${content}`;
+    return `---\n${yamlString}---\n${contentWithNewline}`;
+  } catch (error) {
+    console.error(`Failed to dump frontmatter to YAML: ${error instanceof Error ? error.message : String(error)}`);
+    // Return original content if dumping fails
+    return content;
   }
-
-  return lines.join('\n');
 }
 
 /**
@@ -220,20 +124,26 @@ export function extractTagsFromFrontmatter(content: string): TagSet | undefined 
 export function updateTagsInFrontmatter(content: string, tags: TagSet): string {
   const { frontmatter, content: contentWithoutFrontmatter } = extractFrontmatter(content);
 
-  // Get existing tags, if any
-  const existingTagsObj = frontmatter?.['tags'];
+  // Ensure frontmatter is an object before proceeding
+  const baseFrontmatter = frontmatter ?? {};
+
+  // Get existing tags object, ensuring it's treated as an object
+  const existingTagsObj = baseFrontmatter['tags'];
   const existingTags: Record<string, unknown> =
-    existingTagsObj && typeof existingTagsObj === 'object' ? (existingTagsObj as Record<string, unknown>) : {};
+    existingTagsObj && typeof existingTagsObj === 'object' && !Array.isArray(existingTagsObj)
+      ? (existingTagsObj as Record<string, unknown>)
+      : {};
 
   // Create updated frontmatter
   const updatedFrontmatter: FrontmatterObject = {
-    ...(frontmatter ?? {}),
+    ...baseFrontmatter,
     tags: {
       ...existingTags,
-      // TagSet will be treated as an opaque object in the frontmatter
+      // Use the TagSet directly, js-yaml will handle serialization
       obsidianMagic: tags as unknown as FrontmatterValue,
     },
   };
 
+  // Use the updated addFrontmatter which uses js-yaml
   return addFrontmatter(contentWithoutFrontmatter, updatedFrontmatter);
 }

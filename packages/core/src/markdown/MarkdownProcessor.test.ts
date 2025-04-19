@@ -126,8 +126,14 @@ tags: [test, markdown]`;
       const processor = MarkdownProcessor.getInstance();
       const malformed = 'title: Test\ninvalid'; // Missing colon
 
-      // Expect the parseFrontmatter method to throw an error for malformed input
-      expect(() => processor.parseFrontmatter(malformed)).toThrow();
+      // Temporarily mock console.error to suppress expected error logging from test runner
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Expect the parseFrontmatter method to throw the specific wrapped error
+      expect(() => processor.parseFrontmatter(malformed)).toThrow(/Failed to parse frontmatter/);
+
+      // Restore console.error
+      errorSpy.mockRestore();
     });
   });
 

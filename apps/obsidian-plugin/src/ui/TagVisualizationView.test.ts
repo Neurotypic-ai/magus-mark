@@ -3,24 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TagVisualizationView } from './TagVisualizationView';
 
 import type { MetadataCache, Vault, Workspace, WorkspaceLeaf } from 'obsidian';
-import type { Mock } from 'vitest';
 
 import type ObsidianMagicPlugin from '../main';
-
-interface MockedWorkspaceLeaf {
-  containerEl: {
-    children: {
-      empty?: () => void;
-      createEl?: (tagName: string, options?: Record<string, unknown>) => unknown;
-      createDiv?: (className?: string) => {
-        createEl: (tagName: string, options?: Record<string, unknown>) => { addEventListener: Mock };
-        createSpan: () => { setText: Mock; addClass: Mock };
-        setText: Mock;
-        addClass: Mock;
-      };
-    }[];
-  };
-}
 
 // Create a type for our test subject that exposes private methods for testing
 type TestableTagVisualizationView = TagVisualizationView & {
@@ -35,26 +19,11 @@ type TestableTagVisualizationView = TagVisualizationView & {
 };
 
 // Mock WorkspaceLeaf
-const mockLeaf: Partial<MockedWorkspaceLeaf> = {
-  containerEl: {
-    children: [
-      {}, // First child (typically header)
-      {
-        // Content container
-        empty: vi.fn(),
-        createEl: vi.fn().mockReturnThis(),
-        createDiv: vi.fn().mockReturnValue({
-          createEl: vi.fn().mockReturnValue({
-            addEventListener: vi.fn(),
-          }),
-          createSpan: vi.fn().mockReturnThis(),
-          setText: vi.fn(),
-          addClass: vi.fn().mockReturnThis(),
-        }),
-      },
-    ],
+const mockLeaf = {
+  view: {
+    file: { path: 'mock-leaf-file.md', basename: 'mock-leaf-file', extension: 'md' },
   },
-};
+} as unknown as WorkspaceLeaf; // Cast remains necessary for partial mock
 
 // Properly mock canvas context with proper type handling
 const mockContext = {
@@ -95,6 +64,7 @@ vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((contextI
 
 describe('TagVisualizationView', () => {
   let view: TestableTagVisualizationView;
+  let mockContainerEl: HTMLElement; // To hold the view's container
 
   // Using Partial for the mocks
   const mockPlugin = {
@@ -117,7 +87,14 @@ describe('TagVisualizationView', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    view = new TagVisualizationView(mockLeaf as unknown as WorkspaceLeaf, mockPlugin) as TestableTagVisualizationView;
+    // Create the view instance
+    view = new TagVisualizationView(mockLeaf, mockPlugin) as TestableTagVisualizationView;
+    // Get the container created by the ItemView mock constructor
+    mockContainerEl = view.containerEl;
+    // Add spies/mocks to the container if tests need them
+    vi.spyOn(mockContainerEl, 'empty');
+    vi.spyOn(mockContainerEl, 'createEl');
+    // Add more spies as needed
   });
 
   it('should return the correct view type', () => {
@@ -149,11 +126,9 @@ describe('TagVisualizationView', () => {
 
     await view.onOpen();
 
-    const container = mockLeaf.containerEl?.children[1];
-    if (container) {
-      expect(container.empty).toHaveBeenCalled();
-      expect(container.createEl).toHaveBeenCalledWith('h2', { text: 'Tag Visualization' });
-    }
+    // Use the mocked containerEl obtained in beforeEach
+    expect(mockContainerEl.empty).toHaveBeenCalled();
+    expect(mockContainerEl.createEl).toHaveBeenCalledWith('h2', { text: 'Tag Visualization' });
   });
 
   it('should build tag graph from vault data', () => {

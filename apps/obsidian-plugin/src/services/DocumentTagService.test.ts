@@ -43,6 +43,7 @@ interface MockTFile {
 describe('DocumentTagService', () => {
   let documentTagService: DocumentTagService;
 
+  // Define the mock plugin object with spies *first*
   const mockPlugin: MockObsidianMagicPlugin = {
     app: {
       vault: {
@@ -61,8 +62,8 @@ describe('DocumentTagService', () => {
         }),
       },
     },
-    registerEditorExtension: vi.fn(),
-    registerEvent: vi.fn(),
+    registerEditorExtension: vi.fn(), // Ensure this is a spy
+    registerEvent: vi.fn(), // Ensure this is a spy
     settings: {
       enableAutoSync: true,
       defaultTagBehavior: 'merge',
@@ -73,10 +74,16 @@ describe('DocumentTagService', () => {
   };
 
   beforeEach(() => {
-    documentTagService = new DocumentTagService(mockPlugin as unknown as ObsidianMagicPlugin);
+    // Clear mocks *before* instantiation if needed, though usually done in afterEach
     vi.clearAllMocks();
 
-    // Default mock content
+    // Instantiate the service with the fully mocked plugin
+    documentTagService = new DocumentTagService(mockPlugin as unknown as ObsidianMagicPlugin);
+
+    // Reset mocks *after* instantiation if setup calls happen in constructor
+    // vi.clearAllMocks(); // Usually better in afterEach
+
+    // Default mock content for vault read (can be overridden in tests)
     mockPlugin.app.vault.read.mockResolvedValue(`---
 title: Test Document
 tags: [existing-tag-1, existing-tag-2]
@@ -88,14 +95,16 @@ This is a test document content.`);
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    vi.resetAllMocks(); // Use resetAllMocks to clear state between tests
   });
 
   it('should register editor extensions on initialization', () => {
+    // The constructor should have called this
     expect(mockPlugin.registerEditorExtension).toHaveBeenCalled();
   });
 
   it('should register event handlers on initialization', () => {
+    // The constructor should have called this
     expect(mockPlugin.registerEvent).toHaveBeenCalled();
   });
 

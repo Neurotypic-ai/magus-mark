@@ -22,7 +22,7 @@ interface ObsidianMagicSettings {
   statusBarDisplay: 'always' | 'processing' | 'never';
 }
 
-const DEFAULT_SETTINGS: ObsidianMagicSettings = {
+export const DEFAULT_SETTINGS: ObsidianMagicSettings = {
   apiKey: '',
   apiKeyStorage: 'local',
   apiKeyKeychainId: '',

@@ -132,55 +132,6 @@ vi.mock('@obsidian-magic/core', () => {
   };
 });
 
-// Mock obsidian
-vi.mock('obsidian', () => {
-  interface PluginInstance {
-    addRibbonIcon: ReturnType<typeof vi.fn>;
-    addStatusBarItem: ReturnType<typeof vi.fn>;
-    addCommand: ReturnType<typeof vi.fn>;
-    registerView: ReturnType<typeof vi.fn>;
-    addSettingTab: ReturnType<typeof vi.fn>;
-    loadData: ReturnType<typeof vi.fn>;
-    saveData: ReturnType<typeof vi.fn>;
-    app: typeof mockApp;
-    registerEvent: ReturnType<typeof vi.fn>;
-  }
-
-  return {
-    App: vi.fn().mockImplementation(() => mockApp),
-    Plugin: vi.fn().mockImplementation(function (this: PluginInstance) {
-      this.addRibbonIcon = vi.fn().mockReturnValue(document.createElement('div'));
-      this.addStatusBarItem = vi.fn().mockReturnValue(document.createElement('div'));
-      this.addCommand = vi.fn();
-      this.registerView = vi.fn();
-      this.addSettingTab = vi.fn();
-      this.loadData = vi.fn().mockResolvedValue({});
-      this.saveData = vi.fn().mockResolvedValue(undefined);
-      this.app = mockApp;
-      this.registerEvent = vi.fn().mockImplementation((event: { unsubscribe: () => void }) => {
-        return event;
-      });
-      return this;
-    }),
-    PluginSettingTab: vi.fn(),
-    Notice: vi.fn(),
-    TFile: vi.fn().mockImplementation((path: string) => {
-      return {
-        path,
-        basename: path.split('/').pop()?.split('.')[0] ?? '',
-        extension: 'md',
-      };
-    }),
-    TFolder: vi.fn().mockImplementation((path: string) => {
-      return {
-        path,
-        name: path.split('/').pop() ?? '',
-        isFolder: () => true,
-      };
-    }),
-  };
-});
-
 // Mock utils module
 vi.mock('@obsidian-magic/utils', () => ({
   secureStorage: mockSecureStorage,

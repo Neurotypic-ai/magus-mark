@@ -4,8 +4,9 @@ node_modules/
 .npm/
 
 # Build outputs
-dist/
 build/
+dist/
+out/
 
 # Environment variables
 .env
