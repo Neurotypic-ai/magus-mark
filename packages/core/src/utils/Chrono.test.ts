@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Chrono } from './Chrono';
 
-describe('Chrono', () => {
+describe.only('Chrono', () => {
   describe('Singleton Instance', () => {
     it('should return the same instance when getInstance is called multiple times', () => {
       const instance1 = Chrono.getInstance();
@@ -287,24 +287,25 @@ describe('Chrono', () => {
         },
       ];
 
-      vi.useFakeTimers();
-      const promise = chrono.runWithConcurrencyLimit(tasks, 2);
+      // Use real timers instead of fake timers
+      vi.useRealTimers();
+      const startTime = Date.now();
+      const taskResults = await chrono.runWithConcurrencyLimit(tasks, 2);
+      const endTime = Date.now();
 
-      // Fast-forward time to execute tasks
-      vi.advanceTimersByTime(10);
-      await Promise.resolve();
-      vi.advanceTimersByTime(40);
-      await Promise.resolve();
-      vi.advanceTimersByTime(30);
-      await Promise.resolve();
-
-      const taskResults = await promise;
-
-      // Tasks ran with a limit of 2 concurrent tasks
-      // Expected execution order based on completion time, not start time
-      expect(results).toEqual([2, 3, 4, 1]);
+      // Expected execution order based on completion time with concurrency 2:
+      // t=10ms: task 2 finishes
+      // t=40ms: task 3 finishes
+      // t=50ms: task 1 finishes
+      // t=60ms: task 4 finishes
+      expect(results).toEqual([2, 3, 1, 4]);
       // Task results should be in original order
       expect(taskResults).toEqual([1, 2, 3, 4]);
+
+      // Check total time (should be roughly max(50, 10+30, 10+20, 40+20) due to concurrency 2)
+      // Longest path is task 2(10) -> task 3(30) -> task 4(20) = 60ms
+      expect(endTime - startTime).toBeLessThan(150); // Allow generous buffer
+      expect(endTime - startTime).toBeGreaterThanOrEqual(60); // Should take at least 60ms
     });
 
     it('should handle errors in tasks', async () => {
@@ -338,6 +339,7 @@ describe('Chrono', () => {
 
     beforeEach(() => {
       chrono = Chrono.getInstance();
+      vi.useRealTimers();
     });
 
     // Not using fake timers here as they can interfere with memory usage measurement

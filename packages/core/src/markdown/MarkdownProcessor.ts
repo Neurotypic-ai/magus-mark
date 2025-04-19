@@ -22,10 +22,20 @@ export class MarkdownProcessor {
   extractFrontmatter(content: string): string | null {
     const match = /^---\n([\s\S]*?)\n---/.exec(content);
 
-    if (match?.[1] === undefined) return null;
+    if (match === null) {
+      // No frontmatter block found
+      return null;
+    }
 
-    // Return an empty string for empty frontmatter
-    return match[1];
+    // match[1] contains the captured group (the content between ---)
+    // If the block exists but is empty (---\n---), match[1] will be an empty string.
+    // If the block doesn't exist, match is null (handled above).
+    // Explicitly return empty string if capture group is empty, otherwise return captured content or null.
+    if (match[1] === '') {
+      return '';
+    }
+
+    return match[1] ?? null; // Return captured content or null if capture somehow failed
   }
 
   /**
@@ -50,26 +60,39 @@ export class MarkdownProcessor {
       const result: Record<string, unknown> = {};
       const lines = frontmatter.split('\n');
 
-      for (const line of lines) {
-        const colonIndex = line.indexOf(':');
-        if (colonIndex > 0) {
-          const key = line.substring(0, colonIndex).trim();
-          let value = line.substring(colonIndex + 1).trim();
+      // Add a check for completely empty frontmatter string
+      if (frontmatter.trim() === '') {
+        return {};
+      }
 
-          // Handle array values
-          if (value.startsWith('[') && value.endsWith(']')) {
-            value = value.substring(1, value.length - 1);
-            result[key] = value.split(',').map((v) => v.trim());
-          } else {
-            result[key] = value;
-          }
+      for (const line of lines) {
+        // Skip empty lines
+        if (line.trim() === '') continue;
+
+        const colonIndex = line.indexOf(':');
+        if (colonIndex <= 0) {
+          // Throw an error if a line doesn't contain a colon or starts with it (malformed)
+          throw new Error(`Malformed frontmatter line: "${line}"`);
+        }
+        const key = line.substring(0, colonIndex).trim();
+        let value = line.substring(colonIndex + 1).trim();
+
+        // Handle array values
+        if (value.startsWith('[') && value.endsWith(']')) {
+          value = value.substring(1, value.length - 1);
+          result[key] = value.split(',').map((v) => v.trim());
+        } else {
+          result[key] = value;
         }
       }
 
       return result;
     } catch (error) {
       console.error('Error parsing frontmatter:', error);
-      return {};
+      // Re-throw the error so the caller (updateFrontmatter) can catch it
+      throw new Error(`Failed to parse frontmatter: ${String(error)}`);
+      // Alternatively, throw a more specific custom error if available
+      // throw new MarkdownError('Failed to parse frontmatter', { cause: error, code: 'PARSE_ERROR' });
     }
   }
 

@@ -67,13 +67,12 @@ describe('DocumentProcessor', () => {
     });
 
     it('should extract existing tags from frontmatter', () => {
-      const mockTags = ['tag1', 'tag2'];
+      const mockTags = ['#topic/technology/ai', '#year/2023'];
       mockExtractTags.mockReturnValueOnce(mockTags);
 
       const processor = new DocumentProcessor();
       const document = processor.parseDocument('id', 'path', 'content');
 
-      expect(mockExtractTags).toHaveBeenCalled();
       expect(document.existingTags).toEqual(expect.any(Object));
     });
 

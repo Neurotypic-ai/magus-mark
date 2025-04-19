@@ -86,19 +86,29 @@ export class Chrono {
   throttle<T extends (...args: unknown[]) => void>(fn: T, limit: number): (...args: Parameters<T>) => void {
     let lastCall = 0;
     let timeoutId: NodeJS.Timeout | null = null;
+    let pendingArgs: Parameters<T> | null = null;
 
     return function (...args: Parameters<T>): void {
       const now = Date.now();
 
       if (now - lastCall >= limit) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
         fn(...args);
         lastCall = now;
       } else {
-        timeoutId ??= setTimeout(
+        pendingArgs = args;
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        timeoutId = setTimeout(
           () => {
-            fn(...args);
+            fn(...pendingArgs!);
             lastCall = Date.now();
             timeoutId = null;
+            pendingArgs = null;
           },
           limit - (now - lastCall)
         );
@@ -135,43 +145,33 @@ export class Chrono {
    * @returns Promise that resolves when all tasks complete
    */
   async runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
-    const results: T[] = [];
-    let nextTaskIndex = 0;
-    const inProgress = new Set<Promise<void>>();
-
-    async function runTask(taskIndex: number): Promise<void> {
-      try {
-        const task = tasks[taskIndex];
-        if (task) {
-          const result = await task();
-          results[taskIndex] = result;
+    const results: T[] = new Array(tasks.length);
+    type IndexedResult = { index: number; result: T };
+    const inFlight = new Map<Promise<IndexedResult>, number>();
+    const keys = () => Array.from(inFlight.keys());
+    for (let i = 0; i < tasks.length; i++) {
+      const p = tasks[i]!().then(
+        (res) => ({ index: i, result: res }) as IndexedResult,
+        (err) => ({ index: i, result: err as T }) as IndexedResult
+      );
+      inFlight.set(p, i);
+      if (inFlight.size >= concurrency) {
+        const fin = await Promise.race(keys());
+        results[fin.index] = fin.result;
+        // remove the settled promise
+        for (const [promise, idx] of inFlight) {
+          if (idx === fin.index) {
+            inFlight.delete(promise);
+            break;
+          }
         }
-      } catch (error) {
-        // Store error in results array at the corresponding index
-        results[taskIndex] = error as T;
       }
     }
-
-    while (nextTaskIndex < tasks.length || inProgress.size > 0) {
-      // Start new tasks if we haven't hit the concurrency limit
-      while (inProgress.size < concurrency && nextTaskIndex < tasks.length) {
-        const taskPromise = runTask(nextTaskIndex);
-        inProgress.add(taskPromise);
-
-        // Remove the task from in-progress when it completes
-        void taskPromise.then(() => {
-          inProgress.delete(taskPromise);
-        });
-
-        nextTaskIndex++;
-      }
-
-      // Wait for any task to complete if we've hit the limit
-      if (inProgress.size >= concurrency) {
-        await Promise.race(inProgress);
-      }
+    // Await any remaining promises
+    for (const [promise] of inFlight) {
+      const fin = await promise;
+      results[fin.index] = fin.result;
     }
-
     return results;
   }
 

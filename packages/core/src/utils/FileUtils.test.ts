@@ -1,34 +1,34 @@
 import path from 'node:path';
 
+import * as fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { FileSystemError } from '../errors/FileSystemError';
-// Import after mocking
 import { FileUtils } from './FileUtils';
 
 import type { Dirent, Stats } from 'fs-extra';
 
-// Import the module under test, but mock the fs-extra dependency
-const mockEnsureDir = vi.fn();
-const mockReadFile = vi.fn();
-const mockWriteFile = vi.fn();
-const mockAccess = vi.fn();
-const mockReaddir = vi.fn();
-const mockStat = vi.fn();
-const mockUnlink = vi.fn();
-const mockStatSync = vi.fn();
-
 vi.mock('fs-extra', () => ({
-  ensureDir: mockEnsureDir,
-  readFile: mockReadFile,
-  writeFile: mockWriteFile,
-  access: mockAccess,
-  readdir: mockReaddir,
-  stat: mockStat,
-  unlink: mockUnlink,
-  statSync: mockStatSync,
+  ensureDir: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  access: vi.fn(),
+  readdir: vi.fn(),
+  stat: vi.fn(),
+  unlink: vi.fn(),
+  statSync: vi.fn(),
 }));
+
+// Cast fs mocks
+const mockEnsureDir = fs.ensureDir as unknown as ReturnType<typeof vi.fn>;
+const mockReadFile = fs.readFile as unknown as ReturnType<typeof vi.fn>;
+const mockWriteFile = fs.writeFile as unknown as ReturnType<typeof vi.fn>;
+const mockAccess = fs.access as unknown as ReturnType<typeof vi.fn>;
+const mockReaddir = fs.readdir as unknown as ReturnType<typeof vi.fn>;
+const mockStat = fs.stat as unknown as ReturnType<typeof vi.fn>;
+const mockUnlink = fs.unlink as unknown as ReturnType<typeof vi.fn>;
+const mockStatSync = fs.statSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('FileUtils', () => {
   const BASE_PATH = '/base/path';

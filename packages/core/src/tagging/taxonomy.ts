@@ -103,7 +103,7 @@ export const SUBDOMAIN_TAGS = {
   science: ['physics', 'biology', 'chemistry', 'mathematics', 'computer-science'],
   arts: ['visual', 'music', 'literature', 'performing', 'digital'],
   entertainment: ['games', 'film', 'television', 'books', 'sports'],
-  technology: ['ai', 'blockchain', 'iot', 'vr-ar', 'robotics'],
+  technology: ['ai', 'blockchain', 'iot', 'vr-ar', 'robotics', 'programming'],
   health: ['fitness', 'nutrition', 'mental-health', 'medical', 'wellness'],
   education: [
     'k12',
