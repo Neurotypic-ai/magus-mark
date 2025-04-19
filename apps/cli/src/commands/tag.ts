@@ -1,10 +1,9 @@
-// Use native Node.js fs.promises for file globbing
-import { readdir, stat } from 'fs/promises';
-import path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 import chalk from 'chalk';
-import cliProgress from 'cli-progress';
-import * as fs from 'fs-extra';
+import * as cliProgress from 'cli-progress';
+import * as fsExtra from 'fs-extra';
 
 import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
 import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
@@ -155,12 +154,12 @@ export const tagCommand: CommandModule = {
       const filesToProcess: string[] = [];
 
       for (const p of paths) {
-        if (!fs.existsSync(p)) {
+        if (!(await fsExtra.pathExists(p))) {
           logger.warn(`Path does not exist: ${p}`);
           continue;
         }
 
-        const stats = await stat(p);
+        const stats = await fs.stat(p);
 
         if (stats.isFile()) {
           if (p.endsWith('.md') || p.endsWith('.markdown')) {
@@ -396,7 +395,7 @@ Summary:
  * Recursively find markdown files in a directory
  */
 async function findMarkdownFiles(dir: string, results: string[] = []): Promise<string[]> {
-  const files = await readdir(dir, { withFileTypes: true });
+  const files = await fs.readdir(dir, { withFileTypes: true });
 
   for (const file of files) {
     const fullPath = path.join(dir, file.name);

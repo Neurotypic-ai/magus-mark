@@ -1,20 +1,14 @@
 /**
  * Configuration utilities for CLI
  */
-import os from 'os';
-import path from 'path';
+import * as os from 'node:os';
+import * as path from 'node:path';
 
-import Conf from 'conf';
-import { cosmiconfig } from 'cosmiconfig';
 import * as fs from 'fs-extra';
 import { z } from 'zod';
 
 // Import deepMerge utility
 import { deepMerge } from '@obsidian-magic/core/utils/DeepMerge';
-
-import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
-import type { OnLimitReached, OutputFormat } from '@obsidian-magic/core/types/CoreConfig';
-import type { LogLevel } from '@obsidian-magic/core/utils/Logger';
 
 import type { Config, ConfigStorage } from '../types/config';
 
@@ -38,20 +32,6 @@ const DEFAULT_CONFIG: Config = {
   vaultPath: undefined,
   generateExplanations: true,
 } as const;
-
-// Default configuration for Conf
-const defaultConfig: Config = {
-  tagMode: 'merge' as TagBehavior,
-  minConfidence: 0.7,
-  reviewThreshold: 0.5,
-  concurrency: 3,
-  costLimit: 10,
-  onLimitReached: 'warn' as OnLimitReached,
-  enableAnalytics: true,
-  outputFormat: 'pretty' as OutputFormat,
-  logLevel: 'info' as LogLevel,
-  generateExplanations: true,
-};
 
 /**
  * Legacy ConfigType alias for backward compatibility
@@ -149,7 +129,7 @@ class ConfigImpl implements ConfigStorage {
     }
 
     // Return from config data or default
-    const value = this.data[key] ?? (DEFAULT_CONFIG as Config)[key];
+    const value = this.data[key] ?? DEFAULT_CONFIG[key];
     return value as Config[K];
   }
 
@@ -252,7 +232,7 @@ class ConfigImpl implements ConfigStorage {
 }
 
 // Export singleton instance
-export const config = ConfigImpl.getInstance() as ConfigImpl;
+export const config: ConfigImpl = ConfigImpl.getInstance();
 
 // Define the schema for configuration validation
 export const configSchema: z.ZodType<Config> = z.object({
@@ -288,70 +268,3 @@ export const configSchema: z.ZodType<Config> = z.object({
   tagMode: z.enum(['append', 'replace', 'merge'] as const).optional(),
   activeProfile: z.string().optional(),
 });
-
-// Load environment-specific configuration (dev, prod, test)
-function loadEnvironmentConfig(): Record<string, unknown> {
-  try {
-    // Use synchronous search to avoid async complexity during initialization
-    const explorer = cosmiconfig('tagconv');
-
-    // Try to load configuration safely
-    try {
-      // Use a more specific type for the explorer object
-      const explorerWithSearch = explorer as {
-        searchSync?: () => { config?: Record<string, unknown> } | null;
-      };
-
-      const searchMethod = explorerWithSearch.searchSync;
-      if (searchMethod) {
-        const result = searchMethod();
-        if (result?.config) {
-          return result.config;
-        }
-      }
-    } catch {
-      // If searchSync is not available, return empty object
-      console.warn('searchSync method not available, using empty config');
-    }
-
-    return {};
-  } catch (error) {
-    console.warn(`Error loading environment config: ${error instanceof Error ? error.message : String(error)}`);
-    return {};
-  }
-}
-
-// Create config instance with defined schema
-const configInstance: Conf<Config> = new Conf<Config>({
-  projectName: 'obsidian-magic',
-  // Provide a placeholder schema that will be compatible
-  schema: {
-    tagMode: { type: 'string' },
-    minConfidence: { type: 'number' },
-    reviewThreshold: { type: 'number' },
-    concurrency: { type: 'number' },
-    costLimit: { type: 'number' },
-    onLimitReached: { type: 'string' },
-    enableAnalytics: { type: 'boolean' },
-    outputFormat: { type: 'string' },
-    logLevel: { type: 'string' },
-    generateExplanations: { type: 'boolean' },
-  },
-  defaults: {
-    ...defaultConfig,
-    ...loadEnvironmentConfig(),
-  },
-});
-
-// Helper to get typed configuration values
-const getConfigValue = (key: string): unknown => {
-  return configInstance.get(key);
-};
-
-// Helper to set configuration values
-const setConfigValue = (key: string, value: unknown): void => {
-  configInstance.set(key, value);
-};
-
-// Export the typed configuration interface
-export { configInstance, getConfigValue, setConfigValue };

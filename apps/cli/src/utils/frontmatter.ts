@@ -34,9 +34,9 @@ export function extractFrontmatter(content: string): { frontmatter: FrontmatterO
     const frontmatter = yaml.load(frontmatterText) as FrontmatterObject;
 
     // Ensure the parsed result is an object, not null or other primitive
-    if (typeof frontmatter !== 'object' || frontmatter === null) {
+    if (typeof frontmatter !== 'object') {
       // Treat non-object frontmatter (like empty `--- ---`) as empty object
-      if (frontmatter === null && frontmatterText.trim() === '') {
+      if (frontmatterText.trim() === '') {
         return {
           frontmatter: {},
           content: content.slice(match[0].length),

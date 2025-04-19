@@ -26,6 +26,7 @@ interface TagManagementViewPrivates {
 interface MockContainer extends HTMLElement {
   empty: Mock;
   createEl: Mock;
+  createDiv: Mock;
   createSpan: Mock;
   setText: Mock;
 }
@@ -62,7 +63,7 @@ describe('TagManagementView', () => {
     view = new TagManagementView(mockLeaf, mockPlugin);
 
     // Ensure containerEl and its child exist AFTER instantiation
-    if (!view.containerEl.children || view.containerEl.children.length < 2) {
+    if (view.containerEl.children.length < 2) {
       // Use the Obsidian mock helper for all containers
       view.containerEl = createMockObsidianElement('div');
       view.containerEl.appendChild(createMockObsidianElement('div')); // Placeholder [0]
@@ -120,6 +121,7 @@ describe('TagManagementView', () => {
     const mockContainer = {
       empty: vi.fn(),
       createEl: vi.fn().mockReturnThis(),
+      createDiv: vi.fn().mockReturnThis(),
       createSpan: vi.fn().mockReturnThis(),
       setText: vi.fn(),
     } as unknown as MockContainer;

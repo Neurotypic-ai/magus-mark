@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMockObsidianElement } from '../__mocks__/obsidian';
 import { FolderTagModal } from './FolderTagModal';
 
-import type { App, App as ObsidianApp, TFolder } from 'obsidian';
+import type { ButtonComponent, App as ObsidianApp, TFolder } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
 
@@ -46,6 +46,7 @@ describe('FolderTagModal', () => {
     it('should display a list of folders', () => {
       // Mock querySelector to return a mock list element for renderFolderList
       const mockFolderList = createMockObsidianElement('div');
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       (modal.contentEl as unknown as HTMLElement).querySelector = vi.fn().mockReturnValue(mockFolderList);
 
       modal.onOpen();
@@ -107,7 +108,7 @@ describe('FolderTagModal', () => {
       privateModal.folderItems = items;
 
       // Assume search input is created and assigned
-      const searchInput = createMockObsidianElement('input');
+      const searchInput = createMockObsidianElement('input') as unknown as HTMLInputElement;
       privateModal.searchInput = searchInput;
 
       // Simulate search
@@ -133,7 +134,7 @@ describe('FolderTagModal', () => {
       privateModal.selectedFolderPath = 'folder1';
       privateModal.includeSubfoldersCheckbox = createMockObsidianElement('input', {
         type: 'checkbox',
-      });
+      }) as unknown as HTMLInputElement;
       privateModal.includeSubfoldersCheckbox.checked = true;
       privateModal.close = vi.fn();
 
@@ -163,7 +164,7 @@ describe('FolderTagModal', () => {
       privateModal.selectedFolderPath = 'folder1';
       privateModal.includeSubfoldersCheckbox = createMockObsidianElement('input', {
         type: 'checkbox',
-      });
+      }) as unknown as HTMLInputElement;
       privateModal.includeSubfoldersCheckbox.checked = false; // Set to false
       privateModal.close = vi.fn();
 
@@ -180,15 +181,17 @@ describe('FolderTagModal', () => {
     it('should close modal when Cancel button is clicked', () => {
       modal.onOpen();
       const MockSettingClass = vi.mocked(Setting);
-      const cancelButtonInstance = MockSettingClass.mock.results[3]?.value;
+      const cancelButtonInstance = MockSettingClass.mock.results[3]?.value as unknown as Setting;
       const cancelButtonConfigFn = vi.mocked(cancelButtonInstance.addButton).mock.calls[0]?.[0];
       const mockCancelButton = {
         setButtonText: vi.fn().mockReturnThis(),
-        onClick: vi.fn().mockImplementation((cb) => cb()),
+        onClick: vi.fn().mockImplementation((cb: () => void) => {
+          cb();
+        }),
       }; // Mock onClick to call immediately
 
       if (cancelButtonConfigFn) {
-        cancelButtonConfigFn(mockCancelButton);
+        cancelButtonConfigFn(mockCancelButton as unknown as ButtonComponent);
         expect(modal.close).toHaveBeenCalled();
       }
     });

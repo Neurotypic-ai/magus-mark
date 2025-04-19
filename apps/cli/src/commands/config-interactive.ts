@@ -1,5 +1,5 @@
-import console from 'console';
-import path from 'path';
+import * as console from 'node:console';
+import * as path from 'node:path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
 import chalk from 'chalk';

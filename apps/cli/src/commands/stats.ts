@@ -1,7 +1,7 @@
-import path from 'path';
+import * as path from 'node:path';
 
 import chalk from 'chalk';
-import fs from 'fs-extra';
+import * as fs from 'fs-extra';
 
 import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
 import { Logger } from '@obsidian-magic/core/utils/Logger';

@@ -1,4 +1,3 @@
 {
-  "extends": "../../config/typescript/app.json",
-  "files": ["package.json"]
+  "extends": "../../config/typescript/app.json"
 }
