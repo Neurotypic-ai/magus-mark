@@ -3,14 +3,87 @@ import { vi } from 'vitest';
 // This file provides minimal stubs for the 'obsidian' module
 // allowing tests to run without needing the full Obsidian environment.
 
-/** Minimal Notice stub */
-export class Notice {
-  constructor(public message: string | DocumentFragment) {}
-  hide() {}
-  setMessage(_message: string | DocumentFragment) {
-    return this;
-  }
+// --- Recursive Mock Element Helper (Needed by Setting/Modal mocks) ---
+// Type definition for element attributes
+interface ElementAttrs {
+  cls?: string;
+  text?: string;
+  textContent?: string;
+  type?: string;
+  placeholder?: string;
+  value?: string;
 }
+
+// Add MockObsidianElement interface for type safety in tests
+export interface MockObsidianElement extends HTMLElement {
+  createEl: ReturnType<typeof vi.fn>;
+  createDiv: ReturnType<typeof vi.fn>;
+  setText: ReturnType<typeof vi.fn>;
+  empty: ReturnType<typeof vi.fn>;
+  addClass: ReturnType<typeof vi.fn>;
+  removeClass: ReturnType<typeof vi.fn>;
+  toggleClass: ReturnType<typeof vi.fn>;
+  setAttr: ReturnType<typeof vi.fn>;
+  appendChild: ReturnType<typeof vi.fn>;
+  removeChild: ReturnType<typeof vi.fn>;
+  remove: ReturnType<typeof vi.fn>;
+  // ...add any other methods you mock
+}
+
+export const createMockObsidianElement = (tag: string, attrs?: ElementAttrs): MockObsidianElement => {
+  const el = document.createElement(tag) as any; // Use 'any' for easier mocking
+  if (attrs) {
+    if (attrs.cls) el.className = attrs.cls;
+    if (attrs.text) el.textContent = attrs.text;
+    if (attrs.textContent) el.textContent = attrs.textContent;
+    if (attrs.type) el.type = attrs.type;
+    if (attrs.placeholder) el.placeholder = attrs.placeholder;
+    if (attrs.value) el.value = attrs.value;
+  }
+  // Attach mocked Obsidian methods
+  el.createEl = vi.fn((childTag: string, childAttrs?: ElementAttrs) => {
+    const childEl = createMockObsidianElement(childTag, childAttrs);
+    el.appendChild(childEl);
+    return childEl;
+  });
+  el.createDiv = vi.fn((divAttrs?: ElementAttrs) => {
+    const divEl = createMockObsidianElement('div', divAttrs);
+    el.appendChild(divEl);
+    return divEl;
+  });
+  el.setText = vi.fn((text: string) => {
+    el.textContent = text;
+  });
+  el.empty = vi.fn(() => {
+    el.innerHTML = '';
+  });
+  el.addClass = vi.fn();
+  el.removeClass = vi.fn();
+  el.toggleClass = vi.fn();
+  el.setAttr = vi.fn();
+  el.appendChild = vi.fn((child: Node) => {});
+  el.removeChild = vi.fn();
+  el.remove = vi.fn();
+  if (!el.dataset) {
+    el.dataset = {};
+  }
+  if (!el.style) {
+    el.style = {};
+  } // Ensure style exists
+  el.doc = document; // Add doc property
+
+  return el as MockObsidianElement;
+};
+// --- End Helper ---
+
+/** Minimal Notice stub */
+export const Notice = vi.fn().mockImplementation((message: string | DocumentFragment) => {
+  console.log('NOTICE:', message);
+  return {
+    hide: vi.fn(),
+    setMessage: vi.fn(),
+  };
+});
 
 /** Minimal TFolder stub */
 export class TFolder {
@@ -22,6 +95,7 @@ export class TFolder {
   constructor(path: string) {
     this.path = path;
     this.name = path.split('/').pop() ?? '';
+    this.children = [];
   }
   isRoot() {
     return this.path === '/';
@@ -40,9 +114,8 @@ export class TFile {
   constructor(init: Partial<TFile>) {
     Object.assign(this, init);
     this.name = init.path?.split('/').pop() ?? '';
-    this.basename = this.name.replace(/\.md$/, '');
+    this.basename = this.name.replace(/\.[^/.]+$/, ''); // More robust basename
     this.extension = this.name.includes('.') ? (this.name.split('.').pop() ?? '') : '';
-
     // Ensure parent is correctly typed if path indicates it
     if (this.path && this.path !== '/' && this.path.includes('/')) {
       const parentPath = this.path.substring(0, this.path.lastIndexOf('/'));
@@ -52,7 +125,7 @@ export class TFile {
 }
 
 /** Minimal Platform stub */
-export const Platform = { isDesktopApp: false, isMobile: false };
+export const Platform = { isDesktopApp: true, isMobile: false }; // Default to desktop
 
 /** Minimal WorkspaceLeaf stub */
 export class WorkspaceLeaf {
@@ -60,28 +133,10 @@ export class WorkspaceLeaf {
   view: any = null;
   parent: any = null;
   app: any = { vault: new Vault() }; // Basic app stub
-  containerEl: any = {
-    children: [
-      { createEl: vi.fn(), addClass: vi.fn() }, // Header
-      {
-        // Content
-        empty: vi.fn(),
-        createEl: vi.fn().mockReturnThis(),
-        createDiv: vi.fn().mockReturnThis(),
-        addClass: vi.fn(),
-        setText: vi.fn(), // Add setText
-        children: [], // Add children array
-        style: {}, // Add style object
-      },
-    ],
-    empty: vi.fn(),
-    createEl: vi.fn().mockReturnThis(),
-    createDiv: vi.fn().mockReturnThis(),
-    addClass: vi.fn(),
-    doc: document,
-    setText: vi.fn(), // Add setText
-  };
-  constructor() {}
+  containerEl: any = createMockObsidianElement('div'); // Use helper
+  constructor() {
+    this.containerEl.children = [createMockObsidianElement('div'), createMockObsidianElement('div')];
+  }
   setViewState() {
     return Promise.resolve();
   }
@@ -126,36 +181,7 @@ export class ItemView {
   scope: any = null;
   constructor(leaf: WorkspaceLeaf) {
     this.leaf = leaf;
-    this.containerEl = document.createElement('div') as any;
-    this.containerEl.empty = vi.fn();
-    this.containerEl.createEl = vi.fn((tag: string, options?: any) => {
-      const el = document.createElement(tag);
-      if (options?.text) el.textContent = options.text;
-      if (options?.cls) el.className = options.cls;
-      el.addClass = vi.fn();
-      el.removeClass = vi.fn();
-      el.toggleClass = vi.fn();
-      el.setText = vi.fn();
-      el.setAttr = vi.fn();
-      el.createEl = this.containerEl.createEl;
-      el.createDiv = vi.fn((opts) => this.containerEl.createEl('div', opts));
-      el.empty = vi.fn();
-      el.appendChild = vi.fn();
-      el.remove = vi.fn();
-      return el;
-    });
-    this.containerEl.createDiv = vi.fn((opts) => this.containerEl.createEl('div', opts));
-    this.containerEl.addClass = vi.fn();
-    this.containerEl.removeClass = vi.fn();
-    this.containerEl.toggleClass = vi.fn();
-    this.containerEl.setText = vi.fn();
-    this.containerEl.setAttr = vi.fn();
-    this.containerEl.appendChild = vi.fn();
-    this.containerEl.removeChild = vi.fn();
-    this.containerEl.children = [];
-    this.containerEl.style = {};
-    this.containerEl.doc = document;
-
+    this.containerEl = createMockObsidianElement('div'); // Use helper
     this.app = leaf.app;
   }
   getViewType() {
@@ -187,7 +213,7 @@ export class ItemView {
   }
   registerDomEvent(_el: any, _type: string, _cb: any) {}
   addAction(_icon: string, _title: string, _cb: any) {
-    return document.createElement('div');
+    return createMockObsidianElement('div');
   }
   load() {}
   onload() {}
@@ -233,11 +259,9 @@ export class Vault {
     return null;
   }
   getAbstractFileByPath(path: string): TFile | TFolder | null {
-    // Basic implementation for testing
     if (path.endsWith('.md')) {
       return new TFile({ path });
     }
-    // Assume folder if no extension or common non-md extensions
     if (!path.includes('.') || path.match(/\.\w+$/) === null || !['md'].includes(path.split('.').pop() ?? '')) {
       return new TFolder(path);
     }
@@ -366,18 +390,10 @@ export class Plugin extends Component {
   manifest: any = {};
   constructor(app: any, manifest: any) {
     super();
-    // Ensure app and its nested properties are initialized if not provided
-    this.app = app || {
-      vault: new Vault(), // Use existing Vault mock
-      workspace: new Workspace(), // Use existing Workspace mock
-      metadataCache: new MetadataCache(), // Use existing MetadataCache mock
-      // Add other app properties if needed by tests
-    };
-    // Ensure nested properties exist even if app is provided partially
+    this.app = app || { vault: new Vault(), workspace: new Workspace(), metadataCache: new MetadataCache() };
     this.app.vault = this.app.vault || new Vault();
     this.app.workspace = this.app.workspace || new Workspace();
     this.app.metadataCache = this.app.metadataCache || new MetadataCache();
-
     this.manifest = manifest || { id: 'mock-plugin', name: 'Mock Plugin', version: '1.0.0' };
   }
   addCommand() {}
@@ -390,14 +406,15 @@ export class Plugin extends Component {
     return Promise.resolve();
   }
   addRibbonIcon() {
-    return document.createElement('div');
-  } // Add missing methods
+    return createMockObsidianElement('div');
+  }
   addStatusBarItem() {
-    return document.createElement('div');
+    const el = createMockObsidianElement('div');
+    el.setText = vi.fn(); // Add this
+    el.addClass = vi.fn(); // And this, if not already present
+    return el;
   }
-  registerEditorExtension(_extension: any) {
-    // Minimal stub - can be enhanced if needed
-  }
+  registerEditorExtension(_extension: any) {}
 }
 
 /** Minimal PluginSettingTab base class stub */
@@ -408,13 +425,13 @@ export class PluginSettingTab {
   constructor(app: any, plugin: any) {
     this.app = app;
     this.plugin = plugin;
-    this.containerEl = document.createElement('div');
+    this.containerEl = createMockObsidianElement('div'); // Use helper
   }
   display() {}
   hide() {}
 }
 
-// --- Add Minimal Modal Stub ---
+// --- Add Minimal Modal Stub --- (From FolderTagModal.test.ts)
 export class Modal {
   app: any;
   contentEl: HTMLElement;
@@ -423,34 +440,14 @@ export class Modal {
   titleEl: HTMLElement;
   constructor(app: any) {
     this.app = app;
-    // Enhance mock elements with common methods used
-    const createMockElement = (tag: string): HTMLElement => {
-      const el = document.createElement(tag) as any;
-      el.addClass = vi.fn();
-      el.removeClass = vi.fn();
-      el.toggleClass = vi.fn();
-      el.setText = vi.fn();
-      el.setAttr = vi.fn();
-      el.createEl = vi.fn((childTag: string, options?: any) => createMockElement(childTag));
-      el.createDiv = vi.fn((options?: any) => createMockElement('div'));
-      el.empty = vi.fn();
-      el.appendChild = vi.fn((child: Node) => {
-        /* no-op */
-      });
-      el.remove = vi.fn();
-      // Add other methods if needed by tests
-      return el;
-    };
-
-    this.modalEl = createMockElement('div');
-    this.modalEl.addClass('modal'); // Call the mocked addClass
+    this.modalEl = createMockObsidianElement('div');
+    this.modalEl.addClass('modal');
     this.contentEl = this.modalEl.createDiv({ cls: 'modal-content' });
     this.titleEl = this.modalEl.createEl('h2', { cls: 'modal-title' });
   }
   onOpen() {}
   onClose() {}
   open() {
-    // Simulate adding to body or specific container for testing if needed
     document.body.appendChild(this.modalEl);
     this.onOpen();
   }
@@ -462,128 +459,89 @@ export class Modal {
     this.titleEl.setText(title);
     return this;
   }
-  // Add other methods/properties if needed by tests
 }
 // --- End Minimal Modal Stub ---
 
-// --- Add Minimal Setting Stub ---
+// --- Add Minimal Setting Stub --- (From FolderTagModal.test.ts)
 export class Setting {
-  settingEl: any; // Use any to simplify mocking methods directly
+  settingEl: any;
   nameEl: any;
   descEl: any;
   controlEl: any;
 
   constructor(containerEl: HTMLElement) {
-    this.settingEl = document.createElement('div');
-    this.settingEl.addClass = vi.fn();
-    this.settingEl.removeClass = vi.fn();
-    this.settingEl.toggleClass = vi.fn();
-    this.settingEl.createEl = vi.fn((tag, opts) => {
-      const el = document.createElement(tag);
-      if (opts?.text) el.textContent = opts.text;
-      if (opts?.cls) el.className = opts.cls; // Basic class handling
-      // Add more mock element methods if needed
-      el.addClass = vi.fn();
-      el.removeClass = vi.fn();
-      return el;
-    });
-    this.settingEl.appendChild = vi.fn(); // Mock appendChild
-
-    this.settingEl.addClass('setting-item');
-
-    // Create standard child elements often expected
+    this.settingEl = createMockObsidianElement('div', { cls: 'setting-item' });
     const nameAndDescContainer = this.settingEl.createEl('div', { cls: 'setting-item-info' });
     this.nameEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-name' });
     this.descEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-description' });
     this.controlEl = this.settingEl.createEl('div', { cls: 'setting-item-control' });
-
-    // Simulate adding to container
-    if (containerEl && typeof containerEl.appendChild === 'function') {
-      containerEl.appendChild(this.settingEl);
-    } else {
-      console.warn('Setting mock: containerEl provided without appendChild method');
-    }
+    containerEl?.appendChild(this.settingEl); // Add null check for safety
   }
 
   setName(name: string): this {
-    this.nameEl.textContent = name;
+    this.nameEl.setText(name);
     return this;
   }
-
   setDesc(desc: string | DocumentFragment): this {
-    this.descEl.textContent = typeof desc === 'string' ? desc : '';
+    this.descEl.setText(typeof desc === 'string' ? desc : (desc.textContent ?? ''));
     return this;
   }
-
   setClass(cls: string): this {
-    this.settingEl.addClass(cls); // Assumes addClass is mocked on settingEl
+    this.settingEl.addClass(cls);
     return this;
   }
-
-  // Add stubs for common control methods, returning `this` for chaining
   addText(cb: (text: any) => any): this {
-    const mockInput = {
-      inputEl: document.createElement('input'),
+    const el = createMockObsidianElement('input', { type: 'text' });
+    this.controlEl.appendChild(el);
+    cb({
+      inputEl: el,
       setPlaceholder: vi.fn().mockReturnThis(),
       setValue: vi.fn().mockReturnThis(),
       onChange: vi.fn().mockReturnThis(),
-      then: vi.fn().mockReturnThis(), // Allow chaining if needed
-    };
-    this.controlEl.appendChild(mockInput.inputEl);
-    cb(mockInput);
+    });
     return this;
   }
   addSearch(cb: (search: any) => any): this {
-    const mockSearch = {
-      inputEl: document.createElement('input'),
+    const el = createMockObsidianElement('input', { type: 'search' });
+    this.controlEl.appendChild(el);
+    cb({
+      inputEl: el,
       setPlaceholder: vi.fn().mockReturnThis(),
       setValue: vi.fn().mockReturnThis(),
       onChange: vi.fn().mockReturnThis(),
-      then: vi.fn().mockReturnThis(),
-    };
-    this.controlEl.appendChild(mockSearch.inputEl);
-    cb(mockSearch);
+    });
     return this;
   }
   addToggle(cb: (toggle: any) => any): this {
-    const mockToggle = {
-      toggleEl: document.createElement('div'),
-      setValue: vi.fn().mockReturnThis(),
-      onChange: vi.fn().mockReturnThis(),
-      then: vi.fn().mockReturnThis(),
-    };
-    this.controlEl.appendChild(mockToggle.toggleEl);
-    cb(mockToggle);
+    const el = createMockObsidianElement('input', { type: 'checkbox' });
+    this.controlEl.appendChild(el);
+    cb({ inputEl: el, setValue: vi.fn().mockReturnThis(), onChange: vi.fn().mockReturnThis() });
     return this;
   }
   addButton(cb: (button: any) => any): this {
-    const mockButton = {
-      buttonEl: document.createElement('button'),
+    const el = createMockObsidianElement('button');
+    this.controlEl.appendChild(el);
+    cb({
+      buttonEl: el,
       setButtonText: vi.fn().mockReturnThis(),
       setCta: vi.fn().mockReturnThis(),
       onClick: vi.fn().mockReturnThis(),
-      then: vi.fn().mockReturnThis(),
-    };
-    this.controlEl.appendChild(mockButton.buttonEl);
-    cb(mockButton);
+    });
     return this;
   }
-
   addDropdown(cb: (dropdown: any) => any): this {
-    const mockDropdown = {
-      selectEl: document.createElement('select'),
+    const el = createMockObsidianElement('select');
+    this.controlEl.appendChild(el);
+    cb({
+      selectEl: el,
       addOption: vi.fn().mockReturnThis(),
-      addOptions: vi.fn().mockReturnThis(), // Add if needed
+      addOptions: vi.fn().mockReturnThis(),
+      getValue: vi.fn(),
       setValue: vi.fn().mockReturnThis(),
       onChange: vi.fn().mockReturnThis(),
-      then: vi.fn().mockReturnThis(),
-    };
-    this.controlEl.appendChild(mockDropdown.selectEl);
-    cb(mockDropdown);
+    });
     return this;
   }
-
-  // Add other control methods if needed by tests
 }
 // --- End Minimal Setting Stub ---
 

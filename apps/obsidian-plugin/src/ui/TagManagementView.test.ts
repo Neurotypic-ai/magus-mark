@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createMockObsidianElement } from '../__mocks__/obsidian';
 import { TagManagementView } from './TagManagementView';
 
 import type { MetadataCache, Vault, WorkspaceLeaf } from 'obsidian';
@@ -39,7 +40,7 @@ const mockLeaf = {
 
 describe('TagManagementView', () => {
   let view: TagManagementView;
-  let mockContainerEl: HTMLElement; // To hold the view's container
+  let mockContentContainer: HTMLElement; // Reference to the actual content area
 
   const mockPlugin = {
     app: {
@@ -57,15 +58,21 @@ describe('TagManagementView', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Create the view instance
+    // Create the view instance - relies on ItemView mock creating containerEl
     view = new TagManagementView(mockLeaf, mockPlugin);
-    // Get the container created by the ItemView mock constructor
-    mockContainerEl = view.containerEl;
-    // Add spies/mocks to the container if tests need them
-    // (This assumes the mock constructor creates a basic div)
-    vi.spyOn(mockContainerEl, 'empty');
-    vi.spyOn(mockContainerEl, 'createEl');
-    // Add more spies if needed based on test expectations
+
+    // Ensure containerEl and its child exist AFTER instantiation
+    if (!view.containerEl || !view.containerEl.children || view.containerEl.children.length < 2) {
+      // Use the Obsidian mock helper for all containers
+      view.containerEl = createMockObsidianElement('div');
+      view.containerEl.appendChild(createMockObsidianElement('div')); // Placeholder [0]
+      view.containerEl.appendChild(createMockObsidianElement('div')); // Placeholder [1] for content
+      console.warn('ItemView mock did not create expected container structure. Manually created.');
+    }
+
+    // Get the reference to the actual content container (children[1])
+    mockContentContainer = view.containerEl.children[1] as HTMLElement;
+    // No need to spyOn methods, as createMockObsidianElement already mocks them
   });
 
   it('should return the correct view type', () => {
@@ -81,11 +88,21 @@ describe('TagManagementView', () => {
   });
 
   it('should render the view on open', async () => {
+    // Pre-condition check: Ensure mockContentContainer is valid before calling onOpen
+    expect(mockContentContainer).toBeDefined();
+    expect(mockContentContainer.empty).toBeDefined();
+    expect(mockContentContainer.createEl).toBeDefined();
+
     await view.onOpen();
-    // Use the mocked containerEl obtained in beforeEach
-    expect(mockContainerEl.empty).toHaveBeenCalled();
-    expect(mockContainerEl.createEl).toHaveBeenCalledWith('h2', { text: 'Obsidian Magic Tag Management' });
-    // Adjust other assertions if they target containerEl.children
+
+    // Assert against the spies on the *actual* content container (children[1])
+    expect(vi.mocked(mockContentContainer).empty).toHaveBeenCalled();
+    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('h2', {
+      text: 'Obsidian Magic Tag Management',
+    });
+    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('div', 'tag-section');
+    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('div', 'actions-section');
+    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('div', 'stats-section');
   });
 
   it('should collect tags from the vault', () => {

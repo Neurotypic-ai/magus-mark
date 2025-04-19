@@ -4,6 +4,8 @@ import ObsidianMagicPlugin, { DEFAULT_SETTINGS } from './main';
 import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
+import { TAG_MANAGEMENT_VIEW_TYPE } from './ui/TagManagementView';
+import { TAG_VISUALIZATION_VIEW_TYPE } from './ui/TagVisualizationView';
 
 import type { App, PluginManifest } from 'obsidian';
 
@@ -50,11 +52,11 @@ vi.mock('./services/KeyManager', () => ({
 vi.mock('./ui/settings/SettingTab');
 vi.mock('./ui/TagManagementView', () => ({
   TagManagementView: vi.fn(),
-  VIEW_TYPE_TAG_MANAGEMENT: 'tag-management-view', // Use actual exported constant name
+  TAG_MANAGEMENT_VIEW_TYPE: 'mock-tag-management-view-type',
 }));
 vi.mock('./ui/TagVisualizationView', () => ({
   TagVisualizationView: vi.fn(),
-  VIEW_TYPE_TAG_VISUALIZATION: 'tag-visualization-view', // Use actual exported constant name
+  TAG_VISUALIZATION_VIEW_TYPE: 'tag-visualization-view', // Use actual exported constant name
 }));
 vi.mock('./ui/FolderTagModal');
 
@@ -164,14 +166,8 @@ describe('ObsidianMagicPlugin', () => {
 
   it('should register views', async () => {
     await plugin.onload();
-    expect(plugin.registerView).toHaveBeenCalledWith(
-      'tag-management-view', // Check constant name
-      expect.any(Function)
-    );
-    expect(plugin.registerView).toHaveBeenCalledWith(
-      'tag-visualization-view', // Check constant name
-      expect.any(Function)
-    );
+    expect(plugin.registerView).toHaveBeenCalledWith(TAG_MANAGEMENT_VIEW_TYPE, expect.any(Function));
+    expect(plugin.registerView).toHaveBeenCalledWith(TAG_VISUALIZATION_VIEW_TYPE, expect.any(Function));
   });
 
   it('should add commands', async () => {

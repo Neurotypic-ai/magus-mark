@@ -3,7 +3,10 @@ import { Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsid
 import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
+import { AccessibilityAuditModal } from './ui/AccessibilityAuditModal';
 import { FolderTagModal } from './ui/FolderTagModal';
+import { SampleModal } from './ui/SampleModal';
+import { SampleSettingTab } from './ui/SampleSettingTab';
 import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
@@ -86,6 +89,31 @@ export default class ObsidianMagicPlugin extends Plugin {
 
     // Register context menu
     this.registerContextMenu();
+
+    this.addRibbonIcon('dice', 'Show Notice', () => {
+      new Notice('Hello, world!');
+    });
+
+    this.addCommand({
+      id: 'open-sample-modal',
+      name: 'Open Sample Modal',
+      callback: () => {
+        new SampleModal(this.app).open();
+      },
+    });
+
+    this.addSettingTab(new SampleSettingTab(this.app, this));
+
+    window.addEventListener('click', () => console.log('click'));
+    this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+    this.addCommand({
+      id: 'run-accessibility-audit',
+      name: 'Quick Accessibility Audit',
+      callback: () => {
+        new AccessibilityAuditModal(this.app).open();
+      },
+    });
   }
 
   override onunload() {
