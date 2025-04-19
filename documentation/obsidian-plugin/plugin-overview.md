@@ -1,6 +1,7 @@
 # Obsidian Plugin Overview
 
-The Obsidian plugin component of Obsidian Magic delivers a seamless integration with Obsidian's UI paradigms while providing powerful tagging capabilities.
+The Obsidian plugin component of Obsidian Magic delivers a seamless integration with Obsidian's UI paradigms while
+providing powerful tagging capabilities.
 
 ## Key Features
 
@@ -44,6 +45,14 @@ The Obsidian plugin component of Obsidian Magic delivers a seamless integration 
 - Status indicator showing synchronization state
 - Tooltip with usage statistics
 
+## UI Handler & Observables
+
+- Business logic is decoupled from UI via observables exposed by service classes (e.g., `status$`, `progress$`,
+  `results$`).
+- UI handler classes (e.g., `StatusBarHandler`, `NoticeHandler`) subscribe to these streams to update UI components.
+- Handlers receive only the relevant UI APIs (statusBar, Notice) via constructor injection, enabling straightforward
+  mocking and unit testing.
+
 ## Detailed Features
 
 - [Tag Management Interface](./tag-management.md)
@@ -54,4 +63,4 @@ The Obsidian plugin component of Obsidian Magic delivers a seamless integration 
 ## Related Components
 
 - The Obsidian plugin shares core tagging logic with the [CLI Tool](../cli/cli-overview.md)
-- The plugin has bidirectional integration with [VS Code & Cursor](../vscode-integration/vscode-overview.md) 
+- The plugin has bidirectional integration with [VS Code & Cursor](../vscode-integration/vscode-overview.md)

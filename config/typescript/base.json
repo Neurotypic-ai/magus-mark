@@ -1,49 +1,37 @@
 {
-  "compileOnSave": true,
   "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": "./src",
-    "checkJs": true,
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": false,
-    "emitDecoratorMetadata": false,
-    "esModuleInterop": true,
-    "exactOptionalPropertyTypes": true,
-    "experimentalDecorators": false,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": false,
-    "incremental": true,
-    "isolatedDeclarations": false,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "noEmitOnError": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true,
-    "pretty": true,
-    "removeComments": false,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strict": true,
-    "strictBindCallApply": true,
-    "strictBuiltinIteratorReturn": true,
-    "strictFunctionTypes": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "target": "ESNext",
-    "useUnknownInCatchVariables": true,
-    "verbatimModuleSyntax": true
+    "outDir": "${configDir}/dist",
+    "rootDir": "${configDir}",
+    "types": ["node"]
+  },
+  "exclude": [
+    "${configDir}/eslint.config.js",
+    "${configDir}/**/node_modules",
+    "${configDir}/**/node_modules/**/*",
+    "${configDir}/**/dist",
+    "${configDir}/**/dist/**/*",
+    "${configDir}/**/build",
+    "${configDir}/**/build/**/*",
+    "${configDir}/**/documentation",
+    "${configDir}/**/.cursor/**",
+    "${configDir}/**/examples/**/*",
+    "${configDir}/**/node_modules/.pnpm/**/*"
+  ],
+  "extends": "./settings.json",
+  "references": [
+    {
+      "path": "${configDir}/tsconfig.build.json"
+    },
+    {
+      "path": "${configDir}/tsconfig.test.json"
+    },
+    {
+      "path": "${configDir}/../../packages/core"
+    }
+  ],
+  "watchOptions": {
+    "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"],
+    "watchDirectory": "useFsEvents",
+    "watchFile": "useFsEvents"
   }
 }

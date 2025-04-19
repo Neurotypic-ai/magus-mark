@@ -2,32 +2,14 @@
   "compilerOptions": {
     "outDir": "${configDir}/dist/test",
     "rootDir": "${configDir}/src",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+    "tsBuildInfoFile": "${configDir}/dist/test.tsbuildinfo"
   },
-  "exclude": [
-    "${configDir}/**/node_modules",
-    "${configDir}/**/node_modules/**/*",
-    "${configDir}/**/dist",
-    "${configDir}/**/dist/**/*",
-    "${configDir}/**/build/**/*",
-    "${configDir}/**/documentation",
-    "${configDir}/**/.cursor/**",
-    "${configDir}/**/examples/**/*",
-    "${configDir}/**/node_modules/.pnpm/**/*"
-  ],
   "extends": "./base.json",
-  "include": ["${configDir}/src/**/*"],
-  "references": [
-    {
-      "path": "${configDir}/tsconfig.build.json"
-    },
-    {
-      "path": "${configDir}/../../packages/core"
-    }
-  ],
-  "watchOptions": {
-    "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"],
-    "watchDirectory": "useFsEvents",
-    "watchFile": "useFsEvents"
-  }
+  "include": [
+    "${configDir}/src/**/*.test.ts",
+    "${configDir}/src/**/*.spec.ts",
+    "${configDir}/src/**/*.test.tsx",
+    "${configDir}/src/**/*.spec.tsx"
+  ]
 }

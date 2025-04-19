@@ -1,7 +1,10 @@
 {
   "extends": "./config/typescript/base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "outDir": "./dist",
+    "rootDir": "./"
   },
   "include": ["./config/**/*.ts"],
   "exclude": [

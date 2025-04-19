@@ -1,8 +1,6 @@
 /**
  * Service for integrating with the core tagging functionality
  */
-import { Notice } from 'obsidian';
-
 import { initializeCore } from '@obsidian-magic/core';
 import { APIError } from '@obsidian-magic/core/errors/APIError';
 import { ApiKeyError } from '@obsidian-magic/core/errors/ApiKeyError';
@@ -10,6 +8,7 @@ import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
 import { Result } from '@obsidian-magic/core/errors/Result';
 import { TaggingError } from '@obsidian-magic/core/errors/TaggingError';
 import { withRetry } from '@obsidian-magic/core/errors/retry';
+import { BehaviorSubject, Subject } from '@obsidian-magic/core/utils/observable';
 
 import type { Document } from '@obsidian-magic/core/models/Document';
 import type { TagSet } from '@obsidian-magic/core/models/TagSet';
@@ -49,6 +48,14 @@ export type FileProcessingResult = Result<{
  * Tagging service for Obsidian integration
  */
 export class TaggingService {
+  /**
+   * Status updates emitted for UI handlers
+   */
+  public readonly status$ = new BehaviorSubject<string>('Magic: Ready');
+  /**
+   * Notice messages emitted for UI handlers
+   */
+  public readonly notice$ = new Subject<string>();
   private plugin: ObsidianMagicPlugin;
   private coreServices: ReturnType<typeof initializeCore>;
 
@@ -92,11 +99,8 @@ export class TaggingService {
       if (!this.isConfigured()) {
         throw new ApiKeyError('OpenAI API key is not configured');
       }
-
-      // Update status
-      if (this.plugin.statusBarElement) {
-        this.plugin.statusBarElement.setText('Magic: Processing file...');
-      }
+      // Emit processing status
+      this.status$.next('Magic: Processing file...');
 
       // Read file content
       let content: string;
@@ -131,13 +135,9 @@ export class TaggingService {
           await this.plugin.app.vault.modify(file, updatedContent);
         }
 
-        // Show success notice
-        new Notice('Successfully tagged document');
-
-        // Reset status
-        if (this.plugin.statusBarElement) {
-          this.plugin.statusBarElement.setText('Magic: Ready');
-        }
+        // Emit success notice and reset status
+        this.notice$.next('Successfully tagged document');
+        this.status$.next('Magic: Ready');
 
         return Result.ok({
           file,
@@ -149,22 +149,20 @@ export class TaggingService {
         });
       }
     } catch (error) {
-      // Reset status
-      if (this.plugin.statusBarElement) {
-        this.plugin.statusBarElement.setText('Magic: Ready');
-      }
+      // Emit ready status
+      this.status$.next('Magic: Ready');
 
-      // Show error notice with actionable advice
+      // Emit error notices
       if (error instanceof ApiKeyError) {
-        new Notice('API key missing: Please add your OpenAI API key in settings');
+        this.notice$.next('API key missing: Please add your OpenAI API key in settings');
       } else if (error instanceof APIError) {
-        new Notice(
+        this.notice$.next(
           `API Error: ${error.message}. ${error.statusCode === 429 ? 'Rate limit exceeded, try again later.' : ''}`
         );
       } else if (error instanceof FileSystemError) {
-        new Notice(`File error: ${error.message}`);
+        this.notice$.next(`File error: ${error.message}`);
       } else {
-        new Notice(`Error tagging document: ${error instanceof Error ? error.message : String(error)}`);
+        this.notice$.next(`Error tagging document: ${error instanceof Error ? error.message : String(error)}`);
       }
 
       return Result.fail(error instanceof Error ? error : new Error(String(error)));

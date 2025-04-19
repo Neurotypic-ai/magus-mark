@@ -36,6 +36,19 @@ obsidian-magic/
     └── history/             # Historical project updates
 ```
 
+## Layered Architecture & Service Instantiation
+
+- All business logic resides in stateless, constructor-injected service classes; no singletons or global registries.
+- Core Layer (`@obsidian-magic/core`): Pure, platform-agnostic logic for tag graph algorithms, frontmatter parsing, and
+  file processing.
+- Adapter Layer (Obsidian, CLI, VSCode): Transforms platform-specific I/O (vault, filesystem, metadata) into core data
+  structures.
+- UI/UX Handler Layer (Obsidian Plugin): Dedicated handler classes subscribe to service observables (e.g., `status$`,
+  `progress$`, `results$`) and update UI components.
+- Services expose observables for state propagation, enabling decoupled, testable UI logic.
+- Instantiate services per-use with constructor injection, passing all dependencies (API keys, models, config) as
+  read-only parameters.
+
 ## Package Organization
 
 ### Applications
@@ -87,7 +100,7 @@ apps/obsidian-plugin/
 
 The VS Code extension for integrating tagging functionality with MCP server capabilities.
 
-```
+```text
 apps/vscode/
 ├── src/
 │   ├── commands/           # Extension commands
@@ -118,7 +131,7 @@ apps/vscode/
 
 Core functionality and shared logic used across multiple applications.
 
-```
+```text
 packages/core/
 ├── src/
 │   ├── config/             # Configuration management
@@ -151,7 +164,7 @@ packages/core/
 
 Shared type definitions used across all packages.
 
-```
+```text
 packages/types/
 ├── src/
 │   ├── config/             # Configuration types
@@ -168,7 +181,7 @@ packages/types/
 
 Testing utilities and mocks for consistent testing across packages.
 
-```
+```text
 packages/testing/
 ├── src/
 │   ├── mocks/              # Shared mock implementations
@@ -189,7 +202,7 @@ packages/testing/
 
 Utility functions and helpers used across multiple packages.
 
-```
+```text
 packages/utils/
 ├── src/
 │   ├── file/               # File handling utilities
@@ -215,7 +228,7 @@ packages/utils/
 
 Configuration is centralized in the `config/` directory:
 
-```
+```text
 config/
 ├── typescript/
 │   ├── base.json           # Base TypeScript configuration
@@ -235,7 +248,7 @@ Each package extends these base configurations in their local config files.
 
 The project uses TypeScript project references for efficient builds:
 
-```
+```text
 // Root tsconfig.json
 {
   "references": [
@@ -262,7 +275,7 @@ The project uses TypeScript project references for efficient builds:
 
 The project uses Nx with inferred targets for build orchestration:
 
-```json
+```text
 // nx.json
 {
   "targetDefaults": {
@@ -291,7 +304,7 @@ The project uses Nx with inferred targets for build orchestration:
 
 Documentation is organized in the `documentation` directory:
 
-```
+```text
 documentation/
 ├── cli/                    # CLI documentation
 │   ├── cli-overview.md

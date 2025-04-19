@@ -3,7 +3,6 @@ description: Dependency injection patterns and best practices for Obsidian Magic
 globs: **/services/**/*.ts,**/core/**/*.ts
 alwaysApply: false
 ---
-
 # Dependency Injection
 
 The system uses a lightweight dependency injection approach based on interfaces, implementation classes, and factory functions to promote modularity and testability.
@@ -14,6 +13,13 @@ The system uses a lightweight dependency injection approach based on interfaces,
 - **Implementation Classes**: Reside in respective modules (`packages/core`, `apps/*`).
 - **Factory Functions**: Create service instances, managing dependencies.
 - **Configuration Injection**: Pass configuration objects (e.g., from `packages/core/src/config`) to services for flexible behavior.
+
+## Service Instantiation Philosophy
+- Services are lightweight and stateless; instantiate via constructors for each use-case.
+- No singletons or global registries: create multiple service instances as needed without side effects.
+- All dependencies (API keys, models, configuration) are passed as constructor parameters and remain read-only.
+- Services expose observables (e.g., status$, progress$, results$) for UI state propagation.
+- UI/UX handlers subscribe to these observables to update UI components, enabling clear, mock-free testing of presentation logic.
 
 ## Implementation Example
 

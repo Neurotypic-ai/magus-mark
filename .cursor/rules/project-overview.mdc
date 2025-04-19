@@ -3,12 +3,11 @@ description: Project overview and architecture information for Obsidian Magic
 globs: **/*.ts,**/*.tsx,**/*.md
 alwaysApply: true
 ---
-
 # Obsidian Magic Project Structure
 
 ## Project Overview
 
-Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
+Obsidian Magic is a tool for organizing large quantities of markdown files and tagging them using [Obsidian](https://obsidian.md). The core functionality is an AI-powered tagging system that analyzes conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
 
 ## Repository Structure
 
@@ -29,6 +28,14 @@ obsidian-magic/
 ├── documentation/           # Project documentation
 └── prompts/                 # OpenAI prompt templates
 ```
+
+## Service Instantiation & Layered Architecture
+- All business logic is encapsulated in stateless, constructor-injected service classes; no singletons or global registries.
+- **Core Layer** (`@obsidian-magic/core`): Pure, platform-agnostic logic for tag graph construction, frontmatter parsing, and file processing.
+- **Adapter Layer** (Obsidian, CLI, VSCode): Transforms platform-specific I/O (vault, filesystem, metadata) into core data structures and functions.
+- **UI/UX Handler Layer** (Obsidian Plugin): Dedicated handler classes (e.g., `StatusBarHandler`, `NoticeHandler`) subscribe to service observables and update the UI.
+- Services expose observables (e.g., status$, progress$, results$) for UI state propagation and progress updates.
+- This layered design enables robust testability: core logic is tested in isolation, adapters are mocked per platform, and UI handlers accept mock UI objects and assert on observable emissions.
 
 ## Workspace Architecture
 

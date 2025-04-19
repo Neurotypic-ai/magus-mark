@@ -1,7 +1,6 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../config/typescript/test.json",
   "compilerOptions": {
     "types": ["node", "mocha", "chai", "sinon", "vscode"]
-  },
-  "include": ["src/**/*.ts"]
+  }
 }
