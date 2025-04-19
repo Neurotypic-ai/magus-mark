@@ -255,7 +255,7 @@ describe('TaggingService', () => {
         if (result.isOk() && mockFiles[index]) {
           // Ensure mockFiles[index] exists
           // Use getValue() and optional chaining for path access
-          expect(result.getValue().file.path).toBe(mockFiles[index]?.path);
+          expect(result.getValue().file.path).toBe(mockFiles[index].path);
           expect(result.getValue().tags).toEqual(mockTags);
         }
       });
@@ -277,7 +277,7 @@ describe('TaggingService', () => {
       expect(results[0]?.isOk()).toBe(true);
       expect(results[1]?.isFail()).toBe(true);
       if (results[1]?.isFail()) {
-        expect(results[1]?.getError()).toBeInstanceOf(TaggingError);
+        expect(results[1].getError()).toBeInstanceOf(TaggingError);
       }
       expect(results[2]?.isOk()).toBe(true);
       expect(mockNotice).toHaveBeenCalledWith(expect.stringContaining('Error tagging document'));

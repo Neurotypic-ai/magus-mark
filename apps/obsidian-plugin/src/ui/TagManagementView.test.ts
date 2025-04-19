@@ -62,7 +62,7 @@ describe('TagManagementView', () => {
     view = new TagManagementView(mockLeaf, mockPlugin);
 
     // Ensure containerEl and its child exist AFTER instantiation
-    if (!view.containerEl || !view.containerEl.children || view.containerEl.children.length < 2) {
+    if (!view.containerEl.children || view.containerEl.children.length < 2) {
       // Use the Obsidian mock helper for all containers
       view.containerEl = createMockObsidianElement('div');
       view.containerEl.appendChild(createMockObsidianElement('div')); // Placeholder [0]

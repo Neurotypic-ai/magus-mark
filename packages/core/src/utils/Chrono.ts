@@ -146,7 +146,7 @@ export class Chrono {
    */
   async runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
     const results: T[] = new Array(tasks.length);
-    type IndexedResult = { index: number; result: T };
+    interface IndexedResult { index: number; result: T }
     const inFlight = new Map<Promise<IndexedResult>, number>();
     const keys = () => Array.from(inFlight.keys());
     for (let i = 0; i < tasks.length; i++) {

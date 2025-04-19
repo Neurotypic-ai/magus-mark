@@ -10,7 +10,7 @@ export interface Observable<T> {
  * A simple Subject that allows multicasting events to subscribers.
  */
 export class Subject<T> implements Observable<T> {
-  private listeners: Array<(value: T) => void> = [];
+  private listeners: ((value: T) => void)[] = [];
 
   subscribe(callback: (value: T) => void): Subscription {
     this.listeners.push(callback);
@@ -22,7 +22,7 @@ export class Subject<T> implements Observable<T> {
   }
 
   next(value: T): void {
-    this.listeners.forEach((listener) => listener(value));
+    this.listeners.forEach((listener) => { listener(value); });
   }
 }
 

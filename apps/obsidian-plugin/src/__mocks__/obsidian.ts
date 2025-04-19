@@ -145,8 +145,8 @@ export class WorkspaceLeaf {
 /** Minimal ItemView stub */
 export class ItemView {
   app: any;
-  icon: string = '';
-  navigation: boolean = false;
+  icon = '';
+  navigation = false;
   leaf: WorkspaceLeaf;
   containerEl: any;
   scope: any = null;
@@ -217,7 +217,7 @@ export class MetadataCache {
     return file.name;
   }
   getFirstLinkpathDest(path: string): string | null {
-    return path?.split('.').pop() ?? null;
+    return path.split('.').pop() ?? null;
   }
   resolvedLinks: Record<string, string> = {};
   unresolvedLinks: Record<string, string> = {};
@@ -243,7 +243,7 @@ export class Vault {
     if (path.endsWith('.md')) {
       return new TFile();
     }
-    if (!path.includes('.') || path.match(/\.\w+$/) === null || !['md'].includes(path.split('.').pop() ?? '')) {
+    if (!path.includes('.') || (/\.\w+$/.exec(path)) === null || !['md'].includes(path.split('.').pop() ?? '')) {
       return new TFolder(path);
     }
     return null;
@@ -491,7 +491,7 @@ export class Setting {
     this.nameEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-name' });
     this.descEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-description' });
     this.controlEl = this.settingEl.createEl('div', { cls: 'setting-item-control' });
-    containerEl?.appendChild(this.settingEl); // Add null check for safety
+    containerEl.appendChild(this.settingEl); // Add null check for safety
   }
 
   setName(name: string): this {

@@ -2,53 +2,60 @@
  * VS Code API mock for tests
  */
 
+import type { Uri } from 'vscode';
+
 // Create a mock VSCode interface
 const mockVSCode = {
   // Common VS Code namespaces that tests will need
   workspace: {
-    getConfiguration: () => ({
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      get: (key: string) => null,
-      update: () => Promise.resolve(),
+    getConfiguration: (): unknown => ({
+       
+      get: (key: string): unknown => {
+        console.log('getConfiguration', key);
+        return null;
+      },
+      update: (): void => {
+        /* empty implementation */
+      },
     }),
   },
   window: {
     createStatusBarItem: () => ({
-      show: () => {
+      show: (): void => {
         /* empty implementation */
       },
-      hide: () => {
+      hide: (): void => {
         /* empty implementation */
       },
-      dispose: () => {
+      dispose: (): void => {
         /* empty implementation */
       },
     }),
     createOutputChannel: () => ({
-      appendLine: () => {
+      appendLine: (): void => {
         /* empty implementation */
       },
-      dispose: () => {
+      dispose: (): void => {
         /* empty implementation */
       },
     }),
-    showInformationMessage: () => Promise.resolve(undefined),
-    showErrorMessage: () => Promise.resolve(undefined),
+    showInformationMessage: (): Promise<unknown> => Promise.resolve(undefined),
+    showErrorMessage: (): Promise<unknown> => Promise.resolve(undefined),
   },
   commands: {
     registerCommand: () => ({
-      dispose: () => {
+      dispose: (): void => {
         /* empty implementation */
       },
     }),
-    executeCommand: () => Promise.resolve(),
-    getCommands: () => Promise.resolve([]),
+    executeCommand: (): Promise<unknown> => Promise.resolve(),
+    getCommands: (): Promise<string[]> => Promise.resolve([]),
   },
   extensions: {
-    getExtension: () => undefined,
+    getExtension: (): unknown => undefined,
   },
   Uri: {
-    file: (path: string) => ({ fsPath: path }),
+    file: (path: string): Uri => ({ fsPath: path }) as Uri,
   },
 };
 

@@ -39,23 +39,23 @@ class WebSocketService {
 export class MCPServer {
   private webSocketService = new WebSocketService();
 
-  initialize = vi.fn().mockResolvedValue(true);
-  registerTools = vi.fn();
-  start = vi.fn().mockImplementation(() => {
+  initialize: typeof vi.fn = vi.fn().mockResolvedValue(true);
+  registerTools: typeof vi.fn = vi.fn();
+  start: typeof vi.fn = vi.fn().mockImplementation(() => {
     this.webSocketService.connect();
     return Promise.resolve(true);
   });
 
-  stop = vi.fn().mockImplementation(() => {
+  stop: typeof vi.fn = vi.fn().mockImplementation(() => {
     this.webSocketService.disconnect();
     return Promise.resolve(true);
   });
 
-  sendMessage = vi.fn().mockImplementation((message: unknown) => {
+  sendMessage: typeof vi.fn = vi.fn().mockImplementation((message: unknown) => {
     return this.webSocketService.send(message) as Promise<boolean>;
   });
 
-  dispose = vi.fn();
+  dispose: typeof vi.fn = vi.fn();
 }
 
 export default MCPServer;

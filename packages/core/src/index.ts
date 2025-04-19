@@ -17,19 +17,19 @@ import type { AIModel } from './models/AIModel';
 // Export version information
 export const VERSION = '0.1.0';
 
-export type CoreModuleOptions = {
+export interface CoreModuleOptions {
   openaiApiKey?: string;
   model?: AIModel;
   taxonomy?: Record<string, unknown>;
-};
+}
 
-export type CoreModule = {
+export interface CoreModule {
   openAIClient: OpenAIClient;
   taxonomyManager: TaxonomyManager;
   taggingService: TaggingService;
   documentProcessor: DocumentProcessor;
   batchProcessingService: BatchProcessingService;
-};
+}
 /**
  * Initialize the core module with configuration
  *

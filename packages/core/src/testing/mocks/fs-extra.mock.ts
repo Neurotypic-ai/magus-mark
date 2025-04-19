@@ -52,7 +52,7 @@ export const setupFsExtraMock = (): { mockFsExtra: FsExtraMockFunctions } => {
 };
 
 // Define explicit types so TS can emit declarations under --isolatedDeclarations
-type FsExtraMockFunctions = {
+interface FsExtraMockFunctions {
   ensureDir: ReturnType<typeof vi.fn>;
   readFile: ReturnType<typeof vi.fn>;
   writeFile: ReturnType<typeof vi.fn>;
@@ -61,4 +61,4 @@ type FsExtraMockFunctions = {
   stat: ReturnType<typeof vi.fn>;
   unlink: ReturnType<typeof vi.fn>;
   statSync: ReturnType<typeof vi.fn>;
-};
+}

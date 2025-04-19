@@ -7,14 +7,14 @@ import path from 'path';
 /**
  * Maximum prompt token length to target
  */
-export const MAX_PROMPT_LENGTH: number = 16000;
+export const MAX_PROMPT_LENGTH = 16000;
 
 /**
  * Approximate token conversion for English text
  * 1 token ≈ 4 characters or 0.75 words
  */
-export const TOKENS_PER_CHARACTER: number = 0.25;
-export const WORDS_PER_TOKEN: number = 0.75;
+export const TOKENS_PER_CHARACTER = 0.25;
+export const WORDS_PER_TOKEN = 0.75;
 
 /**
  * Estimates token count from text length

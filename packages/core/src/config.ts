@@ -13,7 +13,7 @@ import type { APIKeyStorage } from './models/APIKeyStorage';
 import type { TagBehavior } from './models/TagBehavior';
 import type { LogLevel } from './utils/Logger';
 
-export type Config = {
+export interface Config {
   defaultModel: AIModel;
   defaultTagBehavior: TagBehavior;
   minConfidence: number;
@@ -32,7 +32,7 @@ export type Config = {
     file: boolean;
     filePath: string;
   };
-};
+}
 
 /**
  * Default configuration values

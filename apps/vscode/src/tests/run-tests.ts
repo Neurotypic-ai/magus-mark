@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import Mocha from 'mocha';
 
 // Import the mock VS Code implementation
-import vscodeMock from './vscode';
+import vscodeMock from './vscode-mock';
 
 // Set up filename and dirname in ESM
 const __filename = fileURLToPath(import.meta.url);

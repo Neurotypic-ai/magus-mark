@@ -97,8 +97,6 @@ describe('FolderTagModal', () => {
 
     it('should populate dropdown with folders', () => {
       modal.onOpen();
-      const MockSettingClass = vi.mocked(Setting);
-      // ... checks for addDropdown calls ...
     });
 
     it('should display a list of folders', () => {
@@ -110,7 +108,7 @@ describe('FolderTagModal', () => {
 
       expect(mockApp.vault.getAllLoadedFiles).toHaveBeenCalled();
       // Check that the mocked folder list element had children created
-      const listCreateEl = mockFolderList.createEl as ReturnType<typeof vi.fn>;
+      const listCreateEl = mockFolderList.createEl;
       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder1' }));
       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder2' }));
       // Check it didn't include the file

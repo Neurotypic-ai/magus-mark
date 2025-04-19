@@ -77,6 +77,8 @@ export class MCPServer implements vscode.Disposable {
 
     // Initialize HTTP server
     this.httpServer = http.createServer((request, response) => {
+      console.log('Request received:', request.url);
+
       response.writeHead(404);
       response.end();
     });

@@ -391,8 +391,8 @@ describe('Validation Utilities', () => {
     });
   });
   describe('isValid* functions', () => {
-    it('isValidDomain', () => expect(isValidDomain('technology')).toBe(true));
-    it('isValidLifeArea', () => expect(isValidLifeArea('career')).toBe(true));
-    it('isValidConversationType', () => expect(isValidConversationType('deep-dive')).toBe(true));
+    it('isValidDomain', () => { expect(isValidDomain('technology')).toBe(true); });
+    it('isValidLifeArea', () => { expect(isValidLifeArea('career')).toBe(true); });
+    it('isValidConversationType', () => { expect(isValidConversationType('deep-dive')).toBe(true); });
   });
 });

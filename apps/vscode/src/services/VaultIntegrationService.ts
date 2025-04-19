@@ -43,10 +43,10 @@ export interface FileSyncInfo {
  */
 export class VaultIntegrationService {
   private readonly _onVaultChanged = new vscode.EventEmitter<VaultConfig>();
-  public readonly onVaultChanged = this._onVaultChanged.event;
+  public readonly onVaultChanged: typeof this._onVaultChanged.event = this._onVaultChanged.event;
 
   private readonly _onFileSynced = new vscode.EventEmitter<FileSyncInfo>();
-  public readonly onFileSynced = this._onFileSynced.event;
+  public readonly onFileSynced: typeof this._onFileSynced.event = this._onFileSynced.event;
 
   private vaults: VaultConfig[] = [];
   private syncStatus = new Map<string, FileSyncInfo>();

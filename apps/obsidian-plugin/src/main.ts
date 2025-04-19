@@ -104,8 +104,8 @@ export default class ObsidianMagicPlugin extends Plugin {
 
     this.addSettingTab(new SampleSettingTab(this.app, this));
 
-    window.addEventListener('click', () => console.log('click'));
-    this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+    window.addEventListener('click', () => { console.log('click'); });
+    this.registerInterval(window.setInterval(() => { console.log('setInterval'); }, 5 * 60 * 1000));
 
     this.addCommand({
       id: 'run-accessibility-audit',

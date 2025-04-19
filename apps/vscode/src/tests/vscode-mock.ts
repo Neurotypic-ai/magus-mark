@@ -3,6 +3,8 @@
  * This provides a comprehensive mock for the VS Code API with proper TypeScript types
  */
 
+import type { Extension, OutputChannel, TreeView, Uri, WorkspaceFolder } from 'vscode';
+
 // Create mock types that match the VS Code API
 interface MockDisposable {
   dispose: () => void;
@@ -23,17 +25,17 @@ const vscode = {
   workspace: {
     getConfiguration: (_section?: string) => ({
       get: <T>(_key: string, defaultValue?: T): T | undefined => defaultValue,
-      update: (_key: string, _value: unknown) => Promise.resolve(),
-      has: (_key: string) => false,
+      update: (_key: string, _value: unknown): Promise<void> => Promise.resolve(),
+      has: (_key: string): boolean => false,
     }),
     workspaceFolders: [
       {
-        uri: { fsPath: '/test/workspace' },
+        uri: { fsPath: '/test/workspace' } as Uri,
         name: 'TestWorkspace',
         index: 0,
       },
-    ],
-    onDidChangeConfiguration: () => ({ dispose: () => {} }),
+    ] as WorkspaceFolder[],
+    onDidChangeConfiguration: (): MockDisposable => ({ dispose: () => {} }),
   },
 
   // Window functionality
@@ -42,39 +44,46 @@ const vscode = {
       text: '',
       tooltip: '',
       command: '',
-      show: () => {},
-      hide: () => {},
-      dispose: () => {},
+      show: (): void => {},
+      hide: (): void => {},
+      dispose: (): void => {},
+      replace: (): void => {},
     }),
-    createOutputChannel: (name: string) => ({
+    createOutputChannel: (name: string): OutputChannel => ({
       name,
-      append: (_value: string) => {},
-      appendLine: (_value: string) => {},
-      clear: () => {},
-      show: () => {},
-      hide: () => {},
-      dispose: () => {},
+      append: (_value: string): void => {},
+      appendLine: (_value: string): void => {},
+      clear: (): void => {},
+      show: (): void => {},
+      hide: (): void => {},
+      dispose: (): void => {},
+      replace: (_value: string): void => {},
     }),
     showInformationMessage: <T>(..._items: unknown[]): Promise<T | undefined> => Promise.resolve(undefined),
     showWarningMessage: <T>(..._items: unknown[]): Promise<T | undefined> => Promise.resolve(undefined),
     showErrorMessage: <T>(..._items: unknown[]): Promise<T | undefined> => Promise.resolve(undefined),
-    showInputBox: (_options?: unknown) => Promise.resolve(''),
-    showQuickPick: <T>(_items: T[], _options?: unknown) => Promise.resolve(undefined as unknown as T),
-    createTreeView: (_viewId: string, _options: unknown) => ({
+    showInputBox: (_options?: unknown): Promise<string> => Promise.resolve(''),
+    showQuickPick: <T>(_items: T[], _options?: unknown): Promise<T> => Promise.resolve(undefined as unknown as T),
+    createTreeView: (_viewId: string, _options: unknown): TreeView<unknown> => ({
       visible: true,
       onDidChangeVisibility: () => ({ dispose: () => {} }),
       reveal: () => Promise.resolve(),
       dispose: () => {},
+      onDidExpandElement: () => ({ dispose: () => {} }),
+      onDidCollapseElement: () => ({ dispose: () => {} }),
+      selection: [] as unknown[],
+      onDidChangeSelection: () => ({ dispose: () => {} }),
+      onDidChangeCheckboxState: () => ({ dispose: () => {} }),
     }),
     createWebviewPanel: () => ({
       webview: {
         html: '',
-        onDidReceiveMessage: () => ({ dispose: () => {} }),
-        postMessage: () => Promise.resolve(true),
+        onDidReceiveMessage: (): MockDisposable & { dispose: () => void } => ({ dispose: () => {} }),
+        postMessage: (): Promise<boolean> => Promise.resolve(true),
       },
-      onDidDispose: () => ({ dispose: () => {} }),
-      reveal: () => {},
-      dispose: () => {},
+      onDidDispose: (): MockDisposable & { dispose: () => void } => ({ dispose: () => {} }),
+      reveal: (): Promise<void> => Promise.resolve(),
+      dispose: (): void => {},
     }),
   },
 
@@ -90,13 +99,13 @@ const vscode = {
   // Extensions
   extensions: {
     getExtension: (_extensionId: string) => undefined,
-    all: [],
+    all: [] as Extension<unknown>[],
   },
 
   // URI utilities
   Uri: {
-    file: (path: string) => ({ fsPath: path, scheme: 'file' }),
-    parse: (uri: string) => ({ fsPath: uri, scheme: uri.split(':')[0] ?? 'file' }),
+    file: (path: string): Uri => ({ fsPath: path, scheme: 'file' }) as Uri,
+    parse: (uri: string): Uri => ({ fsPath: uri, scheme: uri.split(':')[0] ?? 'file' }) as Uri,
   },
 
   // TreeItem related

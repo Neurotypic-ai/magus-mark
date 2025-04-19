@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Import error types from their specific paths
 import { APIError } from '@obsidian-magic/core/errors/APIError';
-import { AppError as CoreAppError } from '@obsidian-magic/core/errors/AppError';
+import type { AppError as CoreAppError } from '@obsidian-magic/core/errors/AppError';
 import { FileSystemError as CoreFileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
 
 // Remove STORAGE_KEY import

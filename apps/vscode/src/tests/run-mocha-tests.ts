@@ -69,6 +69,7 @@ async function run(): Promise<void> {
         testDir,
         { recursive: true },
         debounce((eventType: string, filename: string | null) => {
+          console.log('watch', eventType, filename);
           if (filename?.endsWith('.ts')) {
             console.log(`\nFile ${filename} changed, re-running tests...`);
             mocha.files = [];
