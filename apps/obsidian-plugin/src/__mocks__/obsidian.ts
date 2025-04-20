@@ -48,9 +48,9 @@ export class App implements AppType {
       popScope: vi.fn(),
     };
     this.scope = {
-      register: vi.fn<[ModifierType[] | null, string | null, KeymapEventListenerType], KeymapEventHandlerType>(
-        () => ({ scope: this.scope }) as KeymapEventHandlerType
-      ),
+      register: vi.fn<
+        (modifiers: ModifierType[] | null, key: string | null, func: KeymapEventListenerType) => KeymapEventHandlerType
+      >(() => ({ scope: this.scope }) as KeymapEventHandlerType),
       unregister: vi.fn(),
     };
     this.fileManager = {
