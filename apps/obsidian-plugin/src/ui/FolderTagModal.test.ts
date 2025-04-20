@@ -11,8 +11,6 @@ import type { ButtonComponent, TFolder } from 'obsidian';
 // Callback for tagging folder functionality
 const onSubmitCallback = vi.fn();
 
-
-
 describe('FolderTagModal', () => {
   const modal = new FolderTagModal(plugin, onSubmitCallback);
 
@@ -55,9 +53,9 @@ describe('FolderTagModal', () => {
       // Simulate the creation of folder items (assuming renderFolderList was called)
       const mockFolderList = (modal.contentEl as unknown as HTMLElement).querySelector('.folder-list');
       const folderItem1 = obsidianMock.createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
-      folderItem1.dataset['path'] = 'folder1';
+      folderItem1.dataset.path = 'folder1';
       const folderItem2 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder2' });
-      folderItem2.dataset['path'] = 'folder2';
+      folderItem2.dataset.path = 'folder2';
       // Manually add to mock list for test simulation
       if (mockFolderList) {
         mockFolderList.appendChild(folderItem1);
