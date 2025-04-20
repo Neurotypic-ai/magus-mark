@@ -77,4 +77,21 @@ export class ItemView extends Events {
   onunload(): Promise<void> {
     return Promise.resolve();
   }
+  getViewContainer(): HTMLElement {
+    return this.containerEl;
+  }
+  addChild(el: HTMLElement): void {
+    this.containerEl.appendChild(el);
+  }
+  removeChild(el: HTMLElement): void {
+    this.containerEl.removeChild(el);
+  }
+  register() {
+    console.log('register');
+    /* no-op for mock */
+  }
+  unregister() {
+    console.log('unregister');
+    /* no-op for mock */
+  }
 }

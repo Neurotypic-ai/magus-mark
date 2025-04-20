@@ -5,7 +5,14 @@ import { Events } from './MockEvents';
 import { createMockObsidianElement } from './MockObsidianElement';
 import { Vault } from './Vault';
 
-import type { Vault as VaultType, View, WorkspaceLeaf as WorkspaceLeafType, WorkspaceMobileDrawer } from 'obsidian';
+import type {
+  Vault as VaultType,
+  View,
+  WorkspaceContainer,
+  WorkspaceLeaf as WorkspaceLeafType,
+  WorkspaceMobileDrawer,
+  WorkspaceRoot,
+} from 'obsidian';
 
 import type { MockObsidianElement } from './MockObsidianElement';
 
@@ -19,24 +26,30 @@ export class WorkspaceLeaf extends Events implements WorkspaceLeafType {
   containerEl: MockObsidianElement<'div'> = createMockObsidianElement<'div'>('div'); // Use helper
   constructor() {
     super();
-    this.view = new ItemView(new Workspace());
+    this.view = new ItemView(this);
     this.containerEl.appendChild(createMockObsidianElement<'div'>('div'));
     this.containerEl.appendChild(createMockObsidianElement<'div'>('div'));
   }
   setViewState(): Promise<void> {
     return Promise.resolve();
   }
+  getRoot(): WorkspaceRoot {
+    return {};
+  }
+  getContainer(): WorkspaceContainer {
+    return this.containerEl;
+  }
   getEphemeralState(): Record<string, unknown> {
     return {};
   }
-  setEphemeralState(): Promise<void> {
-    return Promise.resolve();
+  setEphemeralState(): void {
+    /* no-op for mock */
   }
   openFile(): Promise<void> {
     return Promise.resolve();
   }
-  open(): Promise<void> {
-    return Promise.resolve();
+  open(): Promise<View> {
+    return Promise.resolve(this.view);
   }
   getViewState(): { type: string; state: Record<string, unknown> } {
     return { type: '', state: {} };
