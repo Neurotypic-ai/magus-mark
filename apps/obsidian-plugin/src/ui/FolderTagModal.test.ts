@@ -2,8 +2,7 @@ import { Setting } from 'obsidian';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as obsidianMock from '../__mocks__/obsidian';
-import { createMockObsidianElement } from '../__mocks__/obsidian';
-import * as ObsidianMagicPlugin from '../main';
+import { createMockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
 import { FolderTagModal } from './FolderTagModal';
 
 import type { ButtonComponent, TFolder } from 'obsidian';

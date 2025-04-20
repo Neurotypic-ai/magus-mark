@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createMockObsidianElement } from '../__mocks__/obsidian';
+import { createMockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
 import { TagManagementView } from './TagManagementView';
 
 import type { MetadataCache, Vault, WorkspaceLeaf } from 'obsidian';
 
-import type { MockObsidianElement } from '../__mocks__/obsidian';
+import type { MockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
 import type ObsidianMagicPlugin from '../main';
 
 // Use the manual Obsidian stub for all obsidian imports
