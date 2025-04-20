@@ -4,9 +4,12 @@ import { createMockObsidianElement } from '../__mocks__/obsidian';
 import { TagManagementView } from './TagManagementView';
 
 import type { MetadataCache, Vault, WorkspaceLeaf } from 'obsidian';
-import type { Mock } from 'vitest';
 
+import type { MockObsidianElement } from '../__mocks__/obsidian';
 import type ObsidianMagicPlugin from '../main';
+
+// Use the manual Obsidian stub for all obsidian imports
+vi.mock('obsidian', async () => await import('../__mocks__/obsidian'));
 
 // Define type for tag data
 interface TagData {
@@ -20,15 +23,6 @@ interface TagData {
 interface TagManagementViewPrivates {
   getAllTags: () => TagData[];
   renderTagsList: (container: HTMLElement, filterTerm?: string) => void;
-}
-
-// Mock container for renderTagsList tests
-interface MockContainer extends HTMLElement {
-  empty: Mock;
-  createEl: Mock;
-  createDiv: Mock;
-  createSpan: Mock;
-  setText: Mock;
 }
 
 // Mock WorkspaceLeaf more accurately for ItemView constructor
@@ -101,9 +95,9 @@ describe('TagManagementView', () => {
     expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('h2', {
       text: 'Obsidian Magic Tag Management',
     });
-    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('div', 'tag-section');
-    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('div', 'actions-section');
-    expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('div', 'stats-section');
+    expect(vi.mocked(mockContentContainer).createDiv).toHaveBeenCalledWith('tag-section');
+    expect(vi.mocked(mockContentContainer).createDiv).toHaveBeenCalledWith('actions-section');
+    expect(vi.mocked(mockContentContainer).createDiv).toHaveBeenCalledWith('stats-section');
   });
 
   it('should collect tags from the vault', () => {
@@ -118,13 +112,7 @@ describe('TagManagementView', () => {
   });
 
   it('should render tags list with filter', () => {
-    const mockContainer = {
-      empty: vi.fn(),
-      createEl: vi.fn().mockReturnThis(),
-      createDiv: vi.fn().mockReturnThis(),
-      createSpan: vi.fn().mockReturnThis(),
-      setText: vi.fn(),
-    } as unknown as MockContainer;
+    const mockContainer: MockObsidianElement<'div'> = createMockObsidianElement('div');
 
     // Using "unknown" instead of "any" with a type assertion for the private method
     const privates = view as unknown as TagManagementViewPrivates;

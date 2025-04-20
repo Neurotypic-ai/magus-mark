@@ -1,7 +1,28 @@
-import { TFile } from 'obsidian';
+import { App as ObsidianApp, TFile, TFolder, Events } from 'obsidian';
 import { vi } from 'vitest';
 
-import type { PluginManifest } from 'obsidian';
+import ObsidianMagicPlugin from '../main';
+
+import type {
+  DataWriteOptions,
+  EventRef,
+  Events,
+  FileManager,
+  Keymap,
+  KeymapEventHandler,
+  KeymapEventListener,
+  ListedFiles,
+  MetadataCache as MetadataCacheType,
+  Modifier,
+  App as ObsidianAppType,
+  PluginManifest,
+  Scope,
+  Stat,
+  TAbstractFile,
+  UserEvent,
+  Vault as VaultType,
+  Workspace as WorkspaceType,
+} from 'obsidian';
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -71,22 +92,60 @@ export function createMockObsidianElement<K extends keyof HTMLElementTagNameMap>
   return el;
 }
 
-/** Minimal TFolder stub */
-export class TFolder {
-  path = '';
-  name = '';
-  children: (TFile | TFolder)[] = [];
-  parent: TFolder | null = null;
-  vault: Vault;
-  constructor(path: string) {
-    this.path = path;
-    this.name = path.split('/').pop() ?? '';
-    this.children = [];
-    this.vault = new Vault();
-  }
-  isRoot(): boolean {
-    return this.path === '/';
-  }
+/**
+ * Helper to create an array of mock markdown files.
+ * @param folderCount Number of folders to create
+ * @param fileCount Number of files to create in each folder
+ * @param filenamePrefix Prefix for the filename
+ * @returns TFile[]
+ */
+export function createMockMarkdownFiles(folderCount: number, fileCount: number, filenamePrefix = 'note'): TFolder[] {
+  return Array.from({ length: folderCount }, (_, i) => {
+    const folder = createMockTFolder(`folder${String(i + 1)}`, fileCount, filenamePrefix);
+    return folder;
+  });
+}
+
+/**
+ * Helper to create an array of mock markdown files.
+ * @param fileCount Number of files to create
+ * @param filenamePrefix Prefix for the filename
+ * @returns TFile[]
+ */
+export function createMockTFiles(fileCount: number, filenamePrefix = 'note'): TFile[] {
+  return Array.from({ length: fileCount }, (_, i) => {
+    const filename = `${filenamePrefix}${String(i + 1)}.md`;
+    return createMockTFile(filename, '');
+  });
+}
+
+/**
+ * Helper to create a mock TFile.
+ * @param filename Filename
+ * @param path Path
+ * @returns TFile
+ */
+export function createMockTFile(filename: string, path: string): TFile {
+  const file = new TFile();
+  file.path = [path, filename].join('/');
+  file.basename = filename.replace(/\.md$/, '');
+  file.extension = 'md';
+  return file;
+}
+
+/**
+ * Helper to create a mock TFolder.
+ * @param path Path
+ * @param filecount Number of files to create
+ * @param filenamePrefix Prefix for the filename
+ * @returns TFolder
+ */
+export function createMockTFolder(path: string, filecount = 2, filenamePrefix = 'note'): TFolder {
+  const folder = new TFolder();
+  folder.path = path;
+  folder.name = path.split('/').pop() ?? '';
+  folder.children = createMockTFiles(filecount, filenamePrefix);
+  return folder;
 }
 
 /** Minimal Platform stub */
@@ -217,31 +276,144 @@ export class ItemView {
   }
 }
 
-/** Minimal MetadataCache stub */
-export class MetadataCache {
-  on(): { unsubscribe: () => void } {
-    return { unsubscribe: () => {} };
+/**
+ * Minimal MetadataCache stub with getFileCache returning a valid mock cache for any TFile.
+ * @example
+ *   const cache = new MetadataCache();
+ *   const fileCache = cache.getFileCache(file);
+ */
+export class MetadataCache extends Events {
+  resolvedLinks: Record<string, Record<string, number>> = {};
+  unresolvedLinks: Record<string, Record<string, number>> = {};
+
+  /**
+   * Returns a mock file cache object for any TFile.
+   * Override in tests if you need custom cache data.
+   */
+  getFileCache(
+    _file?: TFile
+  ):
+    | import('/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.5/node_modules/obsidian/obsidian').CachedMetadata
+    | null {
+    return {
+      frontmatter: { tags: ['test-tag'] },
+      tags: [
+        {
+          tag: '#inline-tag',
+          position: { start: { line: 5 } },
+        } as unknown as import('/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.5/node_modules/obsidian/obsidian').TagCache,
+      ],
+      // Add other properties as needed or return null
+    };
   }
-  getFileCache(): null {
-    return null;
-  }
-  getCache(): null {
-    return null;
+  getCache(
+    _path: string
+  ):
+    | import('/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.5/node_modules/obsidian/obsidian').CachedMetadata
+    | null {
+    return null; // Or return mock cache
   }
   fileToLinktext(file: TFile): string {
     return file.name;
   }
-  getFirstLinkpathDest(path: string): string | null {
-    return path.split('.').pop() ?? null;
+  getFirstLinkpathDest(_linkpath: string, _sourcePath: string): TFile | null {
+    return null; // Basic stub
   }
-  resolvedLinks: Record<string, string> = {};
-  unresolvedLinks: Record<string, string> = {};
+  // ... add other missing methods if needed
+
+  // Override event methods if specific mock behavior is needed
+  override on(name: string, callback: (...data: any[]) => any, ctx?: any): EventRef {
+    // Provide a mock implementation or call super if Events base needs to function
+    return super.on(name, callback, ctx);
+  }
+  override off(name: string, callback: (...data: any[]) => any): void {
+    super.off(name, callback);
+  }
+  override offref(ref: EventRef): void {
+    super.offref(ref);
+  }
+  override trigger(name: string, ...data: any[]): void {
+    super.trigger(name, data);
+  }
+  override tryTrigger(evt: EventRef, args: any[]): void {
+    super.tryTrigger(evt, args);
+  }
 }
 
-/** Minimal Vault stub */
-export class Vault {
+/**
+ * Minimal DataAdapter mock for Vault compatibility
+ */
+export class DataAdapter {
+  getName(): string {
+    return 'MockAdapter';
+  }
+  exists(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+  stat(): Promise<Stat | null> {
+    return Promise.resolve({ ctime: Date.now(), mtime: Date.now(), size: 0, type: 'file' });
+  }
+  list(): Promise<ListedFiles> {
+    return Promise.resolve({ files: ['mockFile1.md', 'mockFile2.md'], folders: ['mockFolder1', 'mockFolder2'] });
+  }
+  read(): Promise<string> {
+    return Promise.resolve('');
+  }
+  readBinary(): Promise<ArrayBuffer> {
+    return Promise.resolve(new ArrayBuffer(0));
+  }
+  write(): Promise<void> {
+    return Promise.resolve();
+  }
+  writeBinary(): Promise<void> {
+    return Promise.resolve();
+  }
+  remove(): Promise<void> {
+    return Promise.resolve();
+  }
+  rename(): Promise<void> {
+    return Promise.resolve();
+  }
+  copy(): Promise<void> {
+    return Promise.resolve();
+  }
+  mkdir(): Promise<void> {
+    return Promise.resolve();
+  }
+  trashSystem(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+  getResourcePath(): string {
+    return '';
+  }
+  basePath = '';
+  append(): Promise<void> {
+    return Promise.resolve();
+  }
+  process(): Promise<string> {
+    return Promise.resolve('');
+  }
+  trashLocal(): Promise<void> {
+    return Promise.resolve();
+  }
+  rmdir(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+/**
+ * Minimal Vault stub with getMarkdownFiles returning mock files by default.
+ * @example
+ *   const vault = new Vault();
+ *   const files = vault.getMarkdownFiles();
+ */
+export class Vault extends Events {
   configDir = '.obsidian';
-  adapter: Record<string, unknown> = {};
+  adapter: DataAdapter = new DataAdapter();
+  off: (...args: unknown[]) => void = () => {};
+  offref: (...args: unknown[]) => void = () => {};
+  trigger: (...args: unknown[]) => void = () => {};
+  tryTrigger: (...args: unknown[]) => void = () => {};
   on(): { unsubscribe: () => void } {
     return { unsubscribe: () => {} };
   }
@@ -256,24 +428,24 @@ export class Vault {
   }
   getAbstractFileByPath(path: string): TFile | TFolder | null {
     if (path.endsWith('.md')) {
-      return new TFile();
+      return createMockTFile(path.split('/').pop() ?? '', path);
     }
     if (!path.includes('.') || /\.\w+$/.exec(path) === null || !['md'].includes(path.split('.').pop() ?? '')) {
-      return new TFolder(path);
+      return createMockTFolder(path.split('/').pop() ?? '', 0, 'folder');
     }
     return null;
   }
   getRoot(): TFolder {
-    return new TFolder('/');
+    return createMockTFolder('/');
   }
   create(): Promise<TFile> {
-    return Promise.resolve(new TFile());
+    return Promise.resolve(createMockTFile('new_file.md', ''));
   }
   createBinary(): Promise<TFile> {
-    return Promise.resolve(new TFile());
+    return Promise.resolve(createMockTFile('new_file.md', ''));
   }
   createFolder(): Promise<TFolder> {
-    return Promise.resolve(new TFolder('new_folder'));
+    return Promise.resolve(createMockTFolder('new_folder'));
   }
   read(): Promise<string> {
     return Promise.resolve('');
@@ -308,8 +480,16 @@ export class Vault {
   process(): Promise<string> {
     return Promise.resolve('');
   }
-  copy(): Promise<TFile> {
-    return Promise.resolve(new TFile());
+  copy<T extends TAbstractFile>(file: T, newPath: string): Promise<T> {
+    // Simple mock: return a new instance of the same type, or cast
+    if (file instanceof TFile) {
+      return Promise.resolve(createMockTFile(newPath.split('/').pop() ?? '', newPath) as T);
+    } else if (file instanceof TFolder) {
+      return Promise.resolve(createMockTFolder(newPath) as T);
+    } else {
+      // Fallback or throw error if needed
+      return Promise.reject(new Error('Cannot copy unknown file type'));
+    }
   }
   getAllLoadedFiles(): TFile[] {
     return [];
@@ -317,8 +497,13 @@ export class Vault {
   getAllFolders(): TFolder[] {
     return [];
   }
+  /**
+   * Returns an array of mock markdown files by default.
+   * Override in tests if needed.
+   */
   getMarkdownFiles(): TFile[] {
-    return [];
+    const folders = createMockMarkdownFiles(1, 1);
+    return folders.flatMap((folder) => folder.children as TFile[]);
   }
   getFiles(): TFile[] {
     return [];
@@ -326,10 +511,28 @@ export class Vault {
   static recurseChildren(folder: TFolder, callback: (file: TFile | TFolder) => void): void {
     callback(folder);
   }
+
+  // Override event methods if specific mock behavior is needed
+  override on(name: string, callback: (...data: any[]) => any, ctx?: any): EventRef {
+    // Provide a mock implementation or call super if Events base needs to function
+    return super.on(name, callback, ctx);
+  }
+  override off(name: string, callback: (...data: any[]) => any): void {
+    super.off(name, callback);
+  }
+  override offref(ref: EventRef): void {
+    super.offref(ref);
+  }
+  override trigger(name: string, ...data: any[]): void {
+    super.trigger(name, data);
+  }
+  override tryTrigger(evt: EventRef, args: any[]): void {
+    super.tryTrigger(evt, args);
+  }
 }
 
 /** Minimal Workspace stub */
-export class Workspace {
+export class Workspace extends Events {
   activeLeaf: WorkspaceLeaf | null = null;
   leftSplit: Record<string, unknown> = {};
   rightSplit: Record<string, unknown> = {};
@@ -346,9 +549,17 @@ export class Workspace {
     cb();
   }
   getLeaf(): WorkspaceLeaf {
-    return new WorkspaceLeaf();
+    if (!this.activeLeaf) {
+      this.activeLeaf = new WorkspaceLeaf();
+    }
+    return this.activeLeaf;
   }
-  getActiveViewOfType(): ItemView | null {
+  getActiveViewOfType<
+    T extends
+      import('/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.5/node_modules/obsidian/obsidian').View,
+  >(
+    type: import('/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.5/node_modules/obsidian/obsidian').Constructor<T>
+  ): T | null {
     return null;
   }
   getActiveFile(): TFile | null {
@@ -363,8 +574,41 @@ export class Workspace {
   detachLeavesOfType(): void {
     /* no-op for mock */
   }
-  getRightLeaf(): WorkspaceLeaf {
-    return new WorkspaceLeaf();
+  getRightLeaf: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
+  changeLayout: () => void = vi.fn().mockResolvedValue(undefined);
+  getLayout: () => Record<string, unknown> = vi.fn().mockReturnValue({});
+  createLeafInParent: () => WorkspaceLeaf = vi.fn().mockReturnValue(new WorkspaceLeaf());
+  createLeafBySplit: () => WorkspaceLeaf = vi.fn().mockReturnValue(new WorkspaceLeaf());
+  duplicateLeaf: () => Promise<WorkspaceLeaf> = vi.fn().mockResolvedValue(new WorkspaceLeaf());
+  moveLeafToPopout: () => void = vi.fn();
+  openPopoutLeaf: () => Promise<WorkspaceLeaf> = vi.fn().mockReturnValue(new WorkspaceLeaf());
+  openLinkText: () => Promise<void> = vi.fn().mockResolvedValue(undefined);
+  setActiveLeaf: () => void = vi.fn();
+  getLeafById: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
+  getGroupLeaves: () => WorkspaceLeaf[] = vi.fn().mockReturnValue([]);
+  getMostRecentLeaf: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
+  getLeftLeaf: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
+  ensureSideLeaf: () => Promise<WorkspaceLeaf> = vi.fn().mockResolvedValue(new WorkspaceLeaf());
+  iterateRootLeaves: () => void = vi.fn();
+  iterateAllLeaves: () => void = vi.fn();
+  getLastOpenFiles: () => TFile[] = vi.fn().mockReturnValue([]);
+  updateOptions: () => void = vi.fn();
+
+  // Override event methods if specific mock behavior is needed
+  override on(name: string, callback: (...data: any[]) => any, ctx?: any): EventRef {
+    return super.on(name, callback, ctx);
+  }
+  override off(name: string, callback: (...data: any[]) => any): void {
+    super.off(name, callback);
+  }
+  override offref(ref: EventRef): void {
+    super.offref(ref);
+  }
+  override trigger(name: string, ...data: any[]): void {
+    super.trigger(name, data);
+  }
+  override tryTrigger(evt: EventRef, args: any[]): void {
+    super.tryTrigger(evt, args);
   }
 }
 
@@ -615,21 +859,69 @@ export function normalizePath(path: string): string {
   return path.replace(/\\/g, '/');
 }
 
+export function createMockManifest(): PluginManifest {
+  return {
+    id: 'obsidian-magic',
+    name: 'Obsidian Magic',
+    version: '0.1.0',
+    author: 'Test Author',
+    minAppVersion: '0.15.0',
+    description: 'Mock manifest for testing',
+  };
+}
+
 // Export commonly used types/interfaces if needed, though they are often just type hints
 // export type TAbstractFile = TFile | TFolder;
 
 // Minimal App stub for shared tests
-export class App {
+export class App implements ObsidianAppType {
+  __esModule = true;
   vault: Vault;
   workspace: Workspace;
   metadataCache: MetadataCache;
-  keymap: Record<string, unknown> = {};
-  scope: Record<string, unknown> = {};
-  fileManager: Record<string, unknown> = {};
-  lastEvent: unknown = null;
+  keymap: Keymap;
+  scope: Scope;
+  fileManager: FileManager;
+  lastEvent: UserEvent | null;
+  Setting: typeof Setting;
+
   constructor() {
     this.vault = new Vault();
     this.workspace = new Workspace();
     this.metadataCache = new MetadataCache();
+    this.Setting = Setting;
+
+    this.keymap = {
+      pushScope: vi.fn(),
+      popScope: vi.fn(),
+    };
+    this.scope = {
+      register: vi.fn<[Modifier[] | null, string | null, KeymapEventListener], KeymapEventHandler>(
+        () => ({ scope: this.scope }) as KeymapEventHandler
+      ),
+      unregister: vi.fn(),
+    };
+    this.fileManager = {
+      getNewFileParent: vi.fn().mockReturnValue(new TFolder()),
+      renameFile: vi.fn().mockResolvedValue(undefined),
+      trashFile: vi.fn().mockResolvedValue(undefined),
+      generateMarkdownLink: vi.fn().mockReturnValue(''),
+      processFrontMatter: vi.fn().mockResolvedValue(undefined),
+      getAvailablePathForAttachment: vi.fn().mockResolvedValue(''),
+    };
+    this.lastEvent = null;
   }
+
+  loadLocalStorage = vi.fn().mockReturnValue(null);
+  saveLocalStorage = vi.fn();
+}
+
+export function createMockApp(): App {
+  return new App();
+}
+
+export function createMockedPlugin(): ObsidianMagicPlugin {
+  const mockApp = createMockApp();
+  const manifest = createMockManifest();
+  return new ObsidianMagicPlugin(mockApp, manifest);
 }

@@ -1,33 +1,20 @@
-// Import Setting to mock it (though mock is now in __mocks__)
-// We might still need the type, or remove if unused after cleanup
 import { Setting } from 'obsidian';
 import { describe, expect, it, vi } from 'vitest';
 
+import * as obsidianMock from '../__mocks__/obsidian';
 import { createMockObsidianElement } from '../__mocks__/obsidian';
+import * as ObsidianMagicPlugin from '../main';
 import { FolderTagModal } from './FolderTagModal';
 
-import type { ButtonComponent, App as ObsidianApp, TFolder } from 'obsidian';
-
-import type ObsidianMagicPlugin from '../main';
+import type { ButtonComponent, TFolder } from 'obsidian';
 
 // Callback for tagging folder functionality
 const onSubmitCallback = vi.fn();
 
-const mockApp: ObsidianApp = {
-  vault: {
-    getAllLoadedFiles: vi.fn().mockReturnValue([]),
-    getAbstractFileByPath: vi.fn(),
-    getRoot: vi.fn(),
-  },
-  // add any other minimal methods/properties needed
-} as unknown as ObsidianApp;
 
-const mockPlugin = {
-  app: mockApp, // now typed, not `any`
-} as ObsidianMagicPlugin;
 
 describe('FolderTagModal', () => {
-  const modal = new FolderTagModal(mockPlugin, onSubmitCallback);
+  const modal = new FolderTagModal(plugin, onSubmitCallback);
 
   describe('UI Initialization', () => {
     it('should create necessary UI elements on open using Setting mock', () => {
@@ -67,7 +54,7 @@ describe('FolderTagModal', () => {
 
       // Simulate the creation of folder items (assuming renderFolderList was called)
       const mockFolderList = (modal.contentEl as unknown as HTMLElement).querySelector('.folder-list');
-      const folderItem1 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
+      const folderItem1 = obsidianMock.createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
       folderItem1.dataset['path'] = 'folder1';
       const folderItem2 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder2' });
       folderItem2.dataset['path'] = 'folder2';
@@ -101,7 +88,7 @@ describe('FolderTagModal', () => {
 
       // Assume renderFolderList creates items and assigns to privateModal.folderItems
       const items = [
-        createMockObsidianElement('div', { textContent: 'folder1' }),
+        obsidianMock.createMockObsidianElement('div', { textContent: 'folder1' }),
         createMockObsidianElement('div', { textContent: 'subfolder' }),
         createMockObsidianElement('div', { textContent: 'folder2' }),
       ];
