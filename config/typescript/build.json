@@ -6,7 +6,7 @@
     "types": ["node"],
     "tsBuildInfoFile": "${configDir}/dist/build.tsbuildinfo"
   },
-  "include": ["$configDir}/package.json", "${configDir}/src/**/!(*.test|*.spec).{ts,tsx}"],
+  "include": ["${configDir}/src/**/!(*.test|*.spec).{ts,tsx}"],
   "watchOptions": {
     "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"],
     "watchDirectory": "useFsEvents",

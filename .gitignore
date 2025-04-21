@@ -60,3 +60,6 @@ tools/magus-mcp/magus-mcp.exe
 .nx/workspace-data
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+
+
+storybook-static

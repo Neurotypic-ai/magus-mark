@@ -3,6 +3,12 @@
  * Obsidian Magic CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
+'use strict';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
@@ -11,10 +17,18 @@ import { hideBin } from 'yargs/helpers';
 import { AppError } from '@obsidian-magic/core/errors/AppError';
 import { Logger } from '@obsidian-magic/core/utils/Logger';
 
-import pkg from '../package.json';
 import { getAllCommands } from './commands/commands';
 import { config } from './utils/config';
 import { costManager } from './utils/cost-manager';
+
+// Determine the directory of the current module
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
+// Construct the path to package.json relative to the current file
+const packageJsonPath = path.join(__dirname, '..', 'package.json');
+
+// Read and parse package.json
+const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
 
 // Initialize logger
 const logger = Logger.getInstance('cli');
