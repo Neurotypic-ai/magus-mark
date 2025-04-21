@@ -1,8 +1,8 @@
-import { Workspace, WorkspaceTabs } from 'obsidian';
+import { WorkspaceTabs } from 'obsidian';
 
+import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { ItemView } from './ItemView';
 import { Events } from './MockEvents';
-import { createMockObsidianElement } from './MockObsidianElement';
 import { Vault } from './Vault';
 
 import type {
@@ -34,7 +34,12 @@ export class WorkspaceLeaf extends Events implements WorkspaceLeafType {
     return Promise.resolve();
   }
   getRoot(): WorkspaceRoot {
-    return {};
+    return {
+      win: {},
+      doc: {},
+      parent: {},
+      getRoot: () => {},
+    };
   }
   getContainer(): WorkspaceContainer {
     return this.containerEl;

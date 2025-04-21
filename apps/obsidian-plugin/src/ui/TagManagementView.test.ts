@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createMockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
+import { createMockObsidianElement } from '../testing/createMockObsidianElement';
 import { TagManagementView } from './TagManagementView';
 
 import type { MetadataCache, Vault, WorkspaceLeaf } from 'obsidian';

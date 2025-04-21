@@ -1,5 +1,5 @@
+import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
-import { createMockObsidianElement } from './MockObsidianElement';
 
 import type {
   BaseComponent,

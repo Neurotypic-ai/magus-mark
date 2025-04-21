@@ -1,5 +1,5 @@
+import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
-import { createMockObsidianElement } from './MockObsidianElement';
 
 import type { App } from '../obsidian';
 import type { MockObsidianElement } from './MockObsidianElement';
@@ -86,12 +86,32 @@ export class ItemView extends Events {
   removeChild(el: HTMLElement): void {
     this.containerEl.removeChild(el);
   }
-  register() {
+  register(): void {
     console.log('register');
     /* no-op for mock */
   }
-  unregister() {
+  unregister(): void {
     console.log('unregister');
+    /* no-op for mock */
+  }
+  registerEvent(event: string, cb: () => void): void {
+    console.log('registerEvent', event, cb);
+    /* no-op for mock */
+  }
+  unregisterEvent(event: string, cb: () => void): void {
+    console.log('unregisterEvent', event, cb);
+    /* no-op for mock */
+  }
+  registerInterval(interval: number, cb: () => void): void {
+    console.log('registerInterval', interval, cb);
+    /* no-op for mock */
+  }
+  clearInterval(interval: number): void {
+    console.log('clearInterval', interval);
+    /* no-op for mock */
+  }
+  clearIntervals(): void {
+    console.log('clearIntervals');
     /* no-op for mock */
   }
 }

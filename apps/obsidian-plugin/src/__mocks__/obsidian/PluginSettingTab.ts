@@ -1,5 +1,5 @@
+import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
-import { createMockObsidianElement } from './MockObsidianElement';
 
 import type { App as AppType, PluginSettingTab as PluginSettingTabType, Plugin as PluginType } from 'obsidian';
 

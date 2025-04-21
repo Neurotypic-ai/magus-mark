@@ -1,71 +1,66 @@
 import { Events } from 'obsidian';
 
-import { createMockObsidianElement } from './MockObsidianElement';
+import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 
+import type { Document } from '@obsidian-magic/core/models/Document';
 import type { View } from 'electron';
 import type {
-  Constructor,
-  TFile,
-  WorkspaceLeaf,
-  WorkspaceMobileDrawer,
-  WorkspaceRoot,
-  WorkspaceSidedock,
+  MarkdownFileInfo,
+  WorkspaceContainer,
+  WorkspaceDocument as WorkspaceDocumentType,
+  WorkspaceItem as WorkspaceItemType,
+  WorkspaceParent,
+  WorkspaceRoot as WorkspaceRootType,
+  WorkspaceSidedock as WorkspaceSidedockType,
+  Workspace as WorkspaceType,
+  WorkspaceWindow as WorkspaceWindowType,
 } from 'obsidian';
 
 import type { MockObsidianElement } from './MockObsidianElement';
+import type { WorkspaceLeaf } from './WorkspaceLeaf';
 
+vi.mock('obsidian', () => {
+  class WorkspaceItem extends Events implements WorkspaceItemType {
+    getRoot: () => WorkspaceRoot = vi.fn();
+    getContainer: () => WorkspaceContainer = vi.fn();
+    parent: WorkspaceParent;
+    constructor(parent: WorkspaceParent) {
+      super();
+      this.parent = parent;
+    }
+  }
+
+  class WorkspaceSidedock extends WorkspaceItem implements WorkspaceSidedockType {
+    collapsed = false;
+    // WorkspaceSidedock
+    toggle: () => void = vi.fn();
+    collapse: () => void = vi.fn();
+    expand: () => void = vi.fn();
+  }
+
+  class WorkspaceDocument extends WorkspaceItem implements WorkspaceDocumentType {}
+  class WorkspaceWindow extends WorkspaceRoot implements WorkspaceWindowType {
+    win: Window = vi.fn();
+    doc: Document = vi.fn();
+  }
+  class WorkspaceRoot extends WorkspaceItem implements WorkspaceRootType {
+    getLeaf: () => WorkspaceLeaf = vi.fn();
+    win: WorkspaceWindow = vi.fn();
+    doc: WorkspaceDocument = vi.fn();
+  }
+
+  return {
+    WorkspaceSidedock: vi.fn().mockImplementation((parent: WorkspaceParent) => {
+      return new WorkspaceSidedock(parent);
+    }),
+    WorkspaceRoot: vi.fn().mockImplementation(() => {
+      return new WorkspaceRoot();
+    }),
+  };
+});
 export class Workspace extends Events implements WorkspaceType {
-  activeLeaf: WorkspaceLeafType | null = null;
-  leftSplit: WorkspaceSidedock | WorkspaceMobileDrawer = {};
-  rightSplit: WorkspaceSidedock | WorkspaceMobileDrawer = {};
-  rootSplit: WorkspaceRoot = {};
+  activeLeaf: WorkspaceLeaf | null = null;
   containerEl: MockObsidianElement = createMockObsidianElement('div');
   layoutReady = true;
-  activeEditor: unknown = null;
-  on(): { unsubscribe: () => void } {
-    return { unsubscribe: () => {} };
-  }
-  onLayoutReady(cb: () => void): void {
-    cb();
-  }
-  getLeaf(): WorkspaceLeafType {
-    if (!this.activeLeaf) {
-      this.activeLeaf = new WorkspaceLeaf();
-    }
-    return this.activeLeaf;
-  }
-  getActiveViewOfType<T extends View>(type: Constructor<T>): T | null {
-    return null;
-  }
-  getActiveFile(): TFile | null {
-    return null;
-  }
-  revealLeaf(): Promise<void> {
-    return Promise.resolve();
-  }
-  getLeavesOfType(): WorkspaceLeaf[] {
-    return [];
-  }
-  detachLeavesOfType(): void {
-    /* no-op for mock */
-  }
-  getRightLeaf: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
-  changeLayout: () => void = vi.fn().mockResolvedValue(undefined);
-  getLayout: () => Record<string, unknown> = vi.fn().mockReturnValue({});
-  createLeafInParent: () => WorkspaceLeaf = vi.fn().mockReturnValue(new WorkspaceLeaf());
-  createLeafBySplit: () => WorkspaceLeaf = vi.fn().mockReturnValue(new WorkspaceLeaf());
-  duplicateLeaf: () => Promise<WorkspaceLeaf> = vi.fn().mockResolvedValue(new WorkspaceLeaf());
-  moveLeafToPopout: () => void = vi.fn();
-  openPopoutLeaf: () => Promise<WorkspaceLeaf> = vi.fn().mockReturnValue(new WorkspaceLeaf());
-  openLinkText: () => Promise<void> = vi.fn().mockResolvedValue(undefined);
-  setActiveLeaf: () => void = vi.fn();
-  getLeafById: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
-  getGroupLeaves: () => WorkspaceLeaf[] = vi.fn().mockReturnValue([]);
-  getMostRecentLeaf: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
-  getLeftLeaf: () => WorkspaceLeaf | null = vi.fn().mockReturnValue(null);
-  ensureSideLeaf: () => Promise<WorkspaceLeaf> = vi.fn().mockResolvedValue(new WorkspaceLeaf());
-  iterateRootLeaves: () => void = vi.fn();
-  iterateAllLeaves: () => void = vi.fn();
-  getLastOpenFiles: () => TFile[] = vi.fn().mockReturnValue([]);
-  updateOptions: () => void = vi.fn();
+  activeEditor: MarkdownFileInfo | null = null;
 }

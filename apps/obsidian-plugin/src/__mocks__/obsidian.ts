@@ -2,7 +2,7 @@ import { TFolder, Workspace } from 'obsidian';
 import { vi } from 'vitest';
 
 import ObsidianMagicPlugin from '../main';
-import { createMockManifest } from './createMockManifest';
+import { createMockManifest } from '../testing/createMockManifest';
 import { MetadataCache } from './obsidian/MetadataCache';
 import { Setting } from './obsidian/Setting';
 import { Vault } from './obsidian/Vault';
