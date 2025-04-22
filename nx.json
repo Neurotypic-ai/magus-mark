@@ -170,15 +170,6 @@
     "default": ["sharedGlobals"]
   },
   "extends": "nx/presets/npm.json",
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "nx/tasks-runners/default",
-      "options": {
-        "cacheableOperations": ["build", "test", "lint"],
-        "useDaemonProcess": false
-      }
-    }
-  },
   "affected": {
     "defaultBase": "main"
   },
