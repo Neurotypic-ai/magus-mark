@@ -18,12 +18,12 @@ inputs:
     default: 'false'
     required: false
   node-version:
-    description: 'Node.js version'
-    default: '22'
+    description: 'Node.js version (leave empty to use version from package.json)'
+    default: ''
     required: false
   pnpm-version:
-    description: 'PNPM version'
-    default: '10'
+    description: 'PNPM version (leave empty to use version from package.json)'
+    default: ''
     required: false
   enable-nx-cloud:
     description: 'Whether to enable Nx Cloud'
@@ -52,7 +52,7 @@ runs:
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: ${{ inputs.pnpm-version }}
+        version: ${{ inputs.pnpm-version != '' && inputs.pnpm-version || null }}
         run_install: false
 
     - name: Enable Nx Cloud
@@ -65,7 +65,7 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ inputs.node-version }}
+        node-version: ${{ inputs.node-version != '' && inputs.node-version || null }}
         cache: 'pnpm'
 
     - name: Install dependencies
