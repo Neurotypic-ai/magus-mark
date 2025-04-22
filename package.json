@@ -58,6 +58,10 @@
   "private": true,
   "scripts": {
     "build": "nx run-many --target=build --all",
+    "analyze:vscode": "node tools/scripts/analyze-bundle.js vscode apps/vscode/dist/extension.js vscode-bundle-analysis.html",
+    "analyze:obsidian": "node tools/scripts/analyze-bundle.js obsidian-plugin apps/obsidian-plugin/dist/main.js obsidian-bundle-analysis.html",
+    "check:accessibility": "node tools/scripts/check-accessibility.js obsidian-plugin apps/obsidian-plugin/dist/styles.css",
+    "check:dependencies": "node tools/scripts/check-dependencies.js",
     "clean": "nx run-many --target=clean --all",
     "clean:all": "rm -rf dist && pnpm -r exec -- rm -rf dist && rm -rf node_modules && pnpm -r exec -- rm -rf node_modules",
     "fix-configs": "node tools/scripts/fix-configs.js",

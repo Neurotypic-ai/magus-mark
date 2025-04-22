@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 const isWindows = process.platform === 'win32';
 const magusMcpDir = path.join(__dirname, '..', '..', 'tools', 'magus-mcp');
 const binOutputDir = path.join(__dirname, '..', '..', 'node_modules', '.bin');
+const rootDir = path.join(__dirname, '..', '..');
 
 function log(message) {
   console.log(`[magus-mcp build] ${message}`);
@@ -39,6 +40,44 @@ try {
   }
 } catch (error) {
   errorExit(`Failed to create bin directory: ${error.message}`);
+}
+
+// Ensure Go workspace is properly initialized
+try {
+  // Check if go.mod exists in the magusMcpDir
+  if (!fs.existsSync(path.join(magusMcpDir, 'go.mod'))) {
+    log('go.mod not found in tools/magus-mcp, initializing a new module');
+    execSync(`cd "${magusMcpDir}" && go mod init github.com/neurotypic-ai/magus-mark/tools/magus-mcp`, {
+      stdio: 'inherit',
+      shell: true,
+    });
+  }
+
+  // Check if go.work exists in the root directory
+  if (!fs.existsSync(path.join(rootDir, 'go.work'))) {
+    log('go.work not found, initializing workspace');
+    execSync(`cd "${rootDir}" && go work init && go work use ./tools/magus-mcp`, {
+      stdio: 'inherit',
+      shell: true,
+    });
+  } else {
+    // Ensure tools/magus-mcp is in go.work
+    try {
+      const goWorkContent = fs.readFileSync(path.join(rootDir, 'go.work'), 'utf8');
+      if (!goWorkContent.includes('./tools/magus-mcp')) {
+        log('Adding tools/magus-mcp to go.work');
+        execSync(`cd "${rootDir}" && go work use ./tools/magus-mcp`, {
+          stdio: 'inherit',
+          shell: true,
+        });
+      }
+    } catch (error) {
+      log(`Warning: Couldn't validate go.work content: ${error.message}`);
+    }
+  }
+} catch (error) {
+  log(`Warning: Error initializing Go workspace: ${error.message}`);
+  // Continue anyway - this is a warning, not fatal
 }
 
 // Build the binary
