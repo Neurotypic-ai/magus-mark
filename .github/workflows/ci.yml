@@ -6,6 +6,7 @@ on:
       - main
   pull_request:
 
+# Needed for nx-set-shas when run on the main branch
 permissions:
   actions: read
   contents: read
@@ -14,39 +15,35 @@ jobs:
   main:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛒 Checkout
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Get full history for proper affected calculations
-      - uses: ./.github/actions/common-steps
+          fetch-depth: 0
+          filter: tree:0
+
+      - name: 🤖 Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          skip-checkout: 'true'
-          node-version: '22'
+          version: 10.9.0
 
-      # Nx Affected runs only tasks affected by the changes in this PR/commit
-      - name: Run affected tasks
-        run: pnpm exec nx affected -t lint test build
+      - name: ⎔ Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
 
-  # cli-cross-platform-test:
-  #   runs-on: ${{ matrix.os }}
-  #   needs: main
-  #   if:
-  #     github.event_name == 'push' || contains(github.event.pull_request.paths, 'apps/cli/**') ||
-  #     contains(github.event.pull_request.paths, 'packages/**')
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, windows-latest, macos-latest]
+      # Uncomment to enable distribution with Nx Cloud
+      - name: ☁️ Enable Nx Cloud
+        run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0 # Get full history
-  #     - uses: ./.github/actions/common-steps
-  #       with:
-  #         skip-checkout: 'true'
-  #         node-version: '22' # Explicitly set Node.js version
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
 
-  #     - name: Build and Test CLI
-  #       run: pnpm exec nx run cli:build && pnpm exec nx run cli:test
+      - name: 🧮 Setup Nx SHAs
+        uses: nrwl/nx-set-shas@v4
+
+      - run: pnpm dlx nx-cloud record -- pnpm exec nx format:check
+      - run: pnpm exec nx affected -t lint test build
 
   package-artifacts:
     runs-on: ubuntu-latest
@@ -56,11 +53,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Get full history
-      - uses: ./.github/actions/common-steps
+          fetch-depth: 0
+          filter: tree:0
+
+      - uses: pnpm/action-setup@v4
         with:
-          skip-checkout: 'true'
-          node-version: '22' # Explicitly set Node.js version
+          version: 10.9.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
 
       - name: Build All
         run: pnpm exec nx run-many --target=build --all
