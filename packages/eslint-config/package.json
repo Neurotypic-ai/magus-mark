@@ -1,0 +1,45 @@
+{
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "dependencies": {},
+  "description": "Shared ESLint configuration for Obsidian Magic",
+  "devDependencies": {
+    "@eslint/js": "^9.25.1",
+    "@eslint/markdown": "^6.4.0",
+    "@types/eslint-plugin-jsx-a11y": "^6.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "@typescript-eslint/types": "^8.31.0",
+    "@typescript-eslint/utils": "^8.31.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-import-resolver-typescript": "^4.3.4",
+    "eslint-plugin-import-x": "^4.10.6",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-testing-library": "^7.1.1"
+  },
+  "exports": {
+    ".": "./config/index.js"
+  },
+  "files": [
+    "config/index.js",
+    "config/base.js",
+    "config/ignore.js",
+    "config/javascript.js",
+    "config/markdown.js",
+    "config/node.js",
+    "config/test.js",
+    "config/typescript.js",
+    "README.md"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "@magus-mark/eslint-config",
+  "peerDependencies": {
+    "eslint": "^9.25.1",
+    "typescript": "5.8.3"
+  },
+  "private": true,
+  "type": "module",
+  "version": "0.1.0"
+}

@@ -1,37 +1,11 @@
 {
-  "name": "@obsidian-magic/cli",
-  "version": "0.1.0",
-  "description": "CLI tool for Obsidian Magic",
-  "main": "dist/index.js",
-  "bin": {
-    "obsidian-magic": "dist/index.js"
-  },
-  "type": "module",
-  "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc -b --watch",
-    "start": "node dist/index.js",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "keywords": [
-    "obsidian",
-    "markdown",
-    "tagging",
-    "cli"
-  ],
   "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
-  "license": "MIT",
+  "bin": {
+    "magus": "./dist/cli.js"
+  },
   "dependencies": {
     "@inquirer/prompts": "^7.4.1",
-    "@obsidian-magic/core": "workspace:*",
+    "@magus-mark/core": "workspace:*",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
     "cli-progress": "^3.12.0",
@@ -45,30 +19,62 @@
     "yargs": "^17.7.2",
     "zod": "^3.24.3"
   },
+  "description": "CLI tool for Obsidian Magic",
   "devDependencies": {
-    "@eslint/js": "^9.25.0",
+    "@eslint/js": "^9.25.1",
     "@eslint/markdown": "^6.4.0",
+    "@magus-mark/eslint-config": "workspace:*",
+    "@magus-mark/typescript-config": "workspace:*",
     "@types/cli-progress": "^3.11.6",
     "@types/fs-extra": "^11.0.4",
+    "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.14.1",
     "@types/update-notifier": "^6.0.8",
     "@types/yargs": "^17.0.33",
-    "@typescript-eslint/eslint-plugin": "^8.30.1",
-    "@typescript-eslint/parser": "^8.30.1",
-    "@typescript-eslint/utils": "^8.30.1",
-    "eslint": "^9.25.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "@typescript-eslint/utils": "^8.31.0",
+    "c8": "^10.1.3",
+    "esbuild": "^0.25.2",
+    "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.2",
-    "eslint-import-resolver-typescript": "^4.3.3",
+    "eslint-import-resolver-typescript": "^4.3.4",
     "eslint-plugin-import-x": "^4.10.6",
     "eslint-plugin-testing-library": "^7.1.1",
+    "msw": "^2.7.5",
     "ts-node": "^10.9.2",
-    "tsup": "^8.4.0",
     "typescript": "5.8.3",
-    "typescript-eslint": "^8.30.1",
-    "vitest": "^3.1.1"
+    "typescript-eslint": "^8.31.0",
+    "vitest": "^3.1.2"
   },
   "engines": {
     "node": ">=22"
-  }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "obsidian",
+    "markdown",
+    "tagging",
+    "cli"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@magus-mark/cli",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest watch"
+  },
+  "type": "module",
+  "version": "0.1.0"
 }

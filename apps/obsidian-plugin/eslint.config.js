@@ -1,13 +1,14 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-// Obsidian plugin specific configuration
-const obsidianSpecificConfig = [
+// @type {import('eslint').Linter.FlatConfig}
+export default createESLintConfig([
   {
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
-      // Add Obsidian-specific rules here if needed
+      // Ensure accessibility for UI components
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-role': 'error',
     },
   },
-];
-
-export default createESLintConfig(obsidianSpecificConfig);
+]);

@@ -9,13 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { AppError } from '@magus-mark/core/errors/AppError';
+import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-
-import { AppError } from '@obsidian-magic/core/errors/AppError';
-import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { getAllCommands } from './commands/commands';
 import { config } from './utils/config';

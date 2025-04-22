@@ -1,18 +1,18 @@
 /**
  * Service for integrating with the core tagging functionality
  */
-import { initializeCore } from '@obsidian-magic/core';
-import { APIError } from '@obsidian-magic/core/errors/APIError';
-import { ApiKeyError } from '@obsidian-magic/core/errors/ApiKeyError';
-import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
-import { Result } from '@obsidian-magic/core/errors/Result';
-import { TaggingError } from '@obsidian-magic/core/errors/TaggingError';
-import { withRetry } from '@obsidian-magic/core/errors/retry';
-import { BehaviorSubject, Subject } from '@obsidian-magic/core/utils/observable';
+import { initializeCore } from '@magus-mark/core';
+import { APIError } from '@magus-mark/core/errors/APIError';
+import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
+import { FileSystemError } from '@magus-mark/core/errors/FileSystemError';
+import { Result } from '@magus-mark/core/errors/Result';
+import { TaggingError } from '@magus-mark/core/errors/TaggingError';
+import { withRetry } from '@magus-mark/core/errors/retry';
+import { BehaviorSubject, Subject } from '@magus-mark/core/utils/observable';
 
-import type { Document } from '@obsidian-magic/core/models/Document';
-import type { TagSet } from '@obsidian-magic/core/models/TagSet';
-import type { TaggingOptions } from '@obsidian-magic/core/models/TaggingOptions';
+import type { Document } from '@magus-mark/core/models/Document';
+import type { TagSet } from '@magus-mark/core/models/TagSet';
+import type { TaggingOptions } from '@magus-mark/core/models/TaggingOptions';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';

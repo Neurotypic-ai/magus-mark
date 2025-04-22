@@ -1,7 +1,6 @@
 import { checkbox, confirm, input, select } from '@inquirer/prompts';
+import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
-
-import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 const logger = Logger.getInstance('tag-editor');
 

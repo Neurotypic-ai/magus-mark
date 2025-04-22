@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
 

@@ -4,11 +4,10 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+// Import deepMerge utility
+import { deepMerge } from '@magus-mark/core/utils/DeepMerge';
 import * as fs from 'fs-extra';
 import { z } from 'zod';
-
-// Import deepMerge utility
-import { deepMerge } from '@obsidian-magic/core/utils/DeepMerge';
 
 import type { Config, ConfigStorage } from '../types/config';
 

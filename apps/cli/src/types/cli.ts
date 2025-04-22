@@ -2,9 +2,9 @@
  * CLI-specific type definitions for Obsidian Magic
  */
 
-import type { APIConfig } from '@obsidian-magic/core/models/APIConfig';
-import type { Document } from '@obsidian-magic/core/models/Document';
-import type { TaggingOptions } from '@obsidian-magic/core/models/TaggingOptions';
+import type { APIConfig } from '@magus-mark/core/models/APIConfig';
+import type { Document } from '@magus-mark/core/models/Document';
+import type { TaggingOptions } from '@magus-mark/core/models/TaggingOptions';
 
 /**
  * CLI command context

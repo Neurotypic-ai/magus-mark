@@ -1,13 +1,12 @@
-import { Events } from 'obsidian';
+import { vi } from 'vitest';
 
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
+import { Events } from './MockEvents';
 
-import type { Document } from '@obsidian-magic/core/models/Document';
-import type { View } from 'electron';
+import type { Document } from '@magus-mark/core/models/Document';
 import type {
   MarkdownFileInfo,
   WorkspaceContainer,
-  WorkspaceDocument as WorkspaceDocumentType,
   WorkspaceItem as WorkspaceItemType,
   WorkspaceParent,
   WorkspaceRoot as WorkspaceRootType,
@@ -39,7 +38,7 @@ vi.mock('obsidian', () => {
   }
 
   class WorkspaceDocument extends WorkspaceItem implements WorkspaceDocumentType {}
-  class WorkspaceWindow extends WorkspaceRoot implements WorkspaceWindowType {
+  class WorkspaceWindow extends Events implements WorkspaceWindowType {
     win: Window = vi.fn();
     doc: Document = vi.fn();
   }
@@ -54,7 +53,7 @@ vi.mock('obsidian', () => {
       return new WorkspaceSidedock(parent);
     }),
     WorkspaceRoot: vi.fn().mockImplementation(() => {
-      return new WorkspaceRoot();
+      return new WorkspaceRoot(new WorkspaceParent());
     }),
   };
 });

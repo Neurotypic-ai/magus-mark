@@ -1,9 +1,8 @@
+import { APIError } from '@magus-mark/core/errors/APIError';
+import { AppError } from '@magus-mark/core/errors/AppError';
+import { FileSystemError } from '@magus-mark/core/errors/FileSystemError';
+import { Result } from '@magus-mark/core/errors/Result';
 import { Notice, Platform } from 'obsidian';
-
-import { APIError } from '@obsidian-magic/core/errors/APIError';
-import { AppError } from '@obsidian-magic/core/errors/AppError';
-import { FileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
-import { Result } from '@obsidian-magic/core/errors/Result';
 
 import type * as Electron from 'electron';
 

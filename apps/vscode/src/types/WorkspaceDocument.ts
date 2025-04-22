@@ -1,4 +1,4 @@
-import type { TagSet } from '@obsidian-magic/core/models/TagSet';
+import type { TagSet } from '@magus-mark/core/models/TagSet';
 
 /**
  * Workspace document with tags

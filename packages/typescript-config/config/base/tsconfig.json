@@ -17,13 +17,13 @@
     "${configDir}/**/examples/**/*",
     "${configDir}/**/node_modules/.pnpm/**/*"
   ],
-  "extends": "./settings.json",
+  "extends": "@magus-mark/typescript-config/config/settings/tsconfig.json",
   "references": [
     {
-      "path": "./build.json"
+      "path": "@magus-mark/typescript-config/config/build/tsconfig.json"
     },
     {
-      "path": "./test.json"
+      "path": "@magus-mark/typescript-config/config/test/tsconfig.json"
     }
   ],
   "watchOptions": {

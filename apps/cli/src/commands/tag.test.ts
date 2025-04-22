@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tagCommand } from './tag';
 
 // Imports are kept for mocking purposes
-import '@obsidian-magic/core';
+import '@magus-mark/core';
 import '../utils/config';
 
 import type { Argv } from 'yargs';
@@ -35,7 +35,7 @@ vi.mock('fs-extra', () => ({
   },
 }));
 
-vi.mock('@obsidian-magic/core', () => ({
+vi.mock('@magus-mark/core', () => ({
   OpenAIClient: vi.fn().mockImplementation(() => ({
     setApiKey: vi.fn(),
     setModel: vi.fn(),

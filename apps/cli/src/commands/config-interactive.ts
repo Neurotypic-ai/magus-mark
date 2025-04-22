@@ -2,15 +2,14 @@ import * as console from 'node:console';
 import * as path from 'node:path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
+import { ModelManager } from '@magus-mark/core/openai/ModelManager';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
 
-import { ModelManager } from '@obsidian-magic/core/openai/ModelManager';
-
 import { config } from '../utils/config';
 
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
-import type { ModelPricing } from '@obsidian-magic/core/openai/OpenAIClient';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
+import type { ModelPricing } from '@magus-mark/core/openai/OpenAIClient';
 import type { CommandModule } from 'yargs';
 
 import type { LogLevel } from '../types/commands';

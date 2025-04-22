@@ -1,5 +1,5 @@
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
-import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
+import type { TagBehavior } from '@magus-mark/core/models/TagBehavior';
 
 import type { LogLevel } from './commands';
 

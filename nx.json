@@ -11,6 +11,20 @@
       "namedInputs": {
         "production": ["default"],
         "test": ["default", "{projectRoot}/src/**/*.test.ts"]
+      },
+      "targets": {
+        "build": {
+          "executor": "nx:run-commands",
+          "outputs": ["{projectRoot}/dist"],
+          "options": {
+            "commands": [
+              "tsc -p {projectRoot}/tsconfig.json --emitDeclarationOnly --outDir {projectRoot}/dist/types",
+              "node {projectRoot}/esbuild.config.js"
+            ],
+            "parallel": false,
+            "cwd": "packages/core"
+          }
+        }
       }
     },
     "apps/cli": {
@@ -19,6 +33,16 @@
       "namedInputs": {
         "production": ["default"],
         "test": ["default", "{projectRoot}/src/**/*.test.ts"]
+      },
+      "targets": {
+        "build": {
+          "executor": "nx:run-commands",
+          "outputs": ["{projectRoot}/dist"],
+          "options": {
+            "command": "node {projectRoot}/esbuild.config.js",
+            "cwd": "apps/cli"
+          }
+        }
       }
     },
     "apps/obsidian-plugin": {
@@ -27,6 +51,19 @@
       "namedInputs": {
         "production": ["default"],
         "test": ["default", "{projectRoot}/src/**/*.test.ts", "{projectRoot}/src/**/*.test.tsx"]
+      },
+      "targets": {
+        "build": {
+          "executor": "nx:run-commands",
+          "outputs": ["{projectRoot}/main.js", "{projectRoot}/styles.css", "{projectRoot}/manifest.json"],
+          "options": {
+            "command": "node -r esbuild-register {projectRoot}/esbuild.config.ts",
+            "cwd": "apps/obsidian-plugin"
+          }
+        },
+        "test:integration": {
+          "command": "echo \"Obsidian Plugin Integration Test Placeholder - Run manually\""
+        }
       }
     },
     "apps/vscode": {
@@ -35,7 +72,31 @@
       "namedInputs": {
         "production": ["default"],
         "test": ["default", "{projectRoot}/src/**/*.test.ts", "{projectRoot}/src/**/*.test.tsx"]
+      },
+      "targets": {
+        "build": {
+          "executor": "nx:run-commands",
+          "outputs": ["{projectRoot}/dist"],
+          "options": {
+            "command": "node {projectRoot}/esbuild.config.js",
+            "cwd": "apps/vscode"
+          }
+        },
+        "test:integration": {
+          "executor": "nx:run-script",
+          "options": {
+            "script": "test:vscode"
+          }
+        }
       }
+    },
+    "packages/@magus-mark/eslint-config": {
+      "tags": ["config", "shared"],
+      "implicitDependencies": []
+    },
+    "packages/@magus-mark/typescript-config": {
+      "tags": ["config", "shared"],
+      "implicitDependencies": []
     }
   },
   "targetDefaults": {
@@ -50,6 +111,7 @@
       "cache": true
     },
     "lint": {
+      "executor": "@nx/eslint:lint",
       "cache": true
     },
     "bundle-analysis": {
@@ -75,17 +137,21 @@
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
-      "outputs": ["{projectRoot}/dist"],
+      "command": "tsc -p {projectRoot}/tsconfig.json --noEmit",
       "cache": true
     },
     "vscode:prepublish": {
       "dependsOn": ["^vscode:prepublish"]
     },
     "clean": {
-      "cache": true
+      "command": "rm -rf {projectRoot}/dist {projectRoot}/coverage {projectRoot}/**/*.tsbuildinfo {projectRoot}/node_modules/.vite-temp",
+      "cache": false
     },
     "format": {
+      "cache": true
+    },
+    "test:integration": {
+      "dependsOn": ["build"],
       "cache": true
     }
   },
@@ -93,38 +159,7 @@
     {
       "plugin": "@nx/eslint/plugin",
       "options": {
-        "targetName": "eslint:lint"
-      }
-    },
-    {
-      "plugin": "@nx/vite/plugin",
-      "options": {
-        "buildTargetName": "build",
-        "testTargetName": "vite:test",
-        "serveTargetName": "serve",
-        "devTargetName": "dev",
-        "previewTargetName": "preview",
-        "serveStaticTargetName": "serve-static",
-        "typecheckTargetName": "typecheck",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps"
-      }
-    },
-    {
-      "plugin": "@nx/storybook/plugin",
-      "options": {
-        "serveStorybookTargetName": "storybook",
-        "buildStorybookTargetName": "build-storybook",
-        "testStorybookTargetName": "test-storybook",
-        "staticStorybookTargetName": "static-storybook"
-      }
-    },
-    {
-      "plugin": "@nx/rollup/plugin",
-      "options": {
-        "buildTargetName": "build",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps"
+        "targetName": "lint"
       }
     },
     "@nx-go/nx-go"

@@ -1,12 +1,11 @@
+import { APIError } from '@magus-mark/core/errors/APIError';
+import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
+import { TaggingError } from '@magus-mark/core/errors/TaggingError';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { APIError } from '@obsidian-magic/core/errors/APIError';
-import { ApiKeyError } from '@obsidian-magic/core/errors/ApiKeyError';
-import { TaggingError } from '@obsidian-magic/core/errors/TaggingError';
 
 import { TaggingService } from './TaggingService';
 
-import type { TagSet } from '@obsidian-magic/core/models/TagSet';
+import type { TagSet } from '@magus-mark/core/models/TagSet';
 import type { TFile } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
@@ -35,8 +34,8 @@ const mockCoreServices = {
 };
 
 // Mock only the initializeCore function from the core module
-vi.mock('@obsidian-magic/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@obsidian-magic/core')>();
+vi.mock('@magus-mark/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@magus-mark/core')>();
   return {
     ...actual, // Keep other actual exports
     initializeCore: vi.fn().mockReturnValue(mockCoreServices), // Mock initializeCore

@@ -1,13 +1,12 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-// CLI app specific configuration
-const cliSpecificConfig = [
+export default createESLintConfig([
+  // CLI-specific overrides
   {
     files: ['src/**/*.ts'],
     rules: {
-      // Add CLI-specific rules here if needed
+      // Allow console for CLI applications
+      'no-console': 'off',
     },
   },
-];
-
-export default createESLintConfig(cliSpecificConfig);
+]);

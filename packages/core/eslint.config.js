@@ -1,13 +1,24 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-// Core package specific configuration
-const coreSpecificConfig = [
+/** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
+export default createESLintConfig([
+  /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
   {
     files: ['src/**/*.ts'],
     rules: {
-      // Add core-specific rules here if needed
+      // Enforce API documentation with JSDoc
+      'jsdoc/require-jsdoc': [
+        'warn',
+        {
+          publicOnly: true,
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true,
+          },
+          contexts: ['ExportDefaultDeclaration > ClassDeclaration', 'ExportNamedDeclaration > ClassDeclaration'],
+        },
+      ],
     },
   },
-];
-
-export default createESLintConfig(coreSpecificConfig);
+]);

@@ -1,14 +1,13 @@
 import * as path from 'path';
 
+import { CostLimitError } from '@magus-mark/core/errors/CostLimitError';
+import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
+import { Logger } from '@magus-mark/core/utils/Logger';
 import * as fs from 'fs-extra';
-
-import { CostLimitError } from '@obsidian-magic/core/errors/CostLimitError';
-import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
-import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { config } from './config';
 
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
 
 const logger = Logger.getInstance('cost-manager');
 /**

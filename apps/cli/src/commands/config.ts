@@ -1,8 +1,7 @@
 import { confirm } from '@inquirer/prompts';
-
-import { ModelManager } from '@obsidian-magic/core/openai/ModelManager';
-import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
-import { Logger } from '@obsidian-magic/core/utils/Logger';
+import { ModelManager } from '@magus-mark/core/openai/ModelManager';
+import { FileUtils } from '@magus-mark/core/utils/FileUtils';
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 import { config } from '../utils/config';
 

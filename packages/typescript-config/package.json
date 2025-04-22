@@ -1,0 +1,15 @@
+{
+  "name": "@magus-mark/typescript-config",
+  "version": "0.1.0",
+  "description": "Shared TypeScript configurations for Obsidian Magic",
+  "private": true,
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "license": "MIT",
+  "exports": {
+    "./config/*/tsconfig.json": "./config/*/tsconfig.json"
+  },
+  "files": [
+    "config/**/*.json",
+    "README.md"
+  ]
+}

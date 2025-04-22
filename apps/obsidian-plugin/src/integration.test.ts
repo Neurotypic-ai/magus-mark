@@ -122,7 +122,7 @@ const mockUpdateApiKey = vi.fn();
 const mockUpdateModelPreference = vi.fn();
 
 // Mock core module
-vi.mock('@obsidian-magic/core', () => {
+vi.mock('@magus-mark/core', () => {
   return {
     initializeCore: vi.fn().mockReturnValue({
       taggingService: {
@@ -133,7 +133,7 @@ vi.mock('@obsidian-magic/core', () => {
 });
 
 // Mock utils module
-vi.mock('@obsidian-magic/utils', () => ({
+vi.mock('@magus-mark/utils', () => ({
   secureStorage: mockSecureStorage,
 }));
 

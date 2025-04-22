@@ -1,13 +1,16 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-// VS Code app specific configuration
-const vscodeSpecificConfig = [
+export default createESLintConfig([
+  // VS Code-specific overrides
   {
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
-      // Add VS Code-specific rules here if needed
+      // Allow VS Code API usage patterns
+      'no-unused-expressions': 'off',
+      // Ensure accessibility for VS Code UI components
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-role': 'error',
     },
   },
-];
-
-export default createESLintConfig(vscodeSpecificConfig);
+]);

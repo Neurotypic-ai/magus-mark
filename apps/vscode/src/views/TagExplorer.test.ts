@@ -3,12 +3,12 @@ import * as sinon from 'sinon';
 import * as vscode from 'vscode'; // Keep vscode import, relying on global mock
 
 // Assume initializeCore is mocked elsewhere or adjust as needed
-// import { initializeCore } from '@obsidian-magic/core';
+// import { initializeCore } from '@magus-mark/core';
 
 import { TagExplorer } from './TagExplorer';
 
-import type { Taxonomy } from '@obsidian-magic/core/models/Taxonomy';
-import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
+import type { Taxonomy } from '@magus-mark/core/models/Taxonomy';
+import type { TaxonomyManager } from '@magus-mark/core/tagging/TaxonomyManager';
 
 // import type { TagNode } from './TagExplorer'; // TagNode not used in converted tests yet
 
