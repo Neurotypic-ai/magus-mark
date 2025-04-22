@@ -1,0 +1,76 @@
+name: Common Steps
+description: |
+  This composite action encapsulates the common setup steps required for building and testing.
+  It includes:
+    - Checking out the repository
+    - Installing pnpm
+    - Setting up Node.js
+    - Installing dependencies
+    - Setting up Nx Cloud (optional)
+
+inputs:
+  checkout-fetch-depth:
+    description: 'Fetch depth for checkout'
+    default: '0'
+    required: false
+  skip-checkout:
+    description: 'Skip the checkout step (use when checkout is performed before)'
+    default: 'false'
+    required: false
+  node-version:
+    description: 'Node.js version'
+    default: '22'
+    required: false
+  pnpm-version:
+    description: 'PNPM version'
+    default: '10'
+    required: false
+  enable-nx-cloud:
+    description: 'Whether to enable Nx Cloud'
+    default: 'false'
+    required: false
+  nx-cloud-agents:
+    description: 'Nx Cloud agents configuration'
+    default: '3 linux-medium-js'
+    required: false
+  nx-cloud-stop-agents-after:
+    description: 'When to stop Nx Cloud agents'
+    default: 'build'
+    required: false
+
+outputs: {}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout
+      if: inputs.skip-checkout != 'true'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.checkout-fetch-depth }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+        run_install: false
+
+    - name: Enable Nx Cloud
+      if: inputs.enable-nx-cloud == 'true'
+      shell: bash
+      run:
+        pnpm dlx nx-cloud start-ci-run --distribute-on="${{ inputs.nx-cloud-agents }}" --stop-agents-after="${{
+        inputs.nx-cloud-stop-agents-after }}"
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Setup Nx SHAs
+      uses: nrwl/nx-set-shas@v4
