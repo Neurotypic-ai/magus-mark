@@ -31,7 +31,7 @@ function generateResponseWebviewHtml(query: string): string {
         </style>
       </head>
       <body>
-        <h2>@vscode response</h2>
+        <h2>@magus-mark response</h2>
         <div class="query">Query: ${query}</div>
         <div class="response">
           <div class="loading"></div> Generating response...
@@ -84,7 +84,7 @@ async function loadPromptTemplate(
  * Extension activation - called when the extension is first loaded
  */
 export function activate(context: vscode.ExtensionContext): void {
-  console.log('Activating Obsidian Magic VS Code Extension');
+  console.log('Activating Magus Mark VS Code Extension');
 
   // Initialize the vault integration service
   vaultService = new VaultIntegrationService(context);
@@ -161,14 +161,14 @@ function activateCursorFeatures(context: vscode.ExtensionContext): void {
 
   // Create status bar item to show Cursor integration status
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.text = '$(cursor) @vscode';
-  statusBarItem.tooltip = '@vscode participant active';
+  statusBarItem.text = '$(cursor) @magus-mark';
+  statusBarItem.tooltip = '@magus-mark participant active';
   statusBarItem.command = 'obsidian-magic.cursorRegisterVSCodeParticipant';
   statusBarItem.show();
 
   context.subscriptions.push(statusBarItem);
 
-  console.log('@vscode participant initialized in Cursor environment');
+  console.log('@magus-mark participant initialized in Cursor environment');
 }
 
 /**
@@ -247,7 +247,7 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
     );
   });
 
-  // Command to manually register @vscode participant
+  // Command to manually register @magus-mark participant
   const registerVSCodeParticipantCommand = vscode.commands.registerCommand(
     'obsidian-magic.cursorRegisterVSCodeParticipant',
     async () => {
@@ -261,16 +261,16 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
         if (response === 'Yes') {
           mcpServer = new MCPServer(context);
           context.subscriptions.push(mcpServer);
-          vscode.window.showInformationMessage('@vscode participant initialized successfully');
+          vscode.window.showInformationMessage('@magus-mark participant initialized successfully');
         }
         return;
       }
 
-      vscode.window.showInformationMessage('@vscode participant is already registered');
+      vscode.window.showInformationMessage('@magus-mark participant is already registered');
     }
   );
 
-  // Command to query the @vscode participant directly
+  // Command to query the @magus-mark participant directly
   const queryVSCodeCommand = vscode.commands.registerCommand('obsidian-magic.queryVSCode', async () => {
     const lmAPI = languageModelAPI;
     if (!lmAPI) {
@@ -285,17 +285,17 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `@vscode: ${query}`,
+        title: `@magus-mark: ${query}`,
         cancellable: true,
       },
       async () => {
-        const outputChannel = vscode.window.createOutputChannel('@vscode Participant');
+        const outputChannel = vscode.window.createOutputChannel('@magus-mark Participant');
         outputChannel.show();
         outputChannel.appendLine(`Query: ${query}\n`);
         outputChannel.appendLine('Generating response...\n');
         const panel = vscode.window.createWebviewPanel(
           'vscodeResponse',
-          `@vscode: ${query.substring(0, 30)}${query.length > 30 ? '...' : ''}`,
+          `@magus-mark: ${query.substring(0, 30)}${query.length > 30 ? '...' : ''}`,
           vscode.ViewColumn.Beside,
           {
             enableScripts: true,
@@ -655,7 +655,7 @@ function initializeExtension(context: vscode.ExtensionContext): void {
  * Extension deactivation - called when the extension is unloaded
  */
 export function deactivate(): void {
-  console.log('Deactivating Obsidian Magic VS Code Extension');
+  console.log('Deactivating Magus Mark VS Code Extension');
   // Resources disposed automatically via context.subscriptions
   mcpServer = undefined;
   vaultService = undefined;

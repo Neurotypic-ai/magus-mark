@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Dependency checker script for Obsidian Magic components
+ * Dependency checker script for Magus Mark components
  *
  * This script analyzes dependencies for security vulnerabilities,
  * outdated packages, and licensing issues.

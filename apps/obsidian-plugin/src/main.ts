@@ -44,7 +44,7 @@ export default class ObsidianMagicPlugin extends Plugin {
   keyManager!: KeyManager;
 
   override async onload(): Promise<void> {
-    console.log('Loading Obsidian Magic plugin');
+    console.log('Loading Magus Mark plugin');
 
     // Load settings
     await this.loadSettings();
@@ -72,7 +72,7 @@ export default class ObsidianMagicPlugin extends Plugin {
 
     // Register ribbon icon if enabled
     if (this.settings.showRibbonIcon) {
-      this.addRibbonIcon('tag', 'Obsidian Magic', async () => {
+      this.addRibbonIcon('tag', 'Magus Mark', async () => {
         await this.activateTagManagementView();
       });
     }
@@ -126,7 +126,7 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 
   override onunload(): void {
-    console.log('Unloading Obsidian Magic plugin');
+    console.log('Unloading Magus Mark plugin');
     // Clean up views
     this.app.workspace.detachLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE);
@@ -201,7 +201,7 @@ export default class ObsidianMagicPlugin extends Plugin {
         if (file instanceof TFile && file.extension === 'md') {
           menu.addItem((item) => {
             item
-              .setTitle('Tag with Obsidian Magic')
+              .setTitle('Tag with Magus Mark')
               .setIcon('tag')
               .onClick(() => {
                 void this.taggingService.processFile(file);
@@ -210,7 +210,7 @@ export default class ObsidianMagicPlugin extends Plugin {
         } else if (file instanceof TFolder) {
           menu.addItem((item) => {
             item
-              .setTitle('Tag folder with Obsidian Magic')
+              .setTitle('Tag folder with Magus Mark')
               .setIcon('tag')
               .onClick(() => {
                 void this.tagFolder(file);
@@ -226,7 +226,7 @@ export default class ObsidianMagicPlugin extends Plugin {
         console.log('editor-menu', menu, editor, view);
         menu.addItem((item) => {
           item
-            .setTitle('Tag with Obsidian Magic')
+            .setTitle('Tag with Magus Mark')
             .setIcon('tag')
             .onClick(() => {
               const file = view.file;
@@ -363,7 +363,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Obsidian Magic Settings' });
+    containerEl.createEl('h2', { text: 'Magus Mark Settings' });
 
     // API Key settings
     new Setting(containerEl)
@@ -509,7 +509,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
     // Ribbon icon toggle
     new Setting(containerEl)
       .setName('Show Ribbon Icon')
-      .setDesc('Display the Obsidian Magic icon in the ribbon')
+      .setDesc('Display the Magus Mark icon in the ribbon')
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.showRibbonIcon).onChange(async (value) => {
           this.plugin.settings.showRibbonIcon = value;
@@ -563,7 +563,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
 
     // Add links to documentation
     containerEl.createEl('p', {
-      text: 'For more advanced options and documentation, visit the Obsidian Magic website.',
+      text: 'For more advanced options and documentation, visit the Magus Mark website.',
       cls: 'settings-info',
     });
 

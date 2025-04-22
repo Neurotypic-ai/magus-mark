@@ -1,5 +1,5 @@
 /**
- * CLI-specific type definitions for Obsidian Magic
+ * CLI-specific type definitions for Magus Mark
  */
 
 import type { APIConfig } from '@magus-mark/core/models/APIConfig';

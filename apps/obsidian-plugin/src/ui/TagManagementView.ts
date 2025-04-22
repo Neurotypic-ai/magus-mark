@@ -34,7 +34,7 @@ export class TagManagementView extends ItemView {
     if (!container) return;
 
     container.empty();
-    container.createEl('h2', { text: 'Obsidian Magic Tag Management' });
+    container.createEl('h2', { text: 'Magus Mark Tag Management' });
 
     // Tags section
     const tagsSection = container.createDiv('tag-section');

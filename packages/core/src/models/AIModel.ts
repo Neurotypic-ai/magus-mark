@@ -1,5 +1,5 @@
 /**
- * API and operational type definitions for Obsidian Magic
+ * API and operational type definitions for Magus Mark
  */
 /**
  * OpenAI model options - dynamically determined at runtime

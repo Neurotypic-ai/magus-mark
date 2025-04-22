@@ -1,5 +1,5 @@
 /**
- * Markdown utility class for Obsidian Magic
+ * Markdown utility class for Magus Mark
  */
 export class MarkdownProcessor {
   private static instance: MarkdownProcessor | undefined;

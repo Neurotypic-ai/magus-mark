@@ -1,5 +1,5 @@
 /**
- * Shared configuration types for Obsidian Magic
+ * Shared configuration types for Magus Mark
  */
 
 import type { AIModel } from '../models/AIModel';

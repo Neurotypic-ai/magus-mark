@@ -1,9 +1,9 @@
-# Obsidian Magic
+# Magus Mark
 
 AI-powered tagging system for organizing AI conversations and technical knowledge in Obsidian.
 
 <p align="center">
-  <img src="documentation/assets/obsidian-magic-logo.png" alt="Obsidian Magic Logo" width="200" />
+  <img src="documentation/assets/obsidian-magic-logo.png" alt="Magus Mark Logo" width="200" />
 </p>
 
 <p align="center">
@@ -20,9 +20,9 @@ AI-powered tagging system for organizing AI conversations and technical knowledg
 
 ## Overview
 
-Obsidian Magic provides intelligent tagging and organization for AI chat exports and technical knowledge, with a focus
-on making your knowledge base more searchable and navigable. The system implements a carefully designed taxonomy with
-fixed categories to ensure tag consistency and utility.
+Magus Mark provides intelligent tagging and organization for AI chat exports and technical knowledge, with a focus on
+making your knowledge base more searchable and navigable. The system implements a carefully designed taxonomy with fixed
+categories to ensure tag consistency and utility.
 
 ### Key Features
 
@@ -34,7 +34,7 @@ fixed categories to ensure tag consistency and utility.
 
 ## Components
 
-Obsidian Magic is a suite of tools that work together:
+Magus Mark is a suite of tools that work together:
 
 ### 1. Core Tagging Engine
 

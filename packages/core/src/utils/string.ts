@@ -1,5 +1,5 @@
 /**
- * String utility functions for Obsidian Magic
+ * String utility functions for Magus Mark
  */
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Prompt utility functions for Obsidian Magic
+ * Prompt utility functions for Magus Mark
  */
 import fs from 'fs/promises';
 import path from 'path';

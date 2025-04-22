@@ -1,4 +1,4 @@
-# Obsidian Magic VS Code Extension
+# Magus Mark VS Code Extension
 
 AI-powered tagging system for organizing AI chat history and technical knowledge, seamlessly connecting VS Code with
 Obsidian.
@@ -20,7 +20,7 @@ Obsidian.
 
 1. Open VS Code
 2. Go to the Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
-3. Search for "Obsidian Magic"
+3. Search for "Magus Mark"
 4. Click "Install"
 
 ### Manual Installation
@@ -38,13 +38,13 @@ If you're using Cursor IDE:
 
 1. Open Cursor
 2. Go to the Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
-3. Search for "Obsidian Magic"
+3. Search for "Magus Mark"
 4. Click "Install"
 
 ## Getting Started
 
 1. After installation, open the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
-2. Type "Obsidian Magic: Add Vault" to connect to your Obsidian vault
+2. Type "Magus Mark: Add Vault" to connect to your Obsidian vault
 3. Configure your OpenAI API key in settings
 4. Open the Tag Explorer view from the Activity Bar
 
@@ -53,8 +53,8 @@ If you're using Cursor IDE:
 - **Tag Current File**: Analyze and tag the current file
 - **Open Tag Explorer**: Open the dedicated tag browser
 - **Tag with Cursor AI**: Use Cursor AI to tag the selected text or current file
-- **Register @vscode Participant**: Set up the VS Code participant for MCP
-- **Ask @vscode a Question**: Query VS Code with AI assistance
+- **Register @magus-mark Participant**: Set up the VS Code participant for MCP
+- **Ask @magus-mark a Question**: Query VS Code with AI assistance
 - **Add New Tag**: Create a new tag in the taxonomy
 - **Delete Tag**: Remove a tag from the taxonomy
 - **Manage Vaults**: Configure connected Obsidian vaults
@@ -64,7 +64,7 @@ If you're using Cursor IDE:
 
 ## Configuration
 
-Open VS Code settings and search for "Obsidian Magic" to configure:
+Open VS Code settings and search for "Magus Mark" to configure:
 
 - **API Key**: Your OpenAI API key
 - **Cursor Features**: Enable/disable Cursor-specific integrations
@@ -84,7 +84,7 @@ Open VS Code settings and search for "Obsidian Magic" to configure:
 For developers, the extension offers:
 
 - **MCP Server**: Model Context Protocol server for Cursor AI integration
-- **VS Code Participant**: `@vscode` participant for AI tools
+- **VS Code Participant**: `@magus-mark` participant for AI tools
 - **Contextual Knowledge**: Automatically retrieve relevant notes based on code context
 - **Cross-IDE Experience**: Same tagging system across Obsidian and VS Code
 

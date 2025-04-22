@@ -37,7 +37,7 @@ const STORAGE_KEYS = {
 };
 
 /**
- * @vscode participant implementation for Obsidian Magic's Cursor integration
+ * @magus-mark participant implementation for Magus Mark's Cursor integration
  * Based on Cursor's Model Context Protocol specification
  */
 export class VSCodeParticipant implements vscode.Disposable {
@@ -508,7 +508,7 @@ export class VSCodeParticipant implements vscode.Disposable {
   }
 
   /**
-   * Register the @vscode participant with the MCP server
+   * Register the @magus-mark participant with the MCP server
    */
   public registerWithMCPServer(mcpServer: { registerTool: (name: string, tool: Tool) => void }): void {
     try {
@@ -517,9 +517,9 @@ export class VSCodeParticipant implements vscode.Disposable {
         mcpServer.registerTool(name, tool);
       }
 
-      console.log('@vscode participant registered with MCP server');
+      console.log('@magus-mark participant registered with MCP server');
     } catch (error) {
-      console.error('Failed to register @vscode participant:', error);
+      console.error('Failed to register @magus-mark participant:', error);
     }
   }
 

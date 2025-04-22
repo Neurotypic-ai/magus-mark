@@ -17,7 +17,7 @@
     "yargs": "^17.7.2",
     "zod": "^3.24.3"
   },
-  "description": "CLI tool for Obsidian Magic",
+  "description": "CLI tool for Magus Mark",
   "devDependencies": {
     "@eslint/js": "^9.25.1",
     "@eslint/markdown": "^6.4.0",

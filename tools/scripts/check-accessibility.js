@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Accessibility test script for Obsidian Magic components
+ * Accessibility test script for Magus Mark components
  *
  * This script checks the CSS and HTML components for accessibility issues
  * using axe-core for automated accessibility testing.
@@ -51,7 +51,7 @@ const createTestHtml = (cssContent, componentType) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Obsidian Magic ${componentType} Accessibility Test</title>
+      <title>Magus Mark ${componentType} Accessibility Test</title>
       <style>
         /* Base styles simulation */
         :root {
@@ -79,7 +79,7 @@ const createTestHtml = (cssContent, componentType) => {
       </style>
     </head>
     <body>
-      <h1>Obsidian Magic ${componentType} Accessibility Test</h1>
+      <h1>Magus Mark ${componentType} Accessibility Test</h1>
       
       <!-- Tag Management View mockup -->
       <div class="tag-section">
@@ -150,7 +150,7 @@ const createTestHtml = (cssContent, componentType) => {
 
 // Main function to run accessibility tests
 async function runAccessibilityTests() {
-  console.log(`Running accessibility tests for Obsidian Magic ${componentType}...`);
+  console.log(`Running accessibility tests for Magus Mark ${componentType}...`);
 
   // Read the CSS file
   let cssContent;

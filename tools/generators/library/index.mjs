@@ -45,6 +45,6 @@ function normalizeOptions(tree, options, libsDir) {
     constantName: names(name).constantName,
     unitTestRunner: options.unitTestRunner || 'vitest',
     withReact: options.withReact || false,
-    description: options.description || `A library for Obsidian Magic`,
+    description: options.description || `A library for Magus Mark`,
   };
 }

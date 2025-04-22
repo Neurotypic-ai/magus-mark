@@ -57,7 +57,7 @@ const mockApp = new App();
 
 const mockManifest: PluginManifest = {
   id: 'obsidian-magic',
-  name: 'Obsidian Magic',
+  name: 'Magus Mark',
   version: '0.1.0',
   minAppVersion: '0.15.0', // Add missing properties
   author: 'Test Author', // Add missing properties

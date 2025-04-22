@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Obsidian Magic CLI
+ * Magus Mark CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
 'use strict';
@@ -9,12 +9,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { AppError } from '@magus-mark/core/errors/AppError';
-import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 import { config as dotenvConfig } from 'dotenv';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+
+import { AppError } from '@magus-mark/core/errors/AppError';
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 import { getAllCommands } from './commands/commands';
 import { config } from './utils/config';
@@ -68,7 +69,7 @@ logger.configure({
 function showBanner() {
   if (outputFormat !== 'silent') {
     logger.box(
-      `Obsidian Magic v${pkg.version}\n` + `Current cost limit: ${logger.formatCost(costManager.getCostLimit())}`,
+      `Magus Mark v${pkg.version}\n` + `Current cost limit: ${logger.formatCost(costManager.getCostLimit())}`,
       'CLI Tool'
     );
   }
@@ -136,7 +137,7 @@ async function main() {
     cli.version(`v${pkg.version}`);
 
     // Add banner and help text
-    const banner = chalk.bold.green(`Obsidian Magic CLI v${pkg.version}`);
+    const banner = chalk.bold.green(`Magus Mark CLI v${pkg.version}`);
     cli.epilogue(`For more information, see https://github.com/khallmark/obsidian-magic`);
 
     // Display banner before executing commands

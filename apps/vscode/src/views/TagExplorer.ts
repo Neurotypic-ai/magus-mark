@@ -1,5 +1,6 @@
-import { initializeCore } from '@magus-mark/core';
 import * as vscode from 'vscode';
+
+import { initializeCore } from '@magus-mark/core';
 
 import type { TaxonomyManager } from '@magus-mark/core/tagging/TaxonomyManager';
 
@@ -14,7 +15,7 @@ export interface TagNode {
 }
 
 /**
- * TagExplorer class - Provides a tree data provider for the Obsidian Magic tag explorer
+ * TagExplorer class - Provides a tree data provider for the Magus Mark tag explorer
  */
 export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Disposable {
   private _onDidChangeTreeData: vscode.EventEmitter<TagNode | undefined | null> = new vscode.EventEmitter<
@@ -335,7 +336,7 @@ export function registerTagExplorer(context: vscode.ExtensionContext): vscode.Tr
   const tagExplorer = new TagExplorer(context, core.taxonomyManager);
 
   // Register the tree data provider
-  const treeView = vscode.window.createTreeView('obsidianMagicTags', {
+  const treeView = vscode.window.createTreeView('obsidianMagicTagExplorer', {
     treeDataProvider: tagExplorer,
     showCollapseAll: true,
   });

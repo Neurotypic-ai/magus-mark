@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Bundle analysis script for Obsidian Magic components
+ * Bundle analysis script for Magus Mark components
  *
  * This script analyzes bundle size and composition
  * using the source-map package from Mozilla.

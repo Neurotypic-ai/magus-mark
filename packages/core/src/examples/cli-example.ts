@@ -1,5 +1,5 @@
 /**
- * Example CLI usage of the Obsidian Magic core module
+ * Example CLI usage of the Magus Mark core module
  *
  * To run:
  * 1. Set OPENAI_API_KEY environment variable
@@ -31,7 +31,7 @@ async function main() {
 
   try {
     // Initialize core module
-    console.log(`Initializing Obsidian Magic core module with model: ${model}...`);
+    console.log(`Initializing Magus Mark core module with model: ${model}...`);
     const core = await initializeCore({
       openaiApiKey: apiKey,
       model,

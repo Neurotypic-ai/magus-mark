@@ -93,7 +93,7 @@ describe('TagManagementView', () => {
     // Assert against the spies on the *actual* content container (children[1])
     expect(vi.mocked(mockContentContainer).empty).toHaveBeenCalled();
     expect(vi.mocked(mockContentContainer).createEl).toHaveBeenCalledWith('h2', {
-      text: 'Obsidian Magic Tag Management',
+      text: 'Magus Mark Tag Management',
     });
     expect(vi.mocked(mockContentContainer).createDiv).toHaveBeenCalledWith('tag-section');
     expect(vi.mocked(mockContentContainer).createDiv).toHaveBeenCalledWith('actions-section');

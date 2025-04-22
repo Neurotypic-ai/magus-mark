@@ -1,7 +1,7 @@
-# Contributing to Obsidian Magic
+# Contributing to Magus Mark
 
-First off, thank you for considering contributing to Obsidian Magic! This document provides guidelines and instructions
-for contributing to the project.
+First off, thank you for considering contributing to Magus Mark! This document provides guidelines and instructions for
+contributing to the project.
 
 ## Code of Conduct
 

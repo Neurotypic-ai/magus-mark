@@ -67,6 +67,6 @@ function normalizeOptions(tree, options, appsDir) {
     constantName: names(name).constantName,
     unitTestRunner: options.unitTestRunner || 'vitest',
     linter: options.linter || 'eslint',
-    description: options.description || `An application for Obsidian Magic`,
+    description: options.description || `An application for Magus Mark`,
   };
 }

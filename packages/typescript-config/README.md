@@ -1,6 +1,6 @@
 # @magus-mark/typescript-config
 
-Shared TypeScript configurations for Obsidian Magic projects.
+Shared TypeScript configurations for Magus Mark projects.
 
 ## Usage
 

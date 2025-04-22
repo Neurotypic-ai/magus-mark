@@ -1,5 +1,5 @@
 /**
- * Integration tests for Obsidian Magic core functionality
+ * Integration tests for Magus Mark core functionality
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 

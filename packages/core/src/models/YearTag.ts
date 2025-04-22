@@ -1,5 +1,5 @@
 /**
- * Core tag definitions for Obsidian Magic's tagging system
+ * Core tag definitions for Magus Mark's tagging system
  */
 /**
  * Represents a year tag (strictly 4-digit years)

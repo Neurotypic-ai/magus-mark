@@ -9,54 +9,54 @@
     "commands": [
       {
         "command": "obsidian-magic.tagFile",
-        "title": "Obsidian Magic: Tag Current File"
+        "title": "Magus Mark: Tag Current File"
       },
       {
         "command": "obsidian-magic.openTagExplorer",
-        "title": "Obsidian Magic: Open Tag Explorer"
+        "title": "Magus Mark: Open Tag Explorer"
       },
       {
         "command": "obsidian-magic.cursorTagFile",
-        "title": "Obsidian Magic: Tag with Cursor AI"
+        "title": "Magus Mark: Tag with Cursor AI"
       },
       {
         "command": "obsidian-magic.cursorRegisterVSCodeParticipant",
-        "title": "Obsidian Magic: Register @vscode Participant"
+        "title": "Magus Mark: Register @magus-mark Participant"
       },
       {
         "command": "obsidian-magic.queryVSCode",
-        "title": "Obsidian Magic: Ask @vscode a Question"
+        "title": "Magus Mark: Ask @magus-mark a Question"
       },
       {
         "command": "obsidian-magic.addTag",
-        "title": "Obsidian Magic: Add New Tag"
+        "title": "Magus Mark: Add New Tag"
       },
       {
         "command": "obsidian-magic.deleteTag",
-        "title": "Obsidian Magic: Delete Tag"
+        "title": "Magus Mark: Delete Tag"
       },
       {
         "command": "obsidian-magic.manageVaults",
-        "title": "Obsidian Magic: Manage Vaults"
+        "title": "Magus Mark: Manage Vaults"
       },
       {
         "command": "obsidian-magic.addVault",
-        "title": "Obsidian Magic: Add Vault"
+        "title": "Magus Mark: Add Vault"
       },
       {
         "command": "obsidian-magic.removeVault",
-        "title": "Obsidian Magic: Remove Vault"
+        "title": "Magus Mark: Remove Vault"
       },
       {
         "command": "obsidian-magic.syncVault",
-        "title": "Obsidian Magic: Sync Vaults"
+        "title": "Magus Mark: Sync Vaults"
       }
     ],
     "configuration": {
       "properties": {
         "obsidianMagic.cursorFeatures.enabled": {
           "default": true,
-          "description": "Enable Cursor-specific features like @vscode participant",
+          "description": "Enable Cursor-specific features like @magus-mark participant",
           "type": "boolean"
         },
         "obsidianMagic.cursorFeatures.mcpServerPort": {
@@ -97,7 +97,7 @@
       "explorer": [
         {
           "id": "obsidianMagicTagExplorer",
-          "name": "Obsidian Magic Tags"
+          "name": "Magus Mark Tags"
         }
       ]
     }

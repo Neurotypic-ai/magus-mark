@@ -1,5 +1,5 @@
 /**
- * Tag utility functions for Obsidian Magic
+ * Tag utility functions for Magus Mark
  */
 import type { ConfidenceScore } from '../models/ConfidenceScore';
 import type { DomainTag } from '../models/DomainTag';

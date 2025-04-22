@@ -1,4 +1,4 @@
-# Obsidian Magic
+# Magus Mark
 
 AI-powered tagging system for organizing AI chat history and technical knowledge in Obsidian.
 
@@ -27,7 +27,7 @@ AI-powered tagging system for organizing AI chat history and technical knowledge
 
 1. Open Obsidian and go to Settings
 2. Navigate to "Community plugins" and turn off "Safe mode"
-3. Click "Browse" and search for "Obsidian Magic"
+3. Click "Browse" and search for "Magus Mark"
 4. Click "Install" and then "Enable"
 
 ### Manual Installation
@@ -43,8 +43,8 @@ AI-powered tagging system for organizing AI chat history and technical knowledge
 1. After installation, open the plugin settings and add your OpenAI API key
 2. Choose your preferred storage method for the API key (system keychain recommended)
 3. Configure your tagging preferences (model, default behavior, etc.)
-4. Use the command palette (Ctrl/Cmd+P) to run "Obsidian Magic: Tag Current File" or right-click any file or folder in
-   the explorer
+4. Use the command palette (Ctrl/Cmd+P) to run "Magus Mark: Tag Current File" or right-click any file or folder in the
+   explorer
 
 ## Commands
 
@@ -62,7 +62,7 @@ AI-powered tagging system for organizing AI chat history and technical knowledge
 
 ## Neurodiversity Support
 
-Obsidian Magic is designed with neurodivergent users in mind:
+Magus Mark is designed with neurodivergent users in mind:
 
 - **Reduced Visual Noise**: Clean, focused interfaces that minimize distractions
 - **Motion Control**: All animations can be disabled in settings
@@ -83,7 +83,7 @@ standards plus additional neurodiversity-specific guidelines.
 
 ## Development
 
-For developers interested in contributing to Obsidian Magic:
+For developers interested in contributing to Magus Mark:
 
 ### Quick Start
 

@@ -1,6 +1,6 @@
-# Obsidian Magic Core
+# Magus Mark Core
 
-This package provides the core functionality for Obsidian Magic, including:
+This package provides the core functionality for Magus Mark, including:
 
 - AI-powered tagging and classification system
 - OpenAI API integration with prompt engineering

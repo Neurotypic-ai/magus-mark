@@ -1,7 +1,7 @@
 {
   "name": "@magus-mark/typescript-config",
   "version": "0.1.0",
-  "description": "Shared TypeScript configurations for Obsidian Magic",
+  "description": "Shared TypeScript configurations for Magus Mark",
   "private": true,
   "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
   "license": "MIT",

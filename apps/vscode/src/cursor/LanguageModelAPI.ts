@@ -252,7 +252,7 @@ export class LanguageModelAPI implements vscode.Disposable {
     // In a real implementation, we would use a fallback method like direct API calls
     // For now, return a placeholder response
     await new Promise((resolve) => setTimeout(resolve, 500)); // Add await to satisfy linter
-    return `[VS Code Language Model API not available]\n\nYour prompt: ${prompt}\n\nTo access the full capabilities of the @vscode participant, please use VS Code version July 2024 or later, or use Cursor which has enhanced AI integration.`;
+    return `[VS Code Language Model API not available]\n\nYour prompt: ${prompt}\n\nTo access the full capabilities of the @magus-mark participant, please use VS Code version July 2024 or later, or use Cursor which has enhanced AI integration.`;
   }
 
   /**
@@ -293,7 +293,7 @@ export class LanguageModelAPI implements vscode.Disposable {
 
       const disposable = languagesApi.registerLanguageModelProvider({
         modelId: 'obsidian-magic',
-        name: 'Obsidian Magic AI',
+        name: 'Magus Mark AI',
         provideLanguageModel: async (request: VSCodeLanguageModelRequest) => {
           const { messages } = request;
 
@@ -305,7 +305,7 @@ export class LanguageModelAPI implements vscode.Disposable {
           try {
             // Generate response based on the user's message
             const userContent = userMessage?.content ?? 'No content provided';
-            response = `Obsidian Magic: ${userContent}`;
+            response = `Magus Mark: ${userContent}`;
 
             // In a real implementation, we would process the message using our core package
             // and generate a proper response with access to the user's vault
@@ -327,7 +327,7 @@ export class LanguageModelAPI implements vscode.Disposable {
       });
 
       this.disposables.push(disposable);
-      console.log('Registered Obsidian Magic language model provider');
+      console.log('Registered Magus Mark language model provider');
     } catch (error) {
       console.error('Error registering language model provider:', error);
     }

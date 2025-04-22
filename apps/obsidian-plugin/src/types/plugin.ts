@@ -1,5 +1,5 @@
 /**
- * Plugin-specific type definitions for Obsidian Magic
+ * Plugin-specific type definitions for Magus Mark
  */
 
 import type { APIConfig } from '@magus-mark/core/models/APIConfig';

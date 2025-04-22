@@ -1,5 +1,5 @@
 /**
- * Core functionality for Obsidian Magic
+ * Core functionality for Magus Mark
  *
  * This module contains shared business logic for the tagging system,
  * OpenAI integration, markdown parsing, and other core features.

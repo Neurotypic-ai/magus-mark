@@ -1,6 +1,6 @@
 # @magus-mark/eslint-config
 
-Shared ESLint configuration for Obsidian Magic projects.
+Shared ESLint configuration for Magus Mark projects.
 
 ## Usage
 

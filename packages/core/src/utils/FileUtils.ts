@@ -1,5 +1,5 @@
 /**
- * File utility functions for Obsidian Magic
+ * File utility functions for Magus Mark
  */
 import path from 'node:path';
 
@@ -11,7 +11,7 @@ import { Result } from '../errors/Result';
 import { toAppError } from '../errors/utils';
 
 /**
- * Class providing file system utility methods for Obsidian Magic
+ * Class providing file system utility methods for Magus Mark
  *
  * Initialize with a base path to perform all operations relative to that directory.
  *

@@ -1,4 +1,4 @@
-# Obsidian Magic CLI
+# Magus Mark CLI
 
 Command-line tool for processing and tagging conversations in Obsidian markdown files.
 

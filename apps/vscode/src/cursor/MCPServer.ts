@@ -58,7 +58,7 @@ interface TagSuggestion {
 
 /**
  * Model Context Protocol Server implementation
- * Enables VS Code extension to participate in Cursor AI conversations via the @vscode participant
+ * Enables VS Code extension to participate in Cursor AI conversations via the @magus-mark participant
  */
 export class MCPServer implements vscode.Disposable {
   private httpServer: http.Server;
@@ -256,7 +256,7 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
 
         // Generate response to VS Code question
         const response = await this.languageModelAPI.generateCompletion(params.query, {
-          systemPrompt: `You are the @vscode participant in Cursor/VS Code. 
+          systemPrompt: `You are the @magus-mark participant in Cursor/VS Code. 
 You have expert knowledge about VS Code, its features, settings, and extensions.
 Provide helpful, accurate, and concise responses to questions about VS Code.
 If applicable, provide specific commands, keyboard shortcuts, or settings that can help the user.`,

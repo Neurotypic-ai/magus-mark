@@ -1,6 +1,6 @@
-# Contributing to Obsidian Magic
+# Contributing to Magus Mark
 
-Thank you for your interest in contributing to Obsidian Magic! This document provides guidelines and instructions for
+Thank you for your interest in contributing to Magus Mark! This document provides guidelines and instructions for
 contributing to the project.
 
 ## Code of Conduct
@@ -220,4 +220,4 @@ If you need help or have questions:
 - Join our Discord server for discussions
 - Check existing documentation and issues first
 
-Thank you for contributing to Obsidian Magic!
+Thank you for contributing to Magus Mark!
