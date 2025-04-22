@@ -10,8 +10,8 @@ import { SampleSettingTab } from './ui/SampleSettingTab';
 import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
-import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
+import type { TagBehavior } from '@magus-mark/core/models/TagBehavior';
 import type { App } from 'obsidian';
 
 interface ObsidianMagicSettings {

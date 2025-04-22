@@ -1,3 +1,3 @@
-import { createESLintConfig } from './config/eslint/index.js';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-export default createESLintConfig();
+export default createESLintConfig([]);

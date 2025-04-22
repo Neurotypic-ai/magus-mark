@@ -18,7 +18,7 @@ const mockLogger = {
   success: vi.fn(), // Added success for the reverted command structure
 };
 
-vi.mock('@obsidian-magic/core/utils/Logger', () => ({
+vi.mock('@magus-mark/core/utils/Logger', () => ({
   Logger: {
     getInstance: vi.fn().mockReturnValue(mockLogger),
   },
@@ -53,8 +53,8 @@ const mockTaxonomyManager = {
   addContextualTag: vi.fn(),
 };
 
-vi.mock('@obsidian-magic/core', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@obsidian-magic/core')>();
+vi.mock('@magus-mark/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@magus-mark/core')>();
   return {
     ...original,
     initializeCore: vi.fn().mockReturnValue({ taxonomyManager: mockTaxonomyManager }),

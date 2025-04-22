@@ -1,8 +1,6 @@
-import customConfig from 'eslint-config-custom';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-export default [
-  ...customConfig,
-
+export default createESLintConfig([
   // VS Code-specific overrides
   {
     files: ['src/**/*.{ts,tsx}'],
@@ -15,4 +13,4 @@ export default [
       'jsx-a11y/aria-role': 'error',
     },
   },
-];
+]);

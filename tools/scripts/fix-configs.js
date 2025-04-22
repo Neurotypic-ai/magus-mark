@@ -62,15 +62,15 @@ async function fixProjectPackageJson(projectPath, projectType) {
       modified = true;
     }
 
-    // Add eslint-config-custom if missing
-    if (!packageJson.devDependencies['eslint-config-custom']) {
-      packageJson.devDependencies['eslint-config-custom'] = 'workspace:*';
+    // Add @magus-mark/eslint-config if missing
+    if (!packageJson.devDependencies['@magus-mark/eslint-config']) {
+      packageJson.devDependencies['@magus-mark/eslint-config'] = 'workspace:*';
       modified = true;
     }
 
-    // Add tsconfig-custom if missing
-    if (!packageJson.devDependencies['tsconfig-custom']) {
-      packageJson.devDependencies['tsconfig-custom'] = 'workspace:*';
+    // Add @magus-mark/typescript-config if missing
+    if (!packageJson.devDependencies['@magus-mark/typescript-config']) {
+      packageJson.devDependencies['@magus-mark/typescript-config'] = 'workspace:*';
       modified = true;
     }
 

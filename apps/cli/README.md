@@ -10,10 +10,10 @@ cd apps/cli
 npm link
 
 # Or install globally from npm (once published)
-npm install -g @obsidian-magic/cli
+npm install -g @magus-mark/cli
 
 # Or use without installing
-npx @obsidian-magic/cli <command>
+npx @magus-mark/cli <command>
 ```
 
 ## Quick Start
@@ -172,13 +172,13 @@ cd obsidian-magic
 pnpm install
 
 # Build the CLI
-pnpm --filter @obsidian-magic/cli build
+pnpm --filter @magus-mark/cli build
 
 # Run tests
-pnpm --filter @obsidian-magic/cli test
+pnpm --filter @magus-mark/cli test
 
 # Watch mode for development
-pnpm --filter @obsidian-magic/cli dev
+pnpm --filter @magus-mark/cli dev
 ```
 
 ## Documentation

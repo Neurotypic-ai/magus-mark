@@ -1,8 +1,6 @@
-import customConfig from 'eslint-config-custom';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-export default [
-  ...customConfig,
-
+export default createESLintConfig([
   // CLI-specific overrides
   {
     files: ['src/**/*.ts'],
@@ -11,4 +9,4 @@ export default [
       'no-console': 'off',
     },
   },
-];
+]);

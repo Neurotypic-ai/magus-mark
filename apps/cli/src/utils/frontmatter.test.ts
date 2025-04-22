@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { extractFrontmatter, extractTagsFromFrontmatter, updateTagsInFrontmatter } from './frontmatter';
 
-import type { ConversationTypeTag } from '@obsidian-magic/core/models/ConversationTypeTag';
-import type { TagConfidence } from '@obsidian-magic/core/models/TagConfidence';
-import type { TagSet } from '@obsidian-magic/core/models/TagSet';
-import type { TopicalTag } from '@obsidian-magic/core/models/TopicalTag';
+import type { ConversationTypeTag } from '@magus-mark/core/models/ConversationTypeTag';
+import type { TagConfidence } from '@magus-mark/core/models/TagConfidence';
+import type { TagSet } from '@magus-mark/core/models/TagSet';
+import type { TopicalTag } from '@magus-mark/core/models/TopicalTag';
 
 describe('Frontmatter Utility', () => {
   describe('extractFrontmatter', () => {

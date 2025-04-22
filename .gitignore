@@ -4,9 +4,11 @@ node_modules/
 .npm/
 
 # Build outputs
-build/
 dist/
 out/
+build/*
+!packages/typescript-config/build/
+!packages/typescript-config/build/tsconfig.json
 
 # Environment variables
 .env
@@ -60,6 +62,5 @@ tools/magus-mcp/magus-mcp.exe
 .nx/workspace-data
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
-
 
 storybook-static

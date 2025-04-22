@@ -20,7 +20,9 @@ AI-powered tagging system for organizing AI conversations and technical knowledg
 
 ## Overview
 
-Obsidian Magic provides intelligent tagging and organization for AI chat exports and technical knowledge, with a focus on making your knowledge base more searchable and navigable. The system implements a carefully designed taxonomy with fixed categories to ensure tag consistency and utility.
+Obsidian Magic provides intelligent tagging and organization for AI chat exports and technical knowledge, with a focus
+on making your knowledge base more searchable and navigable. The system implements a carefully designed taxonomy with
+fixed categories to ensure tag consistency and utility.
 
 ### Key Features
 
@@ -118,7 +120,7 @@ pnpm test
 pnpm lint
 
 # Build specific component
-pnpm --filter @obsidian-magic/core build
+pnpm --filter @magus-mark/core build
 ```
 
 ### CI/CD Pipelines

@@ -1,9 +1,7 @@
-import customConfig from 'eslint-config-custom';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-export default [
-  ...customConfig,
-
-  // Obsidian-specific overrides
+// @type {import('eslint').Linter.FlatConfig}
+export default createESLintConfig([
   {
     files: ['src/**/*.{ts,tsx}'],
     rules: {
@@ -13,4 +11,4 @@ export default [
       'jsx-a11y/aria-role': 'error',
     },
   },
-];
+]);

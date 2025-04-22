@@ -1,0 +1,14 @@
+{
+  "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
+  "references": [
+    {
+      "path": "@magus-mark/typescript-config/config/build/tsconfig.json"
+    },
+    {
+      "path": "@magus-mark/typescript-config/config/test/tsconfig.json"
+    },
+    {
+      "path": "${configDir}/../../packages/core"
+    }
+  ]
+}

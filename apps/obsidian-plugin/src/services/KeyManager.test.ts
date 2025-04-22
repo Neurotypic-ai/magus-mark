@@ -1,14 +1,13 @@
+// Import error types from their specific paths
+import { APIError } from '@magus-mark/core/errors/APIError';
+import { FileSystemError as CoreFileSystemError } from '@magus-mark/core/errors/FileSystemError';
 import { Notice } from 'obsidian';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Import error types from their specific paths
-import { APIError } from '@obsidian-magic/core/errors/APIError';
-import type { AppError as CoreAppError } from '@obsidian-magic/core/errors/AppError';
-import { FileSystemError as CoreFileSystemError } from '@obsidian-magic/core/errors/FileSystemError';
 
 // Remove STORAGE_KEY import
 import { KeyManager } from '../services/KeyManager';
 
+import type { AppError as CoreAppError } from '@magus-mark/core/errors/AppError';
 import type * as Electron from 'electron';
 // Use type-only import for Mock
 import type { Mock } from 'vitest';

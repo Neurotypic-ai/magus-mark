@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
 
-import type { Document } from '@obsidian-magic/core/models/Document';
+import type { Document } from '@magus-mark/core/models/Document';
 import type {
   MarkdownFileInfo,
   WorkspaceContainer,

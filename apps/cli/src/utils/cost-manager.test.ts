@@ -34,7 +34,7 @@ vi.mock('fs-extra', () => ({
   ]),
 }));
 
-vi.mock('@obsidian-magic/logger', () => ({
+vi.mock('@magus-mark/logger', () => ({
   logger: {
     debug: vi.fn(),
     warn: vi.fn(),

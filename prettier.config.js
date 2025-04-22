@@ -24,7 +24,7 @@ const config = {
     '',
     '<THIRD_PARTY_MODULES>',
     '',
-    '^@obsidian-magic/(.*)$',
+    '^@magus-mark/(.*)$',
     '',
     '^(#app|#tests|@/icon-name)(/.*)$',
     '',

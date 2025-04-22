@@ -1,4 +1,4 @@
-# tsconfig-custom
+# @magus-mark/typescript-config
 
 Shared TypeScript configurations for Obsidian Magic projects.
 
@@ -8,7 +8,7 @@ Add as a workspace dependency:
 
 ```json
 "dependencies": {
-  "tsconfig-custom": "workspace:*"
+  "@magus-mark/typescript-config": "workspace:*"
 }
 ```
 
@@ -16,7 +16,7 @@ Then extend the appropriate configuration in your project's `tsconfig.json`:
 
 ```json
 {
-  "extends": "tsconfig-custom/library.json",
+  "extends": "@magus-mark/typescript-config/library.json",
   // Additional project-specific settings
   "compilerOptions": {
     "rootDir": "./src",
@@ -45,7 +45,7 @@ Then extend the appropriate configuration in your project's `tsconfig.json`:
 
 ```json
 {
-  "extends": "tsconfig-custom/library.json",
+  "extends": "@magus-mark/typescript-config/library.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
@@ -61,7 +61,7 @@ Then extend the appropriate configuration in your project's `tsconfig.json`:
 
 ```json
 {
-  "extends": "tsconfig-custom/cli.json",
+  "extends": "@magus-mark/typescript-config/cli.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist"
@@ -75,7 +75,7 @@ Then extend the appropriate configuration in your project's `tsconfig.json`:
 
 ```json
 {
-  "extends": "tsconfig-custom/obsidian.json",
+  "extends": "@magus-mark/typescript-config/obsidian.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist"
@@ -89,7 +89,7 @@ Then extend the appropriate configuration in your project's `tsconfig.json`:
 
 ```json
 {
-  "extends": "tsconfig-custom/vscode.json",
+  "extends": "@magus-mark/typescript-config/vscode.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist"

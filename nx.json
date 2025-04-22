@@ -90,11 +90,11 @@
         }
       }
     },
-    "packages/eslint-config-custom": {
+    "packages/@magus-mark/eslint-config": {
       "tags": ["config", "shared"],
       "implicitDependencies": []
     },
-    "packages/tsconfig-custom": {
+    "packages/@magus-mark/typescript-config": {
       "tags": ["config", "shared"],
       "implicitDependencies": []
     }
@@ -160,23 +160,6 @@
       "plugin": "@nx/eslint/plugin",
       "options": {
         "targetName": "lint"
-      }
-    },
-    {
-      "plugin": "@nx/storybook/plugin",
-      "options": {
-        "serveStorybookTargetName": "storybook",
-        "buildStorybookTargetName": "build-storybook",
-        "testStorybookTargetName": "test-storybook",
-        "staticStorybookTargetName": "static-storybook"
-      }
-    },
-    {
-      "plugin": "@nx/rollup/plugin",
-      "options": {
-        "buildTargetName": "build",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps"
       }
     },
     "@nx-go/nx-go"

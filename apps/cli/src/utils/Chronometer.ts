@@ -1,13 +1,12 @@
 import path from 'path';
 
+import { AppError } from '@magus-mark/core/errors/AppError';
+import { Result } from '@magus-mark/core/errors/Result';
+import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
+import { TaggingService } from '@magus-mark/core/openai/TaggingService';
 import * as fs from 'fs-extra';
 
-import { AppError } from '@obsidian-magic/core/errors/AppError';
-import { Result } from '@obsidian-magic/core/errors/Result';
-import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
-import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
-
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
 
 /**
  * Benchmark report for a single model

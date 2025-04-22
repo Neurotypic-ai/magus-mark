@@ -37,8 +37,8 @@ const mockConfig = {
 };
 
 // Mock the modules
-vi.mock('@obsidian-magic/logger', () => ({ logger: mockLogger }));
-vi.mock('@obsidian-magic/core', () => ({
+vi.mock('@magus-mark/logger', () => ({ logger: mockLogger }));
+vi.mock('@magus-mark/core', () => ({
   costManager: mockCostManager,
   config: mockConfig,
 }));

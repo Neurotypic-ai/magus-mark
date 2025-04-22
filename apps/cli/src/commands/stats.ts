@@ -1,10 +1,9 @@
 import * as path from 'node:path';
 
+import { FileUtils } from '@magus-mark/core/utils/FileUtils';
+import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
-
-import { FileUtils } from '@obsidian-magic/core/utils/FileUtils';
-import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { costManager } from '../utils/cost-manager';
 

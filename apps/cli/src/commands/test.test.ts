@@ -1,6 +1,5 @@
+import { Logger } from '@magus-mark/core/utils/Logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import { benchmark } from '../utils/Chronometer';
 import { testCommand } from './test';
@@ -10,7 +9,7 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 const logger = Logger.getInstance('test');
 
 // Mock dependencies
-vi.mock('@obsidian-magic/core/utils/Logger', () => ({
+vi.mock('@magus-mark/core/utils/Logger', () => ({
   Logger: {
     getInstance: vi.fn().mockReturnValue({
       info: vi.fn(),
@@ -73,7 +72,7 @@ const mockOpenAIClient = vi.fn().mockImplementation(() => ({
   }),
 }));
 
-vi.mock('@obsidian-magic/core', () => ({
+vi.mock('@magus-mark/core', () => ({
   OpenAIClient: mockOpenAIClient,
 }));
 
@@ -92,7 +91,7 @@ const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as
 const mockBenchmarkRun = vi.mocked(benchmark.runBenchmark);
 
 // Mock the Result class
-vi.mock('@obsidian-magic/core/errors/Result', () => ({
+vi.mock('@magus-mark/core/errors/Result', () => ({
   Result: {
     ok: vi.fn().mockImplementation((value) => ({
       isFail: () => false,

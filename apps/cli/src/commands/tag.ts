@@ -1,21 +1,20 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
+import { TaggingService } from '@magus-mark/core/openai/TaggingService';
+import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 import * as cliProgress from 'cli-progress';
 import * as fsExtra from 'fs-extra';
 
-import { OpenAIClient } from '@obsidian-magic/core/openai/OpenAIClient';
-import { TaggingService } from '@obsidian-magic/core/openai/TaggingService';
-import { Logger } from '@obsidian-magic/core/utils/Logger';
-
 import { config } from '../utils/config';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
 
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
-import type { Document } from '@obsidian-magic/core/models/Document';
-import type { TagBehavior } from '@obsidian-magic/core/models/TagBehavior';
-import type { TagSet } from '@obsidian-magic/core/models/TagSet';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
+import type { Document } from '@magus-mark/core/models/Document';
+import type { TagBehavior } from '@magus-mark/core/models/TagBehavior';
+import type { TagSet } from '@magus-mark/core/models/TagSet';
 import type { CommandModule } from 'yargs';
 
 import type { TagOptions } from '../types/commands';

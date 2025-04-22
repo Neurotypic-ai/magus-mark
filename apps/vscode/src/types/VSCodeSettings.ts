@@ -1,5 +1,5 @@
-import type { APIConfig } from '@obsidian-magic/core/models/APIConfig';
-import type { TaggingOptions } from '@obsidian-magic/core/models/TaggingOptions';
+import type { APIConfig } from '@magus-mark/core/models/APIConfig';
+import type { TaggingOptions } from '@magus-mark/core/models/TaggingOptions';
 
 /**
  * VS Code extension settings

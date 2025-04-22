@@ -1,15 +1,6 @@
-// Import the configuration from the local index.js file
-import customConfig from './index.js';
+import { createESLintConfig } from './config/index.js';
 
-// Example eslint.config.js that can be copied by projects
-export default [
-  ...customConfig,
+// @type {import('eslint').Linter.FlatConfig}
+const config = createESLintConfig([]);
 
-  // Add any project-specific overrides here
-  {
-    files: ['src/**/*.ts'],
-    rules: {
-      // Project-specific rule overrides
-    },
-  },
-];
+export default config;

@@ -5,7 +5,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../utils/config';
 import { configInteractiveCommand } from './config-interactive';
 
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
 import type { Argv } from 'yargs';
 
 import type { LogLevel } from '../types/commands';
@@ -27,7 +27,7 @@ console.log = vi.fn();
 console.error = vi.fn();
 
 // Mock OpenAI-related dependencies completely inline
-vi.mock('@obsidian-magic/core/openai/ModelManager', () => ({
+vi.mock('@magus-mark/core/openai/ModelManager', () => ({
   ModelManager: {
     getInstance: () => ({
       getAvailableModels: vi
@@ -53,7 +53,7 @@ vi.mock('@obsidian-magic/core/openai/ModelManager', () => ({
   },
 }));
 
-vi.mock('@obsidian-magic/core/openai/OpenAIClient', () => ({
+vi.mock('@magus-mark/core/openai/OpenAIClient', () => ({
   OpenAIClient: vi.fn().mockImplementation(() => ({
     getAvailableModels: vi.fn().mockResolvedValue([
       { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', inputPrice: 1, outputPrice: 2 },
@@ -66,7 +66,7 @@ vi.mock('fs-extra', () => ({
   pathExists: vi.fn(),
 }));
 
-vi.mock('@obsidian-magic/core/utils/Logger', () => ({
+vi.mock('@magus-mark/core/utils/Logger', () => ({
   Logger: {
     getInstance: () => ({
       info: vi.fn(),
@@ -245,7 +245,7 @@ describe('configInteractiveCommand', () => {
 
       // Mock filesystem function
       const writeFileMock = vi.fn().mockResolvedValue(undefined);
-      vi.mock('@obsidian-magic/utils', () => ({
+      vi.mock('@magus-mark/utils', () => ({
         writeFile: writeFileMock,
       }));
 

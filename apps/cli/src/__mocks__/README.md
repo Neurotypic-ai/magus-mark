@@ -6,7 +6,7 @@ This directory contains local test mocks for the CLI application.
 
 ### Logger Mock
 
-The Logger mock provides a consistent way to mock the Logger from `@obsidian-magic/core/utils/Logger` in tests.
+The Logger mock provides a consistent way to mock the Logger from `@magus-mark/core/utils/Logger` in tests.
 
 #### Usage
 
@@ -14,7 +14,7 @@ The Logger mock provides a consistent way to mock the Logger from `@obsidian-mag
 // Import the mock
 
 // Import Logger after setup
-import { Logger } from '@obsidian-magic/core/utils/Logger';
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 import { mockLoggerInstance, setupLoggerMock } from './__mocks__/Logger';
 
@@ -34,5 +34,5 @@ describe('My Test', () => {
 
 ## Future Plans
 
-These local mocks will eventually be moved to the shared `@obsidian-magic/testing` package for use across all packages
-and applications.
+These local mocks will eventually be moved to the shared `@magus-mark/testing` package for use across all packages and
+applications.

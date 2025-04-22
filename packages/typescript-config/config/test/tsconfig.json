@@ -5,7 +5,7 @@
     "types": ["node", "vitest/globals"],
     "tsBuildInfoFile": "${configDir}/dist/test.tsbuildinfo"
   },
-  "extends": "./base.json",
+  "extends": "@magus-mark/typescript-config/config/base.json",
   "include": [
     "${configDir}/src/**/*.test.ts",
     "${configDir}/src/**/*.spec.ts",

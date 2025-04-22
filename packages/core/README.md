@@ -11,7 +11,7 @@ This package provides the core functionality for Obsidian Magic, including:
 
 ```bash
 # From the project root
-pnpm install @obsidian-magic/core
+pnpm install @magus-mark/core
 ```
 
 ## Usage
@@ -19,7 +19,7 @@ pnpm install @obsidian-magic/core
 ### Basic Usage
 
 ```typescript
-import { initializeCore } from '@obsidian-magic/core';
+import { initializeCore } from '@magus-mark/core';
 
 // Initialize the core module with your API key
 const core = initializeCore({
@@ -45,7 +45,7 @@ if (result.success && result.tags) {
 ### Batch Processing
 
 ```typescript
-import { initializeCore } from '@obsidian-magic/core';
+import { initializeCore } from '@magus-mark/core';
 
 const core = initializeCore({
   openaiApiKey: 'your-api-key',
@@ -77,7 +77,7 @@ console.log(`Successfully processed: ${result.summary.successful}`);
 ### Custom Taxonomy
 
 ```typescript
-import { TaxonomyManager, initializeCore } from '@obsidian-magic/core';
+import { TaxonomyManager, initializeCore } from '@magus-mark/core';
 
 // Create a custom taxonomy
 const taxonomyManager = new TaxonomyManager({
@@ -218,7 +218,7 @@ The core module uses standardized error types for consistent error handling:
 Example error handling:
 
 ```typescript
-import { AppError, initializeCore } from '@obsidian-magic/core';
+import { AppError, initializeCore } from '@magus-mark/core';
 
 try {
   const core = initializeCore({

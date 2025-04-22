@@ -1,19 +1,4 @@
 {
-  "name": "@obsidian-magic/core",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/types/src/index.d.ts",
-  "scripts": {
-    "build": "tsc -b",
-    "clean": "rm -rf dist",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
-  },
   "dependencies": {
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
@@ -24,31 +9,36 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
-    "@eslint/markdown": "^6.4.0",
+    "@magus-mark/eslint-config": "workspace:*",
+    "@magus-mark/typescript-config": "workspace:*",
     "@types/fs-extra": "^11.0.4",
-    "@typescript-eslint/eslint-plugin": "^8.31.0",
-    "@typescript-eslint/parser": "^8.31.0",
-    "@typescript-eslint/utils": "^8.31.0",
     "eslint": "^9.25.1",
-    "eslint-config-prettier": "^10.1.2",
-    "eslint-import-resolver-typescript": "^4.3.4",
-    "eslint-plugin-import-x": "^4.10.6",
-    "eslint-plugin-testing-library": "^7.1.1",
     "typescript": "5.8.3",
-    "typescript-eslint": "^8.31.0",
-    "vitest": "^3.1.2",
-    "tsconfig-custom": "workspace:*",
-    "eslint-config-custom": "workspace:*"
+    "vitest": "^3.1.2"
   },
   "exports": {
     ".": {
-      "types": "./dist/types/src/index.d.ts",
-      "import": "./dist/src/index.js"
+      "import": "./dist/src/index.js",
+      "types": "./dist/types/src/index.d.ts"
     },
     "./*": {
-      "types": "./dist/types/src/*.d.ts",
-      "import": "./dist/src/*.js"
+      "import": "./dist/src/*.js",
+      "types": "./dist/types/src/*.d.ts"
     }
-  }
+  },
+  "main": "dist/src/index.js",
+  "name": "@magus-mark/core",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch"
+  },
+  "type": "module",
+  "types": "dist/types/src/index.d.ts",
+  "version": "0.1.0"
 }

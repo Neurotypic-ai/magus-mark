@@ -1,9 +1,8 @@
-import customConfig from 'eslint-config-custom';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
-export default [
-  ...customConfig,
-
-  // Core-specific overrides
+/** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
+export default createESLintConfig([
+  /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
   {
     files: ['src/**/*.ts'],
     rules: {
@@ -22,4 +21,4 @@ export default [
       ],
     },
   },
-];
+]);

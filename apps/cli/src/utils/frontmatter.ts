@@ -1,6 +1,6 @@
 import * as yaml from 'js-yaml';
 
-import type { TagSet } from '@obsidian-magic/core/models/TagSet';
+import type { TagSet } from '@magus-mark/core/models/TagSet';
 
 /**
  * Type definitions for frontmatter data

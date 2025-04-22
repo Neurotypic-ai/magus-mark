@@ -10,6 +10,10 @@ import { tsConfig } from './typescript.js';
 
 export const DEBUG = process.env['NODE_ENV'] === 'development' && process.env['DEBUG'] === 'true';
 
+/**
+ * @param {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} customConfig
+ * @returns {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]}
+ */
 export function createESLintConfig(customConfig = []) {
   // Export the complete config using typescript-eslint's config function
   /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
@@ -34,5 +38,3 @@ export function createESLintConfig(customConfig = []) {
 
   return combinedConfig;
 }
-
-export { baseConfig, jsConfig, tsConfig, markdownConfig, markdownTsConfig, testConfig, nodeConfig, ignoresConfig };

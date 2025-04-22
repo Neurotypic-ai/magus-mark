@@ -39,7 +39,7 @@ export function setupLoggerMock(): LoggerMockInstance {
   }
 
   // Call this before your tests and before importing the Logger
-  vi.mock('@obsidian-magic/core/utils/Logger', () => {
+  vi.mock('@magus-mark/core/utils/Logger', () => {
     return {
       Logger: {
         getInstance: vi.fn(() => mockLoggerInstance),

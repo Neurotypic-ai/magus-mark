@@ -1,12 +1,11 @@
+import { Logger } from '@magus-mark/core/utils/Logger';
+import { formatCurrency, formatDuration } from '@magus-mark/core/utils/string';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
 
-import { Logger } from '@obsidian-magic/core/utils/Logger';
-import { formatCurrency, formatDuration } from '@obsidian-magic/core/utils/string';
-
 import { benchmark } from '../utils/Chronometer';
 
-import type { AIModel } from '@obsidian-magic/core/models/AIModel';
+import type { AIModel } from '@magus-mark/core/models/AIModel';
 import type { CommandModule } from 'yargs';
 
 import type { TestOptions } from '../types/commands';

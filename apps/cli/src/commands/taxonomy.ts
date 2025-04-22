@@ -1,7 +1,6 @@
+import { initializeCore } from '@magus-mark/core';
+import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
-
-import { initializeCore } from '@obsidian-magic/core';
-import { Logger } from '@obsidian-magic/core/utils/Logger';
 
 import type { CommandModule } from 'yargs';
 

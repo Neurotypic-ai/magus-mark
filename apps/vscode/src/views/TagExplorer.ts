@@ -1,8 +1,7 @@
+import { initializeCore } from '@magus-mark/core';
 import * as vscode from 'vscode';
 
-import { initializeCore } from '@obsidian-magic/core';
-
-import type { TaxonomyManager } from '@obsidian-magic/core/tagging/TaxonomyManager';
+import type { TaxonomyManager } from '@magus-mark/core/tagging/TaxonomyManager';
 
 // Tag node representation for the tree view
 export interface TagNode {

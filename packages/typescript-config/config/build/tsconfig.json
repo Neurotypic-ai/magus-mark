@@ -1,5 +1,5 @@
 {
-  "extends": "./base.json",
+  "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
   "compilerOptions": {
     "outDir": "${configDir}/dist",
     "rootDir": "${configDir}/src",

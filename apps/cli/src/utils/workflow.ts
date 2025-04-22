@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import { Logger } from '@obsidian-magic/core/utils/Logger';
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 const logger = Logger.getInstance('Workflow');
 /**

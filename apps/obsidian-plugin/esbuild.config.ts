@@ -14,7 +14,7 @@ await build({
   format: 'cjs',
   sourcemap: true,
   minify: !isWatch,
-  external: ['obsidian', '@obsidian-magic/core'],
+  external: ['obsidian', '@magus-mark/core'],
 });
 
 function copyAssets() {

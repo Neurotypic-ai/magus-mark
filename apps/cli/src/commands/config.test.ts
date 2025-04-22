@@ -16,7 +16,7 @@ vi.mock('../../src/utils/logger', () => ({
 }));
 
 // Mock ModelManager
-vi.mock('@obsidian-magic/core/openai/ModelManager', () => ({
+vi.mock('@magus-mark/core/openai/ModelManager', () => ({
   ModelManager: {
     getInstance: vi.fn().mockReturnValue({
       validateModel: vi.fn().mockResolvedValue({ valid: true }),
@@ -41,7 +41,7 @@ vi.mock('../../src/utils/config', () => ({
   },
 }));
 
-vi.mock('@obsidian-magic/utils', () => ({
+vi.mock('@magus-mark/utils', () => ({
   fileExists: vi.fn().mockResolvedValue(true),
   writeFile: vi.fn().mockResolvedValue(undefined),
 }));

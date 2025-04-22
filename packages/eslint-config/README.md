@@ -1,4 +1,4 @@
-# eslint-config-custom
+# @magus-mark/eslint-config
 
 Shared ESLint configuration for Obsidian Magic projects.
 
@@ -9,7 +9,7 @@ Shared ESLint configuration for Obsidian Magic projects.
 The package is available as a workspace dependency:
 
 ```bash
-"eslint-config-custom": "workspace:*"
+"@magus-mark/eslint-config": "workspace:*"
 ```
 
 ### Using in a project
@@ -18,7 +18,7 @@ Create an `eslint.config.js` file in your project root:
 
 ```js
 // eslint.config.js
-import customConfig from 'eslint-config-custom';
+import customConfig from '@magus-mark/eslint-config';
 
 export default [
   ...customConfig,
