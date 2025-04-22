@@ -6,81 +6,147 @@
   },
   "projectSettings": {
     "packages/core": {
-      "tags": ["core", "shared"],
+      "tags": [
+        "core",
+        "shared"
+      ],
       "implicitDependencies": [],
       "namedInputs": {
-        "production": ["default"],
-        "test": ["default", "{projectRoot}/src/**/*.test.ts"]
+        "production": [
+          "default"
+        ],
+        "test": [
+          "default",
+          "{projectRoot}/src/**/*.test.ts"
+        ]
       }
     },
     "apps/cli": {
-      "tags": ["app", "cli"],
-      "implicitDependencies": ["packages/core"],
+      "tags": [
+        "app",
+        "cli"
+      ],
+      "implicitDependencies": [
+        "packages/core"
+      ],
       "namedInputs": {
-        "production": ["default"],
-        "test": ["default", "{projectRoot}/src/**/*.test.ts"]
+        "production": [
+          "default"
+        ],
+        "test": [
+          "default",
+          "{projectRoot}/src/**/*.test.ts"
+        ]
       }
     },
     "apps/obsidian-plugin": {
-      "tags": ["app", "obsidian"],
-      "implicitDependencies": ["packages/core"],
+      "tags": [
+        "app",
+        "obsidian"
+      ],
+      "implicitDependencies": [
+        "packages/core"
+      ],
       "namedInputs": {
-        "production": ["default"],
-        "test": ["default", "{projectRoot}/src/**/*.test.ts", "{projectRoot}/src/**/*.test.tsx"]
+        "production": [
+          "default"
+        ],
+        "test": [
+          "default",
+          "{projectRoot}/src/**/*.test.ts",
+          "{projectRoot}/src/**/*.test.tsx"
+        ]
       }
     },
     "apps/vscode": {
-      "tags": ["app", "vscode"],
-      "implicitDependencies": ["packages/core"],
+      "tags": [
+        "app",
+        "vscode"
+      ],
+      "implicitDependencies": [
+        "packages/core"
+      ],
       "namedInputs": {
-        "production": ["default"],
-        "test": ["default", "{projectRoot}/src/**/*.test.ts", "{projectRoot}/src/**/*.test.tsx"]
+        "production": [
+          "default"
+        ],
+        "test": [
+          "default",
+          "{projectRoot}/src/**/*.test.ts",
+          "{projectRoot}/src/**/*.test.tsx"
+        ]
       }
     }
   },
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
       "cache": true
     },
     "test": {
-      "dependsOn": ["build"],
-      "outputs": ["{projectRoot}/coverage"],
+      "dependsOn": [
+        "build"
+      ],
+      "outputs": [
+        "{projectRoot}/coverage"
+      ],
       "cache": true
     },
     "lint": {
       "cache": true
     },
     "bundle-analysis": {
-      "dependsOn": ["^bundle-analysis"],
+      "dependsOn": [
+        "^bundle-analysis"
+      ],
       "cache": true
     },
     "check-accessibility": {
-      "dependsOn": ["^check-accessibility"],
+      "dependsOn": [
+        "^check-accessibility"
+      ],
       "cache": true
     },
     "package": {
-      "dependsOn": ["^package"],
+      "dependsOn": [
+        "^package"
+      ],
       "cache": true
     },
     "prebuild": {
-      "dependsOn": ["^prebuild"]
+      "dependsOn": [
+        "^prebuild"
+      ]
     },
     "prerelease": {
-      "dependsOn": ["^prerelease"]
+      "dependsOn": [
+        "^prerelease"
+      ]
     },
     "test:coverage": {
-      "dependsOn": ["^test:coverage"],
+      "dependsOn": [
+        "^test:coverage"
+      ],
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
-      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
       "cache": true
     },
     "vscode:prepublish": {
-      "dependsOn": ["^vscode:prepublish"]
+      "dependsOn": [
+        "^vscode:prepublish"
+      ]
     },
     "clean": {
       "cache": true
@@ -111,17 +177,25 @@
       }
     }
   ],
-  "nxCloudId": "67fc673de94071427fe19ac7",
+  "nxCloudId": "68070cc4a0c749f66b8836a0",
   "namedInputs": {
-    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"],
-    "default": ["sharedGlobals"]
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci.yml"
+    ],
+    "default": [
+      "sharedGlobals"
+    ]
   },
   "extends": "nx/presets/npm.json",
   "tasksRunnerOptions": {
     "default": {
       "runner": "nx/tasks-runners/default",
       "options": {
-        "cacheableOperations": ["build", "test", "lint"]
+        "cacheableOperations": [
+          "build",
+          "test",
+          "lint"
+        ]
       }
     }
   },
