@@ -79,6 +79,7 @@
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.preferTypeOnlyAutoImports": true,
   "typescript.surveys.enabled": false,
+  "typescript.tsc.autoDetect": "off",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
   "typescript.tsserver.maxTsServerMemory": 4096,

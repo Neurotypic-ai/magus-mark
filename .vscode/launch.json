@@ -8,7 +8,15 @@
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/vscode"],
       "outFiles": ["${workspaceFolder}/apps/vscode/dist/**/*.js"],
-      "preLaunchTask": "build:vscode"
+      "preLaunchTask": "build:magus-mark-vscode"
+    },
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "${defaultBuildTask}"
     },
     {
       "name": "VS Code Extension Tests",

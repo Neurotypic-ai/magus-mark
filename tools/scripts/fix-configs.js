@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { exec } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

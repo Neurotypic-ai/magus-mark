@@ -5,7 +5,7 @@
     "libsDir": "packages"
   },
   "projectSettings": {
-    "packages/core": {
+    "magus-mark-core": {
       "tags": ["core", "shared"],
       "implicitDependencies": [],
       "namedInputs": {
@@ -27,7 +27,7 @@
         }
       }
     },
-    "apps/cli": {
+    "magus-mark-cli": {
       "tags": ["app", "cli"],
       "implicitDependencies": ["packages/core"],
       "namedInputs": {
@@ -45,7 +45,7 @@
         }
       }
     },
-    "apps/obsidian-plugin": {
+    "magus-mark-obsidian": {
       "tags": ["app", "obsidian"],
       "implicitDependencies": ["packages/core"],
       "namedInputs": {
@@ -66,7 +66,7 @@
         }
       }
     },
-    "apps/vscode": {
+    "magus-mark-vscode": {
       "tags": ["app", "vscode"],
       "implicitDependencies": ["packages/core"],
       "namedInputs": {
@@ -78,7 +78,7 @@
           "executor": "nx:run-commands",
           "outputs": ["{projectRoot}/dist"],
           "options": {
-            "command": "node {projectRoot}/esbuild.config.js",
+            "command": "vsce package",
             "cwd": "apps/vscode"
           }
         },

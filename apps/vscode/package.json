@@ -75,7 +75,7 @@
           "type": "boolean"
         }
       },
-      "title": "Obsidian Magic"
+      "title": "Magus Mark"
     },
     "menus": {
       "view/item/context": [
@@ -115,8 +115,10 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.14.1",
     "@types/sinon": "^17.0.4",
-    "@types/vscode": "^1.99.1",
+    "@types/vscode": "^1.96.0",
     "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.3.2",
@@ -125,14 +127,15 @@
     "eslint": "^9.25.1",
     "glob": "^11.0.1",
     "mocha": "^11.1.0",
+    "npm-run-all": "^4.1.5",
     "sinon": "^20.0.0",
     "typescript": "5.8.3"
   },
-  "displayName": "Obsidian Magic",
+  "displayName": "Magus Mark",
   "engines": {
-    "vscode": "^1.99.0"
+    "vscode": "^1.96.0"
   },
-  "main": "./dist/extension.js",
+  "main": "./dist/extension.cjs",
   "name": "magus-mark-vscode",
   "private": true,
   "publisher": "khallmark",
@@ -141,16 +144,14 @@
     "url": "https://github.com/khallmark/obsidian-magic.git"
   },
   "scripts": {
-    "build": "echo \"Use nx build apps/vscode\"",
     "check-types": "tsc --noEmit",
-    "compile": "pnpm run check-types && node esbuild.js",
-    "package": "pnpm run check-types && node esbuild.js --production",
-    "test": "echo \"Use nx test apps/vscode\"",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.config.js",
+    "compile-tests": "tsc -p . --outDir out",
+    "lint": "eslint src",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.config.js --production",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "test:vscode": "vscode-test --config .vscode-test.js",
-    "vscode:prepublish": "pnpm run package",
-    "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json"
+    "vscode:prepublish": "pnpm run package"
   },
   "type": "module",
   "version": "0.1.0"

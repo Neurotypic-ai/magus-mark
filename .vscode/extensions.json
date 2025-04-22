@@ -4,6 +4,8 @@
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
     "EditorConfig.EditorConfig",
+    "connor4312.esbuild-problem-matchers",
+    "ms-vscode.extension-test-runner",
 
     // Nx support
     "nrwl.angular-console",

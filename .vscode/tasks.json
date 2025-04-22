@@ -31,23 +31,23 @@
 
     // VS Code extension tasks
     {
-      "label": "build:vscode",
+      "label": "build:magus-mark-vscode",
       "type": "shell",
-      "command": "npx nx build vscode",
+      "command": "nx run magus-mark-vscode:compile",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
       "label": "build:vscode-tests",
       "type": "shell",
-      "command": "cd apps/vscode && npm run compile",
+      "command": "nx run-commands -t compile magus-mark-vscode",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
       "label": "watch:vscode",
       "type": "shell",
-      "command": "cd apps/vscode && npm run watch",
+      "command": "nx run-commands -t watch magus-mark-vscode",
       "group": "build",
       "isBackground": true,
       "problemMatcher": ["$tsc-watch"],
@@ -58,14 +58,14 @@
     {
       "label": "test:vscode",
       "type": "shell",
-      "command": "npx nx test vscode",
+      "command": "nx test vscode",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "package:vscode",
       "type": "shell",
-      "command": "cd apps/vscode && npx vsce package",
+      "command": "cd apps/vscode && vsce package",
       "group": "build",
       "problemMatcher": []
     },
@@ -74,21 +74,21 @@
     {
       "label": "build:cli",
       "type": "shell",
-      "command": "npx nx build cli",
+      "command": "nx build cli",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
       "label": "test:cli",
       "type": "shell",
-      "command": "npx nx test cli",
+      "command": "nx test cli",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "watch:cli",
       "type": "shell",
-      "command": "cd apps/cli && npm run watch",
+      "command": "cd apps/cli && pnpm run watch",
       "isBackground": true,
       "problemMatcher": ["$tsc-watch"]
     },

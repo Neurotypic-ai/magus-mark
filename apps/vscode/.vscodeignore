@@ -1,0 +1,8 @@
+**
+..
+../..
+!dist/extension.cjs
+!dist/extension.cjs.map
+!README.md
+!LICENSE
+!package.json
