@@ -1,16 +1,16 @@
 {
   "eslint.codeActionsOnSave.mode": "problems",
   "files.exclude": {
-    "**/.DS_Store": true,
     "**/.git": true,
-    "**/.hg": true,
     "**/.svn": true,
+    "**/.hg": true,
     "**/CVS": true,
+    "**/.DS_Store": true,
     "**/Thumbs.db": true,
     "**/dist": false,
     "**/out": false,
     "**/coverage": true,
-    "**/.nx": true,
+    "**/.nx": false,
     "**/*.tsbuildinfo": true
   },
   "files.watcherExclude": {
@@ -147,5 +147,6 @@
       "strings": "on",
       "other": "on"
     }
-  }
+  },
+  "explorerExclude.backup": {}
 }
