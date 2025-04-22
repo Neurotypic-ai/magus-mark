@@ -1,0 +1,38 @@
+{
+  "name": "@obsidian-magic/eslint-config",
+  "version": "0.1.0",
+  "description": "Shared ESLint configuration for Obsidian Magic",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./react": "./react.js"
+  },
+  "files": [
+    "index.js",
+    "react.js",
+    "eslint.config.js",
+    "README.md"
+  ],
+  "private": true,
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "@typescript-eslint/utils": "^8.31.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-import-resolver-typescript": "^4.3.4",
+    "eslint-plugin-import-x": "^4.10.6",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-testing-library": "^7.1.1"
+  },
+  "peerDependencies": {
+    "@eslint/js": "^9.25.1",
+    "@eslint/markdown": "^6.4.0",
+    "eslint": "^9.25.1",
+    "typescript": "5.8.3"
+  }
+}

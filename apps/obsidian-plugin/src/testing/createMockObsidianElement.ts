@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import type { ElementAttrs, MockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
 
 // Create a mock element of the given tag, augmented with Obsidian helpers

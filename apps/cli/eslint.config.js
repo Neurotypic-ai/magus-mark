@@ -1,13 +1,14 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import customConfig from 'eslint-config-custom';
 
-// CLI app specific configuration
-const cliSpecificConfig = [
+export default [
+  ...customConfig,
+
+  // CLI-specific overrides
   {
     files: ['src/**/*.ts'],
     rules: {
-      // Add CLI-specific rules here if needed
+      // Allow console for CLI applications
+      'no-console': 'off',
     },
   },
 ];
-
-export default createESLintConfig(cliSpecificConfig);

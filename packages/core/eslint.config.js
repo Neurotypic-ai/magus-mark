@@ -1,13 +1,25 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import customConfig from 'eslint-config-custom';
 
-// Core package specific configuration
-const coreSpecificConfig = [
+export default [
+  ...customConfig,
+
+  // Core-specific overrides
   {
     files: ['src/**/*.ts'],
     rules: {
-      // Add core-specific rules here if needed
+      // Enforce API documentation with JSDoc
+      'jsdoc/require-jsdoc': [
+        'warn',
+        {
+          publicOnly: true,
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true,
+          },
+          contexts: ['ExportDefaultDeclaration > ClassDeclaration', 'ExportNamedDeclaration > ClassDeclaration'],
+        },
+      ],
     },
   },
 ];
-
-export default createESLintConfig(coreSpecificConfig);

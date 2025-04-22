@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import type { EventRef, Events } from 'obsidian';
 
 class MockEvents implements Events {

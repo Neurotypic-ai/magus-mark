@@ -1,3 +1,12 @@
 {
-  "extends": "../../config/typescript/base.json"
+  "extends": "tsconfig-custom/library.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": "./dist/types",
+    "composite": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

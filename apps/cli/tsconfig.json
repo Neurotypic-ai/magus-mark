@@ -1,3 +1,9 @@
 {
-  "extends": "../../config/typescript/app.json"
+  "extends": "tsconfig-custom/cli.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

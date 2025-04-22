@@ -1,13 +1,16 @@
-import { createESLintConfig } from '../../config/eslint/index.js';
+import customConfig from 'eslint-config-custom';
 
-// Obsidian plugin specific configuration
-const obsidianSpecificConfig = [
+export default [
+  ...customConfig,
+
+  // Obsidian-specific overrides
   {
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
-      // Add Obsidian-specific rules here if needed
+      // Ensure accessibility for UI components
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-role': 'error',
     },
   },
 ];
-
-export default createESLintConfig(obsidianSpecificConfig);

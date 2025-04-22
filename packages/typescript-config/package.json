@@ -1,0 +1,20 @@
+{
+  "name": "@obsidian-magic/typescript-config",
+  "version": "0.1.0",
+  "description": "Shared TypeScript configurations for Obsidian Magic",
+  "private": true,
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "license": "MIT",
+  "files": [
+    "base.json",
+    "settings.json",
+    "build.json",
+    "app.json",
+    "test.json",
+    "cli.json",
+    "obsidian.json",
+    "library.json",
+    "vscode.json",
+    "README.md"
+  ]
+}
