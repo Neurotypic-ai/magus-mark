@@ -10,12 +10,12 @@ suite('CursorCommand', () => {
 
     const command: CursorCommand = {
       name: 'Tag Document',
-      id: 'obsidian-magic.tagDocument',
+      id: 'magus-mark.tagDocument',
       execute: mockExecute,
     };
 
     expect(command.name).to.equal('Tag Document');
-    expect(command.id).to.equal('obsidian-magic.tagDocument');
+    expect(command.id).to.equal('magus-mark.tagDocument');
 
     // Test execution
     const context: MCPContext = {

@@ -98,7 +98,7 @@ describe('TagVisualizationView', () => {
   });
 
   it('should return the correct view type', () => {
-    expect(view.getViewType()).toBe('obsidian-magic-tag-visualization');
+    expect(view.getViewType()).toBe('magus-mark-tag-visualization');
   });
 
   it('should return the correct display text', () => {

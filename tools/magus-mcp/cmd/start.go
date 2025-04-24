@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/khallmark/obsidian-magic/tools/magus-mcp/internal"
+	"github.com/khallmark/magus-mark/tools/magus-mcp/internal"
 )
 
 // RunStart handles the start command

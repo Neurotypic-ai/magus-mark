@@ -63,7 +63,7 @@ suite('Extension Tests', () => {
 
     // Mock extension
     mockExtension = {
-      id: 'khallmark.obsidian-magic-vscode',
+      id: 'khallmark.magus-mark-vscode',
       isActive: true,
       activate: sinon.stub().resolves(),
     };
@@ -78,7 +78,7 @@ suite('Extension Tests', () => {
 
   test('Extension should be present', () => {
     // Test if getExtension returns our mock extension
-    const ext = vscode.extensions.getExtension('khallmark.obsidian-magic-vscode');
+    const ext = vscode.extensions.getExtension('khallmark.magus-mark-vscode');
     // Use void operator to fix "Expected an assignment or function call" linter error
     void expect(ext).to.exist;
   });
@@ -88,24 +88,24 @@ suite('Extension Tests', () => {
     const commandsStub = sinon
       .stub(vscode.commands, 'getCommands')
       .resolves([
-        'obsidian-magic.tagFile',
-        'obsidian-magic.openTagExplorer',
-        'obsidian-magic.cursorTagFile',
-        'obsidian-magic.manageVaults',
-        'obsidian-magic.addVault',
-        'obsidian-magic.removeVault',
-        'obsidian-magic.syncVault',
+        'magus-mark.tagFile',
+        'magus-mark.openTagExplorer',
+        'magus-mark.cursorTagFile',
+        'magus-mark.manageVaults',
+        'magus-mark.addVault',
+        'magus-mark.removeVault',
+        'magus-mark.syncVault',
       ]);
 
     // Check that expected commands are returned
     const commands = await vscode.commands.getCommands();
-    void expect(commands).to.include('obsidian-magic.tagFile');
-    void expect(commands).to.include('obsidian-magic.openTagExplorer');
-    void expect(commands).to.include('obsidian-magic.cursorTagFile');
-    void expect(commands).to.include('obsidian-magic.manageVaults');
-    void expect(commands).to.include('obsidian-magic.addVault');
-    void expect(commands).to.include('obsidian-magic.removeVault');
-    void expect(commands).to.include('obsidian-magic.syncVault');
+    void expect(commands).to.include('magus-mark.tagFile');
+    void expect(commands).to.include('magus-mark.openTagExplorer');
+    void expect(commands).to.include('magus-mark.cursorTagFile');
+    void expect(commands).to.include('magus-mark.manageVaults');
+    void expect(commands).to.include('magus-mark.addVault');
+    void expect(commands).to.include('magus-mark.removeVault');
+    void expect(commands).to.include('magus-mark.syncVault');
 
     commandsStub.restore();
   });

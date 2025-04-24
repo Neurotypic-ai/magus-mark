@@ -1,5 +1,5 @@
 {
-  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "author": "Kevin Hallmark <magus-mark@littleblackhat.com>",
   "dependencies": {
     "@codemirror/language": "^6.11.0",
     "@codemirror/state": "^6.5.2",
@@ -31,7 +31,7 @@
   ],
   "license": "MIT",
   "main": "dist/main.js",
-  "name": "obsidian-magic",
+  "name": "@magus-mark/obsidian",
   "peerDependencies": {
     "obsidian": "^1.8.7"
   },

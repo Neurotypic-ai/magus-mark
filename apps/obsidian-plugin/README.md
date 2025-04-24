@@ -12,14 +12,14 @@ AI-powered tagging system for organizing AI chat history and technical knowledge
 - **Customizable Model**: Choose between different AI models to balance accuracy and cost
 - **API Key Security**: Securely store your OpenAI API key using system keychain or local encrypted storage
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/obsidian-magic/obsidian-magic/ci.yml?branch=main)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/obsidian-magic/obsidian-magic)
-![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22obsidian-magic%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidian-community%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/magus-mark/magus-mark/ci.yml?branch=main)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/magus-mark/magus-mark)
+![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22magus-mark%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidian-community%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)
 ![WCAG Compliance](https://img.shields.io/badge/WCAG-AA%20Compliant-green)
-![Dependencies](https://img.shields.io/github/actions/workflow/status/obsidian-magic/obsidian-magic/dependencies.yml?branch=main&label=dependencies)
-![Code Quality](https://img.shields.io/github/actions/workflow/status/obsidian-magic/obsidian-magic/security.yml?branch=main&label=security)
+![Dependencies](https://img.shields.io/github/actions/workflow/status/magus-mark/magus-mark/dependencies.yml?branch=main&label=dependencies)
+![Code Quality](https://img.shields.io/github/actions/workflow/status/magus-mark/magus-mark/security.yml?branch=main&label=security)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)
-![License](https://img.shields.io/github/license/obsidian-magic/obsidian-magic)
+![License](https://img.shields.io/github/license/magus-mark/magus-mark)
 
 ## Installation
 
@@ -32,8 +32,7 @@ AI-powered tagging system for organizing AI chat history and technical knowledge
 
 ### Manual Installation
 
-1. Download the latest release from the
-   [GitHub releases page](https://github.com/obsidian-magic/obsidian-magic/releases)
+1. Download the latest release from the [GitHub releases page](https://github.com/magus-mark/magus-mark/releases)
 2. Extract the zip file into your Obsidian plugins folder: `{vault}/.obsidian/plugins/`
 3. Reload Obsidian
 4. Enable the plugin in Settings → Community plugins
@@ -77,9 +76,9 @@ standards plus additional neurodiversity-specific guidelines.
 
 ## Support & Documentation
 
-- [Full Documentation](https://github.com/obsidian-magic/obsidian-magic/wiki)
-- [Report Issues](https://github.com/obsidian-magic/obsidian-magic/issues)
-- [Request Features](https://github.com/obsidian-magic/obsidian-magic/issues/new?template=feature_request.md)
+- [Full Documentation](https://github.com/magus-mark/magus-mark/wiki)
+- [Report Issues](https://github.com/magus-mark/magus-mark/issues)
+- [Request Features](https://github.com/magus-mark/magus-mark/issues/new?template=feature_request.md)
 
 ## Development
 
@@ -89,8 +88,8 @@ For developers interested in contributing to Magus Mark:
 
 ```bash
 # Clone the repository
-git clone https://github.com/obsidian-magic/obsidian-magic.git
-cd obsidian-magic
+git clone https://github.com/magus-mark/magus-mark.git
+cd magus-mark
 
 # Install dependencies
 pnpm install

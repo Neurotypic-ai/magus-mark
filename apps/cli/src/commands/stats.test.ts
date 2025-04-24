@@ -73,7 +73,7 @@ describe('statsCommand', () => {
       format: 'table',
       reset: false,
       _: ['stats'],
-      $0: 'obsidian-magic',
+      $0: 'magus-mark',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify the correct methods were called
@@ -89,7 +89,7 @@ describe('statsCommand', () => {
       format: 'table',
       reset: true,
       _: ['stats'],
-      $0: 'obsidian-magic',
+      $0: 'magus-mark',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify reset was called
@@ -104,7 +104,7 @@ describe('statsCommand', () => {
       format: 'json',
       reset: false,
       _: ['stats'],
-      $0: 'obsidian-magic',
+      $0: 'magus-mark',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify JSON output

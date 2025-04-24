@@ -1,11 +1,11 @@
 {
-  "id": "obsidian-magic",
+  "id": "magus-mark",
   "name": "Magus Mark",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
-  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
-  "authorUrl": "https://github.com/obsidian-magic/obsidian-magic",
-  "fundingUrl": "https://github.com/sponsors/obsidian-magic",
+  "author": "Kevin Hallmark <neurotypic-ai@littleblackhat.com>",
+  "authorUrl": "https://github.com/neurotypic-ai/magus-mark",
+  "fundingUrl": "https://github.com/sponsors/neurotypic-ai",
   "isDesktopOnly": false
 }

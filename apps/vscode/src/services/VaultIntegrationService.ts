@@ -186,12 +186,12 @@ export class VaultIntegrationService {
    */
   private registerCommands(): void {
     // Command to manually sync with vault
-    const syncCommand = vscode.commands.registerCommand('obsidian-magic.syncVault', () => {
+    const syncCommand = vscode.commands.registerCommand('magus-mark.syncVault', () => {
       this.syncAllVaults();
     });
 
     // Command to add a vault manually
-    const addVaultCommand = vscode.commands.registerCommand('obsidian-magic.addVault', async () => {
+    const addVaultCommand = vscode.commands.registerCommand('magus-mark.addVault', async () => {
       const folders = await vscode.window.showOpenDialog({
         canSelectFiles: false,
         canSelectFolders: true,
@@ -206,7 +206,7 @@ export class VaultIntegrationService {
     });
 
     // Command to remove a vault
-    const removeVaultCommand = vscode.commands.registerCommand('obsidian-magic.removeVault', async () => {
+    const removeVaultCommand = vscode.commands.registerCommand('magus-mark.removeVault', async () => {
       if (this.vaults.length === 0) {
         vscode.window.showInformationMessage('No vaults to remove');
         return;

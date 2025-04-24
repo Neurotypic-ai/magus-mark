@@ -88,12 +88,12 @@
   width: 40%;
 }
 
-.obsidian-magic-status {
+.magus-mark-status {
   display: flex;
   align-items: center;
 }
 
-.obsidian-magic-status:before {
+.magus-mark-status:before {
   content: '';
   display: inline-block;
   width: 8px;
@@ -135,7 +135,7 @@
 }
 
 /* Tag Widget Styles */
-.obsidian-magic-tag-widget {
+.magus-mark-tag-widget {
   display: inline-flex;
   align-items: center;
   background-color: var(--interactive-accent);
@@ -148,7 +148,7 @@
   transition: all 0.2s ease;
 }
 
-.obsidian-magic-tag-widget:hover {
+.magus-mark-tag-widget:hover {
   opacity: 0.9;
   transform: translateY(-1px);
 }
@@ -202,12 +202,12 @@ input::placeholder {
 }
 
 /* Dark Mode Specific Adjustments */
-.theme-dark .obsidian-magic-tag-widget {
+.theme-dark .magus-mark-tag-widget {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Light Mode Specific Adjustments */
-.theme-light .obsidian-magic-tag-widget {
+.theme-light .magus-mark-tag-widget {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -221,7 +221,7 @@ input::placeholder {
     border: 1px solid currentColor;
   }
 
-  .obsidian-magic-tag-widget {
+  .magus-mark-tag-widget {
     border: 1px solid currentColor;
   }
 

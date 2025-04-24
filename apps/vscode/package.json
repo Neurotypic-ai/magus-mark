@@ -8,47 +8,47 @@
   "contributes": {
     "commands": [
       {
-        "command": "obsidian-magic.tagFile",
+        "command": "magus-mark.tagFile",
         "title": "Magus Mark: Tag Current File"
       },
       {
-        "command": "obsidian-magic.openTagExplorer",
+        "command": "magus-mark.openTagExplorer",
         "title": "Magus Mark: Open Tag Explorer"
       },
       {
-        "command": "obsidian-magic.cursorTagFile",
+        "command": "magus-mark.cursorTagFile",
         "title": "Magus Mark: Tag with Cursor AI"
       },
       {
-        "command": "obsidian-magic.cursorRegisterVSCodeParticipant",
+        "command": "magus-mark.cursorRegisterVSCodeParticipant",
         "title": "Magus Mark: Register @magus-mark Participant"
       },
       {
-        "command": "obsidian-magic.queryVSCode",
+        "command": "magus-mark.queryVSCode",
         "title": "Magus Mark: Ask @magus-mark a Question"
       },
       {
-        "command": "obsidian-magic.addTag",
+        "command": "magus-mark.addTag",
         "title": "Magus Mark: Add New Tag"
       },
       {
-        "command": "obsidian-magic.deleteTag",
+        "command": "magus-mark.deleteTag",
         "title": "Magus Mark: Delete Tag"
       },
       {
-        "command": "obsidian-magic.manageVaults",
+        "command": "magus-mark.manageVaults",
         "title": "Magus Mark: Manage Vaults"
       },
       {
-        "command": "obsidian-magic.addVault",
+        "command": "magus-mark.addVault",
         "title": "Magus Mark: Add Vault"
       },
       {
-        "command": "obsidian-magic.removeVault",
+        "command": "magus-mark.removeVault",
         "title": "Magus Mark: Remove Vault"
       },
       {
-        "command": "obsidian-magic.syncVault",
+        "command": "magus-mark.syncVault",
         "title": "Magus Mark: Sync Vaults"
       }
     ],
@@ -75,19 +75,19 @@
           "type": "boolean"
         }
       },
-      "title": "Magus Mark"
+      "title": "Magus Mark for VSCode"
     },
     "menus": {
       "view/item/context": [
         {
-          "command": "obsidian-magic.deleteTag",
+          "command": "magus-mark.deleteTag",
           "group": "inline",
           "when": "view == obsidianMagicTagExplorer && viewItem == tag"
         }
       ],
       "view/title": [
         {
-          "command": "obsidian-magic.addTag",
+          "command": "magus-mark.addTag",
           "group": "navigation",
           "when": "view == obsidianMagicTagExplorer"
         }
@@ -136,12 +136,12 @@
     "vscode": "^1.96.0"
   },
   "main": "./dist/extension.cjs",
-  "name": "magus-mark-vscode",
+  "name": "@magus-mark/vscode",
   "private": true,
   "publisher": "khallmark",
   "repository": {
     "type": "git",
-    "url": "https://github.com/khallmark/obsidian-magic.git"
+    "url": "https://github.com/khallmark/magus-mark.git"
   },
   "scripts": {
     "check-types": "tsc --noEmit",

@@ -11,14 +11,6 @@
       "preLaunchTask": "build:magus-mark-vscode"
     },
     {
-      "name": "Run Extension",
-      "type": "extensionHost",
-      "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "preLaunchTask": "${defaultBuildTask}"
-    },
-    {
       "name": "VS Code Extension Tests",
       "type": "extensionHost",
       "request": "launch",
@@ -27,7 +19,7 @@
         "--extensionTestsPath=${workspaceFolder}/apps/vscode/out/test/suite/index"
       ],
       "outFiles": ["${workspaceFolder}/apps/vscode/out/**/*.js"],
-      "preLaunchTask": "build:vscode-tests"
+      "preLaunchTask": "build:magus-mark-vscode-tests"
     },
 
     // CLI debugging
@@ -39,7 +31,7 @@
       "program": "${workspaceFolder}/apps/cli/dist/index.js",
       "args": ["tag", "--input", "example.md"],
       "outFiles": ["${workspaceFolder}/apps/cli/dist/**/*.js"],
-      "preLaunchTask": "build:cli",
+      "preLaunchTask": "build:magus-mark-cli",
       "console": "integratedTerminal"
     },
 
@@ -53,7 +45,7 @@
       "sourceMapPathOverrides": {
         "webpack:///src/*": "${webRoot}/src/*"
       },
-      "preLaunchTask": "build:obsidian-plugin"
+      "preLaunchTask": "build:magus-mark-obsidian"
     },
 
     // Core library tests debugging

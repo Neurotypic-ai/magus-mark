@@ -48,13 +48,13 @@ const DEFAULT_CONFIG: Config = {
   concurrency: 3,
   cache: {
     enabled: true,
-    directory: path.join(os.homedir(), '.cache', 'obsidian-magic'),
+    directory: path.join(os.homedir(), '.cache', 'magus-mark'),
   },
   logging: {
     level: 'info' as LogLevel,
     console: true,
     file: false,
-    filePath: path.join(os.homedir(), '.logs', 'obsidian-magic.log'),
+    filePath: path.join(os.homedir(), '.logs', 'magus-mark.log'),
   },
 };
 
@@ -127,7 +127,7 @@ export class ConfigManager {
    * Gets the default config file path
    */
   static getDefaultConfigPath(): string {
-    return path.join(os.homedir(), '.config', 'obsidian-magic', 'config.json');
+    return path.join(os.homedir(), '.config', 'magus-mark', 'config.json');
   }
 
   /**

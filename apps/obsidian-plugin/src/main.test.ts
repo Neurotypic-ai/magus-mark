@@ -56,7 +56,7 @@ vi.mock('./ui/FolderTagModal');
 const mockApp = new App();
 
 const mockManifest: PluginManifest = {
-  id: 'obsidian-magic',
+  id: 'magus-mark',
   name: 'Magus Mark',
   version: '0.1.0',
   minAppVersion: '0.15.0', // Add missing properties

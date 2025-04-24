@@ -52,8 +52,8 @@ Enhancement suggestions help us prioritize features. When suggesting enhancement
 
 ```bash
 # Clone the repository
-git clone https://github.com/obsidian-magic/obsidian-magic.git
-cd obsidian-magic
+git clone https://github.com/magus-mark/magus-mark.git
+cd magus-mark
 
 # Install dependencies
 pnpm install
@@ -86,10 +86,10 @@ For Obsidian plugin development, you'll need to:
 
    ```bash
    # Create a symlink to your vault's plugins folder
-   mkdir -p /path/to/your/vault/.obsidian/plugins/obsidian-magic
-   ln -s $(pwd)/dist /path/to/your/vault/.obsidian/plugins/obsidian-magic/
-   ln -s $(pwd)/manifest.json /path/to/your/vault/.obsidian/plugins/obsidian-magic/
-   ln -s $(pwd)/styles.css /path/to/your/vault/.obsidian/plugins/obsidian-magic/
+   mkdir -p /path/to/your/vault/.obsidian/plugins/magus-mark
+   ln -s $(pwd)/dist /path/to/your/vault/.obsidian/plugins/magus-mark/
+   ln -s $(pwd)/manifest.json /path/to/your/vault/.obsidian/plugins/magus-mark/
+   ln -s $(pwd)/styles.css /path/to/your/vault/.obsidian/plugins/magus-mark/
    ```
 
 ### Quality Assurance Tools
@@ -110,7 +110,7 @@ pnpm run bundle-analysis
 The project follows a monorepo structure:
 
 ```
-obsidian-magic/
+magus-mark/
 ├── apps/                    # Application implementations
 │   ├── cli/                 # Command-line application
 │   ├── obsidian-plugin/     # Obsidian plugin

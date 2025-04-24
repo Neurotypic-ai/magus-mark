@@ -1,4 +1,4 @@
-module github.com/khallmark/obsidian-magic/tools/magus-mcp
+module github.com/khallmark/magus-mark/tools/magus-mcp
 
 go 1.24.2
 

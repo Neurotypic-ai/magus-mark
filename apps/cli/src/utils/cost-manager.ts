@@ -1,9 +1,10 @@
 import * as path from 'path';
 
+import * as fs from 'fs-extra';
+
 import { CostLimitError } from '@magus-mark/core/errors/CostLimitError';
 import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
 import { Logger } from '@magus-mark/core/utils/Logger';
-import * as fs from 'fs-extra';
 
 import { config } from './config';
 
@@ -77,7 +78,7 @@ class CostManager {
     };
 
     // Set data file path
-    const dataDir = path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.', '.obsidian-magic');
+    const dataDir = path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.', '.magus-mark');
     this.dataFile = path.join(dataDir, 'usage-data.json');
 
     // Load existing data

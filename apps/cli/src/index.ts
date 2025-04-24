@@ -85,7 +85,7 @@ async function main() {
   try {
     // Set up command line arguments
     const cli = yargs(hideBin(process.argv))
-      .scriptName('obsidian-magic')
+      .scriptName('magus-mark')
       .usage('$0 <command> [options]')
       .demandCommand(1, 'You must specify a command')
       .strict()
@@ -138,7 +138,7 @@ async function main() {
 
     // Add banner and help text
     const banner = chalk.bold.green(`Magus Mark CLI v${pkg.version}`);
-    cli.epilogue(`For more information, see https://github.com/khallmark/obsidian-magic`);
+    cli.epilogue(`For more information, see https://github.com/khallmark/magus-mark`);
 
     // Display banner before executing commands
     cli.middleware([

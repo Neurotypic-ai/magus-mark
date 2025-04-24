@@ -1,5 +1,6 @@
-import { Logger } from '@magus-mark/core/utils/Logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 import { benchmark } from '../utils/Chronometer';
 import { testCommand } from './test';
@@ -146,7 +147,7 @@ describe('testCommand', () => {
       samples: 1,
       verbose: true,
       _: [],
-      $0: 'obsidian-magic',
+      $0: 'magus-mark',
     } as unknown as ArgumentsCamelCase;
 
     const handlerFn = testCommand.handler;
@@ -171,7 +172,7 @@ describe('testCommand', () => {
       models: 'gpt-4o',
       samples: 1,
       _: [],
-      $0: 'obsidian-magic',
+      $0: 'magus-mark',
     } as unknown as ArgumentsCamelCase;
 
     const handlerFn = testCommand.handler;
@@ -244,7 +245,7 @@ describe('testCommand', () => {
       models: 'gpt-4o',
       samples: 10,
       _: [],
-      $0: 'obsidian-magic',
+      $0: 'magus-mark',
     } as unknown as ArgumentsCamelCase;
 
     const handlerFn = testCommand.handler;

@@ -20,8 +20,8 @@ By participating in this project, you are expected to uphold our [Code of Conduc
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/obsidian-magic/obsidian-magic.git
-   cd obsidian-magic
+   git clone https://github.com/magus-mark/magus-mark.git
+   cd magus-mark
    ```
 
 2. Install dependencies:
@@ -47,10 +47,10 @@ By participating in this project, you are expected to uphold our [Code of Conduc
 
    ```bash
    # Create a symlink to your vault's plugins folder
-   mkdir -p /path/to/your/vault/.obsidian/plugins/obsidian-magic
-   ln -s $(pwd)/dist /path/to/your/vault/.obsidian/plugins/obsidian-magic/
-   ln -s $(pwd)/manifest.json /path/to/your/vault/.obsidian/plugins/obsidian-magic/
-   ln -s $(pwd)/styles.css /path/to/your/vault/.obsidian/plugins/obsidian-magic/
+   mkdir -p /path/to/your/vault/.obsidian/plugins/magus-mark
+   ln -s $(pwd)/dist /path/to/your/vault/.obsidian/plugins/magus-mark/
+   ln -s $(pwd)/manifest.json /path/to/your/vault/.obsidian/plugins/magus-mark/
+   ln -s $(pwd)/styles.css /path/to/your/vault/.obsidian/plugins/magus-mark/
    ```
 
 6. Quality assurance tools:
@@ -69,7 +69,7 @@ By participating in this project, you are expected to uphold our [Code of Conduc
 ## Project Structure
 
 ```
-obsidian-magic/apps/obsidian-plugin/
+magus-mark/apps/obsidian-plugin/
 ├── src/                    # Source code
 │   ├── main.ts             # Main plugin class
 │   ├── services/           # Core services

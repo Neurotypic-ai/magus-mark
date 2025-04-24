@@ -123,7 +123,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
     // Add command for clicking on tags
     if (element.type === 'subdomain' || element.type === 'tag') {
       item.command = {
-        command: 'obsidian-magic.openTaggedFiles',
+        command: 'magus-mark.openTaggedFiles',
         title: 'Open Tagged Files',
         arguments: [element],
       };
@@ -188,7 +188,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
    */
   private registerEventHandlers(): void {
     // Listen for command to add a new tag
-    const addTagDisposable = vscode.commands.registerCommand('obsidian-magic.addTag', async () => {
+    const addTagDisposable = vscode.commands.registerCommand('magus-mark.addTag', async () => {
       try {
         // Prompt for tag name
         const tagName = await vscode.window.showInputBox({
@@ -235,7 +235,7 @@ export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Dis
     });
 
     // Listen for command to delete a tag
-    const deleteTagDisposable = vscode.commands.registerCommand('obsidian-magic.deleteTag', async (node: TagNode) => {
+    const deleteTagDisposable = vscode.commands.registerCommand('magus-mark.deleteTag', async (node: TagNode) => {
       try {
         // Confirm deletion
         const confirmation = await vscode.window.showWarningMessage(

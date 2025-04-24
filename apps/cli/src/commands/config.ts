@@ -1,4 +1,5 @@
 import { confirm } from '@inquirer/prompts';
+
 import { ModelManager } from '@magus-mark/core/openai/ModelManager';
 import { FileUtils } from '@magus-mark/core/utils/FileUtils';
 import { Logger } from '@magus-mark/core/utils/Logger';
@@ -161,7 +162,7 @@ export const configCommand: CommandModule = {
             .option('output', {
               describe: 'Output file path',
               type: 'string',
-              default: './obsidian-magic-config.json',
+              default: './magus-mark-config.json',
               alias: 'o',
             }),
         handler: async (argv) => {

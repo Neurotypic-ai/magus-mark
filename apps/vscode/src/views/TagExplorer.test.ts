@@ -180,7 +180,7 @@ suite('TagExplorer', () => {
     // Find the command handler registered by the TagExplorer constructor
     const commandCalls = registerCommandStub.getCalls();
     type CommandHandler = (...args: unknown[]) => Promise<void> | void;
-    const addTagCommandCall = commandCalls.find((call) => call.args[0] === 'obsidian-magic.addTag');
+    const addTagCommandCall = commandCalls.find((call) => call.args[0] === 'magus-mark.addTag');
     const addTagCommandHandler = addTagCommandCall?.args[1] as CommandHandler | undefined;
     void expect(addTagCommandHandler).to.exist;
     if (!addTagCommandHandler) return;
@@ -214,7 +214,7 @@ suite('TagExplorer', () => {
 
     const commandCalls = registerCommandStub.getCalls();
     type CommandHandler = (...args: unknown[]) => Promise<void> | void;
-    const addTagCommandCall = commandCalls.find((call) => call.args[0] === 'obsidian-magic.addTag');
+    const addTagCommandCall = commandCalls.find((call) => call.args[0] === 'magus-mark.addTag');
     const addTagCommandHandler = addTagCommandCall?.args[1] as CommandHandler | undefined;
     void expect(addTagCommandHandler).to.exist;
     if (!addTagCommandHandler) return;

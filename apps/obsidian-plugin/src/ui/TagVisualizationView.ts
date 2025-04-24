@@ -4,7 +4,7 @@ import type { WorkspaceLeaf } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
 
-export const TAG_VISUALIZATION_VIEW_TYPE = 'obsidian-magic-tag-visualization';
+export const TAG_VISUALIZATION_VIEW_TYPE = 'magus-mark-tag-visualization';
 
 interface TagNode {
   id: string;

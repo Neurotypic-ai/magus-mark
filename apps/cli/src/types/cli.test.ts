@@ -17,7 +17,7 @@ describe('CLI Models', () => {
     it('validates a command context object', () => {
       const context: CommandContext = {
         workingDirectory: '/home/user/obsidian',
-        configPath: '/home/user/.config/obsidian-magic.json',
+        configPath: '/home/user/.config/magus-mark.json',
         config: {
           api: {
             apiKey: 'test-api-key',
@@ -135,7 +135,7 @@ describe('CLI Models', () => {
         name: 'tag',
         description: 'Tag notes with AI-generated tags',
         aliases: ['t', 'auto-tag'],
-        examples: ['obsidian-magic tag --path ./notes', 'obsidian-magic tag --model gpt-4o'],
+        examples: ['magus-mark tag --path ./notes', 'magus-mark tag --model gpt-4o'],
         options: [
           {
             name: 'path',

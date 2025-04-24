@@ -157,16 +157,16 @@ The CLI can be configured in multiple ways:
 
 Configuration is stored in:
 
-- macOS: `~/Library/Preferences/obsidian-magic-cli-nodejs`
-- Windows: `%APPDATA%\obsidian-magic-cli-nodejs\Config`
-- Linux: `~/.config/obsidian-magic-cli-nodejs`
+- macOS: `~/Library/Preferences/magus-mark-cli-nodejs`
+- Windows: `%APPDATA%\magus-mark-cli-nodejs\Config`
+- Linux: `~/.config/magus-mark-cli-nodejs`
 
 ## Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/obsidian-magic.git
-cd obsidian-magic
+git clone https://github.com/yourusername/magus-mark.git
+cd magus-mark
 
 # Install dependencies
 pnpm install

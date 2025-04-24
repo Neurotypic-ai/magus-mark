@@ -22,7 +22,7 @@ class TagWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const dom = document.createElement('span');
-    dom.classList.add('obsidian-magic-tag-widget');
+    dom.classList.add('magus-mark-tag-widget');
 
     // Extract tag name without the hash
     const tagName = this.tag.startsWith('#') ? this.tag.substring(1) : this.tag;

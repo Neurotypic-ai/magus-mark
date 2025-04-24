@@ -1,8 +1,9 @@
 // Import error types from their specific paths
-import { APIError } from '@magus-mark/core/errors/APIError';
-import { FileSystemError as CoreFileSystemError } from '@magus-mark/core/errors/FileSystemError';
 import { Notice } from 'obsidian';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { APIError } from '@magus-mark/core/errors/APIError';
+import { FileSystemError as CoreFileSystemError } from '@magus-mark/core/errors/FileSystemError';
 
 // Remove STORAGE_KEY import
 import { KeyManager } from '../services/KeyManager';
@@ -44,7 +45,7 @@ global.window = global.window || {};
 
 // Helper for Base64 encoding matching KeyManager's encryptKey
 const encryptKey = (apiKey: string): string => {
-  const salt = 'obsidian-magic';
+  const salt = 'magus-mark';
   const input = salt + apiKey;
   return Buffer.from(input).toString('base64');
 };
@@ -73,7 +74,7 @@ describe('KeyManager', () => {
     mockSettings = {
       apiKey: '', // Start with no key in settings
       apiKeyStorage: 'local', // Default to local
-      apiKeyKeychainId: 'obsidian-magic-api-key', // Consistent keychain ID
+      apiKeyKeychainId: 'magus-mark-api-key', // Consistent keychain ID
     };
 
     // Create a simplified mock plugin instance

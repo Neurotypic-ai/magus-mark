@@ -292,7 +292,7 @@ export class LanguageModelAPI implements vscode.Disposable {
       };
 
       const disposable = languagesApi.registerLanguageModelProvider({
-        modelId: 'obsidian-magic',
+        modelId: 'magus-mark',
         name: 'Magus Mark AI',
         provideLanguageModel: async (request: VSCodeLanguageModelRequest) => {
           const { messages } = request;

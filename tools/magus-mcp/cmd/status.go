@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/khallmark/obsidian-magic/tools/magus-mcp/internal"
+	"github.com/khallmark/magus-mark/tools/magus-mcp/internal"
 )
 
 // RunStatus handles the status command

@@ -71,7 +71,7 @@ describe('TagManagementView', () => {
   });
 
   it('should return the correct view type', () => {
-    expect(view.getViewType()).toBe('obsidian-magic-tag-management');
+    expect(view.getViewType()).toBe('magus-mark-tag-management');
   });
 
   it('should return the correct display text', () => {

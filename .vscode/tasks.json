@@ -5,27 +5,27 @@
     {
       "label": "build:all",
       "type": "shell",
-      "command": "npx nx run-many --target=build --all",
+      "command": "pnpm exec nx run-many --target=build --all",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
       "label": "test:all",
       "type": "shell",
-      "command": "npx nx run-many --target=test --all",
+      "command": "pnpm exec nx run-many --target=test --all",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "lint:all",
       "type": "shell",
-      "command": "npx nx run-many --target=lint --all",
+      "command": "pnpm exec nx run-many --target=lint --all",
       "problemMatcher": ["$eslint-stylish"]
     },
     {
       "label": "clean:all",
       "type": "shell",
-      "command": "npx nx run-many --target=clean --all",
+      "command": "pnpm exec nx run-many --target=clean --all",
       "problemMatcher": []
     },
 
@@ -33,21 +33,21 @@
     {
       "label": "build:magus-mark-vscode",
       "type": "shell",
-      "command": "nx run magus-mark-vscode:compile",
+      "command": "pnpm exec nx run magus-mark-vscode:compile",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "build:vscode-tests",
+      "label": "build:magus-mark-vscode-tests",
       "type": "shell",
-      "command": "nx run-commands -t compile magus-mark-vscode",
+      "command": "pnpm exec nx run-commands -t compile magus-mark-vscode",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "watch:vscode",
+      "label": "watch:magus-mark-vscode",
       "type": "shell",
-      "command": "nx run-commands -t watch magus-mark-vscode",
+      "command": "pnpm exec nx run-commands -t watch magus-mark-vscode",
       "group": "build",
       "isBackground": true,
       "problemMatcher": ["$tsc-watch"],
@@ -56,14 +56,14 @@
       }
     },
     {
-      "label": "test:vscode",
+      "label": "test:magus-mark-vscode",
       "type": "shell",
-      "command": "nx test vscode",
+      "command": "pnpm exec nx test magus-mark-vscode",
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "package:vscode",
+      "label": "package:magus-mark-vscode",
       "type": "shell",
       "command": "cd apps/vscode && vsce package",
       "group": "build",
@@ -72,21 +72,21 @@
 
     // CLI tasks
     {
-      "label": "build:cli",
+      "label": "build:magus-mark-cli",
       "type": "shell",
-      "command": "nx build cli",
+      "command": "pnpm exec nx build magus-mark-cli",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "test:cli",
+      "label": "test:magus-mark-cli",
       "type": "shell",
-      "command": "nx test cli",
+      "command": "pnpm exec nx test magus-mark-cli",
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "watch:cli",
+      "label": "watch:magus-mark-cli",
       "type": "shell",
       "command": "cd apps/cli && pnpm run watch",
       "isBackground": true,
@@ -102,30 +102,30 @@
 
     // Obsidian plugin tasks
     {
-      "label": "build:obsidian-plugin",
+      "label": "build:magus-mark-obsidian",
       "type": "shell",
-      "command": "npx nx build obsidian-plugin",
+      "command": "pnpm exec nx build magus-mark-obsidian",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "test:obsidian-plugin",
+      "label": "test:magus-mark-obsidian",
       "type": "shell",
-      "command": "npx nx test obsidian-plugin",
+      "command": "pnpm exec nx test magus-mark-obsidian",
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "watch:obsidian-plugin",
+      "label": "watch:magus-mark-obsidian",
       "type": "shell",
-      "command": "cd apps/obsidian-plugin && npm run watch",
+      "command": "cd apps/obsidian-plugin && pnpm run watch",
       "isBackground": true,
       "problemMatcher": ["$tsc-watch"]
     },
     {
-      "label": "dev:obsidian-plugin",
+      "label": "dev:magus-mark-obsidian",
       "type": "shell",
-      "command": "cd apps/obsidian-plugin && npm run dev",
+      "command": "cd apps/obsidian-plugin && pnpm run dev",
       "isBackground": true,
       "problemMatcher": ["$tsc-watch"]
     },
@@ -134,21 +134,21 @@
     {
       "label": "build:core",
       "type": "shell",
-      "command": "npx nx build core",
+      "command": "pnpm exec nx build core",
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
       "label": "test:core",
       "type": "shell",
-      "command": "npx nx test core",
+      "command": "pnpm exec nx test core",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "test:core:watch",
       "type": "shell",
-      "command": "cd packages/core && npm run test:watch",
+      "command": "cd packages/core && pnpm run test:watch",
       "isBackground": true,
       "problemMatcher": []
     },
@@ -157,21 +157,21 @@
     {
       "label": "test:current-file",
       "type": "shell",
-      "command": "npx vitest run ${relativeFile}",
+      "command": "pnpm exec vitest run ${relativeFile}",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "test:current-file:watch",
       "type": "shell",
-      "command": "npx vitest ${relativeFile}",
+      "command": "pnpm exec vitest ${relativeFile}",
       "isBackground": true,
       "problemMatcher": []
     },
     {
       "label": "test:coverage",
       "type": "shell",
-      "command": "npx nx run-many --target=test:coverage --all",
+      "command": "pnpm exec nx run-many --target=test:coverage --all",
       "group": "test",
       "problemMatcher": []
     },
@@ -190,7 +190,7 @@
     {
       "label": "typecheck:all",
       "type": "shell",
-      "command": "npx nx run-many --target=typecheck --all",
+      "command": "pnpm exec nx run-many --target=typecheck --all",
       "problemMatcher": ["$tsc"]
     },
 
@@ -198,14 +198,14 @@
     {
       "label": "lint:fix:all",
       "type": "shell",
-      "command": "npx nx run-many --target=lint:fix --all",
+      "command": "pnpm exec nx run-many --target=lint:fix --all",
       "problemMatcher": ["$eslint-stylish"]
     },
 
     // Default build task (used by VS Code when pressing Ctrl+Shift+B)
     {
       "label": "build:default",
-      "dependsOn": ["build:vscode"],
+      "dependsOn": ["build:magus-mark-vscode"],
       "group": {
         "kind": "build",
         "isDefault": true

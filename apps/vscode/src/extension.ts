@@ -131,7 +131,7 @@ function createVaultStatusBar(context: vscode.ExtensionContext): void {
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.text = '$(database) Obsidian Vault';
   statusBarItem.tooltip = 'Manage Obsidian Vaults';
-  statusBarItem.command = 'obsidian-magic.manageVaults';
+  statusBarItem.command = 'magus-mark.manageVaults';
   statusBarItem.show();
 
   context.subscriptions.push(statusBarItem);
@@ -163,7 +163,7 @@ function activateCursorFeatures(context: vscode.ExtensionContext): void {
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.text = '$(cursor) @magus-mark';
   statusBarItem.tooltip = '@magus-mark participant active';
-  statusBarItem.command = 'obsidian-magic.cursorRegisterVSCodeParticipant';
+  statusBarItem.command = 'magus-mark.cursorRegisterVSCodeParticipant';
   statusBarItem.show();
 
   context.subscriptions.push(statusBarItem);
@@ -176,7 +176,7 @@ function activateCursorFeatures(context: vscode.ExtensionContext): void {
  */
 function registerCursorCommands(context: vscode.ExtensionContext): void {
   // Command to tag current file with Cursor AI assistance
-  const cursorTagCommand = vscode.commands.registerCommand('obsidian-magic.cursorTagFile', () => {
+  const cursorTagCommand = vscode.commands.registerCommand('magus-mark.cursorTagFile', () => {
     if (!mcpServer) {
       vscode.window.showErrorMessage('Cursor integration not initialized');
       return;
@@ -249,7 +249,7 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
 
   // Command to manually register @magus-mark participant
   const registerVSCodeParticipantCommand = vscode.commands.registerCommand(
-    'obsidian-magic.cursorRegisterVSCodeParticipant',
+    'magus-mark.cursorRegisterVSCodeParticipant',
     async () => {
       if (!mcpServer) {
         const response = await vscode.window.showInformationMessage(
@@ -271,7 +271,7 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
   );
 
   // Command to query the @magus-mark participant directly
-  const queryVSCodeCommand = vscode.commands.registerCommand('obsidian-magic.queryVSCode', async () => {
+  const queryVSCodeCommand = vscode.commands.registerCommand('magus-mark.queryVSCode', async () => {
     const lmAPI = languageModelAPI;
     if (!lmAPI) {
       vscode.window.showErrorMessage('Language Model API not initialized');
@@ -356,7 +356,7 @@ function registerCursorCommands(context: vscode.ExtensionContext): void {
  */
 function registerCommands(context: vscode.ExtensionContext): void {
   // Register standard tag file command
-  const tagCommand = vscode.commands.registerCommand('obsidian-magic.tagFile', () => {
+  const tagCommand = vscode.commands.registerCommand('magus-mark.tagFile', () => {
     // Get active editor document
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -466,14 +466,14 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
   });
 
   // Register explorer view command
-  const explorerCommand = vscode.commands.registerCommand('obsidian-magic.openTagExplorer', async () => {
+  const explorerCommand = vscode.commands.registerCommand('magus-mark.openTagExplorer', async () => {
     // Focus the tag explorer view
     await vscode.commands.executeCommand('obsidianMagicTagExplorer.focus');
     vscode.window.showInformationMessage('Tag Explorer opened');
   });
 
   // Register vault management command
-  const manageVaultsCommand = vscode.commands.registerCommand('obsidian-magic.manageVaults', async () => {
+  const manageVaultsCommand = vscode.commands.registerCommand('magus-mark.manageVaults', async () => {
     const options = ['Add Vault', 'Remove Vault', 'Sync Vaults'];
     const choice = await vscode.window.showQuickPick(options, {
       placeHolder: 'Select Vault Action',
@@ -481,18 +481,18 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
 
     if (choice === 'Add Vault') {
       // Just execute the command that's already registered in VaultIntegrationService
-      await vscode.commands.executeCommand('obsidian-magic.addVault');
+      await vscode.commands.executeCommand('magus-mark.addVault');
     } else if (choice === 'Remove Vault') {
       // Just execute the command that's already registered in VaultIntegrationService
-      await vscode.commands.executeCommand('obsidian-magic.removeVault');
+      await vscode.commands.executeCommand('magus-mark.removeVault');
     } else if (choice === 'Sync Vaults') {
       // Just execute the command that's already registered in VaultIntegrationService
-      await vscode.commands.executeCommand('obsidian-magic.syncVault');
+      await vscode.commands.executeCommand('magus-mark.syncVault');
     }
   });
 
   // Add Vault command
-  const addVaultCommand = vscode.commands.registerCommand('obsidian-magic.addVault', async () => {
+  const addVaultCommand = vscode.commands.registerCommand('magus-mark.addVault', async () => {
     // Prompt user to select a directory for the vault
     const options: vscode.OpenDialogOptions = {
       canSelectMany: false,
@@ -523,7 +523,7 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
   });
 
   // Remove Vault command
-  const removeVaultCommand = vscode.commands.registerCommand('obsidian-magic.removeVault', async () => {
+  const removeVaultCommand = vscode.commands.registerCommand('magus-mark.removeVault', async () => {
     if (!vaultService) {
       vscode.window.showErrorMessage('Vault service not initialized');
       return;
@@ -562,7 +562,7 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
   });
 
   // Sync Vault command
-  const syncVaultCommand = vscode.commands.registerCommand('obsidian-magic.syncVault', async () => {
+  const syncVaultCommand = vscode.commands.registerCommand('magus-mark.syncVault', async () => {
     if (!vaultService) {
       vscode.window.showErrorMessage('Vault service not initialized');
       return;

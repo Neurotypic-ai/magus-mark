@@ -1,8 +1,9 @@
+import { Notice, Platform } from 'obsidian';
+
 import { APIError } from '@magus-mark/core/errors/APIError';
 import { AppError } from '@magus-mark/core/errors/AppError';
 import { FileSystemError } from '@magus-mark/core/errors/FileSystemError';
 import { Result } from '@magus-mark/core/errors/Result';
-import { Notice, Platform } from 'obsidian';
 
 import type * as Electron from 'electron';
 
@@ -213,7 +214,7 @@ export class KeyManager {
   private encryptKey(apiKey: string): string {
     // In a real implementation, use a proper encryption library
     // For demonstration, we'll use a simple Base64 encoding with a salt
-    const salt = 'obsidian-magic';
+    const salt = 'magus-mark';
     const input = salt + apiKey;
     return Buffer.from(input).toString('base64');
   }
@@ -225,7 +226,7 @@ export class KeyManager {
     try {
       // In a real implementation, use a proper decryption library
       // For demonstration, we'll use a simple Base64 decoding with a salt
-      const salt = 'obsidian-magic';
+      const salt = 'magus-mark';
       const decoded = Buffer.from(encryptedKey, 'base64').toString();
       if (!decoded.startsWith(salt)) {
         throw new Error('Invalid encrypted key format');

@@ -4,7 +4,7 @@ import type { WorkspaceLeaf } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
 
-export const TAG_MANAGEMENT_VIEW_TYPE = 'obsidian-magic-tag-management';
+export const TAG_MANAGEMENT_VIEW_TYPE = 'magus-mark-tag-management';
 
 export class TagManagementView extends ItemView {
   plugin: ObsidianMagicPlugin;

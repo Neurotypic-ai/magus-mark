@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/khallmark/obsidian-magic/tools/magus-mcp/cmd"
+	"github.com/khallmark/magus-mark/tools/magus-mcp/cmd"
 )
 
 func main() {

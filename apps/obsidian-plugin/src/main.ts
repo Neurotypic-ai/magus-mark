@@ -81,7 +81,7 @@ export default class ObsidianMagicPlugin extends Plugin {
     if (this.settings.statusBarDisplay !== 'never') {
       this.statusBarElement = this.addStatusBarItem();
       this.statusBarElement.createEl('span', { text: 'Magic: Ready' });
-      this.statusBarElement.addClass('obsidian-magic-status');
+      this.statusBarElement.addClass('magus-mark-status');
     }
 
     // Register commands
@@ -553,7 +553,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
             } else if (value !== 'never' && !this.plugin.statusBarElement) {
               this.plugin.statusBarElement = this.plugin.addStatusBarItem();
               this.plugin.statusBarElement.setText('Magic: Ready');
-              this.plugin.statusBarElement.addClass('obsidian-magic-status');
+              this.plugin.statusBarElement.addClass('magus-mark-status');
             }
           })
       );
@@ -572,14 +572,14 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
     // Add documentation link
     const docsLink = linksContainer.createEl('a', {
       text: 'Documentation',
-      href: 'https://obsidian-magic.com/docs',
+      href: 'https://magus-mark.com/docs',
     });
     docsLink.setAttr('target', '_blank');
 
     // Add GitHub link
     const githubLink = linksContainer.createEl('a', {
       text: 'GitHub Repository',
-      href: 'https://github.com/your-github/obsidian-magic',
+      href: 'https://github.com/your-github/magus-mark',
     });
     githubLink.setAttr('target', '_blank');
   }

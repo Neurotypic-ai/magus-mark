@@ -3,18 +3,18 @@
 AI-powered tagging system for organizing AI conversations and technical knowledge in Obsidian.
 
 <p align="center">
-  <img src="documentation/assets/obsidian-magic-logo.png" alt="Magus Mark Logo" width="200" />
+  <img src="documentation/assets/magus-mark-logo.png" alt="Magus Mark Logo" width="200" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/obsidian-magic/obsidian-magic/releases/latest">
-    <img src="https://img.shields.io/github/v/release/obsidian-magic/obsidian-magic" alt="Latest Release">
+  <a href="https://github.com/magus-mark/magus-mark/releases/latest">
+    <img src="https://img.shields.io/github/v/release/magus-mark/magus-mark" alt="Latest Release">
   </a>
-  <a href="https://github.com/obsidian-magic/obsidian-magic/actions">
-    <img src="https://github.com/obsidian-magic/obsidian-magic/actions/workflows/ci.yml/badge.svg" alt="CI Status">
+  <a href="https://github.com/magus-mark/magus-mark/actions">
+    <img src="https://github.com/magus-mark/magus-mark/actions/workflows/ci.yml/badge.svg" alt="CI Status">
   </a>
-  <a href="https://github.com/obsidian-magic/obsidian-magic/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/obsidian-magic/obsidian-magic" alt="License">
+  <a href="https://github.com/magus-mark/magus-mark/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/magus-mark/magus-mark" alt="License">
   </a>
 </p>
 
@@ -87,8 +87,8 @@ Process files and directories from the command line:
 
 ```bash
 # Clone the repository
-git clone https://github.com/obsidian-magic/obsidian-magic.git
-cd obsidian-magic
+git clone https://github.com/magus-mark/magus-mark.git
+cd magus-mark
 
 # Install dependencies
 pnpm install

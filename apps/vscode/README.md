@@ -25,8 +25,7 @@ Obsidian.
 
 ### Manual Installation
 
-1. Download the latest `.vsix` file from the
-   [GitHub releases page](https://github.com/obsidian-magic/obsidian-magic/releases)
+1. Download the latest `.vsix` file from the [GitHub releases page](https://github.com/magus-mark/magus-mark/releases)
 2. Open VS Code
 3. Go to the Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
 4. Click on the "..." menu and select "Install from VSIX..."
@@ -90,9 +89,9 @@ For developers, the extension offers:
 
 ## Support & Documentation
 
-- [Full Documentation](https://github.com/obsidian-magic/obsidian-magic/wiki)
-- [Report Issues](https://github.com/obsidian-magic/obsidian-magic/issues)
-- [Request Features](https://github.com/obsidian-magic/obsidian-magic/issues/new?template=feature_request.md)
+- [Full Documentation](https://github.com/magus-mark/magus-mark/wiki)
+- [Report Issues](https://github.com/magus-mark/magus-mark/issues)
+- [Request Features](https://github.com/magus-mark/magus-mark/issues/new?template=feature_request.md)
 
 ## Requirements
 

@@ -182,13 +182,13 @@ suite('VS Code Integration', () => {
 
     registerCommandStub.returns(disposableMock);
 
-    const disposable = vscode.commands.registerCommand('obsidian-magic.tagFile', () => {
+    const disposable = vscode.commands.registerCommand('magus-mark.tagFile', () => {
       /* intentionally empty for test */
     }) as Disposable;
 
     // Verify commands can be registered
     void expect(disposable).to.exist;
     void expect(registerCommandStub.called).to.be.true;
-    void expect(registerCommandStub.calledWith('obsidian-magic.tagFile')).to.be.true;
+    void expect(registerCommandStub.calledWith('magus-mark.tagFile')).to.be.true;
   });
 });
