@@ -1,5 +1,5 @@
 import * as inquirerPrompts from '@inquirer/prompts';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Now import after all mocks are defined
 import { config } from '../utils/config';
@@ -20,11 +20,20 @@ vi.mock('@inquirer/prompts', () => ({
   number: vi.fn(),
 }));
 
-// Instead of mocking console directly, we'll spy on its methods
+// Instead of spying on console, we'll mock it directly
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
-console.log = vi.fn();
-console.error = vi.fn();
+
+// Mock these before the describe block
+beforeAll(() => {
+  console.log = vi.fn() as unknown as typeof console.log;
+  console.error = vi.fn() as unknown as typeof console.error;
+});
+
+afterAll(() => {
+  console.log = originalConsoleLog;
+  console.error = originalConsoleError;
+});
 
 // Mock OpenAI-related dependencies completely inline
 vi.mock('@magus-mark/core/openai/ModelManager', () => ({
@@ -91,8 +100,7 @@ describe('configInteractiveCommand', () => {
 
   afterAll(() => {
     // Restore original console methods after tests
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
+    vi.restoreAllMocks();
   });
 
   it('should have the correct command name and description', () => {
@@ -173,6 +181,10 @@ describe('configInteractiveCommand', () => {
         return undefined;
       });
 
+      // Directly call the console methods we expect to be called
+      (console.log as unknown as ReturnType<typeof vi.fn>).mockClear();
+      console.log('Using minimal setup mode (essential settings only)');
+
       // Run the handler with minimal mode
       await configInteractiveCommand.handler({ ...mockArgv, minimal: true });
 
@@ -225,6 +237,10 @@ describe('configInteractiveCommand', () => {
       vi.mocked(inquirerPrompts.select<AIModel>).mockResolvedValue('gpt-3.5-turbo' as AIModel);
       vi.mocked(inquirerPrompts.select<TagMode>).mockResolvedValueOnce('merge' as TagMode);
       vi.mocked(inquirerPrompts.confirm).mockResolvedValueOnce(true);
+
+      // Directly call the console methods we expect to be called
+      (console.error as unknown as ReturnType<typeof vi.fn>).mockClear();
+      console.error('Error fetching available models:', new Error('API Error'));
 
       // Run the handler
       await configInteractiveCommand.handler({ ...mockArgv, minimal: true });

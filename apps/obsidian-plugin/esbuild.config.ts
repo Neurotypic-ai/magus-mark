@@ -23,8 +23,8 @@ function copyAssets() {
       mkdirSync(outdir, { recursive: true });
       copyFileSync(resolve(file), resolve(outdir, file));
       console.log(`Copied ${file} to ${outdir}/`);
-    } catch (e: any) {
-      if (e.code !== 'ENOENT') throw e;
+    } catch (e: unknown) {
+      if (e instanceof Error && 'code' in e && e.code !== 'ENOENT') throw e;
     }
   }
 }

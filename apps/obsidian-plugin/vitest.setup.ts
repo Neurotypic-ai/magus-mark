@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 // Mock window.require for tests needing electron access
 if (typeof window !== 'undefined') {
-  (window as any).require = vi.fn((module: string) => {
+  (window as unknown as { require: (module: string) => unknown }).require = vi.fn((module: string) => {
     if (module === 'electron') {
       // Return a basic mock for electron if needed
       return {

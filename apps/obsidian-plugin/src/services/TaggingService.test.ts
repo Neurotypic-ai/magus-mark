@@ -1,7 +1,8 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { APIError } from '@magus-mark/core/errors/APIError';
 import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
 import { TaggingError } from '@magus-mark/core/errors/TaggingError';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TaggingService } from './TaggingService';
 
@@ -196,7 +197,7 @@ describe('TaggingService', () => {
         settings: { ...mockPlugin.settings, apiKey: '' },
         statusBarElement: { setText: vi.fn() } as any,
       }; // Use simplified mock
-      const unconfiguredService = new TaggingService(unconfiguredPlugin as any);
+      const unconfiguredService = new TaggingService(unconfiguredPlugin as ObsidianMagicPlugin);
 
       const result: FileProcessingResult = await unconfiguredService.processFile(mockFile);
 
@@ -289,7 +290,7 @@ describe('TaggingService', () => {
         settings: { ...mockPlugin.settings, apiKey: '' },
         statusBarElement: { setText: vi.fn() } as any,
       };
-      const unconfiguredService = new TaggingService(unconfiguredPlugin as any);
+      const unconfiguredService = new TaggingService(unconfiguredPlugin as ObsidianMagicPlugin);
 
       const results = await unconfiguredService.processFiles(mockFiles);
 

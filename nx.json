@@ -161,8 +161,7 @@
       "options": {
         "targetName": "lint"
       }
-    },
-    "@nx-go/nx-go"
+    }
   ],
   "nxCloudId": "68070cc4a0c749f66b8836a0",
   "namedInputs": {

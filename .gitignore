@@ -64,3 +64,5 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 
 storybook-static
+# SpecStory explanation file
+.specstory/.what-is-this.md

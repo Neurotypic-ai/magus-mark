@@ -1,7 +1,8 @@
-import { Logger } from '@magus-mark/core/utils/Logger';
-import { formatCurrency, formatDuration } from '@magus-mark/core/utils/string';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
+
+import { Logger } from '@magus-mark/core/utils/Logger';
+import { formatCurrency, formatDuration } from '@magus-mark/core/utils/string';
 
 import { benchmark } from '../utils/Chronometer';
 
@@ -86,7 +87,11 @@ export const testCommand: CommandModule = {
 
       if (models.length === 0) {
         logger.error('No models specified. Use --models option to specify models to test.');
-        process.exit(1);
+        // During tests, we don't want to call process.exit as it interferes with the test runner
+        if (process.env['NODE_ENV'] !== 'test') {
+          process.exit(1);
+        }
+        return;
       }
 
       if (runBenchmark) {
@@ -99,7 +104,10 @@ export const testCommand: CommandModule = {
       }
     } catch (error) {
       logger.error(`Test command failed: ${error instanceof Error ? error.message : String(error)}`);
-      process.exit(1);
+      // During tests, we don't want to call process.exit as it interferes with the test runner
+      if (process.env['NODE_ENV'] !== 'test') {
+        process.exit(1);
+      }
     }
   },
 };
@@ -178,7 +186,7 @@ Summary:
     }
   } catch (error) {
     spinner.stop();
-    logger.error(`Benchmark failed: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(`Test command failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

@@ -1,3 +1,5 @@
+import { MarkdownError } from '../errors/MarkdownError';
+
 /**
  * Markdown utility class for Magus Mark
  */
@@ -87,11 +89,12 @@ export class MarkdownProcessor {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       // Re-throw the error so the caller (updateFrontmatter) can catch it
-      throw new Error(`Failed to parse frontmatter: ${String(error)}`);
-      // Alternatively, throw a more specific custom error if available
-      // throw new MarkdownError('Failed to parse frontmatter', { cause: error, code: 'PARSE_ERROR' });
+      throw new MarkdownError('Failed to parse frontmatter', {
+        cause: error instanceof Error ? error : new Error(String(error)),
+        code: 'PARSE_ERROR',
+      });
     }
   }
 

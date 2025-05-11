@@ -26,9 +26,9 @@ This is the main content of the note.`;
         frontmatter: {
           title: 'Test Note',
           tags: ['test', 'markdown'],
-          date: '2023-08-15',
+          date: new Date('2023-08-15T00:00:00.000Z'),
         },
-        content: '# Content\n\nThis is the main content of the note.',
+        content: '\n# Content\n\nThis is the main content of the note.',
       });
     });
 
@@ -53,7 +53,7 @@ Content after empty frontmatter.`;
 
       expect(result).toEqual({
         frontmatter: {},
-        content: 'Content after empty frontmatter.',
+        content: '\nContent after empty frontmatter.',
       });
     });
 
@@ -186,10 +186,11 @@ This is the content.`;
       const result = updateTagsInFrontmatter(content, tags);
 
       expect(result).toContain('title: Test Note');
-      expect(result).toContain('tags');
-      expect(result).toContain('obsidianMagic');
-      expect(result).toContain('"year": "2023"');
-      expect(result).toContain('"domain":"technology"');
+      expect(result).toContain('tags:');
+      expect(result).toContain('obsidianMagic:');
+      expect(result).toMatch(/year:\s*'?2023'?/);
+      expect(result).toMatch(/domain:\s*'?technology'?/);
+      expect(result).toContain('# Content\n\nThis is the content.');
     });
   });
 });

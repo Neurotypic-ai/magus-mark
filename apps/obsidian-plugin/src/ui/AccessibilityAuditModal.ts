@@ -1,10 +1,6 @@
-import type { App} from 'obsidian';
 import { Modal } from 'obsidian';
 
 export class AccessibilityAuditModal extends Modal {
-  constructor(app: App) {
-    super(app);
-  }
   override onOpen(): void {
     const { contentEl } = this;
     contentEl.createEl('h2', { text: 'Accessibility Audit Results', attr: { tabindex: '0', role: 'heading' } });

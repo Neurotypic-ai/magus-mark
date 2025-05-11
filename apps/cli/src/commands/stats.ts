@@ -1,9 +1,10 @@
 import * as path from 'node:path';
 
-import { FileUtils } from '@magus-mark/core/utils/FileUtils';
-import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
+
+import { FileUtils } from '@magus-mark/core/utils/FileUtils';
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 import { costManager } from '../utils/cost-manager';
 
@@ -116,7 +117,14 @@ export const statsCommand: CommandModule<Record<string, unknown>, StatsOptions> 
   },
   handler: async (argv) => {
     try {
-      const { period = 'month', type = 'all', format = 'table', directory, output } = argv;
+      const { period = 'month', type = 'all', format = 'table', directory, output, reset } = argv;
+
+      // If reset flag is true, reset the usage data
+      if (reset) {
+        costManager.resetUsageData();
+        costManager.saveUsageData();
+        logger.info('Usage statistics have been reset.');
+      }
 
       // If directory is specified, run file-based analysis
       if (directory) {

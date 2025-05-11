@@ -1,23 +1,22 @@
 {
   "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
-  "dependencies": {},
   "description": "Shared ESLint configuration for Magus Mark",
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
+    "@eslint/js": "^9.26.0",
     "@eslint/markdown": "^6.4.0",
     "@types/eslint-plugin-jsx-a11y": "^6.10.0",
-    "@typescript-eslint/eslint-plugin": "^8.31.0",
-    "@typescript-eslint/parser": "^8.31.0",
-    "@typescript-eslint/types": "^8.31.0",
-    "@typescript-eslint/utils": "^8.31.0",
-    "eslint-config-prettier": "^10.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.32.0",
+    "@typescript-eslint/parser": "^8.32.0",
+    "@typescript-eslint/types": "^8.32.0",
+    "@typescript-eslint/utils": "^8.32.0",
+    "eslint-config-prettier": "^10.1.5",
     "eslint-import-resolver-typescript": "^4.3.4",
-    "eslint-plugin-import-x": "^4.10.6",
+    "eslint-plugin-import-x": "^4.11.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-testing-library": "^7.1.1",
-    "typescript-eslint": "^8.31.0"
+    "typescript-eslint": "^8.32.0"
   },
   "exports": {
     ".": "./config/index.js"

@@ -4,7 +4,7 @@
     "magus": "./dist/cli.js"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.4.1",
+    "@inquirer/prompts": "^7.5.0",
     "@magus-mark/core": "workspace:*",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
@@ -15,25 +15,25 @@
     "ora": "^8.2.0",
     "update-notifier": "^7.3.1",
     "yargs": "^17.7.2",
-    "zod": "^3.24.3"
+    "zod": "^3.24.4"
   },
   "description": "CLI tool for Magus Mark",
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
+    "@eslint/js": "^9.26.0",
     "@eslint/markdown": "^6.4.0",
     "@magus-mark/eslint-config": "workspace:*",
     "@magus-mark/typescript-config": "workspace:*",
     "@types/cli-progress": "^3.11.6",
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.14.1",
+    "@types/node": "^22.15.17",
     "@types/update-notifier": "^6.0.8",
     "@types/yargs": "^17.0.33",
-    "c8": "^10.1.3",
-    "esbuild": "^0.25.2",
-    "eslint": "^9.25.1",
+    "c8": "10.1.3",
+    "esbuild": "^0.25.4",
+    "eslint": "^9.26.0",
     "typescript": "5.8.3",
-    "vitest": "^3.1.2"
+    "vitest": "^3.1.3"
   },
   "engines": {
     "node": ">=22"

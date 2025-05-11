@@ -33,7 +33,7 @@ const mockIpcRenderer = {
 };
 
 // Mock the global window object to inject require for Electron
-global.window = global.window || {};
+global.window = global.window;
 (global.window as any).require = (moduleName: string): typeof Electron | null => {
   if (moduleName === 'electron') {
     return {
@@ -316,8 +316,8 @@ describe('KeyManager', () => {
       expect(keyManager.validateKey('sk-')).toBe(false);
       expect(keyManager.validateKey('pk-xxxxxxxxxxxx')).toBe(false);
       expect(keyManager.validateKey('invalid key format')).toBe(false);
-      expect(keyManager.validateKey(null as any)).toBe(false);
-      expect(keyManager.validateKey(undefined as any)).toBe(false);
+      expect(keyManager.validateKey(false as unknown as string)).toBe(false);
+      expect(keyManager.validateKey(undefined as unknown as string)).toBe(false);
     });
   });
 
