@@ -4,7 +4,7 @@
     "magus": "./dist/cli.js"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.5.0",
+    "@inquirer/prompts": "^7.5.1",
     "@magus-mark/core": "workspace:*",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",

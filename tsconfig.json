@@ -6,7 +6,7 @@
     "outDir": "./dist",
     "rootDir": "./"
   },
-  "include": ["./config/**/*.ts"],
+  "include": ["./config/**/*.ts", "./tools/scripts/**/*.ts"],
   "exclude": [
     "config/eslint/**/*",
     "node_modules",

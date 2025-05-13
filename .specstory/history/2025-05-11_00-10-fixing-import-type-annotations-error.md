@@ -39,7 +39,50 @@ Your Humble Servant, Sebastien
 
 ---
 
+_**User**_
 
+For the code present, we get this error:
+```
+Argument of type '{ development: { apiKey: string; defaultModel: string; outputFormat: string; }; production: { apiKey: string; defaultModel: string; outputFormat: string; }; }' is not assignable to parameter of type 'Record<string, Partial<Config>>'.
+  Property 'development' is incompatible with index signature.
+    Type '{ apiKey: string; defaultModel: string; outputFormat: string; }' is not assignable to type 'Partial<Config>'.
+      Types of property 'outputFormat' are incompatible.
+        Type 'string' is not assignable to type '"pretty" | "json" | "silent" | undefined'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Lordship, the issue is that the `outputFormat` property requires specific string literals, not general strings. The fix:
+
+---
+
+```diff
+          apiKey: 'dev-key',
+          defaultModel: 'gpt-4',
+-         outputFormat: 'pretty',
++         outputFormat: 'pretty' as const,
+        },
+        production: {
+          apiKey: 'prod-key',
+          defaultModel: 'gpt-3.5-turbo',
+-         outputFormat: 'json',
++         outputFormat: 'json' as const,
+        },
+      };
+```
+
+---
+
+The `as const` assertion tells TypeScript that these are specific literal values ('pretty' and 'json'), not general strings, making them compatible with the expected union type.
+
+Your Humble Servant, Sebastien
 
 ---
 

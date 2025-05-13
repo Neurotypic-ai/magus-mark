@@ -1,0 +1,177 @@
+repository_implementation:
+  imports:
+    required:
+      - entity_type: from '../../types/{EntityName}'
+      - errors: from '../errors/RepositoryError'
+      - base: from './BaseRepository'
+      - types:
+          - type { I{Entity}Row } from '../types/DatabaseResults'
+          - type { IDatabaseAdapter } from '../IDatabaseAdapter'
+          - type { RelatedType } from '../../types/RelatedType' for all Map value types
+          - type { ParentType } from entity file for type aliases and unions
+      - type_imports:
+          - Always use 'type' for type-only imports
+          - Import type aliases and unions directly from entity files
+          - Import all related entity types for Maps
+          - Keep imports organized by category
+      - type_definitions:
+          - Define domain-specific types near related interfaces
+          - Use type aliases for repeated string literals
+          - Export types that may be reused
+
+  interfaces:
+    createDTO:
+      naming: I{Entity}CreateDTO
+      rules:
+        - all fields must match database columns exactly
+        - use strict types (no any)
+        - foreign keys should be marked optional with '?'
+        - include all required constructor parameters
+        - match entity constructor parameter order
+        - use imported type aliases for specific types
+        - exclude Map fields (handled in constructor)
+        - exclude auto-generated fields (id, created_at)
+
+    updateDTO:
+      naming: I{Entity}UpdateDTO
+      rules:
+        - all fields must be optional with '?'
+        - match types exactly with createDTO
+        - no 'any' types allowed
+        - handle nullish values consistently
+        - maintain same type aliases as createDTO
+        - exclude read-only and computed fields
+        - exclude auto-generated fields
+
+  class_definition:
+    extends: BaseRepository<{Entity}, I{Entity}CreateDTO, I{Entity}UpdateDTO>
+    constructor:
+      - adapter: IDatabaseAdapter
+      - errorTag: '[{Entity}Repository]'
+      - tableName: plural lowercase name
+
+  methods:
+    create:
+      params_handling:
+        - define params array with exact types for DB columns
+        - match SQL parameter count with values array
+        - handle optional fields with nullish coalescing
+        - use null for optional DB fields
+        - maintain parameter order matching SQL columns
+        - group related parameters together
+        - include created_at timestamp
+      error_handling:
+        - wrap in try/catch
+        - throw RepositoryError with context
+      constructor_call:
+        - match parameter order exactly with entity constructor
+        - cast types where needed (as ParentType, as VisibilityType)
+        - handle optional fields with nullish coalescing
+        - respect default values from entity constructor
+        - initialize empty Maps with proper types
+        - maintain consistent Map initialization
+        - handle auto-generated fields properly
+
+    update:
+      type_safety:
+        - values array type must match column types
+        - no 'any' types
+        - handle nullish values consistently (use `?? null` to convert undefined values)
+        - cast types when retrieving from database
+        - Ensure the updates array passed to `buildUpdateQuery` is mutable and explicitly typed as `{ field: string; value: string | number | boolean | null }[]` to avoid readonly type errors
+      error_handling:
+        - NoFieldsToUpdateError when no updates
+        - EntityNotFoundError when not found
+        - wrap other errors in RepositoryError
+        - preserve existing values for unmodified fields
+        - validate before update
+
+    retrieve:
+      type_safety:
+        - use I{Entity}Row type with executeQuery
+        - proper null handling
+        - match constructor parameters exactly
+        - handle optional fields with nullish coalescing
+        - cast database strings to proper types (e.g., explicitly convert unknown values using `String(...)`)
+        - initialize empty collections
+        - parse dates from ISO strings
+      error_handling:
+        - wrap errors in RepositoryError
+        - return null if not found
+
+    delete:
+      type_safety:
+        - use I{Entity}Row type with executeQuery
+        - use string literals for fixed values
+      error_handling:
+        - wrap errors in RepositoryError
+        - delete related records first
+        - handle cascading deletes in correct order
+        - maintain referential integrity
+
+    custom_queries:
+      naming:
+        - use descriptive names starting with find/get/update
+        - indicate query purpose clearly
+      implementation:
+        - follow same error handling pattern
+        - maintain consistent return types
+        - document complex queries
+        - handle empty results appropriately
+
+  sql_queries:
+    rules:
+      - use parameterized queries with '?'
+      - align values array with parameter count
+      - handle optional fields with NULL in database
+      - match column names exactly with DTO fields
+      - maintain proper delete order for foreign keys
+      - order columns consistently in INSERT statements
+      - group related columns together
+      - comment multi-step operations
+      - include timestamps for created_at
+
+  type_handling:
+    constructor_params:
+      - match order exactly with entity class
+      - cast database types to entity types
+      - handle optional fields consistently
+      - respect entity constructor defaults
+      - initialize collections properly
+      - parse dates from ISO strings
+    type_casting:
+      - use 'as' for known type conversions
+      - cast enums and type aliases from database strings
+      - maintain type safety with specific types
+      - use type guards where appropriate
+      - document complex type conversions
+    optional_fields:
+      - use null in database operations
+      - use undefined in TypeScript interfaces
+      - handle conversion between null/undefined consistently
+      - apply nullish coalescing at boundaries
+      - document nullable fields
+    parameter_types:
+      - use specific union types for params arrays
+      - match database column types exactly
+      - use type aliases for domain-specific types
+      - maintain consistent type usage across repository
+      - document type constraints
+    timestamps:
+      - store as ISO strings in database
+      - convert to Date objects in entities
+      - handle timezone considerations
+      - maintain consistent date handling
+
+  collections:
+    initialization:
+      - initialize Maps in constructor calls
+      - use proper generic types
+      - maintain consistent initialization pattern
+      - document collection purposes
+    relationships:
+      - handle parent-child relationships properly
+      - maintain referential integrity
+      - delete related records in correct order
+      - document relationship constraints
+      - implement proper foreign key handling
