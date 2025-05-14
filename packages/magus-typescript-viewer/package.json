@@ -51,11 +51,11 @@
   ],
   "license": "ISC",
   "main": "dist/index.js",
-  "name": "lbh-typescript-viewer",
+  "name": "magus-typescript-viewer",
   "scripts": {
     "analyze": "node dist/bin/typescript-viewer.js analyze",
     "build": "pnpm typecheck && vite build",
-    "dev": "pnpm run --filter lbh-typescript-viewer --parallel \"/^dev:.*/\"",
+    "dev": "pnpm run --filter magus-typescript-viewer --parallel \"/^dev:.*/\"",
     "dev:server": "nodemon --watch src/db --exec 'tsx' src/server.ts",
     "dev:ui": "vite",
     "lint": "eslint .",

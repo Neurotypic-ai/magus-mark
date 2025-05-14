@@ -1,6 +1,6 @@
 # <%= name %>
 
-<%= description %>
+<% if (description) { %><%= description %><% } else { %>A <%= type === 'app' ? 'Magus Mark application' : 'Magus Mark library' %><% } %>
 
 ## Features
 

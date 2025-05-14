@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./package.json": "./package.json",
     "./generators": "./src/generators/index.js",
     "./executors": "./src/executors/index.js"
   },

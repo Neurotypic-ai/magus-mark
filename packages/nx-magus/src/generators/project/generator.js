@@ -71,8 +71,13 @@ function normalizeOptions(tree, options, projectRoot) {
   const projectName = name.replace(new RegExp('/', 'g'), '-');
   const parsedTags = options.tags ? options.tags.split(',').map((s) => s.trim()) : [];
 
+  // Ensure description is always defined
+  const description =
+    options.description || `A ${options.type === 'app' ? 'Magus Mark application' : 'Magus Mark library'}`;
+
   return {
     ...options,
+    description,
     projectName,
     projectRoot: projectDirectory,
     projectDirectory,
