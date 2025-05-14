@@ -26,7 +26,7 @@
     "@types/cli-progress": "^3.11.6",
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.18",
     "@types/update-notifier": "^6.0.8",
     "@types/yargs": "^17.0.33",
     "c8": "10.1.3",

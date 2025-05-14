@@ -13,7 +13,7 @@
     "@magus-mark/eslint-config": "workspace:*",
     "@magus-mark/typescript-config": "workspace:*",
     "@testing-library/react": "^16.3.0",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.18",
     "esbuild": "^0.25.4",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-register": "^3.6.0",

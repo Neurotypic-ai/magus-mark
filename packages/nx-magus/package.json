@@ -2,7 +2,7 @@
   "name": "@magus-mark/nx-magus",
   "version": "0.1.0",
   "description": "Nx plugin for Magus Mark projects",
-  "type": "module",
+  "type": "commonjs",
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
@@ -22,6 +22,6 @@
     "type": "git",
     "url": "https://github.com/neurotypic-ai/magus-mark"
   },
-  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "author": "Kevin Hallmark <magus-mark@littleblackhat.com>",
   "license": "MIT"
 }

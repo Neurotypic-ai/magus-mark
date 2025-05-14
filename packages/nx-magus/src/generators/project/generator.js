@@ -1,15 +1,14 @@
-import * as path from 'path';
-
-import {
+const path = require('path');
+const {
   addProjectConfiguration,
   formatFiles,
   generateFiles,
   getWorkspaceLayout,
   names,
   offsetFromRoot,
-} from '@nx/devkit';
+} = require('@nx/devkit');
 
-export default async function (tree, options) {
+async function generator(tree, options) {
   const projectName = names(options.name).fileName;
   const projectRoot = options.directory
     ? `${options.directory}/${projectName}`
@@ -163,3 +162,5 @@ function generateTargets(options) {
 
   return targets;
 }
+
+module.exports = generator;
