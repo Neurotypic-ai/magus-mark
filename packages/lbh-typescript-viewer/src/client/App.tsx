@@ -9,6 +9,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { GraphProvider } from './context/GraphContext';
 import { graphTheme } from './theme/graphTheme';
 
+import type { JSX } from 'react';
+
 import type { DependencyPackageGraph } from './components/DependencyGraph/types';
 
 // Lazy load the DependencyGraph component for code splitting and better performance
@@ -63,7 +65,7 @@ const muiTheme = createTheme({
 const appLogger = createLogger('App');
 const graphDataAssembler = new GraphDataAssembler();
 
-export default function App() {
+export default function App(): JSX.Element {
   const [graphData, setGraphData] = useState<DependencyPackageGraph>({ packages: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

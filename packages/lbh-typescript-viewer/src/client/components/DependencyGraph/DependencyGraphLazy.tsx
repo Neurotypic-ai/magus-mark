@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 
 import { DependencyGraph } from './index';
 
+import type { JSX } from 'react';
+
 import type { DependencyGraphProps } from './index';
 
 /**
@@ -17,10 +19,7 @@ class PerformanceMetrics {
   }
 
   public static getInstance(): PerformanceMetrics {
-    if (!PerformanceMetrics.instance) {
-      PerformanceMetrics.instance = new PerformanceMetrics();
-    }
-    return PerformanceMetrics.instance;
+    return (PerformanceMetrics.instance ??= new PerformanceMetrics());
   }
 
   public trackRenderTime(time: number): void {
@@ -55,7 +54,7 @@ class PerformanceMetrics {
 /**
  * Lazy-loaded wrapper for the DependencyGraph component with performance monitoring
  */
-export default function DependencyGraphLazy(props: DependencyGraphProps) {
+export default function DependencyGraphLazy(props: DependencyGraphProps): JSX.Element {
   // Get the singleton instance of PerformanceMetrics
   const metrics = PerformanceMetrics.getInstance();
 
@@ -70,7 +69,7 @@ export default function DependencyGraphLazy(props: DependencyGraphProps) {
 
       const entries = performance.getEntriesByName('graph-render');
       if (entries.length > 0) {
-        const duration = entries[0].duration;
+        const duration = entries[0]?.duration ?? 0;
         metrics.trackRenderTime(duration);
 
         // Clean up performance marks and measures

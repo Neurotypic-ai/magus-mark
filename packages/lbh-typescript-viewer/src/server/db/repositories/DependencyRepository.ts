@@ -21,7 +21,7 @@ function isValidDependencyDTO(dto: unknown): dto is IDependencyCreateDTO {
     return false;
   }
 
-  const record = dto as Record<string, unknown>;
+  const record = dto as IDependencyCreateDTO;
   return (
     typeof record.source_id === 'string' &&
     typeof record.target_id === 'string' &&
@@ -84,11 +84,11 @@ export class DependencyRepository extends BaseRepository<
 
       await this.executeQuery<IDependencyRow>('update', `UPDATE ${this.tableName} SET ${query} WHERE id = ?`, values);
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new EntityNotFoundError('Dependency', id, this.errorTag);
       }
-      return result[0];
+      return result;
     } catch (error) {
       this.logger.error('Failed to update dependency', error);
       if (error instanceof RepositoryError) {

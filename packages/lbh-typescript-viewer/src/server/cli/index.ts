@@ -117,7 +117,7 @@ program
   .description('Start the visualization server')
   .argument('[file]', 'Database file to visualize', 'typescript-viewer.duckdb')
   .option('-p, --port <number>', 'Port to listen on', '4000')
-  .action(async (file: string, options: { port: string }) => {
+  .action(async (_file: string, options: { port: string }) => {
     const spinner = ora('Starting visualization server...').start();
 
     try {

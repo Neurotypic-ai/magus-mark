@@ -14,6 +14,11 @@ import type { AIModel } from '@magus-mark/core/models/AIModel';
 import type { TagBehavior } from '@magus-mark/core/models/TagBehavior';
 import type { App } from 'obsidian';
 
+// Interface for WebAssembly with our extended properties
+interface WebAssemblyExtended {
+  _originalModule?: typeof WebAssembly.Module;
+}
+
 interface ObsidianMagicSettings {
   apiKey: string;
   apiKeyStorage: 'local' | 'system';
@@ -44,50 +49,40 @@ export default class ObsidianMagicPlugin extends Plugin {
   keyManager!: KeyManager;
 
   override async onload(): Promise<void> {
-    console.log('Loading Magus Mark plugin');
+    console.log('[Magus Mark] Loading plugin...');
 
-    // Load settings
     await this.loadSettings();
-
-    // Initialize key manager
     this.keyManager = new KeyManager(this);
-
-    // Retrieve API key from secure storage
     const apiKey = await this.keyManager.loadKey();
 
-    // Initialize tagging service with the retrieved key
-    this.taggingService = new TaggingService(this);
-    if (apiKey) {
-      this.taggingService.updateApiKey(apiKey);
+    try {
+      this.taggingService = new TaggingService(this);
+      if (apiKey) {
+        this.taggingService.updateApiKey(apiKey);
+      }
+      console.log('[Magus Mark] TaggingService initialized.');
+    } catch (error: unknown) {
+      console.error('[Magus Mark] Error initializing TaggingService:', error);
+      new Notice('Magus Mark: Error initializing TaggingService. Check console.');
     }
 
-    // Initialize document tag service
     this.documentTagService = new DocumentTagService(this);
-
-    // Register settings tab
     this.addSettingTab(new ObsidianMagicSettingTab(this.app, this));
-
-    // Register views
     this.registerViews();
 
-    // Register ribbon icon if enabled
     if (this.settings.showRibbonIcon) {
       this.addRibbonIcon('tag', 'Magus Mark', async () => {
         await this.activateTagManagementView();
       });
     }
 
-    // Register status bar element if enabled
     if (this.settings.statusBarDisplay !== 'never') {
       this.statusBarElement = this.addStatusBarItem();
       this.statusBarElement.createEl('span', { text: 'Magic: Ready' });
       this.statusBarElement.addClass('magus-mark-status');
     }
 
-    // Register commands
     this.addCommands();
-
-    // Register context menu
     this.registerContextMenu();
 
     this.addRibbonIcon('dice', 'Show Notice', () => {
@@ -126,8 +121,14 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 
   override onunload(): void {
+    // Restore original WebAssembly.Module if we've overridden it
+    const webAssemblyExt = WebAssembly as WebAssemblyExtended;
+    if (webAssemblyExt._originalModule) {
+      WebAssembly.Module = webAssemblyExt._originalModule;
+      delete webAssemblyExt._originalModule;
+    }
+
     console.log('Unloading Magus Mark plugin');
-    // Clean up views
     this.app.workspace.detachLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE);
   }
@@ -142,15 +143,11 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 
   private registerViews(): void {
-    // Register tag management view
     this.registerView(TAG_MANAGEMENT_VIEW_TYPE, (leaf) => new TagManagementView(leaf, this));
-
-    // Register tag visualization view
     this.registerView(TAG_VISUALIZATION_VIEW_TYPE, (leaf) => new TagVisualizationView(leaf, this));
   }
 
   private addCommands(): void {
-    // Add tag management command
     this.addCommand({
       id: 'open-tag-management',
       name: 'Open Tag Management',
@@ -159,7 +156,6 @@ export default class ObsidianMagicPlugin extends Plugin {
       },
     });
 
-    // Add tag visualization command
     this.addCommand({
       id: 'open-tag-visualization',
       name: 'Open Tag Visualization',
@@ -168,7 +164,6 @@ export default class ObsidianMagicPlugin extends Plugin {
       },
     });
 
-    // Add tag current file command
     this.addCommand({
       id: 'tag-current-file',
       name: 'Tag Current File',
@@ -184,7 +179,6 @@ export default class ObsidianMagicPlugin extends Plugin {
       },
     });
 
-    // Add tag folder command
     this.addCommand({
       id: 'tag-folder',
       name: 'Tag Folder',
@@ -195,7 +189,6 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 
   private registerContextMenu(): void {
-    // Add file explorer context menu items
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
         if (file instanceof TFile && file.extension === 'md') {
@@ -220,7 +213,6 @@ export default class ObsidianMagicPlugin extends Plugin {
       })
     );
 
-    // Add editor context menu item
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu, editor, view) => {
         console.log('editor-menu', menu, editor, view);
@@ -242,14 +234,12 @@ export default class ObsidianMagicPlugin extends Plugin {
   async activateTagManagementView(): Promise<void> {
     const { workspace } = this.app;
 
-    // Check if view is already open
     const existingView = workspace.getLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE)[0];
     if (existingView) {
       void workspace.revealLeaf(existingView);
       return;
     }
 
-    // Open view in right sidebar by default
     const leaf = workspace.getRightLeaf(false);
     if (!leaf) return;
 
@@ -267,14 +257,12 @@ export default class ObsidianMagicPlugin extends Plugin {
   async activateTagVisualizationView(): Promise<void> {
     const { workspace } = this.app;
 
-    // Check if view is already open
     const existingView = workspace.getLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE)[0];
     if (existingView) {
       void workspace.revealLeaf(existingView);
       return;
     }
 
-    // Open view in right sidebar by default
     const leaf = workspace.getRightLeaf(false);
     if (!leaf) return;
 
@@ -293,7 +281,6 @@ export default class ObsidianMagicPlugin extends Plugin {
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) return;
 
-    // Process the current file using the tagging service
     await this.taggingService.processFile(activeFile);
   }
 
@@ -305,15 +292,11 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 
   async tagFolder(folder: TFolder, includeSubfolders = true): Promise<void> {
-    // Update status
     if (this.statusBarElement) {
       this.statusBarElement.setText('Magic: Collecting files...');
     }
 
-    // Collect files to process
     const filesToProcess: TFile[] = [];
-
-    // Helper function to collect files recursively
     const collectFiles = (currentFolder: TFolder) => {
       currentFolder.children.forEach((child) => {
         if (child instanceof TFile && child.extension === 'md') {
@@ -323,16 +306,12 @@ export default class ObsidianMagicPlugin extends Plugin {
         }
       });
     };
-
-    // Start collecting files
     collectFiles(folder);
 
-    // Process files
     if (filesToProcess.length > 0) {
       if (this.statusBarElement) {
         this.statusBarElement.setText(`Magic: Processing ${String(filesToProcess.length)} files...`);
       }
-
       await this.taggingService.processFiles(filesToProcess);
     } else {
       if (this.statusBarElement) {
@@ -344,9 +323,6 @@ export default class ObsidianMagicPlugin extends Plugin {
         }, 3000);
       }
     }
-
-    // Update the key manager's storage strategy - we don't need this line
-    // simply saving the settings is sufficient
     await this.saveSettings();
   }
 }
@@ -362,10 +338,8 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-
     containerEl.createEl('h2', { text: 'Magus Mark Settings' });
 
-    // API Key settings
     new Setting(containerEl)
       .setName('OpenAI API Key')
       .setDesc('Your OpenAI API key for powering the tagging functionality')
@@ -374,20 +348,14 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           .setPlaceholder('sk-...')
           .setValue(this.plugin.settings.apiKey)
           .onChange(async (value) => {
-            // Only validate and save if the key format is valid
             if (value && !this.plugin.keyManager.validateKey(value)) {
               new Notice('Invalid API key format. OpenAI keys typically start with "sk-"');
               return;
             }
-
-            // Save the key using the key manager
             await this.plugin.keyManager.saveKey(value);
-
-            // Update the tagging service with the new key
             this.plugin.taggingService.updateApiKey(value);
           });
 
-        // Add test button
         text.inputEl.after(
           createEl(
             'button',
@@ -402,19 +370,12 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
               btn.addEventListener('click', () => {
                 void (async () => {
                   const key = await this.plugin.keyManager.loadKey();
-
                   if (!key) {
                     new Notice('Please enter an API key first');
                     return;
                   }
-
                   new Notice('Testing API key...');
-
-                  // Use validateKey as a substitute for verifyKey since we need to verify
-                  // We could implement a more robust check with a network call, but for now
-                  // we'll use validateKey for format verification
                   const isValid = this.plugin.keyManager.validateKey(key);
-
                   if (isValid) {
                     new Notice('API key is valid!');
                   } else {
@@ -427,7 +388,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
         );
       });
 
-    // API Key storage location
     new Setting(containerEl)
       .setName('API Key Storage')
       .setDesc('Choose where to store your API key')
@@ -439,16 +399,10 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             const oldStorage = this.plugin.settings.apiKeyStorage;
             const newStorage = value as 'local' | 'system';
-
             if (oldStorage !== newStorage) {
-              // Get the current key
               const currentKey = await this.plugin.keyManager.loadKey();
-
-              // Update the storage setting
               this.plugin.settings.apiKeyStorage = newStorage;
               await this.plugin.saveSettings();
-
-              // If we have a key, migrate it to the new storage
               if (currentKey) {
                 await this.plugin.keyManager.saveKey(currentKey);
                 new Notice(`API key migrated to ${newStorage === 'system' ? 'system keychain' : 'local storage'}`);
@@ -457,7 +411,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           })
       );
 
-    // Model preference
     new Setting(containerEl)
       .setName('Model Preference')
       .setDesc('Select which OpenAI model to use')
@@ -479,7 +432,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           })
       );
 
-    // Default tag behavior
     new Setting(containerEl)
       .setName('Default Tag Behavior')
       .setDesc('How to handle existing tags when tagging files')
@@ -495,7 +447,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           })
       );
 
-    // Auto-sync toggle
     new Setting(containerEl)
       .setName('Enable Auto-Sync')
       .setDesc('Automatically tag files when they are created or modified')
@@ -506,7 +457,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
         })
       );
 
-    // Ribbon icon toggle
     new Setting(containerEl)
       .setName('Show Ribbon Icon')
       .setDesc('Display the Magus Mark icon in the ribbon')
@@ -514,8 +464,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.showRibbonIcon).onChange(async (value) => {
           this.plugin.settings.showRibbonIcon = value;
           await this.plugin.saveSettings();
-
-          // Require reload
           new Setting(containerEl)
             .setName('Reload Required')
             .setDesc('Plugin reload required to apply this change')
@@ -524,15 +472,12 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
                 .setButtonText('Reload Plugin')
                 .setCta()
                 .onClick(() => {
-                  // Reload the plugin - require user to manually reload
                   new Notice('Please reload Obsidian to apply changes', 10000);
-                  // Obsidian will handle plugin reloading on app restart
                 })
             );
         })
       );
 
-    // Status bar display
     new Setting(containerEl)
       .setName('Status Bar Display')
       .setDesc('Control when the status bar element is shown')
@@ -545,8 +490,6 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.statusBarDisplay = value as 'always' | 'processing' | 'never';
             await this.plugin.saveSettings();
-
-            // Update status bar visibility
             if (value === 'never' && this.plugin.statusBarElement) {
               this.plugin.statusBarElement.remove();
               this.plugin.statusBarElement = null;
@@ -558,25 +501,19 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
           })
       );
 
-    // Add advanced settings section
     containerEl.createEl('h3', { text: 'Advanced Settings' });
-
-    // Add links to documentation
     containerEl.createEl('p', {
       text: 'For more advanced options and documentation, visit the Magus Mark website.',
       cls: 'settings-info',
     });
 
     const linksContainer = containerEl.createDiv('settings-links');
-
-    // Add documentation link
     const docsLink = linksContainer.createEl('a', {
       text: 'Documentation',
       href: 'https://magus-mark.com/docs',
     });
     docsLink.setAttr('target', '_blank');
 
-    // Add GitHub link
     const githubLink = linksContainer.createEl('a', {
       text: 'GitHub Repository',
       href: 'https://github.com/your-github/magus-mark',

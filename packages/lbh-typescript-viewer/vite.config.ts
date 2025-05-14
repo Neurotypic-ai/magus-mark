@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
-export default defineConfig({
+import type { UserConfigExport } from 'vite';
+
+const config: UserConfigExport = defineConfig({
   plugins: [
     react(),
     nodePolyfills({
@@ -66,3 +68,5 @@ export default defineConfig({
     'process.version': JSON.stringify('v22.13.1'),
   },
 });
+
+export default config;

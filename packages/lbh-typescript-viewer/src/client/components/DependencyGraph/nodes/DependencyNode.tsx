@@ -6,8 +6,9 @@ import { Handle, NodeResizer, Position, useReactFlow } from '@xyflow/react';
 import { graphTheme } from '../../../theme/graphTheme';
 
 import type { Theme } from '@mui/material/styles';
+import type { NamedExoticComponent } from 'react';
 
-import type { DependencyData, DependencyKind, DependencyProps, NodeMethod, NodeProperty } from '../types';
+import type { DependencyProps, NodeMethod, NodeProperty } from '../types';
 
 const NodeContainer = styled('div')<{ selected: boolean; type: string }>(
   ({ theme, selected, type }: { theme: Theme; selected: boolean; type: string }) => ({
@@ -117,13 +118,18 @@ const Visibility = styled('span')<{ visibility: string }>(
 /**
  * Dependency Node Component - displays a node in the dependency graph
  */
-const DependencyNode = memo(({ id, data, selected, type }: DependencyProps) => {
+const DependencyNode: NamedExoticComponent<DependencyProps> = memo(function DependencyNode({
+  id,
+  data,
+  selected,
+  type,
+}: DependencyProps): React.ReactElement {
   const { setNodes } = useReactFlow();
   const muiTheme = useTheme();
 
   // Make sure data exists and has the required properties
-  const nodeData = data as DependencyData;
-  const nodeType = type as DependencyKind;
+  const nodeData = data;
+  const nodeType = type;
   const isSelected = !!selected;
 
   // Safe debug logging with type checks

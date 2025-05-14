@@ -163,11 +163,11 @@ export class ParameterRepository extends BaseRepository<Parameter, IParameterCre
         values
       );
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new EntityNotFoundError('Parameter', id, this.errorTag);
       }
-      return result[0];
+      return result;
     } catch (error) {
       this.logger.error('Failed to update parameter', error);
       if (error instanceof RepositoryError) {

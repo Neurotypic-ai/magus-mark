@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 
 import type { DependencyGraph, DependencyNode } from '../types';
 
-export function useLazyGraph(data: DependencyGraph) {
+export function useLazyGraph(data: DependencyGraph): {
+  visibleNodes: DependencyNode[];
+  loadMore: () => void;
+  hasMore: boolean;
+} {
   const [visibleNodes, setVisibleNodes] = useState<DependencyNode[]>([]);
   const [page, setPage] = useState(1);
   const pageSize = 50;
@@ -14,8 +18,8 @@ export function useLazyGraph(data: DependencyGraph) {
   }, [page, data]);
 
   return {
-    visibleNodes,
-    loadMore: () => {
+    visibleNodes: visibleNodes,
+    loadMore: (): void => {
       setPage((p) => p + 1);
     },
     hasMore: visibleNodes.length < data.nodes.length,

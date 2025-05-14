@@ -2,6 +2,7 @@
 -- All tables use UUID for primary keys and proper foreign key references.
 -- Timestamps are stored as TIMESTAMP and default to CURRENT_TIMESTAMP.
 -- Note: DuckDB does not support ON DELETE CASCADE or triggers.
+
 -- Packages table
 CREATE TABLE packages (
   id CHAR(36) PRIMARY KEY,
@@ -11,18 +12,15 @@ CREATE TABLE packages (
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
--- Package Dependencies table (handles dependency relationships between packages)
-CREATE TABLE package_dependencies (
+-- Dependencies table (handles dependency relationships between packages)
+CREATE TABLE dependencies (
   id CHAR(36) PRIMARY KEY,
-  package_id CHAR(36) NOT NULL REFERENCES packages (id),
-  dependency_id CHAR(36) NOT NULL REFERENCES packages (id),
-  dependency_type TEXT NOT NULL,
+  source_id CHAR(36) NOT NULL REFERENCES packages (id),
+  target_id CHAR(36) NOT NULL REFERENCES packages (id),
+  type TEXT NOT NULL CHECK (type IN ('dependency', 'devDependency', 'peerDependency')),
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-  UNIQUE (package_id, dependency_id, dependency_type),
-  CHECK (package_id != dependency_id),
-  CHECK (
-    dependency_type IN ('dependency', 'devDependency', 'peerDependency')
-  )
+  UNIQUE (source_id, target_id, type),
+  CHECK (source_id != target_id)
 );
 
 -- Modules table with enhanced file location tracking
@@ -30,6 +28,7 @@ CREATE TABLE modules (
   id CHAR(36) PRIMARY KEY,
   package_id CHAR(36) NOT NULL REFERENCES packages (id),
   name TEXT NOT NULL,
+  source TEXT,
   directory TEXT NOT NULL,
   filename TEXT NOT NULL,
   relative_path TEXT NOT NULL,
@@ -39,7 +38,6 @@ CREATE TABLE modules (
 
 -- Create indices for faster module lookups
 CREATE INDEX idx_modules_package_id ON modules (package_id);
-
 CREATE INDEX idx_modules_filename ON modules (filename);
 
 -- Module Tests table to track test files
@@ -56,6 +54,7 @@ CREATE TABLE classes (
   package_id CHAR(36) NOT NULL REFERENCES packages (id),
   module_id CHAR(36) NOT NULL REFERENCES modules (id),
   name TEXT NOT NULL,
+  extends_id CHAR(36),
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
@@ -65,6 +64,7 @@ CREATE TABLE interfaces (
   package_id CHAR(36) NOT NULL REFERENCES packages (id),
   module_id CHAR(36) NOT NULL REFERENCES modules (id),
   name TEXT NOT NULL,
+  extends_id CHAR(36),
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
@@ -78,6 +78,7 @@ CREATE TABLE methods (
   name TEXT NOT NULL,
   return_type TEXT,
   is_static BOOLEAN NOT NULL DEFAULT FALSE,
+  is_abstract BOOLEAN NOT NULL DEFAULT FALSE,
   is_async BOOLEAN NOT NULL DEFAULT FALSE,
   visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private', 'protected')),
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
@@ -91,8 +92,8 @@ CREATE TABLE parameters (
   method_id CHAR(36) NOT NULL REFERENCES methods (id),
   name TEXT NOT NULL,
   type TEXT NOT NULL,
-  is_optional BOOLEAN NOT NULL DEFAULT FALSE,
-  is_rest BOOLEAN NOT NULL DEFAULT FALSE,
+  is_optional INTEGER NOT NULL DEFAULT 0,
+  is_rest INTEGER NOT NULL DEFAULT 0,
   default_value TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );

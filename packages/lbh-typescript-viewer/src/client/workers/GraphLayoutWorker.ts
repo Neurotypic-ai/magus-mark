@@ -68,10 +68,8 @@ class LayoutEngine {
     const groups: Record<string, DependencyNode[]> = {};
 
     nodes.forEach((node) => {
-      const type = node.type || 'default';
-      if (!groups[type]) {
-        groups[type] = [];
-      }
+      const type = node.type ?? 'default';
+      groups[type] ??= [];
       groups[type].push(node);
     });
 
@@ -159,21 +157,19 @@ class LayoutEngine {
 
 // Handle messages from the main thread
 self.onmessage = (event: MessageEvent<WorkerMessage>) => {
-  const { type, payload } = event.data;
+  const { payload } = event.data;
 
-  if (type === 'process-layout') {
-    const { nodes, edges, config } = payload;
+  const { nodes, edges, config } = payload;
 
-    // Process the layout
-    const layoutEngine = new LayoutEngine(config);
-    const result = layoutEngine.process(nodes, edges);
+  // Process the layout
+  const layoutEngine = new LayoutEngine(config);
+  const result = layoutEngine.process(nodes, edges);
 
-    // Send the result back to the main thread
-    self.postMessage({
-      type: 'layout-complete',
-      payload: result,
-    });
-  }
+  // Send the result back to the main thread
+  self.postMessage({
+    type: 'layout-complete',
+    payload: result,
+  });
 };
 
 // Export empty object to satisfy TypeScript

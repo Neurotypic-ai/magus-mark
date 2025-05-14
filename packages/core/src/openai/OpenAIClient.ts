@@ -1,8 +1,8 @@
 /**
  * OpenAI integration module
  */
+import { encodingForModel } from 'js-tiktoken';
 import OpenAI from 'openai';
-import { encoding_for_model } from 'tiktoken';
 
 import { APIError } from '../errors/APIError';
 import { normalizeError } from '../errors/utils';
@@ -113,7 +113,7 @@ const DEFAULT_PRICING: PricingConfig = {
 export class OpenAIClient {
   private config: OpenAIConfig;
   private client: OpenAI | null = null;
-  private encodingCache: Record<string, ReturnType<typeof encoding_for_model>> = {};
+  private encodingCache: Record<string, ReturnType<typeof encodingForModel>> = {};
   private pricingConfig: PricingConfig = { ...DEFAULT_PRICING };
 
   constructor(config: Partial<OpenAIConfig> = {}) {
@@ -754,7 +754,7 @@ export class OpenAIClient {
           ? 'gpt-3.5-turbo'
           : 'gpt-4o';
 
-      this.encodingCache[modelName] ??= encoding_for_model(modelName);
+      this.encodingCache[modelName] ??= encodingForModel(modelName);
       return this.encodingCache[modelName].encode(text).length;
     } catch (_) {
       void _; // Mark as intentionally unused

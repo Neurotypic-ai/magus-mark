@@ -1,6 +1,7 @@
 import { createLogger } from '../../../shared/utils/logger';
 import { RepositoryError } from '../errors/RepositoryError';
 
+import type { Logger } from '../../../shared/utils/logger';
 import type { DatabaseRow, IDatabaseAdapter, QueryParams } from '../adapter/IDatabaseAdapter';
 
 export interface IBaseEntity {
@@ -27,7 +28,7 @@ export abstract class BaseRepository<T extends IBaseEntity, CreateDTO, UpdateDTO
   protected adapter: IDatabaseAdapter;
   protected readonly errorTag: string;
   protected readonly tableName: string;
-  protected readonly logger;
+  protected readonly logger: Logger;
 
   constructor(adapter: IDatabaseAdapter, errorTag: string, tableName: string) {
     this.adapter = adapter;
@@ -49,7 +50,7 @@ export abstract class BaseRepository<T extends IBaseEntity, CreateDTO, UpdateDTO
     }
 
     const record = item as Record<string, unknown>;
-    return 'id' in record && typeof record.id === 'string';
+    return 'id' in record && typeof record['id'] === 'string';
   }
 
   protected isArrayOfDatabaseRows<R extends DatabaseRow>(data: unknown): data is R[] {

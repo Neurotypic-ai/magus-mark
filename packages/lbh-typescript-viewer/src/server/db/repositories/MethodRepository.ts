@@ -133,11 +133,11 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
 
       await this.executeQuery<IMethodRow>('update', `UPDATE ${this.tableName} SET ${query} WHERE id = ?`, values);
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new EntityNotFoundError('Method', id, this.errorTag);
       }
-      return result[0];
+      return result;
     } catch (error) {
       this.logger.error('Failed to update method', error);
       if (error instanceof RepositoryError) {

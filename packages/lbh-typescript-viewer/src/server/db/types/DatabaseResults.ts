@@ -2,58 +2,35 @@ import type { DuckDBValue } from '@duckdb/node-api';
 
 export interface IDatabaseRow {
   id: string;
+  created_at: string;
   [key: string]: DuckDBValue | undefined;
+}
+
+export interface IPackageOwnedRow extends IDatabaseRow {
+  package_id: string;
+}
+
+export interface IModuleOwnedRow extends IPackageOwnedRow {
+  module_id: string;
+}
+
+export interface IOwnedByClassOrInterfaceRow extends IModuleOwnedRow {
+  parent_id: string;
+  parent_type: 'class' | 'interface';
+  name: string;
+  visibility: 'public' | 'private' | 'protected';
+  is_static: boolean;
+}
+
+export interface IClassOrInterfaceRow extends IModuleOwnedRow {
+  name: string;
+  extends_id?: string;
 }
 
 export interface IPackageRow extends IDatabaseRow {
   name: string;
   version: string;
   path: string;
-  created_at: string; // ISO date string
-}
-
-export interface IPackageDependencyRow extends IDatabaseRow {
-  package_id: string;
-  dependency_id: string;
-  dependency_type: 'dependency' | 'devDependency' | 'peerDependency';
-  created_at: string;
-}
-
-export interface IModuleRow extends IDatabaseRow {
-  package_id: string;
-  name: string;
-  path: string;
-}
-
-export interface IClassRow extends IDatabaseRow {
-  module_id: string;
-  name: string;
-  extends_id?: string;
-}
-
-export interface IInterfaceRow extends IDatabaseRow {
-  module_id: string;
-  name: string;
-}
-
-export interface IMethodRow extends IDatabaseRow {
-  parent_id: string;
-  parent_type: 'class' | 'interface';
-  name: string;
-  return_type: string;
-  is_static: boolean;
-  is_abstract: boolean;
-  visibility: string;
-}
-
-export interface IPropertyRow extends IDatabaseRow {
-  parent_id: string;
-  parent_type: 'class' | 'interface';
-  name: string;
-  type: string;
-  is_static: boolean;
-  is_readonly: boolean;
-  visibility: string;
 }
 
 export interface IDependencyRow extends IDatabaseRow {
@@ -62,57 +39,29 @@ export interface IDependencyRow extends IDatabaseRow {
   type: 'dependency' | 'devDependency' | 'peerDependency';
 }
 
-/**
- * Represents a row in the parameters table.
- */
-export interface IParameterRow extends IDatabaseRow {
-  /**
-   * The unique identifier for the parameter.
-   */
-  id: string;
-
-  /**
-   * The UUID of the parent package.
-   */
-  package_id: string;
-
-  /**
-   * The UUID of the parent module.
-   */
-  module_id: string;
-
-  /**
-   * The UUID of the parent method.
-   */
-  method_id: string;
-
-  /**
-   * The name of the parameter.
-   */
+export interface IModuleRow extends IPackageOwnedRow {
   name: string;
+  source: string;
+}
 
-  /**
-   * The type of the parameter.
-   */
+export interface IMethodRow extends IOwnedByClassOrInterfaceRow {
+  name: string;
+  return_type: string;
+  is_static: boolean;
+  is_abstract: boolean;
+  is_async: boolean;
+}
+
+export interface IPropertyRow extends IOwnedByClassOrInterfaceRow {
   type: string;
+  is_readonly: boolean;
+}
 
-  /**
-   * Whether the parameter is optional.
-   */
+export interface IParameterRow extends IModuleOwnedRow {
+  method_id: string;
+  name: string;
+  type: string;
   is_optional: number;
-
-  /**
-   * Whether the parameter is a rest parameter.
-   */
   is_rest: number;
-
-  /**
-   * The default value of the parameter, if any.
-   */
   default_value: string | null;
-
-  /**
-   * The timestamp when the parameter was created.
-   */
-  created_at: string;
 }

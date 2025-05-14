@@ -71,7 +71,7 @@ export class MockAdapter implements IDatabaseAdapter {
     return match?.[1] ?? 'unknown_table';
   }
 
-  private createRow(sql: string, params: DuckDBValue[] = []): Record<string, unknown> {
+  private createRow(_sql: string, params: DuckDBValue[] = []): Record<string, unknown> {
     // Very simple row creation - just for mock purposes
     const row: Record<string, unknown> = { id: crypto.randomUUID() };
     if (params.length > 0) {

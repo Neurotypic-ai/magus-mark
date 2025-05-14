@@ -6,6 +6,7 @@ import { Panel } from '@xyflow/react';
 import { graphSearchStyles } from '../../../theme/graphTheme';
 
 import type { Edge } from '@xyflow/react';
+import type { JSX } from 'react';
 
 import type { DependencyNode } from '../types';
 
@@ -21,7 +22,7 @@ interface SearchResult {
   path?: DependencyNode[];
 }
 
-export function GraphSearch({ nodes, edges, onSearchResult }: GraphSearchProps) {
+export function GraphSearch({ nodes, edges, onSearchResult }: GraphSearchProps): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = useCallback(() => {

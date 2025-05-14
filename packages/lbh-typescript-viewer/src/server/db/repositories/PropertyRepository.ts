@@ -159,11 +159,11 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
 
       await this.executeQuery<IPropertyRow>('update', `UPDATE ${this.tableName} SET ${query} WHERE id = ?`, values);
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new EntityNotFoundError('Property', id, this.errorTag);
       }
-      return result[0];
+      return result;
     } catch (error) {
       this.logger.error('Failed to update property', error);
       if (error instanceof RepositoryError) {
@@ -211,7 +211,7 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
             String(prop.module_id),
             String(prop.parent_id),
             String(prop.name),
-            new Date(prop.created_at as string),
+            new Date(prop.created_at),
             String(prop.type),
             prop.is_static,
             prop.is_readonly,

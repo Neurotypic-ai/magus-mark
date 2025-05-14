@@ -16,12 +16,21 @@ import { mapTypeCollection } from './mapTypeCollection';
 import { nodeTypes } from './nodes/nodes';
 
 import type { Edge, EdgeChange, Node, NodeChange, OnEdgesChange, OnNodesChange } from '@xyflow/react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, JSX } from 'react';
 
 import type { Method } from '../../../shared/types/Method';
 import type { Property } from '../../../shared/types/Property';
 import type { TypeCollection } from '../../../shared/types/TypeCollection';
-import type { DependencyKind, DependencyNode, DependencyPackageGraph, GraphEdge, SearchResult } from './types';
+import type {
+  DependencyEdgeKind,
+  DependencyKind,
+  DependencyNode,
+  DependencyPackageGraph,
+  GraphEdge,
+  NodeMethod,
+  NodeProperty,
+  SearchResult,
+} from './types';
 
 import '@xyflow/react/dist/style.css';
 
@@ -35,18 +44,20 @@ export function getMembersAsProperties(entity: {
   methods: TypeCollection<Method>;
   name: string;
   id: string;
-}) {
+}): { properties: NodeProperty[]; methods: NodeMethod[] } {
   return {
-    properties: mapTypeCollection(entity.properties, (prop: Property) => ({
-      name: prop.name,
-      type: prop.type,
-      visibility: prop.visibility,
-    })),
-    methods: mapTypeCollection(entity.methods, (method: Method) => {
+    properties: mapTypeCollection(
+      entity.properties,
+      (prop: Property): NodeProperty => ({
+        name: prop.name,
+        type: prop.type,
+        visibility: prop.visibility,
+      })
+    ),
+    methods: mapTypeCollection(entity.methods, (method: Method): NodeMethod => {
       const parameters = mapTypeCollection(method.parameters, (param) => `${param.name}: ${param.type}`);
       return {
         name: method.name,
-        type: method.return_type,
         visibility: `${method.is_static ? 'static ' : ''}${method.visibility}`,
         returnType: method.return_type,
         signature: parameters.join(', '),
@@ -62,7 +73,7 @@ export interface DependencyGraphProps {
 /**
  * DependencyGraph component that visualizes TypeScript dependency relationships
  */
-export function DependencyGraph({ data }: DependencyGraphProps) {
+export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
   // Get graph state from context with proper type assertions
   const context = useGraphState();
   const nodes = context.nodes;
@@ -169,7 +180,7 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
 
   // Node click handler - use unknown then cast to fix type issues
   const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: unknown) => {
+    (_event: React.MouseEvent, node: unknown): void => {
       setSelectedNode(node as DependencyNode);
     },
     [setSelectedNode]
@@ -181,7 +192,7 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
       setEdges((currentEdges) =>
         currentEdges.map((edge) => ({
           ...edge,
-          hidden: !types.includes(edge.type! ?? 'default'),
+          hidden: !types.includes(edge.type ?? 'default'),
         }))
       );
     },
@@ -210,7 +221,7 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
           ...edge,
           selected: result.edges.some((searchEdge) => searchEdge.id === edge.id),
           style: {
-            ...getEdgeStyle((edge.type as DependencyKind) ?? 'dependency'),
+            ...getEdgeStyle(toDependencyEdgeKind(edge.type)),
             opacity:
               result.edges.length === 0 ? 1 : result.edges.some((searchEdge) => searchEdge.id === edge.id) ? 1 : 0.2,
           },
@@ -258,7 +269,6 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
   // Keyboard navigation handlers
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
-      // Handle keyboard navigation between nodes
       if (
         selectedNode &&
         (event.key === 'ArrowRight' ||
@@ -267,34 +277,32 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
           event.key === 'ArrowDown')
       ) {
         event.preventDefault();
-
-        // Find connected nodes based on arrow direction
         const connectedEdges = edges.filter(
           (edge) => edge.source === selectedNode.id || edge.target === selectedNode.id
         );
-
         if (connectedEdges.length > 0) {
-          // Select a connected node based on direction
-          const nextNodeId =
-            event.key === 'ArrowLeft' || event.key === 'ArrowUp'
-              ? connectedEdges[0].source === selectedNode.id
-                ? connectedEdges[0].target
-                : connectedEdges[0].source
-              : connectedEdges[connectedEdges.length - 1].source === selectedNode.id
-                ? connectedEdges[connectedEdges.length - 1].target
-                : connectedEdges[connectedEdges.length - 1].source;
-
-          // Find the node in our nodes array
-          const nextNode = nodes.find((node) => node.id === nextNodeId);
-          if (nextNode) {
-            setSelectedNode(nextNode);
-
-            // Center view on the selected node
-            void fitView({
-              nodes: [nextNode as unknown as Node],
-              duration: 300,
-              padding: 0.5,
-            });
+          let nextNodeId: string | undefined;
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+            if (connectedEdges[0]) {
+              nextNodeId =
+                connectedEdges[0].source === selectedNode.id ? connectedEdges[0].target : connectedEdges[0].source;
+            }
+          } else {
+            const lastEdge = connectedEdges[connectedEdges.length - 1];
+            if (lastEdge) {
+              nextNodeId = lastEdge.source === selectedNode.id ? lastEdge.target : lastEdge.source;
+            }
+          }
+          if (nextNodeId) {
+            const nextNode = nodes.find((node) => node.id === nextNodeId);
+            if (nextNode) {
+              setSelectedNode(nextNode);
+              void fitView({
+                nodes: [nextNode as unknown as Node],
+                duration: 300,
+                padding: 0.5,
+              });
+            }
           }
         }
       }
@@ -332,7 +340,7 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
-          nodeTypes={nodeTypes as unknown as Record<string, React.ComponentType<unknown>>}
+          nodeTypes={nodeTypes}
           fitView
           minZoom={0.1}
           maxZoom={2}
@@ -350,4 +358,20 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
       </button>
     </div>
   );
+}
+
+function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
+  if (
+    type === 'dependency' ||
+    type === 'devDependency' ||
+    type === 'peerDependency' ||
+    type === 'import' ||
+    type === 'export' ||
+    type === 'inheritance' ||
+    type === 'implements' ||
+    type === 'extends'
+  ) {
+    return type;
+  }
+  return 'dependency';
 }

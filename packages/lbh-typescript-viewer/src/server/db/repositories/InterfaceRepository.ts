@@ -9,7 +9,7 @@ import type { DuckDBValue } from '@duckdb/node-api';
 import type { Method } from '../../../shared/types/Method';
 import type { Property } from '../../../shared/types/Property';
 import type { IDatabaseAdapter } from '../adapter/IDatabaseAdapter';
-import type { IInterfaceRow } from '../types/DatabaseResults';
+import type { IClassOrInterfaceRow } from '../types/DatabaseResults';
 import type { IMethodCreateDTO } from './MethodRepository';
 
 /**
@@ -79,7 +79,7 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
   async create(dto: IInterfaceCreateDTO): Promise<Interface> {
     try {
       const now = new Date().toISOString();
-      const results = await this.executeQuery<IInterfaceRow>(
+      const results = await this.executeQuery<IClassOrInterfaceRow>(
         'create',
         'INSERT INTO interfaces (id, package_id, module_id, name, created_at) VALUES (?, ?, ?, ?, ?) RETURNING *',
         [String(dto.id), String(dto.package_id), String(dto.module_id), String(dto.name), now]
@@ -90,6 +90,10 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
       }
 
       const iface = results[0];
+      if (!iface) {
+        throw new RepositoryError('Interface not created', 'create', this.errorTag);
+      }
+
       return new Interface(
         String(iface.id),
         String(iface.package_id),
@@ -119,13 +123,17 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
       const { query, values } = this.buildUpdateQuery(updates);
       values.push(id);
 
-      await this.executeQuery<IInterfaceRow>('update', `UPDATE ${this.tableName} SET ${query} WHERE id = ?`, values);
+      await this.executeQuery<IClassOrInterfaceRow>(
+        'update',
+        `UPDATE ${this.tableName} SET ${query} WHERE id = ?`,
+        values
+      );
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new RepositoryError('Interface not found', 'update', this.errorTag, new Error('Interface not found'));
       }
-      return result[0];
+      return result;
     } catch (error) {
       if (!(error instanceof RepositoryError)) {
         this.logger.error(`Failed to update interface: ${id}`, error);
@@ -162,7 +170,7 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
 
       this.logger.debug('Executing retrieve query:', { query, params });
 
-      const results = await this.executeQuery<IInterfaceRow>('retrieve', query, params);
+      const results = await this.executeQuery<IClassOrInterfaceRow>('retrieve', query, params);
 
       // Fetch all related data for each interface
       const supremeInterfaces = await Promise.all(
@@ -177,7 +185,7 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
             ]);
 
             // Fetch extended interfaces without explicit type casting
-            const extendedInterfaces = await this.executeQuery<IInterfaceRow>(
+            const extendedInterfaces = await this.executeQuery<IClassOrInterfaceRow>(
               'retrieve extended',
               `SELECT i.* FROM interfaces i 
                JOIN interface_extends ie ON i.id = ie.extended_id 
@@ -240,19 +248,19 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
   async delete(id: string): Promise<void> {
     try {
       // Delete related records first
-      await this.executeQuery<IInterfaceRow>(
+      await this.executeQuery<IClassOrInterfaceRow>(
         'delete methods',
         'DELETE FROM methods WHERE parent_id = ? AND parent_type = ?',
         [id, 'interface']
       );
-      await this.executeQuery<IInterfaceRow>(
+      await this.executeQuery<IClassOrInterfaceRow>(
         'delete properties',
         'DELETE FROM properties WHERE parent_id = ? AND parent_type = ?',
         [id, 'interface']
       );
 
       // Delete the interface itself
-      await this.executeQuery<IInterfaceRow>('delete interface', 'DELETE FROM interfaces WHERE id = ?', [id]);
+      await this.executeQuery<IClassOrInterfaceRow>('delete interface', 'DELETE FROM interfaces WHERE id = ?', [id]);
     } catch (error) {
       if (!(error instanceof RepositoryError)) {
         this.logger.error(`Failed to delete interface: ${id}`, error);

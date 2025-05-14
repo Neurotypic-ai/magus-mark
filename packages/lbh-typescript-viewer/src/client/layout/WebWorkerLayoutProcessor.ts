@@ -102,11 +102,8 @@ export class WebWorkerLayoutProcessor {
 
       // Set up the message handler for worker responses
       const onMessage = (event: MessageEvent<WorkerResponse>) => {
-        if (event.data.type === 'layout-complete') {
-          // Clean up the event listener
-          this.worker?.removeEventListener('message', onMessage);
-          resolve(event.data.payload);
-        }
+        // Just handle the event directly
+        resolve(event.data.payload);
       };
 
       // Set up error handler

@@ -1,4 +1,4 @@
-import { default as baseConfig } from '../../eslint.config.js';
+import { createESLintConfig } from '@magus-mark/eslint-config';
 
 /** @type {import('@typescript-eslint/utils').TSESLint.FlatConfig.Config[]} */
-export default [...baseConfig];
+export default createESLintConfig([]);

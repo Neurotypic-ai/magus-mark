@@ -32,15 +32,16 @@ export function generateUUID(type: keyof typeof NAMESPACES, key: string): string
 
 // Updated UUID generators with added context
 
-export const generateClassUUID = (packageId: string, moduleId: string, name: string) =>
+export const generateClassUUID = (packageId: string, moduleId: string, name: string): string =>
   generateUUID('class', `${packageId}.${moduleId}.${name}`);
 
-export const generateInterfaceUUID = (packageId: string, moduleId: string, name: string) =>
+export const generateInterfaceUUID = (packageId: string, moduleId: string, name: string): string =>
   generateUUID('interface', `${packageId}.${moduleId}.${name}`);
 
-export const generatePackageUUID = (name: string, version: string) => generateUUID('package', `${name}@${version}`);
+export const generatePackageUUID = (name: string, version: string): string =>
+  generateUUID('package', `${name}@${version}`);
 
-export const generateMethodUUID = (packageId: string, moduleId: string, parentId: string, name: string) =>
+export const generateMethodUUID = (packageId: string, moduleId: string, parentId: string, name: string): string =>
   generateUUID('method', `${packageId}.${moduleId}.${parentId}.${name}`);
 
 export const generatePropertyUUID = (
@@ -49,25 +50,25 @@ export const generatePropertyUUID = (
   parentId: string,
   name: string,
   parentType: 'class' | 'interface'
-) => generateUUID('property', `${packageId}.${moduleId}.${parentId}.${parentType}.${name}`);
+): string => generateUUID('property', `${packageId}.${moduleId}.${parentId}.${parentType}.${name}`);
 
-export const generateParameterUUID = (methodId: string, name: string) =>
+export const generateParameterUUID = (methodId: string, name: string): string =>
   generateUUID('parameter', `${methodId}.${name}`);
 
-export const generateModuleUUID = (packageId: string, modulePath: string) =>
+export const generateModuleUUID = (packageId: string, modulePath: string): string =>
   generateUUID('module', `${packageId}.${modulePath}`);
 
-export const generateEnumUUID = (packageId: string, moduleId: string, name: string) =>
+export const generateEnumUUID = (packageId: string, moduleId: string, name: string): string =>
   generateUUID('enum', `${packageId}.${moduleId}.${name}`);
 
-export const generateExportUUID = (moduleId: string, exportName: string) =>
+export const generateExportUUID = (moduleId: string, exportName: string): string =>
   generateUUID('export', `${moduleId}.${exportName}`);
 
-export const generateImportUUID = (moduleId: string, importName: string) =>
+export const generateImportUUID = (moduleId: string, importName: string): string =>
   generateUUID('import', `${moduleId}.${importName}`);
 
-export const generateTypeAliasUUID = (moduleId: string, name: string) =>
+export const generateTypeAliasUUID = (moduleId: string, name: string): string =>
   generateUUID('typeAlias', `${moduleId}.${name}`);
 
-export const generateModuleDefinitionUUID = (moduleId: string, name: string) =>
+export const generateModuleDefinitionUUID = (moduleId: string, name: string): string =>
   generateUUID('moduleDefinition', `${moduleId}.${name}`);

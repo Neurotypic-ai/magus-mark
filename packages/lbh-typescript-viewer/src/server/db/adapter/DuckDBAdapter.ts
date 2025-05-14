@@ -69,7 +69,7 @@ function convertToRow(duckDBRow: unknown, columnNames: string[]): DatabaseRow {
       duckDBRow
         .slice(1)
         .map((value, index) => [
-          columnNames[index + 1] || `column_${(index + 1).toString()}`,
+          columnNames[index + 1] ?? `column_${(index + 1).toString()}`,
           value !== null ? stringifyValue(value) : null,
         ])
     ),
@@ -132,7 +132,6 @@ export class DuckDBAdapter implements IDatabaseAdapter {
 
   async close(): Promise<void> {
     if (this.isInitialized) {
-      this.connection.disconnect();
       await Promise.resolve(); // Ensure we complete any pending operations
       this.isInitialized = false;
     }

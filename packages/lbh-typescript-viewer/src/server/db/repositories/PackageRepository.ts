@@ -1,11 +1,12 @@
 import { Package } from '../../../shared/types/Package';
 import { EntityNotFoundError, NoFieldsToUpdateError, RepositoryError } from '../errors/RepositoryError';
 import { BaseRepository } from './BaseRepository';
+import { DependencyRepository } from './DependencyRepository';
 
 import type { DuckDBValue } from '@duckdb/node-api';
 
 import type { IDatabaseAdapter } from '../adapter/IDatabaseAdapter';
-import type { IPackageDependencyRow, IPackageRow } from '../types/DatabaseResults';
+import type { IPackageRow } from '../types/DatabaseResults';
 
 /**
  * Data transfer object for creating a new package.
@@ -84,8 +85,11 @@ export interface IPackageRepository {
 }
 
 export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO, IPackageUpdateDTO> {
+  private dependencyRepository: DependencyRepository;
+
   constructor(adapter: IDatabaseAdapter) {
     super(adapter, '[PackageRepository]', 'packages');
+    this.dependencyRepository = new DependencyRepository(adapter);
   }
 
   async create(dto: IPackageCreateDTO): Promise<Package> {
@@ -101,42 +105,45 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
         throw new EntityNotFoundError('Package', dto.id, this.errorTag);
       }
 
-      // For now, we skip creating package dependencies since we don't have a way to resolve
-      // package versions to actual package IDs yet. We'll need to implement this later.
-      // Insert dependencies into package_dependencies table for dependencies
-      // for (const dependencyId of dto.dependencies.values()) {
-      //   if (dependencyId !== dto.id) {
-      //     await this.executeQuery<IPackageRow>(
-      //       'create package dependency',
-      //       'INSERT INTO package_dependencies (id, package_id, dependency_id, dependency_type) VALUES (?, ?, ?, ?) RETURNING *',
-      //       [randomUUID(), dto.id, dependencyId, 'dependency']
-      //     );
-      //   }
-      // }
-
-      // Insert dependencies into package_dependencies table for devDependencies
-      // for (const dependencyId of dto.devDependencies.values()) {
-      //   if (dependencyId !== dto.id) {
-      //     await this.executeQuery<IPackageRow>(
-      //       'create package dependency',
-      //       'INSERT INTO package_dependencies (id, package_id, dependency_id, dependency_type) VALUES (?, ?, ?, ?) RETURNING *',
-      //       [randomUUID(), dto.id, dependencyId, 'devDependency']
-      //     );
-      //   }
-      // }
-
-      // Insert dependencies into package_dependencies table for peerDependencies
-      // for (const dependencyId of dto.peerDependencies.values()) {
-      //   if (dependencyId !== dto.id) {
-      //     await this.executeQuery<IPackageRow>(
-      //       'create package dependency',
-      //       'INSERT INTO package_dependencies (id, package_id, dependency_id, dependency_type) VALUES (?, ?, ?, ?) RETURNING *',
-      //       [randomUUID(), dto.id, dependencyId, 'peerDependency']
-      //     );
-      //   }
-      // }
+      // Create dependencies using DependencyRepository
+      if (dto.dependencies) {
+        for (const dependencyId of dto.dependencies.values()) {
+          if (dependencyId !== dto.id) {
+            await this.dependencyRepository.create({
+              source_id: dto.id,
+              target_id: dependencyId,
+              type: 'dependency',
+            });
+          }
+        }
+      }
+      if (dto.devDependencies) {
+        for (const dependencyId of dto.devDependencies.values()) {
+          if (dependencyId !== dto.id) {
+            await this.dependencyRepository.create({
+              source_id: dto.id,
+              target_id: dependencyId,
+              type: 'devDependency',
+            });
+          }
+        }
+      }
+      if (dto.peerDependencies) {
+        for (const dependencyId of dto.peerDependencies.values()) {
+          if (dependencyId !== dto.id) {
+            await this.dependencyRepository.create({
+              source_id: dto.id,
+              target_id: dependencyId,
+              type: 'peerDependency',
+            });
+          }
+        }
+      }
 
       const pkg = results[0];
+      if (!pkg) {
+        throw new EntityNotFoundError('Package', dto.id, this.errorTag);
+      }
       return new Package(
         pkg.id,
         pkg.name,
@@ -181,11 +188,11 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
       values.push(id);
       await this.executeQuery<IPackageRow>('update', `UPDATE packages SET ${updates.join(', ')} WHERE id = ?`, values);
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new EntityNotFoundError('Package', id, this.errorTag);
       }
-      return result[0];
+      return result;
     } catch (error) {
       if (error instanceof RepositoryError) {
         throw error;
@@ -195,12 +202,8 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
   }
 
   private async createPackageWithDependencies(pkg: IPackageRow): Promise<Package> {
-    // Get dependencies
-    const dependencyRows = await this.executeQuery<IPackageDependencyRow>(
-      'retrieve dependencies',
-      'SELECT * FROM package_dependencies WHERE package_id = ?',
-      [pkg.id]
-    );
+    // Get dependencies from DependencyRepository
+    const dependencyRows = await this.dependencyRepository.findBySourceId(pkg.id);
 
     // Create maps for different dependency types
     const dependencies = new Map<string, Package>();
@@ -209,20 +212,21 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
 
     // Populate dependency maps
     for (const row of dependencyRows) {
-      const depPackage = await this.retrieve(String(row.dependency_id));
-      if (depPackage.length > 0) {
-        const dep = depPackage[0];
-        switch (row.dependency_type) {
-          case 'dependency':
-            dependencies.set(dep.id, dep);
-            break;
-          case 'devDependency':
-            devDependencies.set(dep.id, dep);
-            break;
-          case 'peerDependency':
-            peerDependencies.set(dep.id, dep);
-            break;
-        }
+      const depPackageArr = await this.retrieve(row.target_id);
+      const dep = depPackageArr[0];
+      if (!dep) {
+        throw new EntityNotFoundError('Package', String(row.target_id), this.errorTag);
+      }
+      switch (row.type) {
+        case 'dependency':
+          dependencies.set(dep.id, dep);
+          break;
+        case 'devDependency':
+          devDependencies.set(dep.id, dep);
+          break;
+        case 'peerDependency':
+          peerDependencies.set(dep.id, dep);
+          break;
       }
     }
 
@@ -282,11 +286,6 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
       }
       throw new RepositoryError('Failed to retrieve package', 'retrieve', this.errorTag, error as Error);
     }
-  }
-
-  async findById(id: string): Promise<Package | undefined> {
-    const results = await this.retrieve(id);
-    return results[0];
   }
 
   async delete(id: string): Promise<void> {

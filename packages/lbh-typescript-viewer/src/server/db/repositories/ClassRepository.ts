@@ -10,7 +10,7 @@ import type { Interface } from '../../../shared/types/Interface';
 import type { Method } from '../../../shared/types/Method';
 import type { Property } from '../../../shared/types/Property';
 import type { IDatabaseAdapter } from '../adapter/IDatabaseAdapter';
-import type { IClassRow, IInterfaceRow } from '../types/DatabaseResults';
+import type { IClassOrInterfaceRow } from '../types/DatabaseResults';
 import type { IMethodCreateDTO } from './MethodRepository';
 
 /**
@@ -85,7 +85,7 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
 
   async create(dto: IClassCreateDTO): Promise<Class> {
     try {
-      const results = await this.executeQuery<IClassRow>(
+      const results = await this.executeQuery<IClassOrInterfaceRow>(
         'create',
         'INSERT INTO classes (id, package_id, module_id, name) VALUES (?, ?, ?, ?) RETURNING *',
         [dto.id, dto.package_id, dto.module_id, dto.name]
@@ -95,7 +95,11 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
         throw new EntityNotFoundError('Class', dto.id, this.errorTag);
       }
 
-      const cls = results[0];
+      const cls: IClassOrInterfaceRow | undefined = results[0];
+      if (!cls) {
+        throw new EntityNotFoundError('Class', dto.id, this.errorTag);
+      }
+
       return new Class(
         String(cls.id),
         String(cls.package_id),
@@ -123,13 +127,17 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
       const { query, values } = this.buildUpdateQuery(updates);
       values.push(id);
 
-      await this.executeQuery<IClassRow>('update', `UPDATE ${this.tableName} SET ${query} WHERE id = ?`, values);
+      await this.executeQuery<IClassOrInterfaceRow>(
+        'update',
+        `UPDATE ${this.tableName} SET ${query} WHERE id = ?`,
+        values
+      );
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+      if (!result) {
         throw new EntityNotFoundError('Class', id, this.errorTag);
       }
-      return result[0];
+      return result;
     } catch (error) {
       this.logger.error('Failed to update class', error);
       if (error instanceof RepositoryError) {
@@ -167,7 +175,7 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
 
       this.logger.debug('Executing retrieve query:', { query, params });
 
-      const results = await this.executeQuery<IClassRow>('retrieve', query, params);
+      const results = await this.executeQuery<IClassOrInterfaceRow>('retrieve', query, params);
 
       // Fetch all related data for each class
       const ultimateClasses = await Promise.all(
@@ -198,7 +206,7 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
             });
 
             // Fetch implemented interfaces with proper parameter handling
-            const implementations = await this.executeQuery<IInterfaceRow>(
+            const implementations = await this.executeQuery<IClassOrInterfaceRow>(
               'retrieve implementations',
               implementationsQuery,
               [String(cls.id)]
@@ -273,11 +281,11 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
       // Execute deletions in order
       for (const deletion of relatedDeletions) {
         const params = [id, ...(deletion.additionalParams ?? [])];
-        await this.executeQuery<IClassRow>(deletion.operation, deletion.query, params);
+        await this.executeQuery<IClassOrInterfaceRow>(deletion.operation, deletion.query, params);
       }
 
       // Delete the main entity
-      await this.executeQuery<IClassRow>('delete class', `DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
+      await this.executeQuery<IClassOrInterfaceRow>('delete class', `DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
     } catch (error) {
       this.logger.error('Failed to delete class', error);
       throw new RepositoryError('Failed to delete class', 'delete', this.errorTag, error as Error);

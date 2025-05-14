@@ -22,12 +22,22 @@ const GraphContext = createContext<GraphState>({
   nodes: [],
   edges: [],
   selectedNode: null,
-  setNodes: () => {},
-  setEdges: () => {},
-  setSelectedNode: () => {},
+  setNodes: () => {
+    throw new Error('setNodes not implemented');
+  },
+  setEdges: () => {
+    throw new Error('setEdges not implemented');
+  },
+  setSelectedNode: () => {
+    throw new Error('setSelectedNode not implemented');
+  },
   cacheKey: null,
-  setCacheKey: () => {},
-  clearCache: () => {},
+  setCacheKey: () => {
+    throw new Error('setCacheKey not implemented');
+  },
+  clearCache: () => {
+    throw new Error('clearCache not implemented');
+  },
 });
 
 // Cache keys for local storage
@@ -120,11 +130,5 @@ export const GraphProvider: React.FC<React.PropsWithChildren> = ({ children }) =
  * @returns Graph state and methods
  */
 export const useGraphState = (): GraphState => {
-  const context = useContext(GraphContext);
-
-  if (!context) {
-    throw new Error('useGraphState must be used within a GraphProvider');
-  }
-
-  return context;
+  return useContext(GraphContext);
 };

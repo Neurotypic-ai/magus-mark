@@ -40,8 +40,8 @@ export async function createDemoDatabase(): Promise<Database> {
     const moduleId = generateModuleUUID(packageId, 'greeter');
     const classId = generateClassUUID(packageId, moduleId, 'Greeter');
     const interfaceId = generateInterfaceUUID(packageId, moduleId, 'IGreeter');
-    const methodId = generateMethodUUID(interfaceId, 'sayHello');
-    const propertyId = generatePropertyUUID(classId, 'name');
+    const methodId = generateMethodUUID('demo-package', 'demo-module', interfaceId, 'sayHello');
+    const propertyId = generatePropertyUUID('demo-package', 'demo-module', classId, 'name', 'class');
 
     await packageRepo.create({
       id: packageId,

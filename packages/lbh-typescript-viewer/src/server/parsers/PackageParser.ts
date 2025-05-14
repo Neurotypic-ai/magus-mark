@@ -183,16 +183,17 @@ export class PackageParser {
 
     for (const line of lines) {
       if (line.startsWith('"') || line.startsWith("'")) {
-        currentDep = line.split('@')[0].replace(/["']/g, '');
+        const splitAt = line.split('@');
+        currentDep = splitAt[0] ? splitAt[0].replace(/["']/g, '') : '';
       } else if (line.includes('version') && currentDep) {
         deps[currentDep] = {
-          version: line.split('"')[1],
+          version: line.split('"')[1] ?? '',
           resolved: '',
         };
       } else if (line.includes('resolved') && currentDep && deps[currentDep]) {
         const entry = deps[currentDep];
         if (entry) {
-          entry.resolved = line.split('"')[1];
+          entry.resolved = line.split('"')[1] ?? '';
         }
       }
     }
@@ -232,7 +233,7 @@ export class PackageParser {
     pkg: PackageDependencies,
     pkgLock: PackageLock,
     type: 'dependencies' | 'devDependencies' | 'peerDependencies',
-    imports: Map<string, Import>,
+    _imports: Map<string, Import>,
     exports: Map<string, Export>,
     packageImports: Map<string, PackageImport>
   ): Promise<Map<string, string>> {

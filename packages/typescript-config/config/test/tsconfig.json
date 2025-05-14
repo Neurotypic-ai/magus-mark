@@ -7,6 +7,7 @@
   },
   "extends": "@magus-mark/typescript-config/config/base.json",
   "include": [
+    "${configDir}/src/vite.config.ts",
     "${configDir}/src/**/*.test.ts",
     "${configDir}/src/**/*.spec.ts",
     "${configDir}/src/**/*.test.tsx",

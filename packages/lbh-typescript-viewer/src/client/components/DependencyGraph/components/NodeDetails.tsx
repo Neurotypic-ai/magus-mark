@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { nodeDetailsStyles } from '../../../theme/graphTheme';
 
 import type { Node } from '@xyflow/react';
+import type { JSX } from 'react';
 
 import type { DependencyData } from '../types';
 
@@ -10,7 +11,7 @@ interface NodeDetailsProps {
   node: Node<DependencyData>;
 }
 
-const NodeDetails = ({ node }: NodeDetailsProps) => {
+const NodeDetails = ({ node }: NodeDetailsProps): JSX.Element => {
   return (
     <Box sx={nodeDetailsStyles.container}>
       <Typography variant="h6" sx={nodeDetailsStyles.title}>

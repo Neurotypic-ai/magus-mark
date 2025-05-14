@@ -183,7 +183,7 @@ process.on('SIGTERM', () => {
   });
 });
 
-const port = process.env.PORT ?? 4001;
+const port = process.env['PORT'] ?? 4001;
 server.listen(port, () => {
   logger.info(`Server listening on port ${port.toString()}`);
 });

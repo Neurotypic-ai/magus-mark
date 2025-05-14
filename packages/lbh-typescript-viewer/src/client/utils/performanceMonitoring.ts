@@ -29,7 +29,7 @@ export function measurePerformance(name: string, startMark: string, endMark: str
     // Get the measurement
     const entries = performance.getEntriesByName(name, 'measure');
 
-    if (entries.length > 0) {
+    if (entries.length > 0 && entries[0]) {
       const duration = entries[0].duration;
       perfLogger.info(`${name} took ${duration.toFixed(2)}ms`);
 

@@ -5,12 +5,14 @@ import { Panel, useReactFlow } from '@xyflow/react';
 
 import { graphControlsStyles } from '../../../theme/graphTheme';
 
+import type { JSX } from 'react';
+
 interface GraphControlsProps {
   onRelationshipFilterChange?: (types: string[]) => void;
   onResetLayout?: () => void;
 }
 
-export function GraphControls({ onRelationshipFilterChange, onResetLayout }: GraphControlsProps) {
+export function GraphControls({ onRelationshipFilterChange, onResetLayout }: GraphControlsProps): JSX.Element {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   const handleZoomIn = useCallback(() => {

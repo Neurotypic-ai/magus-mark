@@ -1,21 +1,6 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "allowJs": false,
-    "esModuleInterop": false,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "types": ["vite/client"],
-    "composite": true,
-    "sourceMap": true,
-    "declaration": true
-  },
-  "files": [],
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+    "types": ["node", "vite/client"]
+  }
 }

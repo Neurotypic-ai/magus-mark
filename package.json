@@ -70,6 +70,8 @@
     "format:check": "nx format:check",
     "lint": "nx run-many --target=lint --all",
     "magus-mcp": "nx exec -- ./tools/bin/magus-mcp",
+    "obsidian:build": "nx build obsidian",
+    "obsidian:dev": "nx run obsidian:dev",
     "postinstall": "node tools/scripts/build-magus-mcp.js",
     "test": "nx run-many --target=test --all",
     "typecheck": "nx run-many --target=typecheck --all",

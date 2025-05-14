@@ -3,9 +3,10 @@
   "dependencies": {
     "@codemirror/language": "^6.11.0",
     "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.36.7",
+    "@codemirror/view": "^6.36.8",
     "@magus-mark/core": "workspace:*",
-    "electron": "^36.2.0"
+    "electron": "^36.2.0",
+    "js-tiktoken": "^1.0.20"
   },
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
   "devDependencies": {
@@ -20,6 +21,7 @@
     "jsdom": "^26.1.0",
     "obsidian": "^1.8.7",
     "tslib": "^2.8.1",
+    "tsx": "^4.19.4",
     "typescript": "5.8.3",
     "vitest": "^3.1.3"
   },
@@ -38,23 +40,23 @@
   },
   "private": true,
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --outfile=dist/main.js",
+    "build": "tsx esbuild.config.ts",
     "bundle-analysis": "node .github/scripts/analyze-bundle.js",
     "check-accessibility": "node .github/scripts/check-accessibility.js",
     "clean": "rm -rf dist",
-    "dev": "esbuild src/main.ts --bundle --outfile=dist/main.js --watch",
+    "dev": "tsx esbuild.config.ts --watch",
     "format": "prettier --write 'src/**/*.{ts,js,json,css}' 'tests/**/*.{ts,js}'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "package": "pnpm run build && mkdir -p release && cp -r dist manifest.json styles.css release/",
-    "prebuild": "pnpm run lint && pnpm run typecheck",
+    "prebuild": "eslint . --ignore-pattern \"**/*.test.ts\" --ignore-pattern \"**/*.spec.ts\" && tsc --project tsconfig.build.json --noEmit",
     "prerelease": "pnpm run test && pnpm run check-accessibility",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
-    "watch": "node esbuild.config.js --watch",
+    "watch": "tsx esbuild.config.ts --watch",
     "postbuild": "node scripts/install-to-docs.js"
   },
   "type": "module",

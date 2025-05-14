@@ -10,7 +10,7 @@ const errorLogger = createLogger('ErrorBoundary');
  * Error telemetry service for collecting error data
  */
 class ErrorTelemetry {
-  private static instance: ErrorTelemetry;
+  private static instance: ErrorTelemetry | null = null;
   private errors: { error: Error; info: ErrorInfo; timestamp: Date }[] = [];
   private errorCount: Record<string, number> = {};
 
@@ -19,10 +19,7 @@ class ErrorTelemetry {
   }
 
   static getInstance(): ErrorTelemetry {
-    if (!ErrorTelemetry.instance) {
-      ErrorTelemetry.instance = new ErrorTelemetry();
-    }
-    return ErrorTelemetry.instance;
+    return (ErrorTelemetry.instance ??= new ErrorTelemetry());
   }
 
   /**
@@ -37,7 +34,7 @@ class ErrorTelemetry {
 
     // Track error frequency
     const errorKey = `${error.name}:${error.message}`;
-    this.errorCount[errorKey] = (this.errorCount[errorKey] || 0) + 1;
+    this.errorCount[errorKey] = (this.errorCount[errorKey] ?? 0) + 1;
 
     // Log the error with detailed information
     errorLogger.error('React error caught by boundary:', {
@@ -141,66 +138,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div
-          role="alert"
-          aria-live="assertive"
-          style={{
-            padding: '2rem',
-            backgroundColor: '#222',
-            color: '#fff',
-            borderRadius: '4px',
-            margin: '1rem',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-          }}
-        >
-          <h2 style={{ color: '#ff5555', margin: '0 0 1rem 0' }}>Something went wrong</h2>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <p style={{ fontWeight: 'bold', margin: '0.5rem 0' }}>
-              {this.state.error?.name}: {this.state.error?.message}
-            </p>
-            {this.state.errorInfo ? (
-              <details style={{ marginTop: '1rem', whiteSpace: 'pre-wrap', fontSize: '0.9rem', opacity: 0.8 }}>
-                <summary>Component Stack</summary>
-                {this.state.errorInfo.componentStack}
-              </details>
-            ) : null}
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-            <button
-              onClick={this.handleRecoveryAttempt}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#4a90e2',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              Try Again
-            </button>
-
-            <button
-              onClick={() => {
-                window.location.reload();
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#555',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              Reload Page
-            </button>
-          </div>
+        <div className="error-boundary">
+          <h2>Something went wrong.</h2>
+          <pre>{this.state.error?.message ?? 'Unknown error'}</pre>
+          <button onClick={this.handleRecoveryAttempt}>Try to recover</button>
         </div>
       );
     }

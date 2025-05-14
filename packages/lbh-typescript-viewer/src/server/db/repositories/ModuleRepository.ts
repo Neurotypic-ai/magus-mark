@@ -73,16 +73,13 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
       const results = await this.executeQuery<IModuleRow>(
         'create',
         `INSERT INTO modules (
-          id, package_id, name, directory, filename, relative_path, is_barrel
-        ) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+          id, package_id, name, source
+        ) VALUES (?, ?, ?, ?) RETURNING *`,
         [
           dto.id,
           dto.package_id,
           dto.name,
-          dto.source.directory,
-          dto.source.filename,
-          dto.source.relativePath,
-          !!dto.source.isBarrel,
+          JSON.stringify(dto.source), // Serialize FileLocation
         ]
       );
 
@@ -90,7 +87,12 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
         throw new EntityNotFoundError('Module', dto.id, this.errorTag);
       }
 
-      return this.createModuleFromRow(results[0]);
+      const mod: IModuleRow | undefined = results[0];
+      if (!mod) {
+        throw new EntityNotFoundError('Module', dto.id, this.errorTag);
+      }
+
+      return this.createModuleFromRow(mod);
     } catch (error) {
       this.logger.error('Failed to create module', error);
       throw new RepositoryError('Failed to create module', 'create', this.errorTag, error as Error);
@@ -101,10 +103,7 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
     try {
       const updates = [
         { field: 'name', value: (dto.name as DuckDBValue) ?? undefined },
-        { field: 'directory', value: (dto.source?.directory as DuckDBValue) ?? undefined },
-        { field: 'filename', value: (dto.source?.filename as DuckDBValue) ?? undefined },
-        { field: 'relative_path', value: (dto.source?.relativePath as DuckDBValue) ?? undefined },
-        { field: 'is_barrel', value: dto.source?.isBarrel ? true : false },
+        { field: 'source', value: dto.source ? JSON.stringify(dto.source) : undefined },
       ] satisfies { field: string; value: DuckDBValue | undefined }[];
 
       const { query, values } = this.buildUpdateQuery(updates);
@@ -112,11 +111,13 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
 
       await this.executeQuery<IModuleRow>('update', `UPDATE ${this.tableName} SET ${query} WHERE id = ?`, values);
 
-      const result = await this.retrieve(id);
-      if (result.length === 0) {
+      const result = await this.retrieveById(id);
+
+      if (!result) {
         throw new EntityNotFoundError('Module', id, this.errorTag);
       }
-      return result[0];
+
+      return result;
     } catch (error) {
       this.logger.error('Failed to update module', error);
       if (error instanceof RepositoryError) {
@@ -127,14 +128,7 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
   }
 
   private createModuleFromRow(mod: IModuleRow): Module {
-    const source: FileLocation = {
-      directory: String(mod.directory),
-      name: String(mod.name),
-      filename: String(mod.filename),
-      relativePath: String(mod.relative_path),
-      isBarrel: Boolean(mod.is_barrel),
-    };
-
+    const source: FileLocation = JSON.parse(mod.source) as FileLocation;
     return new Module(
       String(mod.id),
       String(mod.package_id),

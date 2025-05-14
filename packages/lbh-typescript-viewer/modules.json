@@ -4962,7 +4962,7 @@
         "id": "6e95f21a-15ad-57ba-bf47-1771d25fb4ca",
         "package_id": "58b7b451-503c-538d-b456-77da95e845dd",
         "module_id": "48de2d67-073e-5023-857f-53e0012f5f26",
-        "name": "IClassRow",
+        "name": "IClassOrInterfaceRow",
         "created_at": "2025-02-18T12:08:43.311Z",
         "methods": {},
         "properties": {
@@ -5009,7 +5009,7 @@
         "id": "2a4a96f9-b452-5dd3-98a5-3cef6236f14a",
         "package_id": "58b7b451-503c-538d-b456-77da95e845dd",
         "module_id": "48de2d67-073e-5023-857f-53e0012f5f26",
-        "name": "IInterfaceRow",
+        "name": "IClassOrInterfaceRow",
         "created_at": "2025-02-18T12:08:43.311Z",
         "methods": {},
         "properties": {

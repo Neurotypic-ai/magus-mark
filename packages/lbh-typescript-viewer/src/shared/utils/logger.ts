@@ -1,5 +1,5 @@
 // Logger configuration
-const DEBUG = process.env.DEBUG === 'true';
+const DEBUG = process.env['DEBUG'] === 'true';
 
 export interface Logger {
   info: (message: string, ...args: unknown[]) => void;
@@ -37,23 +37,18 @@ export class ConsoleLogger implements Logger {
   }
 
   private formatMessage(message: string): string {
-    return this.prefix ? `[${this.prefix}] ${message}` : message;
+    return `[${this.prefix ?? 'Logger'}] ${String(message)}`;
   }
 
   private getCallerLocation(): string {
-    const error = new Error();
-    const stack = error.stack?.split('\n')[3]?.trim(); // Skip Error, getCallerLocation, and logging function frames
-    if (!stack) return '';
-
-    const fullPath = stack.split('at ')[1];
-    // Extract path between parentheses if it exists
-    const match = /\((.*?)\)/.exec(fullPath);
-    if (!match) return `(${fullPath})`;
-
-    // Get the path and find the src/ or similar project root indicator
-    const path = match[1];
-    const rootIndex = path.indexOf('src/');
-    return rootIndex >= 0 ? `(${path.slice(rootIndex)})` : `(${path})`;
+    try {
+      throw new Error();
+    } catch (e) {
+      const stack = (e as Error).stack;
+      if (!stack) return '';
+      const lines = stack.split('\n');
+      return String(lines[3] ?? '');
+    }
   }
 
   info(message: string, ...args: unknown[]): void {
@@ -86,7 +81,7 @@ export class ConsoleLogger implements Logger {
 }
 
 // Export a default logger instance
-export const logger = new ConsoleLogger();
+export const logger: Logger = new ConsoleLogger();
 
 // Export a factory function for creating prefixed loggers
 export const createLogger = (prefix: string): Logger => new ConsoleLogger(prefix);
