@@ -49,57 +49,6 @@ function copyAssets() {
   if (existsSync(assetsDir)) {
     console.log(`[Magus Mark ESBuild] Copying assets directory from ${assetsDir} to ${destAssetsDir}`);
   }
-
-  // Copy WASM file to assets directory
-  copyWasmToAssets();
-}
-
-// Copy WASM file to assets directory
-function copyWasmToAssets() {
-  try {
-    // Create assets directory if it doesn't exist
-    const assetsDir = resolve(__dirname, 'assets');
-    mkdirSync(assetsDir, { recursive: true });
-
-    // Create assets directory in dist if it doesn't exist
-    const distAssetsDir = resolve(__dirname, outdir, 'assets');
-    mkdirSync(distAssetsDir, { recursive: true });
-
-    // Try to find the WASM file in node_modules
-    const tiktokenPaths = [
-      resolve(__dirname, '../../node_modules/.pnpm/tiktoken@1.0.21/node_modules/tiktoken/tiktoken_bg.wasm'),
-      resolve(__dirname, '../../node_modules/tiktoken/tiktoken_bg.wasm'),
-      resolve(__dirname, 'node_modules/tiktoken/tiktoken_bg.wasm'),
-    ];
-
-    // Find the first WASM file that exists
-    const foundPath = tiktokenPaths.find((path) => existsSync(path));
-
-    if (foundPath) {
-      console.log(`[Magus Mark ESBuild] Found tiktoken_bg.wasm at: ${foundPath}`);
-
-      // Copy to assets directory
-      const assetsDest = resolve(assetsDir, 'tiktoken_bg.wasm');
-      copyFileSync(foundPath, assetsDest);
-      console.log(`[Magus Mark ESBuild] Copied tiktoken_bg.wasm to assets directory: ${assetsDest}`);
-
-      // Copy to dist/assets directory
-      const distAssetsDest = resolve(distAssetsDir, 'tiktoken_bg.wasm');
-      copyFileSync(foundPath, distAssetsDest);
-      console.log(`[Magus Mark ESBuild] Copied tiktoken_bg.wasm to dist/assets directory: ${distAssetsDest}`);
-
-      return true;
-    }
-
-    console.error('[Magus Mark ESBuild] Could not find tiktoken_bg.wasm in any node_modules directory');
-    return false;
-  } catch (error: unknown) {
-    console.error(
-      '[Magus Mark ESBuild] Error copying tiktoken_bg.wasm:',
-      error instanceof Error ? error.message : String(error)
-    );
-    return false;
-  }
 }
 
 async function main() {

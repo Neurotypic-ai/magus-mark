@@ -1,0 +1,25 @@
+{
+  "name": "magus-mark-obsidian",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/obsidian-plugin/src",
+  "projectType": "application",
+  "tags": ["app", "obsidian"],
+  "implicitDependencies": ["packages/core"],
+  "namedInputs": {
+    "production": ["default"],
+    "test": ["default", "{projectRoot}/src/**/*.test.ts", "{projectRoot}/src/**/*.test.tsx"]
+  },
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/main.js", "{projectRoot}/styles.css", "{projectRoot}/manifest.json"],
+      "options": {
+        "command": "node -r esbuild-register {projectRoot}/esbuild.config.ts",
+        "cwd": "apps/obsidian-plugin"
+      }
+    },
+    "test:integration": {
+      "command": "echo \"Obsidian Plugin Integration Test Placeholder - Run manually\""
+    }
+  }
+}

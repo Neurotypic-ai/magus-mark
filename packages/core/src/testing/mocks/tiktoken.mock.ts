@@ -4,18 +4,18 @@ import { vi } from 'vitest';
 type MockFactory<T> = () => T;
 
 /**
- * Creates a mock for the tiktoken library
+ * Creates a mock for the js-tiktoken/lite Tiktoken class
  */
 export const mockTiktoken: MockFactory<{
-  encoding_for_model: new () => {
+  Tiktoken: new () => {
     encode: (text: string) => number[];
     decode: (tokens: number[]) => string;
   };
 }> = () => {
   return {
-    encoding_for_model: vi.fn().mockImplementation(() => ({
+    Tiktoken: vi.fn().mockImplementation(() => ({
       encode: vi.fn().mockReturnValue(Array(10).fill(0)),
-      decode: vi.fn().mockReturnValue([]),
+      decode: vi.fn().mockReturnValue(''),
     })),
   };
 };

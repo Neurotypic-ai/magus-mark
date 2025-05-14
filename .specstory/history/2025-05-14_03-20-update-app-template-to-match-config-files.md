@@ -3214,6 +3214,197 @@ I'll fix the Nx plugin setup immediately:
 
 ---
 
+```bash
+pnpm exec nx generate @magus-mark/nx-magus:project --name=test-project --type=lib --dry-run
+```
+
+```
+
+ NX  Generating @magus-mark/nx-magus:project
+
+Error in packages/nx-magus/src/generators/project/files/common/README.md.templat
+e:
+
+ NX   /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/nx-magus/s
+rc/generators/project/files/
+common/README.md.template:3
+                            
+    1| # <%= name %>
+    2| 
+ >> 3| <%= description %>
+    4| 
+    5| ## Features
+    6| 
+
+description is not defined
+Pass --verbose to see the stacktrace.
+
+
+```
+
+---
+
+<details>
+            <summary>Listed directory packages/nx-magus/src/generators/project/files • **6** results</summary>
+        
+| Name |
+|-------|
+| 📁 `react` |
+| 📁 `lib` |
+| 📁 `app` |
+| 📁 `common` |
+| 📁 `build-tools` |
+| 📁 `test-frameworks` |
+
+</details>
+
+---
+
+Read file: packages/nx-magus/src/generators/project/files/common/README.md.template
+
+---
+
+```diff
+  # <%= name %>
+  
+- <%= description %>
++ <% if (description) { %><%= description %><% } else { %>A <%= type === 'app' ? 'Magus Mark application' : 'Magus Mark library' %><% } %>
+  
+  ## Features
+```
+
+---
+
+```bash
+pnpm exec nx generate @magus-mark/nx-magus:project --name=test-project --type=lib --dry-run
+```
+
+```
+in magus-mark ➜ pnpm exec nx generate @magus-mark/nx-magus:project --name=test-project --type=lib --dry-run
+
+ NX  Generating @magus-mark/nx-magus:project
+
+Error in packages/nx-magus/src/generators/project/files/common/README.md.template:
+
+ NX   /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/nx-magus/src/generators/project/files/
+common/README.md.template:3
+
+    1| # <%= name %>
+    2| 
+ >> 3| <% if (description) { %><%= description %><% } else { %>A <%= type === 'app' ? 'Magus Mark applicatio
+n' : 'Magus Mark library' %><% } %>
+    4| 
+    5| ## Features
+    6| 
+
+description is not defined
+Pass --verbose to see the stacktrace.
+
+01:24:12 with khallmark at Voyager …
+in magus-mark ➜
+```
+
+---
+
+```diff
+    const parsedTags = options.tags ? options.tags.split(',').map((s) => s.trim()) : [];
+    
++   // Ensure description is always defined
++   const description = options.description || `A ${options.type === 'app' ? 'Magus Mark application' : 'Magus Mark library'}`;
++ 
+    return {
+      ...options,
++     description,
+      projectName,
+      projectRoot: projectDirectory,
+```
+
+---
+
+```bash
+pnpm exec nx generate @magus-mark/nx-magus:project --name=test-project --type=lib --dry-run
+```
+
+```
+in magus-mark ➜ pnpm exec nx generate @magus-mark/nx-magus:project --name=test-project --type=lib --dry-run
+
+ NX  Generating @magus-mark/nx-magus:project
+
+✅ Generated a new lib project in packages/test-project
+🧪 Test framework: vitest
+🔨 Build tool: esbuild
+CREATE packages/test-project/project.json
+CREATE packages/test-project/README.md
+CREATE packages/test-project/eslint.config.js
+CREATE packages/test-project/package.json
+CREATE packages/test-project/tsconfig.json
+CREATE packages/test-project/src/index.ts
+CREATE packages/test-project/src/types.ts
+CREATE packages/test-project/vitest.config.ts
+CREATE packages/test-project/esbuild.config.js
+
+NOTE: The "dryRun" flag means no changes were made.
+01:24:40 with khallmark at Voyager …
+in magus-mark ➜
+```
+
+---
+
+The Nx plugin now works correctly! I've fixed all the issues:
+
+1. Added `"./package.json": "./package.json"` to the package.json exports field
+2. Created the missing generators.json file to register the project generator 
+3. Created src/generators/index.js to export the generator
+4. Modified the generator.js to ensure description is always defined
+5. Created an empty executors.json file
+
+The generator now successfully runs in dry-run mode and will create projects as expected.
+
+To use the plugin:
+```
+nx generate @magus-mark/nx-magus:project --name=your-project-name [options]
+```
+
+Available options include:
+- --type=app|lib (default: lib)
+- --description="Your description" 
+- --testFramework=vitest|jest|mocha (default: vitest)
+- --buildTool=esbuild|vite|tsc (default: esbuild)
+- --useReact=true|false (default: false)
+- --tags="tag1,tag2" (comma-separated tags for project)
+- --directory=custom/path (custom location)
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Class 'import("/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/Plugin").Plugin' incorrectly implements class 'import("/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.8/node_modules/obsidian/obsidian").Plugin'. Did you mean to extend 'import("/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/obsidian@1.8.7_@codemirror+state@6.5.2_@codemirror+view@6.36.8/node_modules/obsidian/obsidian").Plugin' and inherit its members as a subclass?
+  Type 'Plugin' is missing the following properties from type 'Plugin': registerObsidianProtocolHandler, registerEditorSuggest, onUserEnable
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+My Liege,
+
+The issue stems from missing required methods in your Obsidian Plugin mock. Add the following methods to the class:
+
+---
+
+
+
+---
+
 
 
 ---

@@ -6,6 +6,7 @@ import { Component } from './Component';
 import type {
   App,
   Command,
+  EditorSuggest,
   HoverLinkSource,
   MarkdownPostProcessor,
   MarkdownPostProcessorContext,
@@ -94,7 +95,23 @@ export class Plugin extends Component implements PluginType {
     ): MarkdownPostProcessor => {
       console.log('registerMarkdownCodeBlockProcessor', language, handler, sortOrder);
       /* no-op for mock */
-      return processor;
+      return handler as unknown as MarkdownPostProcessor;
     }
   );
+
+  // Add missing methods required by PluginType interface
+  registerObsidianProtocolHandler(name: string, handler: (params: Record<string, string>) => any): void {
+    console.log('registerObsidianProtocolHandler', name, handler);
+    /* no-op for mock */
+  }
+
+  registerEditorSuggest(suggest: EditorSuggest<any>): void {
+    console.log('registerEditorSuggest', suggest);
+    /* no-op for mock */
+  }
+
+  onUserEnable(callback: () => any): void {
+    console.log('onUserEnable', callback);
+    /* no-op for mock */
+  }
 }

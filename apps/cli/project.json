@@ -1,0 +1,22 @@
+{
+  "name": "magus-mark-cli",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/cli/src",
+  "projectType": "application",
+  "tags": ["app", "cli"],
+  "implicitDependencies": ["packages/core"],
+  "namedInputs": {
+    "production": ["default"],
+    "test": ["default", "{projectRoot}/src/**/*.test.ts"]
+  },
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "node {projectRoot}/esbuild.config.js",
+        "cwd": "apps/cli"
+      }
+    }
+  }
+}

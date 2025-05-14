@@ -1,7 +1,8 @@
 /**
  * OpenAI integration module
  */
-import { encodingForModel } from 'js-tiktoken';
+import { Tiktoken } from 'js-tiktoken/lite';
+import cl100k_base from 'js-tiktoken/ranks/cl100k_base';
 import OpenAI from 'openai';
 
 import { APIError } from '../errors/APIError';
@@ -113,7 +114,7 @@ const DEFAULT_PRICING: PricingConfig = {
 export class OpenAIClient {
   private config: OpenAIConfig;
   private client: OpenAI | null = null;
-  private encodingCache: Record<string, ReturnType<typeof encodingForModel>> = {};
+  private encodingCache: Record<string, Tiktoken> = {};
   private pricingConfig: PricingConfig = { ...DEFAULT_PRICING };
 
   constructor(config: Partial<OpenAIConfig> = {}) {
@@ -747,15 +748,10 @@ export class OpenAIClient {
    */
   estimateTokenCount(text: string): number {
     try {
-      // Use tiktoken for accurate token counting
-      const modelName = this.config.model.includes('gpt-4')
-        ? 'gpt-4'
-        : this.config.model.includes('gpt-3.5')
-          ? 'gpt-3.5-turbo'
-          : 'gpt-4o';
-
-      this.encodingCache[modelName] ??= encodingForModel(modelName);
-      return this.encodingCache[modelName].encode(text).length;
+      // Use tiktoken/lite for accurate token counting
+      // For now, always use cl100k_base (covers GPT-3.5/4)
+      this.encodingCache['cl100k_base'] ??= new Tiktoken(cl100k_base);
+      return this.encodingCache['cl100k_base'].encode(text).length;
     } catch (_) {
       void _; // Mark as intentionally unused
       // Fallback to approximate count if tiktoken fails

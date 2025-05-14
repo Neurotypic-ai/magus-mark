@@ -11,12 +11,16 @@
  * Example: node analyze-bundle.js obsidian-plugin ../apps/obsidian-plugin/dist/main.js ../apps/obsidian-plugin/bundle-analysis.html
  * Example: node analyze-bundle.js vscode ../apps/vscode/dist/extension.js ../apps/vscode/bundle-analysis.html
  */
+import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { basename, dirname, resolve } from 'path';
+import { gzipSync } from 'zlib';
 
-const fs = require('fs');
-const path = require('path');
-const sourceMap = require('source-map');
-const zlib = require('zlib');
-const ejs = require('ejs');
+import { render } from 'ejs';
+import { SourceMapConsumer } from 'source-map';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Parse command line arguments
 const componentType = process.argv[2] || 'unknown';
@@ -36,20 +40,20 @@ if (!outputPath) {
 }
 
 // Configuration
-const MAIN_BUNDLE = path.resolve(process.cwd(), bundlePath);
+const MAIN_BUNDLE = resolve(process.cwd(), bundlePath);
 const MAIN_SOURCE_MAP = `${MAIN_BUNDLE}.map`;
-const OUTPUT_HTML = path.resolve(process.cwd(), outputPath);
-const OUTPUT_JSON = path.resolve(process.cwd(), path.dirname(outputPath), 'bundle-analysis.json');
-const TEMPLATE_PATH = path.resolve(__dirname, './bundle-analysis-template.ejs');
+const OUTPUT_HTML = resolve(process.cwd(), outputPath);
+const OUTPUT_JSON = resolve(process.cwd(), dirname(outputPath), 'bundle-analysis.json');
+const TEMPLATE_PATH = resolve(__dirname, './bundle-analysis-template.ejs');
 
 // Check if bundle exists
-if (!fs.existsSync(MAIN_BUNDLE)) {
+if (!existsSync(MAIN_BUNDLE)) {
   console.error(`❌ Bundle file not found: ${MAIN_BUNDLE}`);
   process.exit(1);
 }
 
 // Check if source map exists
-if (!fs.existsSync(MAIN_SOURCE_MAP)) {
+if (!existsSync(MAIN_SOURCE_MAP)) {
   console.error(`❌ Source map file not found: ${MAIN_SOURCE_MAP}`);
   process.exit(1);
 }
@@ -59,11 +63,11 @@ console.log(`🔍 Analyzing ${componentType} bundle size and composition...`);
 async function analyzeBundleSize() {
   try {
     // Read the bundle and source map files
-    const bundleContent = fs.readFileSync(MAIN_BUNDLE, 'utf8');
-    const sourceMapContent = JSON.parse(fs.readFileSync(MAIN_SOURCE_MAP, 'utf8'));
+    const bundleContent = readFileSync(MAIN_BUNDLE, 'utf8');
+    const sourceMapContent = JSON.parse(readFileSync(MAIN_SOURCE_MAP, 'utf8'));
 
     // Parse the source map
-    const consumer = await new sourceMap.SourceMapConsumer(sourceMapContent);
+    const consumer = await new SourceMapConsumer(sourceMapContent);
 
     // Create a map to store file sizes
     const fileSizes = new Map();
@@ -81,7 +85,7 @@ async function analyzeBundleSize() {
         const source = pos.source.replace(/^webpack:\/\/\//, '');
 
         // Skip if the source is the bundle itself or null
-        if (!source || source === path.basename(MAIN_BUNDLE)) continue;
+        if (!source || source === basename(MAIN_BUNDLE)) continue;
 
         // Group by package or file
         const packageName = getPackageName(source);
@@ -111,7 +115,7 @@ async function analyzeBundleSize() {
       totalBytes,
       bundles: [
         {
-          name: path.basename(MAIN_BUNDLE),
+          name: basename(MAIN_BUNDLE),
           files: sortedFiles.reduce((acc, file) => {
             acc[file.name] = { size: file.size };
             return acc;
@@ -121,19 +125,19 @@ async function analyzeBundleSize() {
     };
 
     // Save JSON report
-    fs.writeFileSync(OUTPUT_JSON, JSON.stringify(analysisData, null, 2));
+    writeFileSync(OUTPUT_JSON, JSON.stringify(analysisData, null, 2));
 
     // Generate HTML report if template exists
-    if (fs.existsSync(TEMPLATE_PATH)) {
-      const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-      const html = ejs.render(template, {
+    if (existsSync(TEMPLATE_PATH)) {
+      const template = readFileSync(TEMPLATE_PATH, 'utf8');
+      const html = render(template, {
         data: {
           componentType,
           totalSize: (totalBytes / 1024).toFixed(2) + ' KB',
           files: sortedFiles,
         },
       });
-      fs.writeFileSync(OUTPUT_HTML, html);
+      writeFileSync(OUTPUT_HTML, html);
     } else {
       // Generate a simple HTML report if template doesn't exist
       generateSimpleHtmlReport(sortedFiles, totalBytes, componentType);
@@ -141,7 +145,7 @@ async function analyzeBundleSize() {
 
     // Display summary
     const formattedSize = (totalBytes / 1024).toFixed(2) + ' KB';
-    const gzippedSize = (zlib.gzipSync(bundleContent).length / 1024).toFixed(2) + ' KB';
+    const gzippedSize = (gzipSync(bundleContent).length / 1024).toFixed(2) + ' KB';
 
     console.log(`\n✅ Bundle analysis complete!`);
     console.log(`📊 Total bundle size: ${formattedSize} (gzipped: ${gzippedSize})`);
@@ -237,7 +241,7 @@ function generateSimpleHtmlReport(files, totalBytes, componentType) {
     </html>
   `;
 
-  fs.writeFileSync(OUTPUT_HTML, html);
+  writeFileSync(OUTPUT_HTML, html);
 }
 
 // Run the analysis

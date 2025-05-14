@@ -75,14 +75,12 @@ vi.mock('openai', () => {
   };
 });
 
-vi.mock('tiktoken', () => {
-  return {
-    encoding_for_model: vi.fn().mockImplementation(() => ({
-      encode: vi.fn().mockReturnValue(Array(10).fill(0)),
-      decode: vi.fn().mockReturnValue([]),
-    })),
-  };
-});
+vi.mock('js-tiktoken/lite', () => ({
+  Tiktoken: vi.fn().mockImplementation(() => ({
+    encode: vi.fn().mockReturnValue(Array(10).fill(0)),
+    decode: vi.fn().mockReturnValue(''),
+  })),
+}));
 
 describe('OpenAIClient', () => {
   beforeEach(() => {
