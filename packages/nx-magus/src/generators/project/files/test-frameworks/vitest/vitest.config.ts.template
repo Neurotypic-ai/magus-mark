@@ -1,7 +1,9 @@
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
+import type { ViteUserConfig } from 'vitest/config';
+
+const config: ViteUserConfig = defineConfig({
   plugins: [
     tsconfigPaths({
       ignoreConfigErrors: true,
@@ -12,13 +14,13 @@ export default defineConfig({
     include: ['src/**/*.test.ts'<% if (useReact) { %>, 'src/**/*.test.tsx'<% } %>, 'src/**/*.spec.ts'<% if (useReact) { %>, 'src/**/*.spec.tsx'<% } %>],
     exclude: ['**/node_modules/**', '**/dist/**'],
     globals: true,
-    passWithNoTests: true,
-    allowOnly: true,
-    skipFailures: true,
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: ['config/**', '**/*.d.ts', '**/*.test.ts', '**/*.spec.ts', '**/index.ts'],
     },
   },
-}); 
+});
+
+export default config;

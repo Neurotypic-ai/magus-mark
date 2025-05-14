@@ -8,13 +8,18 @@ import type { ViteUserConfig } from 'vitest/config';
 const alias = { obsidian: resolve(__dirname, 'src/__mocks__/obsidian.ts') };
 
 const config: ViteUserConfig = defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [
+    tsconfigPaths({
+      ignoreConfigErrors: true,
+    }),
+  ],
   test: {
     environment: 'jsdom',
     include: ['**/*.{test,spec}.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     globals: true,
     mockReset: true,
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
