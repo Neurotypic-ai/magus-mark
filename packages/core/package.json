@@ -3,7 +3,7 @@
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
     "fs-extra": "^11.3.0",
-    "js-tiktoken": "^1.0.20",
+    "js-tiktoken/https://github.com/dqbd/tiktoken/blob/main/js/README.md": "^1.0.20",
     "openai": "^4.98.0",
     "ora": "^8.2.0",
     "zod": "^3.24.4"

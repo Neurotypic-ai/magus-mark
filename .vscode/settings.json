@@ -114,8 +114,6 @@
     "commandCenter.border": "#e7e7e799",
     "sash.hoverBorder": "#47395f",
     "statusBar.background": "#2f263f",
-    "statusBar.debuggingBackground": "#363f26",
-    "statusBar.debuggingForeground": "#e7e7e7",
     "statusBar.foreground": "#e7e7e7",
     "statusBarItem.hoverBackground": "#47395f",
     "statusBarItem.remoteBackground": "#2f263f",
@@ -124,7 +122,9 @@
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#2f263f99",
     "titleBar.inactiveForeground": "#e7e7e799",
-    "statusBar.noFolderBackground": "#007acc"
+    "statusBar.noFolderBackground": "#007acc",
+    "statusBar.debuggingBackground": "#363f26",
+    "statusBar.debuggingForeground": "#e7e7e7"
   },
   "peacock.color": "#2f263f",
   "eslint.lintTask.enable": true,
@@ -150,5 +150,6 @@
     }
   },
   "explorerExclude.backup": {},
-  "dotenv.enableAutocloaking": false
+  "dotenv.enableAutocloaking": false,
+  "nxConsole.generateAiAgentRules": true
 }
