@@ -1,0 +1,30 @@
+import { defineConfig } from 'vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
+<% if (useReact) { %>import react from '@vitejs/plugin-react';<% } %>
+
+export default defineConfig({
+  plugins: [
+    tsconfigPaths(),
+<% if (useReact) { %>
+    react(),
+<% } %>
+  ],
+  build: {
+    lib: {
+      entry: 'src/index.ts',
+      formats: ['es', 'cjs'],
+      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
+    },
+<% if (useReact) { %>
+    rollupOptions: {
+      external: ['react', 'react-dom'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+        },
+      },
+    },
+<% } %>
+  },
+}); 

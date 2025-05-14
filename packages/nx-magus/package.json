@@ -1,0 +1,27 @@
+{
+  "name": "@magus-mark/nx-magus",
+  "version": "0.1.0",
+  "description": "Nx plugin for Magus Mark projects",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./generators": "./src/generators/index.js",
+    "./executors": "./src/executors/index.js"
+  },
+  "generators": "./generators.json",
+  "executors": "./executors.json",
+  "dependencies": {
+    "@nx/devkit": "^18.0.4",
+    "tslib": "^2.6.2"
+  },
+  "peerDependencies": {
+    "nx": "^18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neurotypic-ai/magus-mark"
+  },
+  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "license": "MIT"
+}

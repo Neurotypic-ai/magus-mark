@@ -1,0 +1,24 @@
+import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  plugins: [
+    tsconfigPaths({
+      ignoreConfigErrors: true,
+    }),
+  ],
+  test: {
+    environment: <% if (useReact) { %>'jsdom'<% } else { %>'node'<% } %>,
+    include: ['src/**/*.test.ts'<% if (useReact) { %>, 'src/**/*.test.tsx'<% } %>, 'src/**/*.spec.ts'<% if (useReact) { %>, 'src/**/*.spec.tsx'<% } %>],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+    globals: true,
+    passWithNoTests: true,
+    allowOnly: true,
+    skipFailures: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: ['config/**', '**/*.d.ts', '**/*.test.ts', '**/*.spec.ts', '**/index.ts'],
+    },
+  },
+}); 

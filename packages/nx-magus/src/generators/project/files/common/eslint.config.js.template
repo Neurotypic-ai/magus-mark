@@ -1,0 +1,23 @@
+import { createESLintConfig } from '@magus-mark/eslint-config';
+
+export default createESLintConfig([
+<% if (type === 'app') { %>
+  // CLI-specific overrides
+  {
+    files: ['src/**/*.ts'],
+    rules: {
+      // Allow console for CLI applications
+      'no-console': 'off',
+    },
+  },
+<% } %>
+<% if (useReact) { %>
+  // React-specific overrides
+  {
+    files: ['src/**/*.tsx'],
+    rules: {
+      // Add React-specific rules here
+    },
+  },
+<% } %>
+]); 

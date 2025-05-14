@@ -1,0 +1,38 @@
+import { resolve } from 'path';
+import { build } from 'esbuild';
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+async function runBuild() {
+  const entryFile = '<% if (type === "app") { %>src/cli.ts<% } else { %>src/index.ts<% } %>';
+  const outdir = 'dist';
+
+  try {
+    const result = await build({
+      entryPoints: [entryFile],
+      outdir,
+      bundle: true,
+      minify: isProduction,
+      platform: 'node',
+      format: 'esm',
+      target: 'node18',
+      sourcemap: !isProduction,
+<% if (useReact) { %>
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+<% } %>
+      external: [
+        // List external dependencies that shouldn't be bundled
+        'react',
+        'react-dom',
+      ],
+    });
+
+    console.log('Build complete:', result);
+  } catch (error) {
+    console.error('Build failed:', error);
+    process.exit(1);
+  }
+}
+
+runBuild(); 

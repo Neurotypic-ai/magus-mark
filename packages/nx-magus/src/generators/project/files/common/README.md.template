@@ -1,0 +1,70 @@
+# <%= name %>
+
+<%= description %>
+
+## Features
+
+<% if (type === 'app') { %>
+- CLI application for Magus Mark
+<% } else { %>
+- Reusable library for Magus Mark
+<% } %>
+<% if (useReact) { %>
+- React support
+<% } %>
+
+## Installation
+
+```bash
+pnpm install
+```
+
+## Usage
+
+<% if (type === 'app') { %>
+### Development
+
+```bash
+# Build the CLI
+pnpm build
+
+# Run the CLI
+pnpm start
+```
+
+### Production
+
+```bash
+# Install globally
+npm install -g .
+
+# Run the CLI
+<%= projectName %>
+```
+<% } else { %>
+### Import
+
+```typescript
+import { someFunction } from '<%= projectName %>';
+
+// Use the library
+someFunction();
+```
+<% } %>
+
+## Development
+
+```bash
+# Build
+pnpm build
+
+# Test
+pnpm test
+
+# Lint
+pnpm lint
+```
+
+## License
+
+MIT 

@@ -1,0 +1,23 @@
+export default {
+  preset: 'ts-jest',
+  testEnvironment: <% if (useReact) { %>'jsdom'<% } else { %>'node'<% } %>,
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.json',
+      },
+    ],
+  },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  testMatch: ['**/?(*.)+(spec|test).[jt]s?(x)'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
+    '!src/**/index.ts',
+  ],
+}; 

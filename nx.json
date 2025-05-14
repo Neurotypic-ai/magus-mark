@@ -161,6 +161,10 @@
       "options": {
         "targetName": "lint"
       }
+    },
+    {
+      "plugin": "@magus-mark/nx-magus",
+      "options": {}
     }
   ],
   "nxCloudId": "68070cc4a0c749f66b8836a0",
@@ -172,16 +176,5 @@
   "affected": {
     "defaultBase": "main"
   },
-  "generators": {
-    "library": {
-      "factory": "./tools/generators/library/index.mjs",
-      "schema": "./tools/generators/library/schema.json",
-      "description": "Create a new library package"
-    },
-    "app": {
-      "factory": "./tools/generators/app/index.mjs",
-      "schema": "./tools/generators/app/schema.json",
-      "description": "Create a new application"
-    }
-  }
+  "generators": {}
 }

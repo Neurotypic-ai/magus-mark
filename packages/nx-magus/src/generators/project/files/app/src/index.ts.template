@@ -1,0 +1,13 @@
+/**
+ * <%= name %> - <%= description %>
+ */
+
+// Export the main application functionality
+export function main(): void {
+  console.log('<%= name %> is running');
+}
+
+// Run the application when this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+} 

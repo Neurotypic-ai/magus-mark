@@ -1,0 +1,11 @@
+export interface GreetOptions {
+  /**
+   * The name to greet
+   */
+  name: string;
+  
+  /**
+   * Whether to include an exclamation mark
+   */
+  enthusiastic?: boolean;
+} 

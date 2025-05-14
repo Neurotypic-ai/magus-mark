@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "cli": "nx",
+  "$id": "MagusProject",
+  "title": "Create a new Magus Mark project",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Project name",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What name would you like to use for the project?",
+      "pattern": "^[a-zA-Z].*$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Project description",
+      "x-prompt": "Provide a brief description of the project:"
+    },
+    "type": {
+      "type": "string",
+      "description": "Project type: app or library",
+      "enum": ["app", "lib"],
+      "default": "app",
+      "x-prompt": {
+        "message": "What type of project would you like to create?",
+        "type": "list",
+        "items": [
+          { "value": "app", "label": "Application" },
+          { "value": "lib", "label": "Library" }
+        ]
+      }
+    },
+    "testFramework": {
+      "type": "string",
+      "description": "Testing framework to use",
+      "enum": ["vitest", "jest", "mocha"],
+      "default": "vitest",
+      "x-prompt": {
+        "message": "Which test framework would you like to use?",
+        "type": "list",
+        "items": [
+          { "value": "vitest", "label": "Vitest" },
+          { "value": "jest", "label": "Jest" },
+          { "value": "mocha", "label": "Mocha" }
+        ]
+      }
+    },
+    "buildTool": {
+      "type": "string",
+      "description": "Build tool to use",
+      "enum": ["vite", "esbuild", "tsc"],
+      "default": "esbuild",
+      "x-prompt": {
+        "message": "Which build tool would you like to use?",
+        "type": "list",
+        "items": [
+          { "value": "vite", "label": "Vite" },
+          { "value": "esbuild", "label": "ESBuild" },
+          { "value": "tsc", "label": "TypeScript Compiler (tsc)" }
+        ]
+      }
+    },
+    "useReact": {
+      "type": "boolean",
+      "description": "Include React support",
+      "default": false,
+      "x-prompt": "Would you like to include React support?"
+    },
+    "directory": {
+      "type": "string",
+      "description": "Directory where the project is placed",
+      "alias": "dir"
+    },
+    "tags": {
+      "type": "string",
+      "description": "Add tags to the project (used for linting)",
+      "alias": "t"
+    }
+  },
+  "required": ["name", "description", "type"]
+}

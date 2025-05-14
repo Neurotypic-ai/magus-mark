@@ -1,0 +1,9 @@
+{
+  "require": "ts-node/register",
+  "extensions": ["ts"<% if (useReact) { %>, "tsx"<% } %>],
+  "spec": ["src/**/*.spec.ts"<% if (useReact) { %>, "src/**/*.spec.tsx"<% } %>, "src/**/*.test.ts"<% if (useReact) { %>, "src/**/*.test.tsx"<% } %>],
+  "node-option": [
+    "experimental-specifier-resolution=node",
+    "loader=ts-node/esm"
+  ]
+} 
