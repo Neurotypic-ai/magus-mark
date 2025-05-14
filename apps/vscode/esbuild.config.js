@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 import esbuild from 'esbuild';
 
 const production = process.argv.includes('--production');
@@ -26,34 +23,6 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
-/**
- * @type {import('esbuild').Plugin}
- */
-const copyWasmPlugin = {
-  name: 'copy-wasm-plugin',
-  setup(build) {
-    build.onEnd(() => {
-      console.log('Copying tiktoken WebAssembly files to output directory...');
-      try {
-        // Find tiktoken in node_modules - use the workspace root
-        const wasmSource = path.resolve(
-          '../../node_modules/.pnpm/tiktoken@1.0.20/node_modules/tiktoken/tiktoken_bg.wasm'
-        );
-        const wasmDest = path.resolve('./dist/tiktoken_bg.wasm');
-
-        // Ensure directory exists
-        fs.mkdirSync(path.dirname(wasmDest), { recursive: true });
-
-        // Copy the file
-        fs.copyFileSync(wasmSource, wasmDest);
-        console.log(`Copied WebAssembly file to: ${wasmDest}`);
-      } catch (err) {
-        console.error('Failed to copy WASM file:', err);
-      }
-    });
-  },
-};
-
 async function main() {
   const ctx = await esbuild.context({
     entryPoints: ['src/extension.ts'], // Main extension entry point
@@ -66,7 +35,7 @@ async function main() {
     outfile: 'dist/extension.cjs',
     external: ['vscode'],
     logLevel: 'info',
-    plugins: [esbuildProblemMatcherPlugin, copyWasmPlugin],
+    plugins: [esbuildProblemMatcherPlugin],
   });
 
   // Add context for web extension if needed later, following VS Code docs

@@ -3,9 +3,9 @@
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
     "fs-extra": "^11.3.0",
+    "js-tiktoken": "^1.0.20",
     "openai": "^4.98.0",
     "ora": "^8.2.0",
-    "js-tiktoken": "^1.0.20",
     "zod": "^3.24.4"
   },
   "devDependencies": {
@@ -32,11 +32,13 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rm -rf dist",
+    "clean:all": "rm -rf dist && rm -rf node_modules",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "typecheck": "tsc --noEmit"
   },
   "type": "module",
   "types": "dist/types/src/index.d.ts",

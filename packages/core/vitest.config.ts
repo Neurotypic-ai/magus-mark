@@ -4,7 +4,11 @@ import { defineConfig } from 'vitest/config';
 import type { ViteUserConfig } from 'vitest/config';
 
 const config: ViteUserConfig = defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [
+    tsconfigPaths({
+      ignoreConfigErrors: true,
+    }),
+  ],
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
