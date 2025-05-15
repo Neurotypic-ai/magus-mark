@@ -115,7 +115,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.15.18",
     "@types/sinon": "^17.0.4",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.96.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
@@ -136,7 +136,7 @@
     "vscode": "^1.96.0"
   },
   "main": "./dist/extension.cjs",
-  "name": "@magus-mark/vscode",
+  "name": "magus-mark-vscode",
   "private": true,
   "publisher": "khallmark",
   "repository": {
@@ -145,10 +145,10 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "compile": "pnpm run check-types && pnpm run lint && node esbuild.config.js",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.config.ts",
     "compile-tests": "tsc -p . --outDir out",
     "lint": "eslint src",
-    "package": "pnpm run check-types && pnpm run lint && node esbuild.config.js --production",
+    "package": "pnpm run check-types && pnpm run lint && tsx esbuild.config.ts --production",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "test:vscode": "vscode-test --config .vscode-test.js",
     "vscode:prepublish": "pnpm run package"

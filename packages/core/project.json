@@ -16,7 +16,7 @@
       "options": {
         "commands": [
           "tsc -p tsconfig.json --emitDeclarationOnly --outDir {projectRoot}/dist/types",
-          "node esbuild.config.js"
+          "tsx esbuild.config.ts"
         ],
         "parallel": false,
         "cwd": "packages/core"

@@ -5,6 +5,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.8",
     "@magus-mark/core": "workspace:*",
+    "builtin-modules": "^5.0.0",
     "electron": "^36.2.0",
     "js-tiktoken": "^1.0.20"
   },

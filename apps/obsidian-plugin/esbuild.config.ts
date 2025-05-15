@@ -3,6 +3,7 @@ import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import builtins from 'builtin-modules';
 import { context } from 'esbuild';
 
 // ESM equivalent of __dirname
@@ -61,7 +62,22 @@ async function main() {
       format: 'cjs',
       sourcemap: true,
       minify: !isWatch,
-      external: ['obsidian'],
+      external: [
+        'obsidian',
+        'electron',
+        '@codemirror/autocomplete',
+        '@codemirror/collab',
+        '@codemirror/commands',
+        '@codemirror/language',
+        '@codemirror/lint',
+        '@codemirror/search',
+        '@codemirror/state',
+        '@codemirror/view',
+        '@lezer/common',
+        '@lezer/highlight',
+        '@lezer/lr',
+        ...builtins,
+      ],
       banner: {
         js: '/* Magus Mark Obsidian Plugin - Bundled with ESBuild */',
       },

@@ -3,20 +3,17 @@ import esbuild from 'esbuild';
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
-/**
- * @type {import('esbuild').Plugin}
- */
-const esbuildProblemMatcherPlugin = {
+const esbuildProblemMatcherPlugin: esbuild.Plugin = {
   name: 'esbuild-problem-matcher',
-  setup(build) {
+  setup(build: esbuild.PluginBuild) {
     build.onStart(() => {
       console.log('[watch] build started');
     });
-    build.onEnd((result) => {
+    build.onEnd((result: esbuild.BuildResult) => {
       result.errors.forEach(({ text, location }) => {
         console.error(`✘ [ERROR] ${text}`);
         if (location == null) return;
-        console.error(`    ${location.file}:${location.line}:${location.column}:`);
+        console.error(`    ${location.file}:${location.line.toString()}:${location.column.toString()}:`);
       });
       console.log('[watch] build finished');
     });
@@ -52,7 +49,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+main().catch((e: unknown) => {
   console.error(e);
   process.exit(1);
 });

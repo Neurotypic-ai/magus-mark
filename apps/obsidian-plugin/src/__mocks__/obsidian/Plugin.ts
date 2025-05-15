@@ -6,7 +6,9 @@ import { Component } from './Component';
 import type {
   App,
   Command,
+  Component as ComponentType,
   EditorSuggest,
+  EventRef,
   HoverLinkSource,
   MarkdownPostProcessor,
   MarkdownPostProcessorContext,
@@ -100,8 +102,11 @@ export class Plugin extends Component implements PluginType {
   );
 
   // Add missing methods required by PluginType interface
-  registerObsidianProtocolHandler(name: string, handler: (params: Record<string, string>) => any): void {
-    console.log('registerObsidianProtocolHandler', name, handler);
+  registerObsidianProtocolHandler(
+    action: string,
+    handler: (params: { action: string; [key: string]: string }) => any
+  ): void {
+    console.log('registerObsidianProtocolHandler', action, handler);
     /* no-op for mock */
   }
 
@@ -110,8 +115,34 @@ export class Plugin extends Component implements PluginType {
     /* no-op for mock */
   }
 
-  onUserEnable(callback: () => any): void {
-    console.log('onUserEnable', callback);
+  onUserEnable(): void {
+    console.log('onUserEnable called');
     /* no-op for mock */
+  }
+
+  // Add missing methods from Component lifecycle expected by PluginType
+  override removeChild<T extends ComponentType>(_component: T): T {
+    return _component; // Mock implementation
+  }
+
+  override register(_cb: () => any): void {
+    /* no-op for mock */
+  }
+
+  override registerEvent(_eventRef: EventRef): void {
+    /* no-op for mock */
+  }
+
+  override registerDomEvent<K extends keyof WindowEventMap>(
+    _el: Window | Document | HTMLElement,
+    _type: K,
+    _callback: (this: HTMLElement, ev: WindowEventMap[K]) => any,
+    _options?: boolean | AddEventListenerOptions
+  ): void {
+    /* no-op for mock */
+  }
+
+  override registerInterval(_id: number): number {
+    return _id; // Mock implementation, typically you'd store and clear it
   }
 }

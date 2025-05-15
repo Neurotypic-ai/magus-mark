@@ -3,14 +3,21 @@ import { vi } from 'vitest';
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
 
-import type { Document } from '@magus-mark/core/models/Document';
 import type {
+  App,
+  Debouncer,
+  EventRef,
   MarkdownFileInfo,
+  Side,
+  SplitDirection,
+  TFile,
+  View,
   WorkspaceContainer,
   WorkspaceItem as WorkspaceItemType,
-  WorkspaceParent,
   WorkspaceRoot as WorkspaceRootType,
   WorkspaceSidedock as WorkspaceSidedockType,
+  WorkspaceSplit,
+  WorkspaceTabs,
   Workspace as WorkspaceType,
   WorkspaceWindow as WorkspaceWindowType,
 } from 'obsidian';
@@ -18,48 +25,196 @@ import type {
 import type { MockObsidianElement } from './MockObsidianElement';
 import type { WorkspaceLeaf } from './WorkspaceLeaf';
 
+interface MockWorkspaceParent extends WorkspaceItemType {
+  /* add specific parent props if any */
+}
+
+type Constructor<T = any> = new (...args: any[]) => T;
+
 vi.mock('obsidian', () => {
-  class WorkspaceItem extends Events implements WorkspaceItemType {
-    getRoot: () => WorkspaceRoot = vi.fn();
+  class WorkspaceItemMockImpl extends Events implements WorkspaceItemType {
+    getRoot: () => WorkspaceRootType = vi.fn();
     getContainer: () => WorkspaceContainer = vi.fn();
-    parent: WorkspaceParent;
-    constructor(parent: WorkspaceParent) {
+    parent: MockWorkspaceParent;
+    constructor(parent: MockWorkspaceParent) {
       super();
       this.parent = parent;
     }
+    doc: Document = document;
+    win: Window = window;
   }
 
-  class WorkspaceSidedock extends WorkspaceItem implements WorkspaceSidedockType {
+  class WorkspaceSidedockMockImpl extends WorkspaceItemMockImpl implements WorkspaceSidedockType {
     collapsed = false;
-    // WorkspaceSidedock
     toggle: () => void = vi.fn();
     collapse: () => void = vi.fn();
     expand: () => void = vi.fn();
+    constructor(parent: MockWorkspaceParent) {
+      super(parent);
+    }
+  }
+  class WorkspaceWindowMockImpl extends WorkspaceItemMockImpl implements WorkspaceWindowType {
+    override win: Window = window as Window;
+    override doc: Document = document as Document;
+    app: App = {} as App;
+    override parent: MockWorkspaceParent;
+    override getRoot: () => WorkspaceRootType = vi.fn();
+    override getContainer: () => WorkspaceContainer = vi.fn();
+    constructor(parent: MockWorkspaceParent) {
+      super(parent);
+      this.parent = parent;
+    }
+    activeLeaf: WorkspaceLeaf | undefined = undefined;
+    leftSplit: WorkspaceSplit = {} as WorkspaceSplit;
+    rightSplit: WorkspaceSplit = {} as WorkspaceSplit;
+    getLeafById: (id: string) => WorkspaceLeaf = vi.fn();
+    getLeavesOfType: (type: string) => WorkspaceLeaf[] = vi.fn();
+    getLeftLeaf: (sticky?: boolean) => WorkspaceLeaf = vi.fn();
+    getRightLeaf: (sticky?: boolean) => WorkspaceLeaf = vi.fn();
+    createLeafInParent: (parent: WorkspaceSplit, index?: number) => WorkspaceLeaf = vi.fn();
+    splitActiveLeaf: (direction?: 'vertical' | 'horizontal') => WorkspaceLeaf = vi.fn();
+    rootSplit: WorkspaceSplit = {} as WorkspaceSplit;
+    activeTabGroup: WorkspaceTabs | null = null;
+    setIcon = vi.fn<(iconId: string) => void>();
+    setTitle = vi.fn<(title: string) => void>();
+    onResize = vi.fn<() => void>();
   }
 
-  class WorkspaceDocument extends WorkspaceItem implements WorkspaceDocumentType {}
-  class WorkspaceWindow extends Events implements WorkspaceWindowType {
-    win: Window = vi.fn();
-    doc: Document = vi.fn();
+  class WorkspaceRootMockImpl extends WorkspaceItemMockImpl implements WorkspaceRootType {
+    getLeaf: (newLeaf?: boolean) => WorkspaceLeaf = vi.fn();
+    override win: Window = window as Window;
+    override doc: Document = document as Document;
+    constructor(parent: MockWorkspaceParent) {
+      super(parent);
+    }
+    activeEditor: MarkdownFileInfo | null = null;
+    activeLeaf: WorkspaceLeaf | null = null;
+    getUnpinnedLeaves: (type?: string) => WorkspaceLeaf[] = vi.fn();
   }
-  class WorkspaceRoot extends WorkspaceItem implements WorkspaceRootType {
-    getLeaf: () => WorkspaceLeaf = vi.fn();
-    win: WorkspaceWindow = vi.fn();
-    doc: WorkspaceDocument = vi.fn();
-  }
+
+  const mockParent = {} as MockWorkspaceParent;
 
   return {
-    WorkspaceSidedock: vi.fn().mockImplementation((parent: WorkspaceParent) => {
-      return new WorkspaceSidedock(parent);
-    }),
-    WorkspaceRoot: vi.fn().mockImplementation(() => {
-      return new WorkspaceRoot(new WorkspaceParent());
-    }),
+    WorkspaceSidedock: vi.fn().mockImplementation(() => new WorkspaceSidedockMockImpl(mockParent)),
+    WorkspaceRoot: vi.fn().mockImplementation(() => new WorkspaceRootMockImpl(mockParent)),
+    WorkspaceItem: WorkspaceItemMockImpl,
+    WorkspaceWindow: vi.fn().mockImplementation(() => new WorkspaceWindowMockImpl(mockParent)),
   };
 });
+
 export class Workspace extends Events implements WorkspaceType {
   activeLeaf: WorkspaceLeaf | null = null;
   containerEl: MockObsidianElement = createMockObsidianElement('div');
   layoutReady = true;
   activeEditor: MarkdownFileInfo | null = null;
+
+  leftSplit: WorkspaceSidedockType = {} as WorkspaceSidedockType;
+  rightSplit: WorkspaceSidedockType = {} as WorkspaceSidedockType;
+  leftRibbon: any = { show: vi.fn(), hide: vi.fn(), addAction: vi.fn(), removeAction: vi.fn() };
+  rightRibbon: any = { show: vi.fn(), hide: vi.fn(), addAction: vi.fn(), removeAction: vi.fn() };
+  headerInfoEl: HTMLElement = document.createElement('div');
+  statusBar: any = {
+    containerEl: document.createElement('div'),
+    addStatusBarItem: vi.fn(),
+    removeStatusBarItem: vi.fn(),
+  };
+  floatingSplit: WorkspaceSplit | null = null;
+  rootSplit: WorkspaceRootType = {} as WorkspaceRootType;
+  activeTabGroup: WorkspaceTabs | null = null;
+
+  requestSaveLayout: Debouncer<[], Promise<void>> = (() => {
+    const fn = vi.fn((): Promise<void> => Promise.resolve());
+    (fn as any).cancel = vi.fn();
+    (fn as any).run = vi.fn((): Promise<void> => Promise.resolve());
+    (fn as any).destroy = vi.fn();
+    return fn as any as Debouncer<[], Promise<void>>;
+  })();
+  onLayoutReady: (callback: () => any) => void = vi.fn();
+  getLayout: () => any = vi.fn(() => ({}));
+  setLayout: (layout: any) => Promise<void> = vi.fn(() => Promise.resolve());
+  openPopoutLeaf: () => WorkspaceLeaf = vi.fn();
+  openPopout: () => Promise<WorkspaceWindowType> = vi.fn(() => Promise.resolve({} as WorkspaceWindowType));
+  openWindow: () => Promise<WorkspaceWindowType> = vi.fn(() => Promise.resolve({} as WorkspaceWindowType));
+  getLeaf: (newLeaf?: boolean | PaneType) => WorkspaceLeaf = vi.fn();
+  getLeftLeaf: (sticky?: boolean) => WorkspaceLeaf = vi.fn();
+  getRightLeaf: (sticky?: boolean) => WorkspaceLeaf = vi.fn();
+  getUnpinnedLeaves: (type?: string) => WorkspaceLeaf[] = vi.fn(() => []);
+  getLeafById: (id: string) => WorkspaceLeaf | null = vi.fn(() => null);
+  getLeavesOfType: (viewType: string) => WorkspaceLeaf[] = vi.fn(() => []);
+  getMostRecentLeaf: (root?: WorkspaceRootType | WorkspaceItemType) => WorkspaceLeaf | null = vi.fn(() => null);
+  createLeafBySplit: (split: WorkspaceSplit, viewType?: string, options?: any) => WorkspaceLeaf = vi.fn();
+  createLeafInParent: (parentSplit: WorkspaceSplit, index?: number) => WorkspaceLeaf = vi.fn();
+  createLeafInTabGroup: (group: WorkspaceTabs, index?: number) => WorkspaceLeaf = vi.fn();
+  splitActiveLeaf: (direction?: SplitDirection, before?: boolean) => WorkspaceLeaf = vi.fn();
+  setActiveLeaf: ((leaf: WorkspaceLeaf, params?: { focus?: boolean }) => void) &
+    ((leaf: WorkspaceLeaf, pushHistory: boolean, focus: boolean) => void) = vi.fn();
+  openLinkText: (
+    linktext: string,
+    sourcePath: string,
+    newLeaf?: PaneType,
+    openViewState?: OpenViewState
+  ) => Promise<void> = vi.fn(() => Promise.resolve());
+  openFile: (file: TFile, openViewState?: OpenViewState) => Promise<void> = vi.fn(() => Promise.resolve());
+  getDropLocation: (event: DragEvent) => {
+    target: WorkspaceItemType | null;
+    aSide: 'left' | 'right' | 'top' | 'bottom' | null;
+    bSide: 'v' | 'h' | null;
+  } = vi.fn(() => ({ target: null, aSide: null, bSide: null }));
+  iterateRootLeaves: (callback: (leaf: WorkspaceLeaf) => any) => void = vi.fn();
+  iterateAllLeaves: (callback: (leaf: WorkspaceLeaf) => any) => void = vi.fn();
+  getAdjacentLeaf: (leaf: WorkspaceLeaf, direction: 'top' | 'bottom' | 'left' | 'right') => WorkspaceLeaf | null =
+    vi.fn(() => null);
+  getActiveViewOfType: <T_1 extends View>(type: Constructor<T_1>) => T_1 | null = vi.fn();
+  getActiveFile: () => TFile | null = vi.fn(() => null);
+  updateOptions: () => void = vi.fn();
+
+  changeLayout: (layout: any) => Promise<void> = vi.fn((_layout: any): Promise<void> => Promise.resolve());
+  getUnpinnedLeaf: (type?: string) => WorkspaceLeaf = vi.fn((_type?: string): WorkspaceLeaf => ({}) as WorkspaceLeaf);
+  getGroupLeaves: (group: string) => WorkspaceLeaf[] = vi.fn((_group: string): WorkspaceLeaf[] => []);
+  ensureSideLeaf: (
+    type: string,
+    side: Side,
+    options?: { active?: boolean; split?: boolean; reveal?: boolean; state?: any }
+  ) => Promise<WorkspaceLeaf> = vi.fn(
+    (
+      _type: string,
+      _side: Side,
+      _options?: { active?: boolean; split?: boolean; reveal?: boolean; state?: any }
+    ): Promise<WorkspaceLeaf> => Promise.resolve({} as WorkspaceLeaf)
+  );
+
+  override on: (...args: any[]) => EventRef = vi.fn((..._args: any[]): EventRef => ({}) as EventRef);
+  override off: (...args: any[]) => void = vi.fn((..._args: any[]): void => {});
+  override offref: (...args: any[]) => void = vi.fn((..._args: any[]): void => {});
+  override trigger: (...args: any[]) => void = vi.fn((..._args: any[]): void => {});
+  override tryTrigger: (...args: any[]) => boolean = vi.fn((..._args: any[]): boolean => false);
+
+  constructor() {
+    super();
+  }
+
+  onFileOpen: EventRef = {} as EventRef;
+  onLayoutChange: EventRef = {} as EventRef;
+  onActiveLeafChange: EventRef = {} as EventRef;
+  createLeafInNewWindow: (viewType?: string, options?: any) => WorkspaceLeaf = vi.fn();
+  duplicateLeaf: (leaf: WorkspaceLeaf, directionOrOptions?: SplitDirection | PaneType) => Promise<WorkspaceLeaf> =
+    vi.fn(() => Promise.resolve({} as WorkspaceLeaf));
+  detachLeavesOfType: (viewType: string) => void = vi.fn();
+  revealLeaf: (leaf: WorkspaceLeaf) => Promise<void> = vi.fn(() => Promise.resolve());
+  getLastOpenFiles: () => string[] = vi.fn(() => []);
+  addToSameGroup: (leaf: WorkspaceLeaf, target: WorkspaceLeaf) => void = vi.fn();
+  closePopout: () => Promise<void> = vi.fn(() => Promise.resolve());
+  moveLeafToPopout: (
+    leaf: WorkspaceLeaf,
+    dimensions?: { x: number; y: number; width: number; height: number }
+  ) => WorkspaceWindowType = vi.fn(() => ({}) as WorkspaceWindowType);
+  openParentLeaf: (leaf: WorkspaceLeaf) => WorkspaceLeaf | null = vi.fn(() => null);
+}
+
+type PaneType = boolean | 'split' | 'tab' | 'window';
+interface OpenViewState {
+  active?: boolean;
+  eState?: any;
+  state?: any;
+  type?: string;
 }

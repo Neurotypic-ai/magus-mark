@@ -14,7 +14,11 @@
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/dist"],
       "options": {
-        "command": "node {projectRoot}/esbuild.config.js",
+        "commands": [
+          "tsc -p tsconfig.json --emitDeclarationOnly --outDir {projectRoot}/dist/types",
+          "tsx esbuild.config.ts"
+        ],
+        "parallel": false,
         "cwd": "apps/cli"
       }
     }
