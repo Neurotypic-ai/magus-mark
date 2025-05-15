@@ -110,8 +110,42 @@ export default class ObsidianMagicPlugin extends Plugin {
       )
     );
 
-    this.registerMarkdownPostProcessor(async (element, context) => {
-      // ... existing code ...
+    this.registerMarkdownPostProcessor((element: HTMLElement, context) => {
+      const sourcePath = context.sourcePath;
+      if (!sourcePath) {
+        // If sourcePath is not available, we cannot reliably process tags contextually.
+        return;
+      }
+
+      const tagElements = element.querySelectorAll('a.tag');
+
+      for (const tagEl of Array.from(tagElements)) {
+        if (!(tagEl instanceof HTMLElement)) continue;
+
+        const tagNameWithHash = tagEl.textContent?.trim();
+        if (!tagNameWithHash?.startsWith('#')) continue;
+
+        const tagName = tagNameWithHash.substring(1);
+
+        // Add a marker attribute and class for styling or future interactivity
+        tagEl.setAttribute('data-magus-mark-tag', tagName);
+        tagEl.classList.add('magus-mark-processed-tag');
+
+        // Example of logging - in a real implementation, you might call a service
+        // or directly manipulate the tagEl further based on plugin logic.
+        console.log(`[Magus Mark] Processed tag: #${tagName} in file: ${sourcePath}`);
+
+        // Future enhancement placeholder:
+        // try {
+        //   const tagInfo = await this.documentTagService.getTagInfo(tagName, sourcePath);
+        //   if (tagInfo && !tagInfo.isValid) {
+        //     tagEl.classList.add('magus-mark-invalid-tag');
+        //     tagEl.setAttribute('title', tagInfo.validationMessage || `Tag "${tagName}" is invalid.`);
+        //   }
+        // } catch (error) {
+        //   console.error(`[Magus Mark] Error processing tag #${tagName} in ${sourcePath}:`, error);
+        // }
+      }
     });
   }
 

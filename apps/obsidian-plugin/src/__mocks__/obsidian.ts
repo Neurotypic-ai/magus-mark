@@ -20,7 +20,6 @@ import type {
   MetadataCache as MetadataCacheType,
   Modifier as ModifierType,
   PluginManifest as PluginManifestType,
-  Plugin as PluginType,
   Scope as ScopeType,
   UserEvent as UserEventType,
   Vault as VaultType,
@@ -101,15 +100,6 @@ export function createMockedPlugin(): ObsidianMagicPlugin {
 }
 
 // --- Add common Obsidian UI components to the mock ---
-export class Notice {
-  message: string;
-  duration: number;
-  constructor(message: string, duration: number = 0) {
-    this.message = message;
-    this.duration = duration;
-  }
-  hide: Mock<() => void> = vi.fn();
-}
 
 export class Events implements EventsType {
   on: Mock<(name: string, callback: (...data: any[]) => any, ctx?: any) => EventRef> = vi.fn(() => ({
@@ -123,6 +113,7 @@ export class Events implements EventsType {
   trigger: Mock<(name: string, ...data: any[]) => void> = vi.fn();
   tryTrigger: Mock<(name: string, ...data: any[]) => boolean> = vi.fn(() => false);
   onPaneMenu: Mock<(menu: MenuType, source: string) => void> = vi.fn();
+  registerInterval: Mock<(id: number) => number> = vi.fn((id) => id || window.setInterval(vi.fn(), 1000));
 }
 
 export class Component extends Events implements ComponentType {
@@ -144,28 +135,6 @@ export class Component extends Events implements ComponentType {
   registerDomEvent: Mock<
     (el: EventTarget, type: string, callback: (evt: any) => any, options?: boolean | AddEventListenerOptions) => void
   > = vi.fn();
-  registerInterval: Mock<(id: number) => number> = vi.fn((id) => id || window.setInterval(vi.fn(), 1000));
-}
-
-export class Modal extends Component {
-  app: AppType;
-  contentEl: HTMLElement;
-  titleEl: HTMLElement;
-  modalEl: HTMLElement;
-  scope: ScopeType;
-
-  constructor(app: AppType) {
-    super();
-    this.app = app;
-    this.contentEl = typeof document !== 'undefined' ? document.createElement('div') : ({ style: {} } as HTMLElement);
-    this.titleEl = typeof document !== 'undefined' ? document.createElement('h2') : ({ style: {} } as HTMLElement);
-    this.modalEl = typeof document !== 'undefined' ? document.createElement('div') : ({ style: {} } as HTMLElement);
-    this.scope = app.scope;
-  }
-  open: Mock<() => void> = vi.fn();
-  close: Mock<() => void> = vi.fn();
-  onOpen: Mock<() => void> = vi.fn();
-  onClose: Mock<() => void> = vi.fn();
 }
 
 export class View extends Component {
@@ -214,20 +183,15 @@ export class ItemView extends View {
   override getDisplayText: Mock<() => string> = vi.fn().mockReturnValue('Mock Item View');
 }
 
-export class PluginSettingTab extends Component {
-  app: AppType;
-  plugin: PluginType;
-  containerEl: HTMLElement;
-
-  constructor(app: AppType, plugin: PluginType) {
-    super();
-    this.app = app;
-    this.plugin = plugin;
-    this.containerEl = typeof document !== 'undefined' ? document.createElement('div') : ({ style: {} } as HTMLElement);
-  }
-  display: Mock<() => void> = vi.fn();
-  hide: Mock<() => void> = vi.fn();
-}
 // --- End common Obsidian UI components ---
 
 export { TFile, TFolder } from 'obsidian';
+export { WorkspaceLeaf } from './obsidian/WorkspaceLeaf';
+export { Plugin } from './obsidian/Plugin';
+export { PluginSettingTab } from './obsidian/PluginSettingTab';
+export { Setting } from './obsidian/Setting';
+export { Vault } from './obsidian/Vault';
+export { Workspace } from './obsidian/Workspace';
+
+// Import and re-export the detailed Modal mock
+export { Modal } from './obsidian/Modal';
