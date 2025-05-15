@@ -77,6 +77,7 @@ const mockPlugin = {
       read: mockVaultRead,
       modify: mockVaultModify,
     },
+    isDesktopApp: true,
   } as any, // Using 'any' for simplicity, refine if needed
   settings: {
     apiKey: 'test-key',

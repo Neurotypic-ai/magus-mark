@@ -6,11 +6,14 @@ import type { Component as ComponentType, EventRef } from 'obsidian';
 import type { Mock } from 'vitest';
 
 export class Component extends Events implements ComponentType {
+  // These can remain as direct Mock properties if ComponentType allows for it
+  // or if they are additional mock helpers not strictly part of ComponentType's required methods.
   load: Mock<() => void> = vi.fn();
   onload: Mock<() => void> = vi.fn();
   unload: Mock<() => void> = vi.fn();
   onunload: Mock<() => void> = vi.fn();
 
+  // Methods defined by ComponentType should be actual methods here
   addChild<T extends ComponentType>(child: T): T {
     // console.log('MockComponent.addChild called with', child);
     return child;
@@ -28,9 +31,9 @@ export class Component extends Events implements ComponentType {
 
   registerEvent(_eventRef: EventRef): void {
     // console.log('MockComponent.registerEvent called with', _eventRef);
-    // Basic mock: can track refs if needed for testing
   }
 
+  // registerDomEvent with overloads
   registerDomEvent<K extends keyof WindowEventMap>(
     _el: Window,
     _type: K,
@@ -50,13 +53,12 @@ export class Component extends Events implements ComponentType {
     _options?: boolean | AddEventListenerOptions
   ): void;
   registerDomEvent(
-    _el: EventTarget,
+    _el: EventTarget, // Base implementation signature
     _type: string,
     _callback: (this: HTMLElement, ev: Event) => any,
     _options?: boolean | AddEventListenerOptions
   ): void {
-    // console.log('MockComponent.registerDomEvent called');
-    // Actual event listener registration might be too complex/side-effectful for a base mock.
+    // console.log('MockComponent.registerDomEvent implementation called');
   }
 
   registerInterval(_id: number): number {
@@ -64,18 +66,17 @@ export class Component extends Events implements ComponentType {
     return 0; // Return a number as per Obsidian API
   }
 
-  // containerEl is part of ComponentType but not explicitly initialized here.
-  // It's often managed by the subclass (like View or ItemView) or passed in.
-  // For a base mock, we can declare it.
-  containerEl!: HTMLElement; // Definite assignment assertion for mocks if not init in constructor
+  containerEl!: HTMLElement;
 
   constructor() {
     super();
+    // Wrap methods with vi.fn() to make instance methods mockable
     this.addChild = vi.fn(this.addChild);
     this.removeChild = vi.fn(this.removeChild);
     this.register = vi.fn(this.register);
     this.registerEvent = vi.fn(this.registerEvent);
-    this.registerDomEvent = vi.fn(this.registerDomEvent) as any; // Cast to any to satisfy multiple overloads with a single mock implementation
+    this.registerDomEvent = vi.fn(this.registerDomEvent) as any; // Cast for overload handling
     this.registerInterval = vi.fn(this.registerInterval);
+    // load, onload, unload, onunload are already vi.fn() properties, no need to wrap here if defined as such.
   }
 }

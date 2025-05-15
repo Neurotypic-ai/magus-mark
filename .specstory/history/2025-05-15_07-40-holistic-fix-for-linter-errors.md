@@ -604,7 +604,1132 @@ My updated plan is as follows:
     *   **Unused Import (TS6133):** I will remove the unused import `import type { Mock } from 'vitest';`.
 
 **2. For `apps/obsidian-plugin/src/__mocks__/obsidian/Plugin.ts`:**
-    *   **`Property 'removeChild' not assignable...` and `Type 'Component' is missing properties...` (TS2416):** This indicates a mismatch between the `Component` type used in the mock's `removeChild` signature (`<T extends Component>`) and the one expected by the base `obsidian.Component` or `obsidian.Plugin` types
+    *   **`Property 'removeChild' not assignable...` and `Type 'Component' is missing properties...` (TS2416):** This indicates a mismatch between the `Component` type used in the mock's `removeChild` signature (`<T extends Component>`) and the one expected by the base `obsidian.Component` or `obsidian.Plugin` types. The mock `Component` (from `./Component`) likely differs from the actual `obsidian.Component`. I will adjust the type parameter constraint to align with the base class/interface. It should likely be `T extends ComponentType` (importing `ComponentType` from `obsidian`).
+    *   **`This member must have an 'override' modifier...` (TS4114):** I will add the `override` keyword to `removeChild`, `register`, `registerEvent`, `registerDomEvent`, and `registerInterval` as they override methods from the base `Component` class.
+
+**3. For `apps/obsidian-plugin/src/__mocks__/obsidian/WorkspaceLeaf.ts`:**
+    *   The error **`Type 'ItemView' is not assignable to type 'View'. Property 'onOpen' is protected...` (TS2322)** persists. As previously stated, this error originates in the `ItemView.ts` mock file. I will not be able to fix this issue without modifying `ItemView.ts`.
+
+I will now proceed with these corrections, starting with `apps/obsidian-plugin/src/__mocks__/obsidian/Workspace.ts`.
+
+
+---
+
+```diff
+    Workspace as WorkspaceType,
+    WorkspaceWindow as WorkspaceWindowType,
++   Side,
+  } from 'obsidian';
+- import type { Mock } from 'vitest';
+  
+  import type { MockObsidianElement } from './MockObsidianElement';
+```
+
+```diff
+    updateOptions: () => void = vi.fn();
+  
+-   changeLayout = vi.fn((_layout: any): Promise<void> => Promise.resolve());
+-   getUnpinnedLeaf = vi.fn((_type?: string): WorkspaceLeaf | null => null);
+-   getGroupLeaves = vi.fn((_group: string): WorkspaceLeaf[] => []);
+-   ensureSideLeaf = vi.fn(
+-     (_side: 'left' | 'right', _type: string, _state?: any): Promise<WorkspaceLeaf | null> => Promise.resolve(null)
++   changeLayout: (layout: any) => Promise<void> = vi.fn((_layout: any): Promise<void> => Promise.resolve());
++   getUnpinnedLeaf: (type?: string) => WorkspaceLeaf = vi.fn((_type?: string): WorkspaceLeaf => ({} as WorkspaceLeaf));
++   getGroupLeaves: (group: string) => WorkspaceLeaf[] = vi.fn((_group: string): WorkspaceLeaf[] => []);
++   ensureSideLeaf: (
++     type: string,
++     side: Side,
++     options?: { active?: boolean; split?: boolean; reveal?: boolean; state?: any }
++   ) => Promise<WorkspaceLeaf> = vi.fn(
++     (
++       _type: string,
++       _side: Side,
++       _options?: { active?: boolean; split?: boolean; reveal?: boolean; state?: any }
++     ): Promise<WorkspaceLeaf> => Promise.resolve({} as WorkspaceLeaf)
+    );
+  
+-   override on = vi.fn((..._args: any[]): EventRef => ({}) as EventRef);
+-   override off = vi.fn((..._args: any[]) => {});
+-   override offref = vi.fn((..._args: any[]) => {});
+-   override trigger = vi.fn((..._args: any[]) => {});
+-   override tryTrigger = vi.fn((..._args: any[]): boolean => false);
++   override on: (...args: any[]) => EventRef = vi.fn((..._args: any[]): EventRef => ({}) as EventRef);
++   override off: (...args: any[]) => void = vi.fn((..._args: any[]): void => {});
++   override offref: (...args: any[]) => void = vi.fn((..._args: any[]): void => {});
++   override trigger: (...args: any[]) => void = vi.fn((..._args: any[]): void => {});
++   override tryTrigger: (...args: any[]) => boolean = vi.fn((..._args: any[]): boolean => false);
+  
+    constructor() {
+```
+
+---
+
+Your Grace,
+
+The necessary corrections have been applied to `apps/obsidian-plugin/src/__mocks__/obsidian/Workspace.ts`. I've added explicit type annotations, adjusted the return types for `getUnpinnedLeaf` and `ensureSideLeaf` to strictly match the base interface (they now return non-nullable `WorkspaceLeaf` instances or promises thereof), ensured explicit `void` return types for relevant event handlers, and removed the unused `Mock` import. I also added an import for `Side` from `obsidian` as it's used in the updated `ensureSideLeaf` signature.
+
+Next, I will address the errors in `apps/obsidian-plugin/src/__mocks__/obsidian/Plugin.ts`.
+
+
+---
+
+```diff
+    PluginManifest as PluginManifestType,
+    Plugin as PluginType,
++   Component as ComponentType,
+  } from 'obsidian';
+  
+```
+
+```diff
+  
+    // Add missing methods from Component lifecycle expected by PluginType
+-   removeChild<T extends Component>(_component: T): T {
++   override removeChild<T extends ComponentType>(_component: T): T {
+      return _component; // Mock implementation
+    }
+  
+-   register(_cb: () => any): void {
++   override register(_cb: () => any): void {
+      /* no-op for mock */
+    }
+  
+-   registerEvent(_eventRef: EventRef): void {
++   override registerEvent(_eventRef: EventRef): void {
+      /* no-op for mock */
+    }
+  
+-   registerDomEvent<K extends keyof WindowEventMap>(
++   override registerDomEvent<K extends keyof WindowEventMap>(
+      _el: Window | Document | HTMLElement,
+      _type: K,
+```
+
+```diff
+    }
+  
+-   registerInterval(_id: number): number {
++   override registerInterval(_id: number): number {
+      return _id; // Mock implementation, typically you'd store and clear it
+    }
+```
+
+---
+
+My Liege,
+
+The modifications to `apps/obsidian-plugin/src/__mocks__/obsidian/Plugin.ts` are complete. I have added the `override` modifier to the methods `removeChild`, `register`, `registerEvent`, `registerDomEvent`, and `registerInterval`. Crucially, I've also changed the generic type constraint in `removeChild` from `T extends Component` (which referred to the local mock `Component`) to `T extends ComponentType` (importing `ComponentType` as an alias for `Component` from 'obsidian'), which should resolve the assignment issues with the base class methods.
+
+The linter error in `apps/obsidian-plugin/src/__mocks__/obsidian/WorkspaceLeaf.ts` concerning `ItemView` still remains, as its resolution requires changes to `ItemView.ts`, which is outside the scope of the files you've asked me to modify.
+
+All other specified linter errors should now be resolved.
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+These overrides seem wrong. why do we need them?
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace,
+
+You are astute to question the `override` keyword. Its presence is indeed a requirement imposed by the TypeScript compiler, particularly when certain strictness flags (like `noImplicitOverride`, often active with settings such as `isolatedDeclarations` or general `strict` mode) are enabled in the project's configuration.
+
+Here's why it's necessary in these mock files:
+
+1.  **Explicitly Stating Intent:** When a class (like our mock `ItemView` or `Plugin`) extends another class (the base `obsidian.Component` or its mock equivalent), and it provides its own version of a method that also exists in the base class (e.g., `addChild`, `removeChild`, `register`), it is "overriding" the base class's method. The `override` keyword makes this intention explicit.
+
+2.  **Error Prevention (Safety Net):**
+    *   **Typos:** If you intended to override `removeChild` but accidentally typed `removeCild`, without `override`, TypeScript would think you're creating a brand new method. The base method would remain unchanged, leading to unexpected behavior. With `override`, TypeScript would immediately tell you there's no `removeCild` method in the base class to override.
+    *   **Signature Mismatches:** If the parameters or return type of your overriding method don't correctly match the base method, `override` helps catch this.
+    *   **Changes in Base Class:** If the original method in the base class is ever renamed, removed, or its signature changes, the `override` keyword on your mock's method will cause a compile-time error. This alerts you that your mock is now out of sync and needs updating, which is crucial for maintaining accurate test mocks.
+
+3.  **Clarity and Readability:** It clearly signals to other developers (and your future self) that this method is not new but is intentionally replacing a method from a parent class.
+
+In the snippet you provided from `ItemView.ts`:
+```typescript
+  override addChild: import('vitest').Mock<<_T extends ComponentType>(child: _T) => _T> = vi.fn(...);
+  override removeChild: import('vitest').Mock<<_T extends ComponentType>(child: _T) => _T> = vi.fn(...);
+```
+And similarly in the `Plugin.ts` mock we adjusted, the methods like `removeChild`, `register`, `registerEvent`, etc., all exist in the base `Component` class from Obsidian. Our mocks are providing their own (mocked) implementations for these. Thus, TypeScript demands the `override` keyword to confirm this is the intended behavior.
+
+The linter errors (like TS4114) we fixed earlier by adding `override` were precisely because the compiler was enforcing this rule. Without it, the compiler cannot be sure if you meant to override or accidentally created a new method with a similar name.
+
+In essence, while it might seem like extra syntax, the `override` keyword is a valuable tool for robust and maintainable object-oriented programming in TypeScript, especially in complex inheritance hierarchies or when dealing with external libraries and their updates.
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+[{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'addChild' in type 'ItemView' is not assignable to the same property in base type 'Component'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends ComponentType>(child: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 91,
+	"startColumn": 12,
+	"endLineNumber": 91,
+	"endColumn": 20,
+	"modelVersionId": 72
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'addChild' in type 'ItemView' is not assignable to the same property in base type 'View'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends Component>(component: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 91,
+	"startColumn": 12,
+	"endLineNumber": 91,
+	"endColumn": 20,
+	"modelVersionId": 72
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'removeChild' in type 'ItemView' is not assignable to the same property in base type 'Component'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends ComponentType>(child: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 96,
+	"startColumn": 12,
+	"endLineNumber": 96,
+	"endColumn": 23,
+	"modelVersionId": 72
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'removeChild' in type 'ItemView' is not assignable to the same property in base type 'View'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends Component>(component: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 96,
+	"startColumn": 12,
+	"endLineNumber": 96,
+	"endColumn": 23,
+	"modelVersionId": 72
+}]
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+My Liege,
+
+These errors in `ItemView.ts` (TS2416) are indeed subtle and relate to how TypeScript handles the assignability of generic functions, especially when wrapped by mocking utilities like Vitest's `vi.fn()`.
+
+The core issue is that the type annotation for `addChild` and `removeChild` in your mock was `import('vitest').Mock<OriginalFunctionType>`. However, the base classes (`Component` and `View`) expect these properties to be of `OriginalFunctionType` directly, not a `Mock` *wrapping* that function type.
+
+While `vi.fn()` *returns* an object that is a `Mock` and also callable like the original function, the type annotation of the class member itself must match the base class's expected signature for the override to be valid.
+
+Here's the plan to fix this:
+I will change the type annotation for `addChild` and `removeChild` in `apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts` from `import('vitest').Mock<<_T extends ComponentType>(child: _T) => _T>` to be directly `<T extends ComponentType>(child: T) => T`. The `vi.fn()` call will then be assigned to this correctly typed property.
+
+This will make the mock's property signature directly compatible with the base class's method signature. The actual mock implementation provided to `vi.fn()` will also use a compatible generic signature.
+
+Here's the proposed change for the selection you provided:
+
+
+---
+
+```diff
+      return this.containerEl;
+    }
+-   override addChild: import('vitest').Mock<<_T extends ComponentType>(child: _T) => _T> = vi.fn<
+-     <_T extends ComponentType>(child: _T) => _T
+-   >(<_U extends ComponentType>(child: _U): _U => {
+-     return child;
+-   });
+-   override removeChild: import('vitest').Mock<<_T extends ComponentType>(child: _T) => _T> = vi.fn<
+-     <_T extends ComponentType>(child: _T) => _T
+-   >(<_U extends ComponentType>(child: _U): _U => {
+-     console.warn('removeChild mock: returning component');
+-     return child;
+-   });
++   override addChild: <T extends ComponentType>(child: T) => T = vi.fn(
++     <T extends ComponentType>(child: T): T => {
++       return child;
++     }
++   );
++   override removeChild: <T extends ComponentType>(child: T) => T = vi.fn(
++     <T extends ComponentType>(child: T): T => {
++       console.warn('removeChild mock: returning component');
++       return child;
++     }
++   );
+    override register: Mock<(cb: () => any) => void> = vi.fn((cb: () => any): void => {
+      cb();
+```
+
+---
+
+Your Grace,
+
+The changes to `apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts` have been applied. The type annotations for `addChild` and `removeChild` are now directly the generic function signatures expected by the base classes, which should resolve the TS2416 errors.
+
+This also consequently addresses the root cause of the `TS2322 Type 'ItemView' is not assignable to type 'View'. Property 'onOpen' is protected...` error in `apps/obsidian-plugin/src/__mocks__/obsidian/WorkspaceLeaf.ts`, as that error stemmed from `ItemView` not correctly implementing its base types, which included these problematic method signatures. With `ItemView` now (hopefully) correctly typed for these overridden methods, `WorkspaceLeaf` should no longer report that error regarding `ItemView`.
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Class 'ItemView' incorrectly implements class 'View'. Did you mean to extend 'View' and inherit its members as a subclass?
+  Property 'onOpen' is protected but type 'ItemView' is not a class derived from 'View'.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace,
+
+The error message "Class 'ItemView' incorrectly implements class 'View'. ... Property 'onOpen' is protected but type 'ItemView' is not a class derived from 'View'" arises because your mock `ItemView` class extends your local mock `Component` but then tries to implement the actual `obsidian.View` class (aliased as `ViewType`). The `obsidian.View` class has `protected` methods like `onOpen` (and also `onClose`).
+
+When a class `A` (your `ItemView`) implements a class `B` (your `ViewType`), and `B` has `protected` members, `A` must typically be a subclass of `B` for its own `protected` members to be considered compatible. Since your `ItemView` extends a different `Component` mock, its `protected onOpen` is not compatible with the `protected onOpen` from `obsidian.View` in the eyes of TypeScript's strict checking for the `implements` clause.
+
+The most concise way to resolve this within the `ItemView.ts` file, while maintaining its current inheritance from your local `Component` mock, is to change the access modifier of these methods in your mock `ItemView` from `protected` to `public`. A public method in the implementing class can satisfy the requirement of a protected method in the class being implemented.
+
+I will apply this change to both `onOpen` and `onClose` as `obsidian.View` defines both as protected.
+
+
+---
+
+```diff
+      /* no-op for mock */
+    }
+-   protected async onOpen(): Promise<void> {
++   public async onOpen(): Promise<void> {
+      if (typeof this.onload === 'function') (this.onload as Mock<() => void>)();
+      return Promise.resolve();
+    }
+-   protected async onClose(): Promise<void> {
++   public async onClose(): Promise<void> {
+      if (typeof this.onunload === 'function') (this.onunload as Mock<() => void>)();
+      return Promise.resolve();
+```
+
+---
+
+Your Lordship,
+
+The `onOpen` and `onClose` methods in `apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts` have been changed from `protected` to `public`. This should resolve the specified linter error by making the mock `ItemView` compatible with the `ViewType` interface it implements, given its current inheritance structure.
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+There are some critical issues with this test. Can you explain them? do not fix them. 
+
+[{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2552",
+	"severity": 8,
+	"message": "Cannot find name 'plugin'. Did you mean 'Plugin'?",
+	"source": "ts",
+	"startLineNumber": 14,
+	"startColumn": 36,
+	"endLineNumber": 14,
+	"endColumn": 42,
+	"relatedInformation": [
+		{
+			"startLineNumber": 18591,
+			"startColumn": 13,
+			"endLineNumber": 18591,
+			"endColumn": 19,
+			"message": "'Plugin' is declared here.",
+			"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/lib/lib.dom.d.ts"
+		}
+	],
+	"modelVersionId": 7
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "eslint",
+	"code": {
+		"value": "@typescript-eslint/no-unsafe-argument",
+		"target": {
+			"$mid": 1,
+			"path": "/rules/no-unsafe-argument",
+			"scheme": "https",
+			"authority": "typescript-eslint.io"
+		}
+	},
+	"severity": 8,
+	"message": "Unsafe argument of type error typed assigned to a parameter of type `ObsidianMagicPlugin`.",
+	"source": "eslint",
+	"startLineNumber": 14,
+	"startColumn": 36,
+	"endLineNumber": 14,
+	"endColumn": 42,
+	"modelVersionId": 7
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2304",
+	"severity": 8,
+	"message": "Cannot find name 'mockApp'.",
+	"source": "ts",
+	"startLineNumber": 38,
+	"startColumn": 14,
+	"endLineNumber": 38,
+	"endColumn": 21,
+	"modelVersionId": 7
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2339",
+	"severity": 8,
+	"message": "Property 'createMockObsidianElement' does not exist on type 'typeof import(\"/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian\")'.",
+	"source": "ts",
+	"startLineNumber": 54,
+	"startColumn": 40,
+	"endLineNumber": 54,
+	"endColumn": 65,
+	"modelVersionId": 7
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2339",
+	"severity": 8,
+	"message": "Property 'createMockObsidianElement' does not exist on type 'typeof import(\"/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian\")'.",
+	"source": "ts",
+	"startLineNumber": 88,
+	"startColumn": 22,
+	"endLineNumber": 88,
+	"endColumn": 47,
+	"modelVersionId": 7
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2304",
+	"severity": 8,
+	"message": "Cannot find name 'mockApp'.",
+	"source": "ts",
+	"startLineNumber": 127,
+	"startColumn": 7,
+	"endLineNumber": 127,
+	"endColumn": 14,
+	"modelVersionId": 7
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2304",
+	"severity": 8,
+	"message": "Cannot find name 'mockApp'.",
+	"source": "ts",
+	"startLineNumber": 156,
+	"startColumn": 7,
+	"endLineNumber": 156,
+	"endColumn": 14,
+	"modelVersionId": 7
+}]
+
+---
+
+_**Assistant**_
+
+Your Grace,
+
+Let us dissect the critical issues plaguing the `FolderTagModal.test.ts` file, as indicated by the linter errors:
+
+1.  **`Cannot find name 'plugin'. Did you mean 'Plugin'?` (TS2552) and `Unsafe argument of type error typed assigned to a parameter of type 'ObsidianMagicPlugin'.` (ESLint: @typescript-eslint/no-unsafe-argument)**
+    *   **Explanation:** This pair of errors points to a significant problem in how the `FolderTagModal` is being instantiated (or how its dependencies are mocked) in the test.
+        *   The TypeScript compiler (TS2552) cannot find a variable or import named `plugin` in the current scope. It suggests `Plugin`, which might be the actual class name for your Obsidian plugin (e.g., `ObsidianMagicPlugin`), but it's not the instance that the modal constructor likely expects.
+        *   ESLint then flags that this `plugin` (which, due to the TS error, is implicitly of type `any` or an error type) is being unsafely passed as an argument to a parameter that expects a well-defined `ObsidianMagicPlugin` type.
+    *   **Criticality:** This is highly critical. If the `plugin` instance is not correctly provided or mocked, the `FolderTagModal` will likely fail to initialize, or its methods that depend on the plugin will crash during the test. The test setup is fundamentally flawed here.
+
+2.  **`Cannot find name 'mockApp'.` (TS2304) - Occurs multiple times**
+    *   **Explanation:** Throughout the test file (lines 38, 127, 156), the code attempts to use a variable or object named `mockApp`. However, `mockApp` has not been declared, imported, or initialized in the scope where it's being used.
+    *   **Criticality:** This is also highly critical. The `App` object in Obsidian is fundamental, providing access to the vault, workspace, metadata cache, etc. If the tests are trying to instantiate the modal or interact with parts of Obsidian that require an `App` instance, and `mockApp` is supposed to be that instance (or a mock of it), its absence means these operations will fail. The test environment is missing a core dependency.
+
+3.  **`Property 'createMockObsidianElement' does not exist on type 'typeof import(".../__mocks__/obsidian")'.` (TS2339) - Occurs multiple times**
+    *   **Explanation:** The test attempts to call `createMockObsidianElement` as if it's a named export from the `__mocks__/obsidian` directory (likely from an `index.ts` or similar barrel file within that mock directory). However, based on the error, this function is not being correctly exported or re-exported from that module. You showed `createMockObsidianElement` in a file named `apps/obsidian-plugin/src/testing/createMockObsidianElement.ts` previously. The issue here is likely with how it's being imported or made available in the test context. It might be that the `__mocks__/obsidian/index.ts` (if one exists) isn't re-exporting it, or the import path in the test file is incorrect, or the `createMockObsidianElement.ts` file itself is not being properly included/compiled in a way that makes it accessible through that import path.
+    *   **Criticality:** This is critical if the tests rely on this helper to create mock DOM elements for UI components. Without it, parts of the UI testing (rendering, interaction assertions) will be impossible or will fail.
+
+In summary, the test suite `FolderTagModal.test.ts` suffers from:
+*   **Missing/Incorrect Dependencies:** Crucial objects like the `plugin` instance and the `app` instance (referred to as `mockApp`) are not correctly defined or passed, leading to instantiation and runtime errors.
+*   **Import/Export Issues:** A utility function for creating mock DOM elements, `createMockObsidianElement`, is not accessible as expected, hindering UI testing.
+
+These errors indicate that the test setup (the `beforeEach`, `describe` blocks, or any helper functions responsible for initializing the test environment and dependencies) is either incomplete or incorrect.
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+Can you help me fix these random test errors?
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace,
+
+These test errors indicate several underlying issues in your test setups and potentially in the mocked environments for your Obsidian plugin. Let's break down the common error patterns and then address them.
+
+**Common Error Explanations from Your Logs:**
+
+1.  **`TypeError: Class extends value undefined is not a constructor or null`** (Seen in `main.test.ts` via `AccessibilityAuditModal.ts`)
+    *   **Cause:** This usually happens when a class (e.g., `AccessibilityAuditModal`) tries to `extend` another class, but that base class is `undefined` at runtime. This can be due to:
+        *   Circular dependencies between modules.
+        *   The base class module failing to load (perhaps due to its own errors or incorrect mocking).
+        *   An issue with how `vi.mock` is hoisting modules, and the base class isn't available when the extending class is defined.
+
+2.  **`TypeError: Cannot read properties of undefined (reading 'isDesktopApp')`** (Seen in multiple tests, originating from `KeyManager.ts`)
+    *   **Cause:** The code in `KeyManager.ts` (specifically around line 14) is trying to access `isDesktopApp` on an object that is `undefined`. This object is almost certainly intended to be the Obsidian `App` instance or a related context like `Platform`. In your tests, this `App` instance (or the part of it that provides `isDesktopApp`) is not being properly mocked or made available to the `KeyManager` when it's instantiated or used.
+
+3.  **`TypeError: window.require is not a function`** (Seen in `integration.test.ts`, originating from `KeyManager.ts`)
+    *   **Cause:** `KeyManager.ts` seems to be attempting to use `window.require()`, which is common in Electron environments (like Obsidian desktop) to access Node.js modules (e.g., `require('electron')`). Vitest tests often run in a Node.js environment directly or use JSDOM to simulate a browser.
+        *   If using JSDOM, `window` exists, but `window.require` does not.
+        *   If running in Node.js without specific Electron polyfills/mocks for `window.require`, it would also fail.
+    *   This points to `KeyManager.ts` making assumptions about its runtime environment that aren't met in the test setup.
+
+4.  **`Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file.`** (Seen in `KeyManager.test.ts`, `TaggingService.test.ts`, `TagManagementView.test.ts`)
+    *   **Cause:** This is a Vitest-specific issue. When you use `vi.mock('moduleName', () => { /* factory function */ });`, Vitest hoists this mock declaration to the very top of your test file. If the factory function itself tries to use variables defined at the top level of your test file (that aren't also hoisted, like other `import` statements or other `vi.mock` calls without factories), those variables might be `undefined` when the factory runs. The factory function should be self-contained or only rely on imports.
+
+**Strategy to Fix:**
+
+We need to address these systematically. Let's start with the `vi.mock` factory errors, as incorrect mocking can lead to many other runtime issues. The `KeyManager.test.ts` file is a good candidate as it exhibits both a `vi.mock` error and is the source of the `isDesktopApp`/`window.require` errors.
+
+I will now read the content of `apps/obsidian-plugin/src/services/KeyManager.test.ts` to understand its structure and how `vi.mock` is used.
+
+
+---
+
+Read file: apps/obsidian-plugin/src/services/KeyManager.test.ts
+
+---
+
+Your Grace,
+
+I have reviewed the `KeyManager.test.ts` file. The Vitest error `[vitest] There was an error when mocking a module. If you are using "vi.mock" factory...` is indeed present, but it's a bit of a red herring in this specific file, or rather, the typical cause isn't immediately obvious in the provided code snippet.
+
+The main `vi.mock('obsidian', ...)` call is structured correctly with an async factory, which is good. The issue with such errors often arises if the factory function (`async (importOriginal) => { ... }`) *itself* tries to use variables defined at the top level of *this test file* that aren't imports or other `vi.mock` calls. In your `KeyManager.test.ts`, the factory for `'obsidian'` does not seem to do this.
+
+However, the error *could* be triggered if `KeyManager.ts` (the file being tested, or one of its imports) has top-level code that executes upon import and somehow interacts with mocks in an unexpected way before the mocks are fully resolved. This is less common for the factory error but possible.
+
+**More Pressing Issues in `KeyManager.test.ts` (and `KeyManager.ts` itself):**
+
+The setup in `KeyManager.test.ts` actually attempts to address the `isDesktopApp` and `window.require` issues, but perhaps not in a way that Vitest's module system and the actual `KeyManager.ts` code fully align during the test execution lifecycle.
+
+Let's look at your mocks in `KeyManager.test.ts`:
+
+1.  **`vi.mock('obsidian', ...)`:**
+    *   You're correctly mocking `Platform.isDesktopApp = true;`. This should, in theory, provide the necessary property.
+    *   The error `TypeError: Cannot read properties of undefined (reading 'isDesktopApp')` in other test files (like `FolderTagModal.test.ts`) that *use* `KeyManager` suggests that this mock for `'obsidian'` might not be active or correctly configured when `KeyManager` is imported or used *within those other test files*. Each test file often needs its own mock setup for global Obsidian features if the tested module uses them directly or indirectly.
+
+2.  **`global.window.require` Mock:**
+    ```javascript
+    global.window = global.window; // This line is redundant if window is already global in JSDOM/Node test env
+    (global.window as any).require = (moduleName: string): typeof Electron | null => {
+      if (moduleName === 'electron') {
+        return {
+          ipcRenderer: mockIpcRenderer,
+        } as unknown as typeof Electron;
+      }
+      return null;
+    };
+    ```
+    *   This attempts to simulate the Electron environment for `require('electron')`.
+    *   The error `TypeError: window.require is not a function` in `integration.test.ts` (which also likely uses `KeyManager`) suggests that this global `window.require` setup might not be effective in that test file's context, or `KeyManager.ts` is accessing `window.require` in a way that bypasses this global mock (e.g., if it checks `Platform.isDesktop` and then directly tries `require('electron')` without going through a `window` object that has been globally augmented *in that specific test file's module execution scope*).
+
+**Proposed Steps & Explanations:**
+
+Given the complexity and the fact that the `vi.mock` factory error in *this specific file* isn't glaringly obvious from its own structure (it might be a subtle interaction), let's focus on making the environment for `KeyManager.ts` more robust, which is likely the root of the `isDesktopApp` and `window.require` errors when `KeyManager` is used.
+
+The error `[vitest] There was an error when mocking a module...` in `KeyManager.test.ts` is puzzling if the factory for `obsidian` is self-contained. One potential cause for such an error, even with a well-formed factory, is if the module being *tested* (`../services/KeyManager`) itself has top-level side effects upon import that interfere with the mocking process, or if there's an issue with transitive dependencies.
+
+**Let's address the environment for `KeyManager` first.**
+
+The `KeyManager.ts` likely checks `Platform.isDesktopApp` and then, if true, attempts to use `require('electron').ipcRenderer`.
+
+**Suggestion 1: Ensure Consistent Mocking of `Platform` and `ipcRenderer`**
+
+The way you've mocked `obsidian` and `electron` in `KeyManager.test.ts` is a good start *for that file*. However, these runtime errors (`isDesktopApp`, `window.require`) often occur because:
+    a. The mock isn't correctly picked up.
+    b. The actual code in `KeyManager.ts` accesses these differently than mocked.
+
+Could you show me the relevant parts of `apps/obsidian-plugin/src/services/KeyManager.ts`, especially around line 14 (where the errors originate) and how it uses `Platform` or `require('electron')`? This will help tailor the mock.
+
+**Regarding the `vi.mock` factory error in `KeyManager.test.ts` specifically:**
+If the factory for `vi.mock('obsidian', ...)` is indeed self-contained (only uses `importOriginal` and literals), the error might be more elusive. Sometimes, ensuring all mocks are defined *before* any other imports (apart from `vi`, `describe`, etc.) can help, though Vitest's hoisting usually handles this.
+
+Let's assume for a moment the `vi.mock` factory error is a symptom of deeper module loading issues rather than a simple factory mistake in *this* file.
+
+**To address the `TypeError: Cannot read properties of undefined (reading 'isDesktopApp')` and `TypeError: window.require is not a function` when `KeyManager.ts` runs:**
+
+The problem is often that `KeyManager.ts` might be imported and its top-level code (or constructor) might run *before* the mocks in the *consuming test file* (e.g., `FolderTagModal.test.ts`) are fully set up.
+
+**General Strategy for Files Using `KeyManager` (like `FolderTagModal.test.ts`):**
+
+In each test file that uses `KeyManager` (or modules that use `KeyManager`), you need to ensure that `obsidian` is mocked *in that test file* to provide `Platform.isDesktopApp`, and potentially mock the `electron` module if `KeyManager` tries to `require` it.
+
+A common pattern:
+
+```typescript
+// In FolderTagModal.test.ts (or other files using KeyManager)
+
+// Mock obsidian
+vi.mock('obsidian', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('obsidian')>();
+  return {
+    ...actual, // Spread actual to keep other obsidian exports functional
+    Platform: {
+      isDesktopApp: true, // Or false, depending on what you test
+      // ... other Platform properties if needed
+    },
+    Notice: vi.fn(), // If KeyManager or FolderTagModal uses Notice
+    // ... other necessary obsidian mocks
+  };
+});
+
+// Mock electron if KeyManager directly requires it and Platform.isDesktopApp is true
+// This mock is crucial if KeyManager does require('electron')
+let mockIpcRendererInvoke = vi.fn();
+vi.mock('electron', () => ({
+  ipcRenderer: {
+    invoke: mockIpcRendererInvoke,
+  },
+}));
+
+// NOW import your modules that depend on these mocks
+import { FolderTagModal } from '../ui/FolderTagModal';
+import { KeyManager } from '../services/KeyManager'; // May not be needed if only testing FolderTagModal
+// ... other imports
+
+describe('FolderTagModal', () => {
+  beforeEach(() => {
+    mockIpcRendererInvoke.mockReset();
+    // ... other setup
+  });
+  // ... tests
+});
+```
+
+**Focusing on the `AccessibilityAuditModal.ts` error (`extends undefined`):**
+This often happens if the class it's trying to extend (e.g., `Modal` from Obsidian) isn't available. This could be because the `'obsidian'` mock is incomplete or there's a circular dependency.
+
+To help fix the `AccessibilityAuditModal.ts` error: "Class extends value undefined is not a constructor or null", I need to see:
+1.  The `AccessibilityAuditModal.ts` file.
+2.  The `main.test.ts` file where this error occurs.
+
+Let's start by trying to fix one of the `vi.mock` factory errors, as these are often about the structure of the test file itself.
+The error message appears for `KeyManager.test.ts`, `TaggingService.test.ts`, and `TagManagementView.test.ts`.
+
+Looking at `KeyManager.test.ts` again, the `vi.mock('obsidian', ...)` seems fine. The `global.window.require` part is a bit unusual for a Vitest mock setup; usually, you'd mock the `'electron'` module directly if it's `require`d.
+
+**Let's refine the `electron` mock in `KeyManager.test.ts` as it might be related to the `vi.mock` hoist error indirectly if `KeyManager.ts` tries to `require('electron')` at the top level.**
+
+If `KeyManager.ts` does something like:
+```typescript
+// At the top of KeyManager.ts
+let ipcRendererInstance;
+if (Platform.isDesktopApp) { // Platform itself might be from 'obsidian'
+  ipcRendererInstance = require('electron').ipcRenderer;
+}
+```
+This top-level `require` can be problematic with `vi.mock` hoisting.
+
+**Proposed change for `KeyManager.test.ts` to simplify electron mocking (this might fix the `vi.mock` error if it's related to how `electron` is handled):**
+Instead of mocking `global.window.require`, directly mock the `'electron'` module.
+This is cleaner and how Vitest generally expects module mocking to be done.
+
+I'll provide an edit for `KeyManager.test.ts` to reflect this, and also to ensure the `Platform` mock is robust. This might resolve the `vi.mock` error if it's caused by interactions with the global manipulation.
+
+
+---
+
+```diff
+  
+  // --- Mocks ---
++ 
++ // Mock for 'obsidian' module
++ const mockNotice = vi.fn();
+  vi.mock('obsidian', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('obsidian')>();
+    return {
+      ...actual,
+-     Notice: vi.fn(),
+-     Platform: {
+-       isDesktopApp: true, // Assume desktop for these tests
++     Notice: mockNotice, // Use the hoisted mock function
++     Platform: { // Ensure Platform is consistently mocked
++       isDesktopApp: true, // Default to desktop for most KeyManager tests
++       // Add other Platform properties if needed by KeyManager directly
+      },
+    };
+  });
+  
+- // Mock Electron and ipcRenderer
+- const mockIpcRenderer = {
+-   invoke: vi.fn(),
+- };
+- 
+- // Mock the global window object to inject require for Electron
+- global.window = global.window;
+- (global.window as any).require = (moduleName: string): typeof Electron | null => {
+-   if (moduleName === 'electron') {
+-     return {
+-       ipcRenderer: mockIpcRenderer,
+-     } as unknown as typeof Electron;
+-   }
+-   return null;
+- };
++ // Mock for 'electron' module
++ const mockIpcRendererInvoke = vi.fn();
++ vi.mock('electron', () => ({
++   ipcRenderer: {
++     invoke: mockIpcRendererInvoke,
++     // Mock other ipcRenderer methods if KeyManager uses them
++   },
++   // Mock other electron exports if KeyManager uses them
++ }));
+  
+  // Helper for Base64 encoding matching KeyManager's encryptKey
+```
+
+```diff
+      // Reset mocks and settings before each test
+      vi.clearAllMocks();
+-     mockIpcRenderer.invoke.mockReset();
++     mockIpcRendererInvoke.mockReset();
++     mockNotice.mockClear(); // Clear the hoisted Notice mock
+      localStorage.clear();
+  
+```
+
+```diff
+        expect(mockPlugin.settings.apiKey).toBe(expectedEncryptedKey);
+        expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
+-       expect(mockIpcRenderer.invoke).not.toHaveBeenCalled();
++       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
+        expect(result.isOk()).toBe(true); // saveKey returns Result
+-       expect(Notice).toHaveBeenCalledWith('API key has been saved successfully');
++       expect(mockNotice).toHaveBeenCalledWith('API key has been saved successfully');
+      });
+  
+```
+
+```diff
+        const result = await keyManager.saveKey(newKey);
+  
+-       expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('set-secure-key', mockSettings.apiKeyKeychainId, newKey);
++       expect(mockIpcRendererInvoke).toHaveBeenCalledWith('set-secure-key', mockSettings.apiKeyKeychainId, newKey);
+        expect(mockPlugin.settings.apiKey).toBe(''); // Local key should be cleared
+        expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
+        expect(result.isOk()).toBe(true); // saveKey returns Result
+-       expect(Notice).toHaveBeenCalledWith('API key has been saved successfully');
++       expect(mockNotice).toHaveBeenCalledWith('API key has been saved successfully');
+      });
+  
+```
+
+```diff
+        expect((result.getError() as CoreAppError).message).toContain('API key cannot be empty');
+        expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
+-       expect(mockIpcRenderer.invoke).not.toHaveBeenCalled();
+-       expect(Notice).toHaveBeenCalledWith('Failed to save API key: API key cannot be empty');
++       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
++       expect(mockNotice).toHaveBeenCalledWith('Failed to save API key: API key cannot be empty');
+      });
+  
+      it('should return error Result if saving to system keychain fails (IPC error)', async () => {
+        mockPlugin.settings.apiKeyStorage = 'system';
+        const error = new Error('IPC Failed');
+-       mockIpcRenderer.invoke.mockRejectedValueOnce(error);
++       mockIpcRendererInvoke.mockRejectedValueOnce(error);
+  
+        const result = await keyManager.saveKey('key-to-fail');
+```
+
+```diff
+        expect((result.getError() as CoreAppError).message).toContain('Failed to save to system keychain: IPC Failed');
+        expect(mockPlugin.saveSettings).not.toHaveBeenCalled(); // Should fail before saveSettings
+-       expect(Notice).toHaveBeenCalledWith('Failed to save API key: Failed to save to system keychain: IPC Failed');
++       expect(mockNotice).toHaveBeenCalledWith('Failed to save API key: Failed to save to system keychain: IPC Failed');
+      });
+  
+```
+
+```diff
+        expect(result.getError()).toBeInstanceOf(CoreFileSystemError);
+        expect((result.getError() as CoreAppError).message).toContain('Failed to save to local storage: Disk full');
+-       expect(Notice).toHaveBeenCalledWith('Failed to save API key: Failed to save to local storage: Disk full');
++       expect(mockNotice).toHaveBeenCalledWith('Failed to save API key: Failed to save to local storage: Disk full');
+      });
+    });
+```
+
+```diff
+  
+        expect(key).toBe(originalKey);
+-       expect(mockIpcRenderer.invoke).not.toHaveBeenCalled();
++       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
+      });
+  
+```
+
+```diff
+        const systemKey = 'my-system-key';
+        // Note: KeyManager's loadFromSystemKeychain expects the raw value, not Result
+-       mockIpcRenderer.invoke.mockResolvedValueOnce(systemKey);
++       mockIpcRendererInvoke.mockResolvedValueOnce(systemKey);
+  
+        // Await the promise and check the value directly
+        const key = await keyManager.loadKey();
+  
+        expect(key).toBe(systemKey);
+-       expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('get-secure-key', mockSettings.apiKeyKeychainId);
++       expect(mockIpcRendererInvoke).toHaveBeenCalledWith('get-secure-key', mockSettings.apiKeyKeychainId);
+      });
+  
+```
+
+```diff
+        mockPlugin.settings.apiKeyStorage = 'system';
+        // Mock IPC returning null directly
+-       mockIpcRenderer.invoke.mockResolvedValueOnce(null);
++       mockIpcRendererInvoke.mockResolvedValueOnce(null);
+  
+        // Await the promise and check the value directly
+```
+
+```diff
+        mockPlugin.settings.apiKeyStorage = 'system';
+        const error = new Error('IPC Failed');
+-       mockIpcRenderer.invoke.mockRejectedValueOnce(error); // This causes loadFromSystemKeychain to throw
++       mockIpcRendererInvoke.mockRejectedValueOnce(error); // This causes loadFromSystemKeychain to throw
+  
+        // Await the promise, expect null as loadKey catches the error
+```
+
+```diff
+        expect(key).toBeNull();
+        // Verify the Notice was called because the error was caught internally
+-       expect(Notice).toHaveBeenCalledWith('Failed to load API key: Failed to load from system keychain: IPC Failed');
++       expect(mockNotice).toHaveBeenCalledWith('Failed to load API key: Failed to load from system keychain: IPC Failed');
+      });
+  
+```
+
+```diff
+        expect(key).toBeNull();
+        // Verify the Notice was called because the error was caught internally
+-       expect(Notice).toHaveBeenCalledWith(
++       expect(mockNotice).toHaveBeenCalledWith(
+          expect.stringContaining('Failed to load API key: Failed to load from local storage:')
+        );
+```
+
+```diff
+        expect(mockPlugin.settings.apiKey).toBe('');
+        expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
+-       expect(mockIpcRenderer.invoke).not.toHaveBeenCalled();
++       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
+        expect(result.isOk()).toBe(true); // deleteKey returns Result
+-       expect(Notice).toHaveBeenCalledWith('API key has been deleted successfully');
++       expect(mockNotice).toHaveBeenCalledWith('API key has been deleted successfully');
+      });
+  
+```
+
+```diff
+        const result = await keyManager.deleteKey();
+  
+-       expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('delete-secure-key', mockSettings.apiKeyKeychainId);
++       expect(mockIpcRendererInvoke).toHaveBeenCalledWith('delete-secure-key', mockSettings.apiKeyKeychainId);
+        expect(mockPlugin.saveSettings).not.toHaveBeenCalled(); // Delete shouldn't save local settings
+        expect(result.isOk()).toBe(true); // deleteKey returns Result
+-       expect(Notice).toHaveBeenCalledWith('API key has been deleted successfully');
++       expect(mockNotice).toHaveBeenCalledWith('API key has been deleted successfully');
+      });
+  
+      it('should return error Result if deleting from system keychain fails (IPC error)', async () => {
+        mockPlugin.settings.apiKeyStorage = 'system';
+        const error = new Error('IPC Failed');
+-       mockIpcRenderer.invoke.mockRejectedValueOnce(error);
++       mockIpcRendererInvoke.mockRejectedValueOnce(error);
+  
+        const result = await keyManager.deleteKey();
+```
+
+```diff
+        );
+        expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
+-       expect(Notice).toHaveBeenCalledWith(
++       expect(mockNotice).toHaveBeenCalledWith(
+          'Failed to delete API key: Failed to delete from system keychain: IPC Failed'
+        );
+```
+
+```diff
+        expect(result.getError()).toBeInstanceOf(CoreFileSystemError);
+        expect((result.getError() as CoreAppError).message).toContain('Failed to delete from local storage: Disk locked');
+-       expect(Notice).toHaveBeenCalledWith('Failed to delete API key: Failed to delete from local storage: Disk locked');
++       expect(mockNotice).toHaveBeenCalledWith('Failed to delete API key: Failed to delete from local storage: Disk locked');
+      });
+    });
+```
+
+```diff
+  
+      // 3. Mock keychain operations (save should succeed)
+-     mockIpcRenderer.invoke.mockResolvedValueOnce(undefined); // Mock successful keychain save
++     mockIpcRendererInvoke.mockResolvedValueOnce(undefined); // Mock successful keychain save
+  
+      // 4. Call saveKey - KeyManager's internal logic handles migration
+```
+
+```diff
+      expect(result.isOk()).toBe(true);
+      // Verify keychain was called to save
+-     expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('set-secure-key', mockSettings.apiKeyKeychainId, key);
++     expect(mockIpcRendererInvoke).toHaveBeenCalledWith('set-secure-key', mockSettings.apiKeyKeychainId, key);
+      // Verify local setting is cleared AFTER successful migration
+      expect(mockPlugin.settings.apiKey).toBe('');
+```
+
+```diff
+  
+      // 2. Mock keychain load returning the key
+-     mockIpcRenderer.invoke.mockResolvedValueOnce(key); // Mock loading from keychain
++     mockIpcRendererInvoke.mockResolvedValueOnce(key); // Mock loading from keychain
+  
+      // 3. Simulate loading the key
+      const loadedKey = await keyManager.loadKey();
+      expect(loadedKey).toBe(key);
+-     expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('get-secure-key', mockSettings.apiKeyKeychainId);
+-     mockIpcRenderer.invoke.mockClear(); // Clear invoke history after load
++     expect(mockIpcRendererInvoke).toHaveBeenCalledWith('get-secure-key', mockSettings.apiKeyKeychainId);
++     mockIpcRendererInvoke.mockClear(); // Clear invoke history after load
+  
+      // 4. Simulate changing setting to 'local'
+      mockPlugin.settings.apiKeyStorage = 'local';
+  
+      // 5. Mock keychain delete
+-     mockIpcRenderer.invoke.mockResolvedValueOnce(undefined); // Mock successful keychain delete
++     mockIpcRendererInvoke.mockResolvedValueOnce(undefined); // Mock successful keychain delete
+  
+      // 6. Call saveKey with the *loaded* key - this triggers migration
+```
+
+```diff
+      expect(mockPlugin.settings.apiKey).toBe(encryptedKey);
+      // Verify keychain delete was called
+-     expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('delete-secure-key', mockSettings.apiKeyKeychainId);
++     expect(mockIpcRendererInvoke).toHaveBeenCalledWith('delete-secure-key', mockSettings.apiKeyKeychainId);
+      // Verify settings were saved
+      expect(mockPlugin.saveSettings).toHaveBeenCalled();
+```
+
+---
+
+Your Grace,
+
+I have applied changes to `apps/obsidian-plugin/src/services/KeyManager.test.ts`.
+The main changes are:
+1.  **Standardized Mocking for `'electron'`**: Instead of manipulating `global.window.require`, I've used `vi.mock('electron', () => ({...}))`. This is the standard Vitest way to mock modules and is less prone to hoisting issues or environment inconsistencies. The `mockIpcRendererInvoke` function is now part of this standard mock.
+2.  **Hoisted Mock for `Notice`**: The `Notice` function from `'obsidian'` is now mocked using a `vi.fn()` that is defined at the top level of the test file (`const mockNotice = vi.fn();`) and then used within the `vi.mock('obsidian', ...)` factory. This ensures `Notice` is a stable mock reference.
+3.  **Updated Assertions**: All assertions and mock manipulations for `ipcRenderer.invoke` and `Notice` now use `mockIpcRendererInvoke` and `mockNotice` respectively.
+4.  **Cleaned up `Platform` Mock**: Ensured `Platform.isDesktopApp` is consistently provided by the `'obsidian'` mock.
+
+These changes should make the test setup in `KeyManager.test.ts` more robust and could resolve the `[vitest] There was an error when mocking a module...` error if it was related to the previous global manipulation or the way `Notice` was re-mocked.
+
+**Next Steps & Remaining Errors:**
+
+1.  **`TypeError: Cannot read properties of undefined (reading 'isDesktopApp')` and `TypeError: window.require is not a function` (in other files like `FolderTagModal.test.ts`, `integration.test.ts` etc., originating from `KeyManager.ts`):**
+    *   **Explanation:** Even with `KeyManager.test.ts` potentially fixed, other test files that *use* `KeyManager` (or services that use `KeyManager`) will still need to ensure that the `'obsidian'` module (providing `Platform`) and the `'electron'` module are correctly mocked *within their own test file scope*.
+    *   **Action:** For each test file that shows these errors (e.g., `FolderTagModal.test.ts`, `DocumentTagService.test.ts`, `integration.test.ts`, `TagVisualizationView.test.ts`), you'll need to add or verify `vi.mock('obsidian', ...)` and `vi.mock('electron', ...)` setups similar to the one now in `KeyManager.test.ts`. The `Platform.isDesktopApp` should be set according to the scenario being tested (usually `true` if testing keychain interaction, `false` otherwise).
+
+2.  **`TypeError: Class extends value undefined is not a constructor or null` (in `main.test.ts` via `AccessibilityAuditModal.ts`):**
+    *   **Explanation:** This error often indicates that the base class `AccessibilityAuditModal` is trying to extend (likely `Modal` from `'obsidian'`) is not available. This could be because the `'obsidian'` mock in `main.test.ts` is missing or incomplete for `Modal`.
+    *   **Action:** I need to examine `apps/obsidian-plugin/src/ui/AccessibilityAuditModal.ts` to see what it extends, and `apps/obsidian-plugin/src/main.test.ts` to check its mock setup for `'obsidian'`.
+
+3.  **Other `vi.mock` factory errors (in `TaggingService.test.ts`, `TagManagementView.test.ts`):**
+    *   **Action:** These will need individual inspection similar to `KeyManager.test.ts`. The principle is the same: ensure the factory function for `vi.mock` doesn't rely on top-level variables from the test file that aren't hoisted imports or other hoisted `vi.mock` definitions.
+
+**Recommendation:**
+
+Would you like me to:
+    a.  Attempt to fix one of the files that is failing due to `KeyManager`'s dependencies (e.g., `FolderTagModal.test.ts`) by adding the necessary `'obsidian'` and `'electron'` mocks?
+    b.  Look into the `AccessibilityAuditModal.ts` "extends undefined" error by examining it and `main.test.ts`?
+    c.  Examine another file with the `vi.mock` factory error, like `TaggingService.test.ts`?
+
+Please choose one, or provide `KeyManager.ts` (around line 14) if you'd like a more direct look at its problematic code.
+
+Your Humble Servant, Sebastien.
+
+---
+
+_**User**_
+
+Finish the job in @FolderTagModal.test.ts [{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "typescript",
+	"code": "2503",
+	"severity": 8,
+	"message": "Cannot find namespace 'vi'.",
+	"source": "ts",
+	"startLineNumber": 92,
+	"startColumn": 55,
+	"endLineNumber": 92,
+	"endColumn": 57,
+	"modelVersionId": 20
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "eslint",
+	"code": {
+		"value": "@typescript-eslint/no-misused-promises",
+		"target": {
+			"$mid": 1,
+			"path": "/rules/no-misused-promises",
+			"scheme": "https",
+			"authority": "typescript-eslint.io"
+		}
+	},
+	"severity": 8,
+	"message": "Expected non-Promise value in a boolean conditional.",
+	"source": "eslint",
+	"startLineNumber": 211,
+	"startColumn": 11,
+	"endLineNumber": 211,
+	"endColumn": 38,
+	"modelVersionId": 20
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "eslint",
+	"code": {
+		"value": "@typescript-eslint/no-unnecessary-condition",
+		"target": {
+			"$mid": 1,
+			"path": "/rules/no-unnecessary-condition",
+			"scheme": "https",
+			"authority": "typescript-eslint.io"
+		}
+	},
+	"severity": 8,
+	"message": "Unnecessary conditional, value is always truthy.",
+	"source": "eslint",
+	"startLineNumber": 211,
+	"startColumn": 11,
+	"endLineNumber": 211,
+	"endColumn": 38,
+	"modelVersionId": 20
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "eslint",
+	"code": {
+		"value": "@typescript-eslint/prefer-optional-chain",
+		"target": {
+			"$mid": 1,
+			"path": "/rules/prefer-optional-chain",
+			"scheme": "https",
+			"authority": "typescript-eslint.io"
+		}
+	},
+	"severity": 8,
+	"message": "Prefer using an optional chain expression instead, as it's more concise and easier to read.",
+	"source": "eslint",
+	"startLineNumber": 211,
+	"startColumn": 11,
+	"endLineNumber": 211,
+	"endColumn": 79,
+	"modelVersionId": 20
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "eslint",
+	"code": {
+		"value": "@typescript-eslint/no-unnecessary-condition",
+		"target": {
+			"$mid": 1,
+			"path": "/rules/no-unnecessary-condition",
+			"scheme": "https",
+			"authority": "typescript-eslint.io"
+		}
+	},
+	"severity": 8,
+	"message": "Unnecessary conditional, value is always truthy.",
+	"source": "eslint",
+	"startLineNumber": 211,
+	"startColumn": 42,
+	"endLineNumber": 211,
+	"endColumn": 79,
+	"modelVersionId": 20
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/ui/FolderTagModal.test.ts",
+	"owner": "eslint",
+	"code": {
+		"value": "@typescript-eslint/no-unnecessary-condition",
+		"target": {
+			"$mid": 1,
+			"path": "/rules/no-unnecessary-condition",
+			"scheme": "https",
+			"authority": "typescript-eslint.io"
+		}
+	},
+	"severity": 8,
+	"message": "Unnecessary optional chain on a non-nullish value.",
+	"source": "eslint",
+	"startLineNumber": 235,
+	"startColumn": 43,
+	"endLineNumber": 235,
+	"endColumn": 45,
+	"modelVersionId": 20
+}]
+
+---
+
+_**Assistant**_
+
+
 
 ---
 

@@ -48,6 +48,7 @@ describe('TagManagementView', () => {
       vault: {
         getMarkdownFiles: vi.fn().mockReturnValue([{ path: 'note1.md' }, { path: 'note2.md' }]),
       } as unknown as Partial<Vault>,
+      isDesktopApp: true,
     },
   } as unknown as ObsidianMagicPlugin;
 

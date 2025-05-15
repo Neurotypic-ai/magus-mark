@@ -1,23 +1,74 @@
 import { Setting } from 'obsidian';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as obsidianMock from '../__mocks__/obsidian';
 import { createMockObsidianElement } from '../testing/createMockObsidianElement';
 import { FolderTagModal } from './FolderTagModal';
 
-import type { ButtonComponent, TFolder } from 'obsidian';
+import type { App, ButtonComponent, TAbstractFile, TFolder } from 'obsidian';
+import type { Mock } from 'vitest';
+
+import type ObsidianMagicPlugin from '../main';
 
 // Callback for tagging folder functionality
 const onSubmitCallback = vi.fn();
 
+let testPlugin: ObsidianMagicPlugin;
+let testApp: App;
+
 describe('FolderTagModal', () => {
-  const modal = new FolderTagModal(plugin, onSubmitCallback);
+  let modal: FolderTagModal;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    onSubmitCallback.mockClear();
+
+    const mockFilesAndFolders: TAbstractFile[] = [
+      {
+        path: 'folder1',
+        name: 'folder1',
+        parent: { path: '' } as TFolder,
+        children: [],
+        isFolder: () => true,
+      } as unknown as TFolder,
+      {
+        path: 'folder2',
+        name: 'folder2',
+        parent: { path: '' } as TFolder,
+        children: [],
+        isFolder: () => true,
+      } as unknown as TFolder,
+      {
+        path: 'test.md',
+        name: 'test.md',
+        parent: { path: '' } as TFolder,
+        children: [],
+        isFolder: () => false,
+      } as unknown as TAbstractFile,
+    ];
+
+    testApp = {
+      vault: {
+        getAllLoadedFiles: vi.fn().mockReturnValue(mockFilesAndFolders),
+        getAbstractFileByPath: vi.fn((path: string) => mockFilesAndFolders.find((f) => f.path === path) || null),
+      },
+      workspace: {
+        // Mock workspace properties if needed by Modal's internals or FolderTagModal
+      } as any, // Use 'any' for simplicity or mock specific Workspace properties if errors arise
+      isDesktopApp: true, // Added this to mock App.isDesktopApp
+    } as unknown as App;
+
+    testPlugin = {
+      app: testApp,
+      // Mock other plugin properties/methods if FolderTagModal uses them
+    } as unknown as ObsidianMagicPlugin;
+
+    modal = new FolderTagModal(testPlugin, onSubmitCallback);
+  });
 
   describe('UI Initialization', () => {
     it('should create necessary UI elements on open using Setting mock', () => {
       modal.onOpen();
 
-      // Check that the Setting mock (from __mocks__) was called
       const MockSettingClass = vi.mocked(Setting);
       expect(MockSettingClass).toHaveBeenCalledTimes(4);
       // ... other checks ...
@@ -25,54 +76,47 @@ describe('FolderTagModal', () => {
 
     it('should populate dropdown with folders', () => {
       modal.onOpen();
+      expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
     });
 
     it('should display a list of folders', () => {
-      // Mock querySelector to return a mock list element for renderFolderList
       const mockFolderList = createMockObsidianElement('div');
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      (modal.contentEl as unknown as HTMLElement).querySelector = vi.fn().mockReturnValue(mockFolderList);
 
+      (modal.contentEl as any).querySelector = vi.fn().mockReturnValue(mockFolderList);
+
+      // Assuming onOpen calls renderFolderList, or call it directly for focused testing
       modal.onOpen();
+      // If onOpen calls renderFolderList internally, this might be redundant
+      // or call modal.renderFolderList() if it's a public method and onOpen doesn't set it up for this test.
+      // For this pass, assuming onOpen is sufficient to trigger the logic that uses getAllLoadedFiles and populates the list.
 
-      expect(mockApp.vault.getAllLoadedFiles).toHaveBeenCalled();
-      // Check that the mocked folder list element had children created
-      const listCreateEl = mockFolderList.createEl;
+      expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
+      const listCreateEl = mockFolderList.createEl as Mock;
       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder1' }));
       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder2' }));
-      // Check it didn't include the file
       expect(listCreateEl).not.toHaveBeenCalledWith('div', expect.objectContaining({ text: 'test.md' }));
     });
   });
 
   describe('Folder Selection', () => {
     it('should handle folder selection', () => {
-      modal.onOpen();
+      modal.onOpen(); // Ensure modal is set up
 
-      // Simulate the creation of folder items (assuming renderFolderList was called)
-      const mockFolderList = (modal.contentEl as unknown as HTMLElement).querySelector('.folder-list');
-      const folderItem1 = obsidianMock.createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
-      folderItem1.dataset.path = 'folder1';
+      const folderItem1 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
+      folderItem1.dataset['path'] = 'folder1';
       const folderItem2 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder2' });
       folderItem2.dataset['path'] = 'folder2';
-      // Manually add to mock list for test simulation
-      if (mockFolderList) {
-        mockFolderList.appendChild(folderItem1);
-        mockFolderList.appendChild(folderItem2);
-      }
 
-      // Access private members - requires careful typing or casting
-      const privateModal = modal as unknown as FolderTagModal;
+      const privateModal = modal as any;
 
-      privateModal.folderItems = [folderItem1, folderItem2]; // Assuming this property exists and is set
+      privateModal.folderItems = [folderItem1, folderItem2];
 
-      // Simulate click
-      privateModal.handleFolderClick({ currentTarget: folderItem1 });
+      privateModal.handleFolderClick({ currentTarget: folderItem1 } as unknown as MouseEvent);
       expect(folderItem1.classList.contains('selected')).toBe(true);
       expect(folderItem2.classList.contains('selected')).toBe(false);
       expect(privateModal.selectedFolderPath).toBe('folder1');
 
-      privateModal.handleFolderClick({ currentTarget: folderItem2 });
+      privateModal.handleFolderClick({ currentTarget: folderItem2 } as unknown as MouseEvent);
       expect(folderItem1.classList.contains('selected')).toBe(false);
       expect(folderItem2.classList.contains('selected')).toBe(true);
       expect(privateModal.selectedFolderPath).toBe('folder2');
@@ -81,29 +125,26 @@ describe('FolderTagModal', () => {
     it('should handle folder search', () => {
       modal.onOpen();
 
-      const privateModal = modal as unknown as FolderTagModal;
+      const privateModal = modal as any;
 
-      // Assume renderFolderList creates items and assigns to privateModal.folderItems
       const items = [
-        obsidianMock.createMockObsidianElement('div', { textContent: 'folder1' }),
+        createMockObsidianElement('div', { textContent: 'folder1' }),
         createMockObsidianElement('div', { textContent: 'subfolder' }),
         createMockObsidianElement('div', { textContent: 'folder2' }),
       ];
       privateModal.folderItems = items;
 
-      // Assume search input is created and assigned
       const searchInput = createMockObsidianElement('input') as unknown as HTMLInputElement;
       privateModal.searchInput = searchInput;
 
-      // Simulate search
       searchInput.value = 'folder1';
-      privateModal.handleFolderSearch({ target: searchInput });
+      privateModal.handleFolderSearch({ target: searchInput } as unknown as Event);
       expect(items[0]?.style.display).toBe('');
       expect(items[1]?.style.display).toBe('none');
       expect(items[2]?.style.display).toBe('none');
 
       searchInput.value = '';
-      privateModal.handleFolderSearch({ target: searchInput });
+      privateModal.handleFolderSearch({ target: searchInput } as unknown as Event);
       expect(items[0]?.style.display).toBe('');
       expect(items[1]?.style.display).toBe('');
       expect(items[2]?.style.display).toBe('');
@@ -114,17 +155,17 @@ describe('FolderTagModal', () => {
     it('should tag selected folder when Tag button is clicked', () => {
       modal.onOpen();
 
-      const privateModal = modal as unknown as FolderTagModal;
+      const privateModal = modal as any;
       privateModal.selectedFolderPath = 'folder1';
       privateModal.includeSubfoldersCheckbox = createMockObsidianElement('input', {
         type: 'checkbox',
       }) as unknown as HTMLInputElement;
       privateModal.includeSubfoldersCheckbox.checked = true;
-      privateModal.close = vi.fn();
+      privateModal.close = vi.fn(); // Mock the close method
 
-      // Mock folder lookup (if handleTagButtonClick relies on it)
       const selectedFolder = { path: 'folder1', name: 'folder1', isFolder: () => true } as unknown as TFolder;
-      mockApp.vault.getAllLoadedFiles = vi.fn().mockReturnValue([selectedFolder]);
+      // Ensure testApp.vault.getAbstractFileByPath is used if the modal re-fetches the folder
+      testApp.vault.getAbstractFileByPath = vi.fn().mockReturnValue(selectedFolder);
 
       privateModal.handleTagButtonClick();
 
@@ -134,7 +175,7 @@ describe('FolderTagModal', () => {
 
     it('should not tag if no folder is selected', () => {
       modal.onOpen();
-      const privateModal = modal as unknown as FolderTagModal;
+      const privateModal = modal as any;
       privateModal.selectedFolderPath = '';
       privateModal.close = vi.fn();
       privateModal.handleTagButtonClick();
@@ -144,20 +185,20 @@ describe('FolderTagModal', () => {
 
     it('should respect the include subfolders option', () => {
       modal.onOpen();
-      const privateModal = modal as unknown as FolderTagModal;
+      const privateModal = modal as any;
       privateModal.selectedFolderPath = 'folder1';
       privateModal.includeSubfoldersCheckbox = createMockObsidianElement('input', {
         type: 'checkbox',
       }) as unknown as HTMLInputElement;
-      privateModal.includeSubfoldersCheckbox.checked = false; // Set to false
+      privateModal.includeSubfoldersCheckbox.checked = false;
       privateModal.close = vi.fn();
 
       const selectedFolder = { path: 'folder1', name: 'folder1', isFolder: () => true } as unknown as TFolder;
-      mockApp.vault.getAllLoadedFiles = vi.fn().mockReturnValue([selectedFolder]);
+      testApp.vault.getAbstractFileByPath = vi.fn().mockReturnValue(selectedFolder);
 
       privateModal.handleTagButtonClick();
 
-      expect(onSubmitCallback).toHaveBeenCalledWith(expect.objectContaining({ path: 'folder1' }), false); // Expect false
+      expect(onSubmitCallback).toHaveBeenCalledWith(expect.objectContaining({ path: 'folder1' }), false);
     });
   });
 
@@ -165,18 +206,31 @@ describe('FolderTagModal', () => {
     it('should close modal when Cancel button is clicked', () => {
       modal.onOpen();
       const MockSettingClass = vi.mocked(Setting);
-      const cancelButtonInstance = MockSettingClass.mock.results[3]?.value as unknown as Setting;
-      const cancelButtonConfigFn = vi.mocked(cancelButtonInstance.addButton).mock.calls[0]?.[0];
+      // Assuming the 4th Setting call is the one that adds the cancel button
+      const cancelButtonSettingInstance = MockSettingClass.mock.results[3]?.value as unknown as Setting;
+
+      // Check if the instance and addButton mock exist before proceeding
+      const addButtonMock = vi.mocked(cancelButtonSettingInstance.addButton);
+      const cancelButtonConfigFn = addButtonMock.mock.calls[0]?.[0];
+
       const mockCancelButton = {
         setButtonText: vi.fn().mockReturnThis(),
         onClick: vi.fn().mockImplementation((cb: () => void) => {
+          // Simulate the button's onClick calling the provided callback
           cb();
+          return mockCancelButton; // Return this for chaining if any
         }),
-      }; // Mock onClick to call immediately
+      } as unknown as ButtonComponent;
+
+      modal.close = vi.fn(); // Ensure modal.close is a mock before it's called
 
       if (cancelButtonConfigFn) {
-        cancelButtonConfigFn(mockCancelButton as unknown as ButtonComponent);
+        cancelButtonConfigFn(mockCancelButton);
+        // The onClick of the mockCancelButton should have been called, which in turn calls modal.close
         expect(modal.close).toHaveBeenCalled();
+      } else {
+        // This case means addButton was called, but not with a config function, or the mock setup is unexpected.
+        throw new Error('Test setup check: Cancel button config function not found in addButton mock calls.');
       }
     });
   });

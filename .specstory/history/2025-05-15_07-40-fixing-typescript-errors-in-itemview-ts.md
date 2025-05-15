@@ -837,3 +837,364 @@ _**Assistant**_
 
 ---
 
+Your Grace,
+
+It appears some stubborn TypeScript errors persist in `apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts`. I shall address them with the following refined strategy:
+
+1.  **For `registerDomEvent` (Line 79)**: The error "Generic type 'Mock<T>' requires between 0 and 1 type arguments" indicates that my previous type `import('vitest').Mock<any[], void>` was incorrect. The `Mock` type from Vitest, when representing a function signature, expects a single function type as its argument. I will correct this to `import('vitest').Mock<(...args: any[]) => void>`.
+
+2.  **For `addChild` (Line 91) and `removeChild` (Line 96)**: The errors indicate an assignability issue with the generic function signatures, specifically "Type 'Component' is not assignable to type 'T'". This often occurs when the compiler cannot fully resolve or match generic types during assignability checks between a base class/interface and an overriding/implementing class.
+    To ensure the types align perfectly with the base mock `Component` (which defines these as `vi.fn<GENERIC_SIGNATURE>()`, resulting in a type of `Mock<GENERIC_SIGNATURE>`), and to ensure the `vi.fn` implementation is correctly recognized as generic:
+    *   The property in `ItemView` will be explicitly typed as `import('vitest').Mock<(<_T extends ComponentType>(child: _T) => _T)>`.
+    *   The value assigned will be `vi.fn<(<_T extends ComponentType>(child: _T) => _T)>( (_U_child: _U_child) => _U_child )` where the implementation is also explicitly generic.
+
+I shall now apply these precise typings.
+
+---
+
+```diff
+      return Promise.resolve();
+    }
+-   override registerDomEvent: import('vitest').Mock<any[], void> = vi.fn();
++   override registerDomEvent: import('vitest').Mock<(...args: any[]) => void> = vi.fn();
+    addAction(icon: string, title: string, cb: (evt: MouseEvent) => any): HTMLElement {
+      console.log('addAction', icon, title, cb);
+```
+
+```diff
+      return this.containerEl;
+    }
+-   override addChild: import('vitest').MockedFunction<<T extends ComponentType>(child: T) => T> = vi.fn(
+-     <T extends ComponentType>(child: T): T => {
++   override addChild: import('vitest').Mock<
++     <_T extends ComponentType>(child: _T) => _T
++   > = vi.fn<(<_T extends ComponentType>(child: _T) => _T)>(
++     <_U extends ComponentType>(child: _U): _U => {
+        return child;
+      }
+    );
+-   override removeChild: import('vitest').MockedFunction<<T extends ComponentType>(child: T) => T> = vi.fn(
+-     <T extends ComponentType>(child: T): T => {
++   override removeChild: import('vitest').Mock<
++     <_T extends ComponentType>(child: _T) => _T
++   > = vi.fn<(<_T extends ComponentType>(child: _T) => _T)>(
++     <_U extends ComponentType>(child: _U): _U => {
+        console.warn('removeChild mock: returning component');
+        return child;
+```
+
+---
+
+Your Grace,
+
+The typings in `apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts` have been further refined according to the plan.
+
+1.  `registerDomEvent` now uses the correct `import('vitest').Mock<(...args: any[]) => void>` type.
+2.  `addChild` and `removeChild` properties are now explicitly typed as `import('vitest').Mock<GENERIC_FUNCTION_SIGNATURE>`, and the `vi.fn` assigned to them is also explicitly typed with `vi.fn<GENERIC_FUNCTION_SIGNATURE>(GENERIC_FUNCTION_IMPLEMENTATION)`. This ensures that the types of these mocked methods align precisely with how they are defined in the base mock `Component` and correctly handle their generic nature.
+
+These changes should resolve the outstanding TypeScript errors in this file. Should any further issues arise, I remain at your service.
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+@Component.ts @ItemView.ts both need to align to fix these issues. [{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'addChild' in type 'ItemView' is not assignable to the same property in base type 'Component'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends ComponentType>(child: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 91,
+	"startColumn": 12,
+	"endLineNumber": 91,
+	"endColumn": 20,
+	"modelVersionId": 72
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'addChild' in type 'ItemView' is not assignable to the same property in base type 'View'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends Component>(component: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 91,
+	"startColumn": 12,
+	"endLineNumber": 91,
+	"endColumn": 20,
+	"modelVersionId": 72
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'removeChild' in type 'ItemView' is not assignable to the same property in base type 'Component'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends ComponentType>(child: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 96,
+	"startColumn": 12,
+	"endLineNumber": 96,
+	"endColumn": 23,
+	"modelVersionId": 72
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'removeChild' in type 'ItemView' is not assignable to the same property in base type 'View'.\n  Type 'Mock<(<_T extends ComponentType>(child: _T) => _T)>' is not assignable to type '<T extends Component>(component: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 96,
+	"startColumn": 12,
+	"endLineNumber": 96,
+	"endColumn": 23,
+	"modelVersionId": 72
+}]
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+
+    
+
+---
+
+
+
+---
+
+Your Grace,
+
+You are astute to point out the need for alignment between `Component.ts` and `ItemView.ts`. The crux of the issue lies in how `addChild` and `removeChild` are defined and then re-assigned in the constructor of `Component.ts`.
+
+Currently, `Component.ts` defines them as methods:
+```typescript
+// In Component.ts
+export class Component extends Events implements ComponentType {
+  // ...
+  addChild<T extends ComponentType>(child: T): T {
+    return child;
+  }
+  removeChild<T extends ComponentType>(child: T): T {
+    return child;
+  }
+  // ...
+  constructor() {
+    super();
+    this.addChild = vi.fn(this.addChild); // Re-assigns to a mock
+    this.removeChild = vi.fn(this.removeChild); // Re-assigns to a mock
+    // ...
+  }
+}
+```
+This means that the *instance properties* `this.addChild` and `this.removeChild` become `Mock` types after the constructor runs. However, when `ItemView.ts` attempts to `override` them, TypeScript compares against the *original method signature* declared on the class, not the `Mock` type of the instance property. This causes the assignability errors.
+
+To rectify this, we must modify `Component.ts` to declare `addChild` and `removeChild` directly as properties of the `Mock` type. This makes their declared type consistent with their runtime type after instantiation.
+
+Here is the plan:
+
+1.  **In `apps/obsidian-plugin/src/__mocks__/obsidian/Component.ts`**:
+    *   Change the class members `addChild` and `removeChild` from methods to properties.
+    *   Their type will be `import('vitest').Mock<(<T extends ComponentType>(child: T) => T)>`.
+    *   They will be initialized directly with `vi.fn()` wrapping their original implementation.
+    *   The lines `this.addChild = vi.fn(this.addChild);` and `this.removeChild = vi.fn(this.removeChild);` in the constructor will be removed as they become redundant.
+
+2.  **In `apps/obsidian-plugin/src/__mocks__/obsidian/ItemView.ts`**:
+    *   The current declarations for overriding `addChild` and `removeChild` should then correctly align with the updated base class members in `Component.ts`. No changes should be needed in `ItemView.ts` for these two methods if `Component.ts` is corrected as planned.
+
+I shall first apply the changes to `Component.ts`.
+
+
+
+---
+
+```diff
+    onunload: Mock<() => void> = vi.fn();
+  
+-   addChild<T extends ComponentType>(child: T): T {
+-     // console.log('MockComponent.addChild called with', child);
+-     return child;
+-   }
++   addChild: Mock<(<T extends ComponentType>(child: T) => T)> = vi.fn(
++     <T extends ComponentType>(child: T): T => {
++       // console.log('MockComponent.addChild called with', child);
++       return child;
++     }
++   );
+  
+-   removeChild<T extends ComponentType>(child: T): T {
+-     // console.log('MockComponent.removeChild called with', child);
+-     return child;
+-   }
++   removeChild: Mock<(<T extends ComponentType>(child: T) => T)> = vi.fn(
++     <T extends ComponentType>(child: T): T => {
++       // console.log('MockComponent.removeChild called with', child);
++       return child;
++     }
++   );
+  
+-   register(cb: () => any): void {
++   register: Mock< (cb: () => any) => void > = vi.fn((cb: () => any): void => {
+      // console.log('MockComponent.register called with', cb);
+      cb(); // Call the callback for basic mock behavior
+-   }
++   });
+  
+-   registerEvent(_eventRef: EventRef): void {
++   registerEvent: Mock< (eventRef: EventRef) => void > = vi.fn((_eventRef: EventRef): void => {
+      // console.log('MockComponent.registerEvent called with', _eventRef);
+      // Basic mock: can track refs if needed for testing
+-   }
+- 
+-   registerDomEvent<K extends keyof WindowEventMap>(
+-     _el: Window,
+-     _type: K,
+-     _callback: (this: HTMLElement, ev: WindowEventMap[K]) => any,
+-     _options?: boolean | AddEventListenerOptions
+-   ): void;
+-   registerDomEvent<K extends keyof DocumentEventMap>(
+-     _el: Document,
+-     _type: K,
+-     _callback: (this: HTMLElement, ev: DocumentEventMap[K]) => any,
+-     _options?: boolean | AddEventListenerOptions
+-   ): void;
+-   registerDomEvent<K extends keyof HTMLElementEventMap>(
+-     _el: HTMLElement,
+-     _type: K,
+-     _callback: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+-     _options?: boolean | AddEventListenerOptions
+-   ): void;
+-   registerDomEvent(
+-     _el: EventTarget,
+-     _type: string,
+-     _callback: (this: HTMLElement, ev: Event) => any,
+-     _options?: boolean | AddEventListenerOptions
+-   ): void {
+-     // console.log('MockComponent.registerDomEvent called');
+-     // Actual event listener registration might be too complex/side-effectful for a base mock.
+-   }
+- 
+-   registerInterval(_id: number): number {
++   });
++ 
++   // registerDomEvent needs to handle multiple overloads.
++   // We declare it as a property with a single, encompassing mock signature.
++   // The `as any` cast in the constructor will handle the implementation assignment.
++   registerDomEvent: Mock<
++     (
++       el: EventTarget,
++       type: string,
++       callback: (this: HTMLElement, ev: Event) => any,
++       options?: boolean | AddEventListenerOptions
++     ) => void
++   > = vi.fn();
++ 
++   registerInterval: Mock< (id: number) => number > = vi.fn((_id: number): number => {
+      // console.log('MockComponent.registerInterval called');
+      return 0; // Return a number as per Obsidian API
+-   }
++   });
+  
+    // containerEl is part of ComponentType but not explicitly initialized here.
+```
+
+```diff
+    constructor() {
+      super();
+-     this.addChild = vi.fn(this.addChild);
+-     this.removeChild = vi.fn(this.removeChild);
+-     this.register = vi.fn(this.register);
+-     this.registerEvent = vi.fn(this.registerEvent);
+-     this.registerDomEvent = vi.fn(this.registerDomEvent) as any; // Cast to any to satisfy multiple overloads with a single mock implementation
+-     this.registerInterval = vi.fn(this.registerInterval);
++     // addChild and removeChild are now directly initialized as mocks.
++     // register, registerEvent, registerInterval also changed to direct initialization.
++     // this.addChild = vi.fn(this.addChild); // REMOVED
++     // this.removeChild = vi.fn(this.removeChild); // REMOVED
++     // this.register = vi.fn(this.register); // REMOVED
++     // this.registerEvent = vi.fn(this.registerEvent); // REMOVED
++     this.registerDomEvent = vi.fn(this.registerDomEventImplementation) as any; // Keep specialized handling for overloads
++     // this.registerInterval = vi.fn(this.registerInterval); // REMOVED
++   }
++ 
++   // Actual implementation for registerDomEvent's multiple signatures, used by the mock.
++   private registerDomEventImplementation(
++     _el: EventTarget,
++     _type: string,
++     _callback: (this: HTMLElement, ev: Event) => any,
++     _options?: boolean | AddEventListenerOptions
++   ): void {
++     // console.log('MockComponent.registerDomEventImplementation called');
+    }
+  }
+```
+
+---
+
+Your Grace,
+
+The modifications to `apps/obsidian-plugin/src/__mocks__/obsidian/Component.ts` are complete.
+I have:
+- Changed `addChild`, `removeChild`, `register`, `registerEvent`, and `registerInterval` from methods to properties that are directly initialized with `vi.fn()` and their respective mock implementations.
+- Updated `registerDomEvent` to be a property with a single, encompassing `Mock` signature. The actual implementation logic (previously the method body) has been moved to a private method `registerDomEventImplementation`, which is then passed to `vi.fn()` in the constructor and cast `as any` to handle the overload complexities.
+- Removed the redundant assignments (e.g., `this.addChild = vi.fn(this.addChild);`) from the constructor for these members.
+
+With these changes, the declared types of these members in the `Component` base class now accurately reflect that they are Vitest mocks. This should resolve the longstanding override errors in `ItemView.ts` because `ItemView`'s `Mock` property overrides will now align with the `Mock` property declarations in the base class.
+
+The linter errors previously reported for `ItemView.ts` regarding `addChild` and `removeChild` should now be resolved.
+
+Do you require further assistance, or shall we consider this matter concluded?
+
+Your Humble Servant, Sebastien
+
+---
+
+_**User**_
+
+Something broke @Component.ts which broke other shit. Fix this error. [{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/Component.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'addChild' in type 'Component' is not assignable to the same property in base type 'Component'.\n  Type 'Mock<(<T extends ComponentType>(child: T) => T)>' is not assignable to type '<T extends Component>(component: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 14,
+	"startColumn": 3,
+	"endLineNumber": 14,
+	"endColumn": 11,
+	"modelVersionId": 33
+},{
+	"resource": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/__mocks__/obsidian/Component.ts",
+	"owner": "typescript",
+	"code": "2416",
+	"severity": 8,
+	"message": "Property 'removeChild' in type 'Component' is not assignable to the same property in base type 'Component'.\n  Type 'Mock<(<T extends ComponentType>(child: T) => T)>' is not assignable to type '<T extends Component>(component: T) => T'.\n    Type 'Component' is not assignable to type 'T'.\n      'Component' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'Component'.",
+	"source": "ts",
+	"startLineNumber": 19,
+	"startColumn": 3,
+	"endLineNumber": 19,
+	"endColumn": 14,
+	"modelVersionId": 33
+}]
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+
+
+
+---
+
+
+
+---
+
