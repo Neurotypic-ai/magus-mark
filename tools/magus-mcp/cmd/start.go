@@ -158,10 +158,10 @@ func startNpxServer(cfg internal.ServerConfig, timeoutSecs int) error {
 	if cfg.Package == "" {
 		return fmt.Errorf("npx runner requires a 'package' field in config")
 	}
-	
+
 	// Process args for environment variables
 	resolvedArgs := resolveEnvironmentVariables(cfg.Args)
-	
+
 	// Construct args: npx [-y] <package> [config args...]
 	// Always use -y to ensure the package is run even if not globally installed
 	npxArgs := []string{"-y", cfg.Package}
@@ -177,7 +177,7 @@ func startNpxServer(cfg internal.ServerConfig, timeoutSecs int) error {
 
 	// Create command with prepared args
 	cmd := exec.Command(cmdPath, npxArgs...)
-	
+
 	// Setup working directory, timeout, etc.
 	prepareCommand(cmd, cfg, timeoutSecs)
 
@@ -189,15 +189,22 @@ func startNpxServer(cfg internal.ServerConfig, timeoutSecs int) error {
 		internal.Verbose(fmt.Sprintf("Setting PORT environment variable to %d", cfg.Port))
 	}
 
-	// Replace current process using syscall.Exec
-	internal.Verbose(fmt.Sprintf("Executing via syscall.Exec: %s %v", cmdPath, npxArgs))
-	err = syscall.Exec(cmdPath, append([]string{cmdPath}, npxArgs...), cmd.Env)
+	// Connect child process's stdio to the parent's (magus-mcp)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	internal.Log(fmt.Sprintf("Starting NPX server as a child process: %s %s", cmdPath, strings.Join(npxArgs, " ")))
+	err = cmd.Run()
 	if err != nil {
-		// This error only happens if Exec itself fails (e.g., permission denied), not if the command fails
-		return fmt.Errorf("failed to execute npx command via syscall.Exec: %w", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("npx server command failed with exit code %d: %w. Stderr: %s", exitErr.ExitCode(), err, string(exitErr.Stderr))
+		}
+		return fmt.Errorf("npx server command failed: %w", err)
 	}
-	// syscall.Exec does not return on success
-	return nil // Should not be reached
+
+	internal.Log("NPX server exited.")
+	return nil
 }
 
 // startDockerServer executes the command for a Docker-based server.
@@ -217,15 +224,15 @@ func startDockerServer(cfg internal.ServerConfig, timeoutSecs int) error {
 	}
 
 	// Add environment variables specified in config
-	envVarsToPass := []string{} // For syscall.Exec
+	// This will be handled by prepareCommand using cmd.Env,
+	// but Docker CLI also needs -e flags.
 	for _, envKey := range cfg.Env {
 		envValue := os.Getenv(envKey)
 		if envValue == "" {
 			internal.Log(fmt.Sprintf("Warning: Environment variable '%s' requested by config but not found in environment.", envKey))
-			continue
+			// We still add "-e envKey" to let Docker try to resolve it from its own env or a .env file it might load.
 		}
-		dockerArgs = append(dockerArgs, "-e", envKey) // Docker CLI needs only the key if passing from host
-		envVarsToPass = append(envVarsToPass, fmt.Sprintf("%s=%s", envKey, envValue)) // syscall.Exec needs full KEY=value
+		dockerArgs = append(dockerArgs, "-e", envKey)
 	}
 
 	// Add mounts if specified
@@ -293,23 +300,25 @@ func startDockerServer(cfg internal.ServerConfig, timeoutSecs int) error {
 		return fmt.Errorf("could not find 'docker' executable in PATH: %w", err)
 	}
 
-	// We don't need to create a cmd here since we're using syscall.Exec directly
-	// Skip cmd creation, but log warning about timeout limitations
-	if timeoutSecs > 0 {
-		internal.Verbose(fmt.Sprintf("Note: Timeout setting of %d seconds is not effective with syscall.Exec", timeoutSecs))
-	}
+	cmd := exec.Command(cmdPath, dockerArgs...)
+	prepareCommand(cmd, cfg, timeoutSecs) // Setup working directory, timeout, and full environment for the command
 
-	// Prepare environment for syscall.Exec
-	// Combine system env + specific vars needed
-	env := append(os.Environ(), envVarsToPass...)
+	// Connect child process's stdio to the parent's (magus-mcp)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	// Replace current process using syscall.Exec
-	internal.Verbose(fmt.Sprintf("Executing via syscall.Exec: %s %v", cmdPath, dockerArgs))
-	err = syscall.Exec(cmdPath, append([]string{cmdPath}, dockerArgs...), env)
+	internal.Log(fmt.Sprintf("Starting Docker server as a child process: %s %s", cmdPath, strings.Join(dockerArgs, " ")))
+	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to execute docker command via syscall.Exec: %w", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("docker server command failed with exit code %d: %w. Stderr: %s", exitErr.ExitCode(), err, string(exitErr.Stderr))
+		}
+		return fmt.Errorf("docker server command failed: %w", err)
 	}
-	return nil // Should not be reached
+
+	internal.Log("Docker server exited.")
+	return nil
 }
 
 // startUvxServer executes the command for a uvx-based server (Python)
@@ -317,10 +326,10 @@ func startUvxServer(cfg internal.ServerConfig, timeoutSecs int) error {
 	if cfg.Package == "" {
 		return fmt.Errorf("uvx runner requires a 'package' field in config")
 	}
-	
+
 	// Process args for environment variables
 	resolvedArgs := resolveEnvironmentVariables(cfg.Args)
-	
+
 	// Construct args: uvx <package> [config args...]
 	uvxArgs := []string{cfg.Package}
 	uvxArgs = append(uvxArgs, resolvedArgs...)
@@ -335,7 +344,7 @@ func startUvxServer(cfg internal.ServerConfig, timeoutSecs int) error {
 
 	// Create command with prepared args
 	cmd := exec.Command(cmdPath, uvxArgs...)
-	
+
 	// Setup working directory, timeout, etc.
 	prepareCommand(cmd, cfg, timeoutSecs)
 
@@ -346,13 +355,22 @@ func startUvxServer(cfg internal.ServerConfig, timeoutSecs int) error {
 		internal.Verbose(fmt.Sprintf("Setting PORT environment variable to %d", cfg.Port))
 	}
 
-	// Replace current process using syscall.Exec
-	internal.Verbose(fmt.Sprintf("Executing via syscall.Exec: %s %v", cmdPath, uvxArgs))
-	err = syscall.Exec(cmdPath, append([]string{cmdPath}, uvxArgs...), cmd.Env)
+	// Connect child process's stdio to the parent's (magus-mcp)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	internal.Log(fmt.Sprintf("Starting UVX server as a child process: %s %s", cmdPath, strings.Join(uvxArgs, " ")))
+	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to execute uvx command via syscall.Exec: %w", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("uvx server command failed with exit code %d: %w. Stderr: %s", exitErr.ExitCode(), err, string(exitErr.Stderr))
+		}
+		return fmt.Errorf("uvx server command failed: %w", err)
 	}
-	return nil // Should not be reached
+
+	internal.Log("UVX server exited.")
+	return nil
 }
 
 // startPipServer executes the command for a pip-based server (Python)
@@ -360,10 +378,10 @@ func startPipServer(cfg internal.ServerConfig, timeoutSecs int) error {
 	if cfg.Package == "" {
 		return fmt.Errorf("pip runner requires a 'package' field in config")
 	}
-	
+
 	// Process args for environment variables
 	resolvedArgs := resolveEnvironmentVariables(cfg.Args)
-	
+
 	// Construct args: python -m <package> [config args...]
 	pythonArgs := []string{"-m", cfg.Package}
 	pythonArgs = append(pythonArgs, resolvedArgs...)
@@ -382,7 +400,7 @@ func startPipServer(cfg internal.ServerConfig, timeoutSecs int) error {
 
 	// Create command with prepared args
 	cmd := exec.Command(cmdPath, pythonArgs...)
-	
+
 	// Setup working directory, timeout, etc.
 	prepareCommand(cmd, cfg, timeoutSecs)
 
@@ -392,13 +410,22 @@ func startPipServer(cfg internal.ServerConfig, timeoutSecs int) error {
 		internal.Verbose(fmt.Sprintf("Setting PORT environment variable to %d", cfg.Port))
 	}
 
-	// Replace current process using syscall.Exec
-	internal.Verbose(fmt.Sprintf("Executing via syscall.Exec: %s %v", cmdPath, pythonArgs))
-	err = syscall.Exec(cmdPath, append([]string{cmdPath}, pythonArgs...), cmd.Env)
+	// Connect child process's stdio to the parent's (magus-mcp)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	internal.Log(fmt.Sprintf("Starting Python server as a child process: %s %s", cmdPath, strings.Join(pythonArgs, " ")))
+	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to execute python command via syscall.Exec: %w", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("python server command failed with exit code %d: %w. Stderr: %s", exitErr.ExitCode(), err, string(exitErr.Stderr))
+		}
+		return fmt.Errorf("python server command failed: %w", err)
 	}
-	return nil // Should not be reached
+
+	internal.Log("Python server exited.")
+	return nil
 }
 
 // startBinaryServer executes a direct binary
@@ -406,10 +433,10 @@ func startBinaryServer(cfg internal.ServerConfig, timeoutSecs int) error {
 	if cfg.Package == "" {
 		return fmt.Errorf("bin runner requires a 'package' field with the binary path")
 	}
-	
+
 	// Process args for environment variables
 	resolvedArgs := resolveEnvironmentVariables(cfg.Args)
-	
+
 	internal.Verbose(fmt.Sprintf("Preparing binary execution: %s %s", cfg.Package, strings.Join(resolvedArgs, " ")))
 
 	// Find executable (if it's a relative path, look in PATH)
@@ -429,7 +456,7 @@ func startBinaryServer(cfg internal.ServerConfig, timeoutSecs int) error {
 
 	// Create command with prepared args
 	cmd := exec.Command(cmdPath, resolvedArgs...)
-	
+
 	// Setup working directory, timeout, etc.
 	prepareCommand(cmd, cfg, timeoutSecs)
 
@@ -439,11 +466,20 @@ func startBinaryServer(cfg internal.ServerConfig, timeoutSecs int) error {
 		internal.Verbose(fmt.Sprintf("Setting PORT environment variable to %d", cfg.Port))
 	}
 
-	// Replace current process using syscall.Exec
-	internal.Verbose(fmt.Sprintf("Executing via syscall.Exec: %s %v", cmdPath, resolvedArgs))
-	err := syscall.Exec(cmdPath, append([]string{cmdPath}, resolvedArgs...), cmd.Env)
+	// Connect child process's stdio to the parent's (magus-mcp)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	internal.Log(fmt.Sprintf("Starting binary server as a child process: %s %s", cmdPath, strings.Join(resolvedArgs, " ")))
+	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to execute binary via syscall.Exec: %w", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("binary server command failed with exit code %d: %w. Stderr: %s", exitErr.ExitCode(), err, string(exitErr.Stderr))
+		}
+		return fmt.Errorf("binary server command failed: %w", err)
 	}
-	return nil // Should not be reached
+
+	internal.Log("Binary server exited.")
+	return nil
 }

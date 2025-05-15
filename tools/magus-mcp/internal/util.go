@@ -18,7 +18,7 @@ const (
 	MagusDir   = ".magus-mcp"
 	CursorDir  = ".cursor"
 	DefaultMagusConfigFile = MagusDir + "/magus-mcp.json"
-	DefaultRootConfigFile = "magus-mcp.json"
+	DefaultRootConfigFile = "magus-mcp.config.json"
 	McpConfigFile   = CursorDir + "/mcp.json"
 	EnvFile    = ".env"
 )

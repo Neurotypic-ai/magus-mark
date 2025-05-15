@@ -135,8 +135,8 @@ export interface ClassStructure {
   name: string;
   extends_id?: string;
   implemented_interfaces?: Record<string, InterfaceRef>;
-  methods?: Record<string, unknown>;
-  properties?: Record<string, unknown>;
+  methods?: NodeMethod[];
+  properties?: NodeProperty[];
   [key: string]: unknown;
 }
 
@@ -147,8 +147,8 @@ export interface InterfaceStructure {
   id: string;
   name: string;
   extended_interfaces?: Record<string, InterfaceRef>;
-  methods?: Record<string, unknown>;
-  properties?: Record<string, unknown>;
+  methods?: NodeMethod[];
+  properties?: NodeProperty[];
   [key: string]: unknown;
 }
 

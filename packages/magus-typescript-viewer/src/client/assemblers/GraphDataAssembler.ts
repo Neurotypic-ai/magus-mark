@@ -13,28 +13,31 @@ import type {
   DependencyPackageGraph,
   InterfaceStructure,
   ModuleStructure,
+  NodeMethod,
+  NodeProperty,
 } from '../components/DependencyGraph/types';
 
 // Define the missing structures that are used in the class but not externally defined
-interface PropertyStructure {
-  id: string;
-  name: string;
-  type: string;
-  default_value: string;
-  visibility: string;
-  is_static: boolean;
-  created_at: string;
-}
+// These were previously used but now NodeProperty/NodeMethod are used more directly
+// interface PropertyStructure {
+//   id: string;
+//   name: string;
+//   type: string;
+//   default_value: string;
+//   visibility: string;
+//   is_static: boolean;
+//   created_at: string;
+// }
 
-interface MethodStructure {
-  id: string;
-  name: string;
-  parameters: Parameter[];
-  return_type: string;
-  visibility: string;
-  is_static: boolean;
-  created_at: string;
-}
+// interface MethodStructure {
+//   id: string;
+//   name: string;
+//   parameters: Parameter[];
+//   return_type: string;
+//   visibility: string;
+//   is_static: boolean;
+//   created_at: string;
+// }
 
 const assemblerLogger = createLogger('GraphDataAssembler');
 
@@ -96,6 +99,7 @@ export class GraphDataAssembler {
       version: string;
       path: string;
       created_at: string;
+      modules?: Record<string, ModuleStructure>;
     }[]
   ): DependencyPackageGraph {
     // Create a properly typed object
@@ -253,23 +257,14 @@ export class GraphDataAssembler {
    * @param properties Array of properties
    * @returns Record of properties
    */
-  private transformPropertyCollection(properties: SharedProperty[]): Record<string, PropertyStructure> {
-    const result: Record<string, PropertyStructure> = {};
-
-    properties.forEach((prop) => {
-      const defaultValue = prop.default_value ?? '';
-      result[prop.name] = {
-        id: prop.id,
-        name: prop.name,
-        type: prop.type,
-        default_value: defaultValue,
-        visibility: prop.visibility,
-        is_static: prop.is_static,
-        created_at: prop.created_at.toISOString(),
-      };
-    });
-
-    return result;
+  private transformPropertyCollection(properties: SharedProperty[]): NodeProperty[] {
+    return properties.map((prop) => ({
+      name: prop.name,
+      type: prop.type,
+      visibility: prop.visibility,
+      // Note: is_static, default_value from SharedProperty are not in NodeProperty
+      // id and created_at are also not directly part of NodeProperty display type
+    }));
   }
 
   /**
@@ -277,22 +272,18 @@ export class GraphDataAssembler {
    * @param methods Array of methods
    * @returns Record of methods
    */
-  private transformMethodCollection(methods: Method[]): Record<string, MethodStructure> {
-    const result: Record<string, MethodStructure> = {};
-
-    methods.forEach((method) => {
-      result[method.name] = {
-        id: method.id,
+  private transformMethodCollection(methods: Method[]): NodeMethod[] {
+    return methods.map((method) => {
+      const parameters = this.typeCollectionToArray(method.parameters);
+      return {
         name: method.name,
-        parameters: this.typeCollectionToArray(method.parameters),
-        return_type: method.return_type,
+        returnType: method.return_type,
         visibility: method.visibility,
-        is_static: method.is_static,
-        created_at: method.created_at.toISOString(),
+        signature: parameters.map((p) => `${p.name}: ${p.type}`).join(', '),
+        // Note: is_static, is_async from SharedMethod are not in NodeMethod display type
+        // id and created_at are also not directly part of NodeMethod display type
       };
     });
-
-    return result;
   }
 
   /**

@@ -4,9 +4,10 @@
 
 This is a TypeScript-based tool that parses a codebase (focused on TypeScript/JavaScript) to build and visualize a
 dependency graph. It tracks dependencies, symbols, and structural changes over time using a UUID-based linking system.
-The tool uses DuckDB for persistent storage, Memgraph for graph operations, and React Flow for interactive
-visualizations. Additional features include automated AST transformations with jscodeshift, a command-line interface
-built with commander, and styling provided by Tailwind CSS and Material-UI.
+The tool uses DuckDB for persistent storage, and React Flow for interactive visualizations. **The layout of the graph is
+powered by ELKJS to provide a clear, hierarchical view of package, module, and code entity relationships.** Additional
+features include automated AST transformations with jscodeshift, a command-line interface built with commander, and
+styling provided by Tailwind CSS and Material-UI.
 
 ## Installation
 

@@ -62,68 +62,111 @@ console.log(`🔍 Analyzing ${componentType} bundle size and composition...`);
 
 // Helper function to get package name from source
 function getPackageName(source) {
-  if (source.includes('node_modules')) {
+  // Flag to identify if this is a dependency
+  let isDependency = false;
+  let packageName = '';
+
+  // Special handling for pnpm dependencies
+  if (source.includes('node_modules/.pnpm/')) {
+    isDependency = true;
+    // Extract package name from pnpm structure
+    // Format is typically: node_modules/.pnpm/[package-name]@[version]/node_modules/[package-name]
+    const pnpmMatch = source.match(/node_modules\/\.pnpm\/([^/]+)(@[^/]+)?\/node_modules\/([^/]+)/);
+    if (pnpmMatch) {
+      packageName = pnpmMatch[3]; // Return the actual package name
+    } else {
+      // Handle scoped packages in pnpm
+      const pnpmScopedMatch = source.match(
+        /node_modules\/\.pnpm\/(@[^/]+\/[^@]+)(@[^/]+)?\/node_modules\/(@[^/]+\/[^/]+)/
+      );
+      if (pnpmScopedMatch) {
+        packageName = pnpmScopedMatch[3]; // Return the scoped package name
+      } else {
+        // Fallback for other pnpm patterns - extract meaningful part
+        const simplePnpmMatch = source.match(/node_modules\/\.pnpm\/([^/]+)/);
+        if (simplePnpmMatch) {
+          packageName = simplePnpmMatch[1];
+        } else {
+          packageName = 'pnpm-dependency';
+        }
+      }
+    }
+  }
+  // Standard node_modules handling
+  else if (source.includes('node_modules')) {
+    isDependency = true;
     // For node_modules, extract the package name with regex test once
     const match = source.match(/node_modules[\\/](@[^/\\]+[\\/][^/\\]+|[^/\\]+)/);
-    return match ? match[1] : source;
-  } else {
-    // For project files, use the relative path
-    return source;
+    packageName = match ? match[1] : 'dependency';
   }
+  // For project files, create meaningful groupings based on project structure
+  else {
+    // Clean up source path
+    const normalizedPath = source.replace(/^webpack:\/\/\//, '').replace(/^\.\//, '');
+
+    // Skip parent directory references and get meaningful parts
+    const parts = normalizedPath.split(/[/\\]/);
+
+    // If it's in the packages or apps directory structure, use that grouping
+    if (parts.includes('packages') || parts.includes('apps')) {
+      const pkgIndex = parts.indexOf('packages');
+      const appIndex = parts.indexOf('apps');
+      const index = pkgIndex >= 0 ? pkgIndex : appIndex;
+
+      if (index >= 0 && index + 1 < parts.length) {
+        // Return "packages/[package-name]" or "apps/[app-name]"
+        packageName = `${parts[index]}/${parts[index + 1]}`;
+      }
+    }
+    // For src files, group by src/[module]
+    else if (parts.includes('src')) {
+      const srcIndex = parts.indexOf('src');
+      if (srcIndex >= 0 && srcIndex + 1 < parts.length) {
+        packageName = `src/${parts[srcIndex + 1]}`;
+      }
+    }
+    // For files directly in the project root, use filename with extension
+    else if (parts.length === 1) {
+      packageName = parts[0];
+    }
+    // Avoid ".." as a grouping
+    else if (parts[0] === '..') {
+      // Try to find a meaningful part of the path
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i] !== '..' && parts[i] !== '.') {
+          // Return first meaningful directory name
+          packageName = parts.slice(i).join('/');
+          break;
+        }
+      }
+    }
+    // Default to first two meaningful parts of path if available
+    else {
+      packageName =
+        parts
+          .filter((p) => p !== '.' && p !== '..')
+          .slice(0, 2)
+          .join('/') || normalizedPath;
+    }
+  }
+
+  return {
+    name: packageName,
+    isDependency,
+  };
 }
 
-// Generate a simple HTML report
-function generateSimpleHtmlReport(files, totalBytes, componentType) {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${componentType} Bundle Analysis Report</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .header { margin-bottom: 20px; }
-        .file-list { width: 100%; border-collapse: collapse; }
-        .file-list th, .file-list td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-        .file-list th { background-color: #f2f2f2; }
-        .bar { background-color: #4CAF50; height: 20px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>${componentType} Bundle Analysis Report</h1>
-          <p>Total Size: ${(totalBytes / 1024).toFixed(2)} KB</p>
-        </div>
-        <table class="file-list">
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>Size (KB)</th>
-              <th>Percentage</th>
-              <th>Visualization</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${files
-              .map(
-                (file) => `
-              <tr>
-                <td>${file.name}</td>
-                <td>${(file.size / 1024).toFixed(2)}</td>
-                <td>${file.percentage}%</td>
-                <td><div class="bar" style="width: ${file.percentage}%"></div></td>
-              </tr>
-            `
-              )
-              .join('')}
-          </tbody>
-        </table>
-      </div>
-    </body>
-    </html>
-  `;
+// Generate an HTML report with interactive features
+function generateEnhancedHtmlReport(files, stats, componentType) {
+  const template = readFileSync(TEMPLATE_PATH, 'utf8');
+  const gzippedSize = gzipSync(readFileSync(MAIN_BUNDLE)).length;
+
+  const html = render(template, {
+    files,
+    stats,
+    componentType,
+    gzippedSize,
+  });
 
   writeFileSync(OUTPUT_HTML, html);
 }
@@ -137,8 +180,9 @@ async function analyzeBundleSize() {
     // Initialize source map consumer once
     const consumer = await new SourceMapConsumer(sourceMapContent);
 
-    // Create a map to store file sizes (using Object for faster lookups)
-    const fileSizes = {};
+    // Create maps to store file sizes (using Objects for faster lookups)
+    const projectFiles = {};
+    const dependencyFiles = {};
     const totalBytes = bundleContent.length;
 
     // Pre-compute line and column information for the entire bundle
@@ -185,30 +229,65 @@ async function analyzeBundleSize() {
     }
 
     // Group by package
+    let totalDependencyBytes = 0;
+    let totalProjectBytes = 0;
+
     for (const [source, size] of sourceSamples.entries()) {
-      const packageName = getPackageName(source);
-      fileSizes[packageName] = (fileSizes[packageName] || 0) + size;
+      const { name, isDependency } = getPackageName(source);
+
+      if (isDependency) {
+        dependencyFiles[name] = (dependencyFiles[name] || 0) + size;
+        totalDependencyBytes += size;
+      } else {
+        projectFiles[name] = (projectFiles[name] || 0) + size;
+        totalProjectBytes += size;
+      }
     }
 
     // Release the source map consumer
     consumer.destroy();
 
-    // Convert to array and sort
-    const sortedFiles = Object.entries(fileSizes)
+    // Convert to arrays and sort
+    const sortedDependencies = Object.entries(dependencyFiles)
       .map(([name, size]) => ({
         name,
         size,
         percentage: ((size / totalBytes) * 100).toFixed(2),
+        isDependency: true,
       }))
       .sort((a, b) => b.size - a.size);
+
+    const sortedProjectFiles = Object.entries(projectFiles)
+      .map(([name, size]) => ({
+        name,
+        size,
+        percentage: ((size / totalBytes) * 100).toFixed(2),
+        isDependency: false,
+      }))
+      .sort((a, b) => b.size - a.size);
+
+    // Combine both lists for the full report
+    const sortedFiles = [...sortedDependencies, ...sortedProjectFiles];
+
+    // Calculate summary statistics
+    const dependencyPercentage = ((totalDependencyBytes / totalBytes) * 100).toFixed(2);
+    const projectPercentage = ((totalProjectBytes / totalBytes) * 100).toFixed(2);
 
     // Prepare analysis data
     const analysisData = {
       totalBytes,
+      totalDependencyBytes,
+      totalProjectBytes,
+      dependencyPercentage,
+      projectPercentage,
       bundles: [
         {
           name: basename(MAIN_BUNDLE),
-          files: sortedFiles.reduce((acc, file) => {
+          dependencies: sortedDependencies.reduce((acc, file) => {
+            acc[file.name] = { size: file.size };
+            return acc;
+          }, {}),
+          projectFiles: sortedProjectFiles.reduce((acc, file) => {
             acc[file.name] = { size: file.size };
             return acc;
           }, {}),
@@ -219,33 +298,42 @@ async function analyzeBundleSize() {
     // Save JSON report
     writeFileSync(OUTPUT_JSON, JSON.stringify(analysisData, null, 2));
 
-    // Generate HTML report if template exists
-    if (existsSync(TEMPLATE_PATH)) {
-      const template = readFileSync(TEMPLATE_PATH, 'utf8');
-      const html = render(template, {
-        data: {
-          componentType,
-          totalSize: (totalBytes / 1024).toFixed(2) + ' KB',
-          files: sortedFiles,
-        },
-      });
-      writeFileSync(OUTPUT_HTML, html);
-    } else {
-      // Generate a simple HTML report if template doesn't exist
-      generateSimpleHtmlReport(sortedFiles, totalBytes, componentType);
-    }
+    // Generate enhanced HTML report with interactive features
+    generateEnhancedHtmlReport(
+      sortedFiles,
+      {
+        totalBytes,
+        totalDependencyBytes,
+        totalProjectBytes,
+        dependencyPercentage,
+        projectPercentage,
+        dependencyCount: sortedDependencies.length,
+        projectFileCount: sortedProjectFiles.length,
+      },
+      componentType
+    );
 
     // Display summary
     const formattedSize = (totalBytes / 1024).toFixed(2) + ' KB';
     const gzippedSize = (gzipSync(bundleContent).length / 1024).toFixed(2) + ' KB';
+    const depSize = (totalDependencyBytes / 1024).toFixed(2) + ' KB';
+    const projSize = (totalProjectBytes / 1024).toFixed(2) + ' KB';
 
     console.log(`\n✅ Bundle analysis complete!`);
     console.log(`📊 Total bundle size: ${formattedSize} (gzipped: ${gzippedSize})`);
+    console.log(`   - Dependencies: ${depSize} (${dependencyPercentage}%)`);
+    console.log(`   - Project files: ${projSize} (${projectPercentage}%)`);
     console.log(`📝 Full report saved to: ${OUTPUT_HTML}`);
 
     // Report on largest dependencies (top 5)
     console.log('\n📦 Largest dependencies:');
-    sortedFiles.slice(0, 5).forEach((file, index) => {
+    sortedDependencies.slice(0, 5).forEach((file, index) => {
+      console.log(`   ${index + 1}. ${file.name}: ${(file.size / 1024).toFixed(2)} KB (${file.percentage}%)`);
+    });
+
+    // Report on largest project files (top 5)
+    console.log('\n📄 Largest project files:');
+    sortedProjectFiles.slice(0, 5).forEach((file, index) => {
       console.log(`   ${index + 1}. ${file.name}: ${(file.size / 1024).toFixed(2)} KB (${file.percentage}%)`);
     });
 

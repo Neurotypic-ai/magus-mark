@@ -39,8 +39,8 @@ interface WorkerRequest {
 }
 
 interface WorkerResponse {
-  type: 'layout-complete';
-  payload: LayoutResult;
+  type: 'layout-complete' | 'layout-error';
+  payload: LayoutResult | { error: string };
 }
 
 /**
@@ -102,8 +102,14 @@ export class WebWorkerLayoutProcessor {
 
       // Set up the message handler for worker responses
       const onMessage = (event: MessageEvent<WorkerResponse>) => {
-        // Just handle the event directly
-        resolve(event.data.payload);
+        this.worker?.removeEventListener('message', onMessage); // Clean up listener
+        this.worker?.removeEventListener('error', onError); // Clean up listener
+        if (event.data.type === 'layout-complete') {
+          resolve(event.data.payload as LayoutResult);
+        } else {
+          const errorPayload = event.data.payload as { error: string };
+          reject(new Error(`Layout worker error: ${errorPayload.error}`));
+        }
       };
 
       // Set up error handler
@@ -166,3 +172,92 @@ export class WebWorkerLayoutProcessor {
     }
   }
 }
+
+// Simple ELK-like layout algorithm
+// Removed old LayoutEngine class, will use ELK directly
+
+// Handle messages from the main thread
+self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+  // Given event is MessageEvent<WorkerRequest>, event.data.type is always 'process-layout'.
+  // The 'if (event.data.type === 'process-layout')' check is redundant.
+  const { nodes, edges, config } = event.data.payload;
+
+  try {
+    // Dynamically import ELK inside the worker
+    const ELK = await import('elkjs/lib/elk.bundled.js');
+    const elk = new ELK.default();
+
+    const elkNodes = nodes.map((node) => ({
+      id: node.id,
+      width: node.measured?.width ?? config.theme.nodes.minDimensions.width,
+      height: node.measured?.height ?? config.theme.nodes.minDimensions.height,
+      // ELK specific layout options can be added here if needed
+      // parent: node.data.parentId, // ELK supports parent property for hierarchy
+      layoutOptions: {
+        ...(node.data.parentId && { 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' }),
+      },
+    }));
+
+    // Filter out edges with missing source or target, which can happen during graph updates
+    const validEdges = edges.filter(
+      (edge) => nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target)
+    );
+
+    const elkEdges = validEdges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    }));
+
+    const elkGraph = {
+      id: 'root',
+      layoutOptions: {
+        'elk.algorithm': 'layered',
+        'elk.direction': config.rankdir,
+        'elk.spacing.nodeNode': String(config.nodesep),
+        'elk.layered.spacing.nodeNodeBetweenLayers': String(config.ranksep),
+        'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+        'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+        'org.eclipse.elk.layered.cycleBreaking.strategy': 'GREEDY',
+        // Ensure hierarchy is handled if parentId is used
+        ...(elkNodes.some((n) => n.layoutOptions['elk.hierarchyHandling']) && {
+          'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+        }),
+      },
+      children: elkNodes,
+      edges: elkEdges,
+    };
+
+    const layoutedGraph = await elk.layout(elkGraph);
+
+    const newNodes = nodes.map((node) => {
+      const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
+      if (elkNode) {
+        return {
+          ...node,
+          position: { x: elkNode.x ?? 0, y: elkNode.y ?? 0 },
+          // Update measured dimensions if ELK changed them (though usually it respects input)
+          measured: {
+            width: elkNode.width,
+            height: elkNode.height,
+          },
+        };
+      }
+      return node;
+    });
+
+    self.postMessage({
+      type: 'layout-complete',
+      payload: { nodes: newNodes, edges }, // Send original edges back
+    } as WorkerResponse);
+  } catch (error) {
+    console.error('Error in layout worker:', error);
+    self.postMessage({
+      type: 'layout-error',
+      payload: { error: error instanceof Error ? error.message : 'Unknown layout error' },
+    } as WorkerResponse);
+  }
+};
+
+// Export empty object to satisfy TypeScript module requirements
+export {};

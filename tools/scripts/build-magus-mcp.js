@@ -12,7 +12,8 @@ const __dirname = path.dirname(__filename);
 
 const isWindows = process.platform === 'win32';
 const magusMcpDir = path.join(__dirname, '..', '..', 'tools', 'magus-mcp');
-const binOutputDir = path.join(__dirname, '..', '..', 'node_modules', '.bin');
+// const binOutputDir = path.join(__dirname, '..', '..', 'node_modules', '.bin'); // Old path
+const binOutputDir = path.join(__dirname, '..', '..', 'bin'); // New path: projectRoot/bin
 const rootDir = path.join(__dirname, '..', '..');
 
 function log(message) {
@@ -92,7 +93,7 @@ try {
 
   log(`Successfully built ${binaryName}`);
 
-  // Copy to node_modules/.bin
+  // Copy to the new binOutputDir (projectRoot/bin/)
   const source = path.join(magusMcpDir, binaryName);
   const destination = path.join(binOutputDir, binaryName);
 
@@ -111,7 +112,7 @@ try {
   }
 
   log(`Successfully copied ${binaryName} to ${binOutputDir}`);
-  log('magus-mcp is now ready to use!');
+  log('magus-mcp is now ready to use from the /bin directory!');
 } catch (error) {
   errorExit(`Build or copy failed: ${error.message}`);
 }

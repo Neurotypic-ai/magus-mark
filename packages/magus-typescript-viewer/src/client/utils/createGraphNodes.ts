@@ -55,13 +55,12 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
             properties: [{ name: 'path', type: module.source.relativePath || '', visibility: 'public' }],
           },
           style: getNodeStyle('module'),
+          extent: 'parent',
         });
 
         // Add class nodes
         if (module.classes) {
           mapTypeCollection(module.classes, (cls) => {
-            const members = getMembersAsProperties(createCompatibleTypeInput(cls));
-
             graphNodes.push({
               id: cls.id,
               type: 'class' as DependencyKind,
@@ -69,10 +68,11 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               data: {
                 parentId: module.id,
                 label: cls.name,
-                properties: members.properties,
-                methods: members.methods,
+                properties: cls.properties,
+                methods: cls.methods,
               },
               style: getNodeStyle('class'),
+              extent: 'parent',
             });
           });
         }
@@ -80,8 +80,6 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
         // Add interface nodes
         if (module.interfaces) {
           mapTypeCollection(module.interfaces, (iface) => {
-            const members = getMembersAsProperties(createCompatibleTypeInput(iface));
-
             graphNodes.push({
               id: iface.id,
               type: 'interface' as DependencyKind,
@@ -89,10 +87,11 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               data: {
                 parentId: module.id,
                 label: iface.name,
-                properties: members.properties,
-                methods: members.methods,
+                properties: iface.properties,
+                methods: iface.methods,
               },
               style: getNodeStyle('interface'),
+              extent: 'parent',
             });
           });
         }

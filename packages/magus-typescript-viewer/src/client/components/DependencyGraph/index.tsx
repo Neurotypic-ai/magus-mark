@@ -152,8 +152,9 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
         performance.mark('layout-end');
         measurePerformance('graph-layout', 'layout-start', 'layout-end');
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error');
+        const error = err instanceof Error ? err : new Error('Unknown error during layout processing');
         graphLogger.error('Layout processing failed:', error);
+        // Potentially update UI to show error state to the user
       }
     },
     [layoutProcessor, fitView, setNodes, setEdges]
