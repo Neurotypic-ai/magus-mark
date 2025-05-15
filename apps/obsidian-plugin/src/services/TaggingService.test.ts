@@ -56,7 +56,7 @@ describe('TaggingService', () => {
 
     // Initialize mocked core services
     // initializeCore is already mocked to return the desired structure
-    mockCoreServices = initializeCore({ apiKey: 'test-core-key' });
+    mockCoreServices = initializeCore({});
 
     // Configure imported mock functions from core
     mockCoreParseDocument.mockReturnValue({ path: 'test.md', name: 'test', content: '# Test Content' });
@@ -257,7 +257,13 @@ tags: processed
 
     it('should handle errors for individual files', async () => {
       const errorFile = { path: 'error.md', basename: 'error' } as TFile;
-      const filesWithError = [mockFiles[0]!, errorFile, mockFiles[1]!];
+      const firstMockFile = mockFiles[0];
+      const secondMockFile = mockFiles[1];
+
+      if (firstMockFile === undefined || secondMockFile === undefined) {
+        throw new Error('Test setup error: mockFiles should contain at least two elements.');
+      }
+      const filesWithError = [firstMockFile, errorFile, secondMockFile];
       const fileError = new Error('File processing error');
 
       mockCoreTagDocument

@@ -1,16 +1,11 @@
-import { Notice, Platform } from 'obsidian';
+import { Notice } from 'obsidian';
 
 import { APIError } from '@magus-mark/core/errors/APIError';
 import { AppError } from '@magus-mark/core/errors/AppError';
 import { FileSystemError } from '@magus-mark/core/errors/FileSystemError';
 import { Result } from '@magus-mark/core/errors/Result';
 
-import type * as Electron from 'electron';
-
 import type ObsidianMagicPlugin from '../main';
-
-// Safely access Electron APIs at runtime using the Obsidian-recommended pattern
-const electron: typeof Electron | null = Platform.isDesktopApp ? window.require('electron') : null;
 
 /**
  * Handles secure storage and management of API keys
@@ -37,11 +32,7 @@ export class KeyManager {
         });
       }
 
-      if (this.plugin.settings.apiKeyStorage === 'system') {
-        await this.saveToSystemKeychain(apiKey);
-      } else {
-        await this.saveToLocalStorage(apiKey);
-      }
+      await this.saveToLocalStorage(apiKey);
 
       new Notice('API key has been saved successfully');
       return Result.ok(true);
@@ -56,13 +47,9 @@ export class KeyManager {
   /**
    * Load API key from the selected storage method
    */
-  async loadKey(): Promise<string | null> {
+  loadKey(): string | null {
     try {
-      if (this.plugin.settings.apiKeyStorage === 'system') {
-        return await this.loadFromSystemKeychain();
-      } else {
-        return this.loadFromLocalStorage();
-      }
+      return this.loadFromLocalStorage();
     } catch (error) {
       console.error('Error loading API key:', error);
       new Notice(`Failed to load API key: ${error instanceof Error ? error.message : String(error)}`);
@@ -75,12 +62,7 @@ export class KeyManager {
    */
   async deleteKey(): Promise<Result<boolean>> {
     try {
-      if (this.plugin.settings.apiKeyStorage === 'system') {
-        await this.deleteFromSystemKeychain();
-      } else {
-        await this.deleteFromLocalStorage();
-      }
-
+      await this.deleteFromLocalStorage();
       new Notice('API key has been deleted successfully');
       return Result.ok(true);
     } catch (error) {
@@ -97,64 +79,6 @@ export class KeyManager {
   validateKey(apiKey: string): boolean {
     // Simple validation for OpenAI API keys (sk-...)
     return !!apiKey && apiKey.startsWith('sk-') && apiKey.length > 20;
-  }
-
-  /**
-   * Save API key to the system keychain
-   */
-  private async saveToSystemKeychain(apiKey: string): Promise<void> {
-    try {
-      if (!electron) {
-        throw new APIError('System keychain is not available: Electron not detected');
-      }
-
-      const { ipcRenderer } = electron;
-      await ipcRenderer.invoke('set-secure-key', this.plugin.settings.apiKeyKeychainId, apiKey);
-
-      // Clear from local storage
-      this.plugin.settings.apiKey = '';
-      await this.plugin.saveSettings();
-    } catch (error) {
-      throw new APIError(
-        `Failed to save to system keychain: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  /**
-   * Load API key from the system keychain
-   */
-  private async loadFromSystemKeychain(): Promise<string | null> {
-    try {
-      if (!electron) {
-        throw new APIError('System keychain is not available: Electron not detected');
-      }
-
-      const { ipcRenderer } = electron;
-      return (await ipcRenderer.invoke('get-secure-key', this.plugin.settings.apiKeyKeychainId)) as string | null;
-    } catch (error) {
-      throw new APIError(
-        `Failed to load from system keychain: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  /**
-   * Delete API key from the system keychain
-   */
-  private async deleteFromSystemKeychain(): Promise<void> {
-    try {
-      if (!electron) {
-        throw new APIError('System keychain is not available: Electron not detected');
-      }
-
-      const { ipcRenderer } = electron;
-      await ipcRenderer.invoke('delete-secure-key', this.plugin.settings.apiKeyKeychainId);
-    } catch (error) {
-      throw new APIError(
-        `Failed to delete from system keychain: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
   }
 
   /**

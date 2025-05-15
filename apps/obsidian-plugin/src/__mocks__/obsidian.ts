@@ -57,6 +57,7 @@ export class App implements AppType {
   fileManager: FileManagerType;
   lastEvent: UserEventType | null;
   Setting: typeof Setting;
+  isDesktopApp: boolean = Platform.isDesktopApp;
 
   constructor() {
     this.vault = new Vault() as VaultType;
@@ -197,7 +198,6 @@ export class View extends Component {
   onClose: () => Promise<void> = vi.fn(async (): Promise<void> => {});
   getEphemeralState: Mock<() => any> = vi.fn(() => ({}));
   setEphemeralState: Mock<(state: any) => void> = vi.fn();
-  onPaneMenu: Mock<(menu: MenuType, source: string) => void> = vi.fn();
 }
 
 export class ItemView extends View {

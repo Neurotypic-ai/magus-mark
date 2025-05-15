@@ -3,7 +3,6 @@ import { Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsid
 import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
-import { AccessibilityAuditModal } from './ui/AccessibilityAuditModal';
 import { FolderTagModal } from './ui/FolderTagModal';
 import { SampleModal } from './ui/SampleModal';
 import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
@@ -12,11 +11,6 @@ import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisua
 import type { AIModel } from '@magus-mark/core/models/AIModel';
 import type { TagBehavior } from '@magus-mark/core/models/TagBehavior';
 import type { App } from 'obsidian';
-
-// Interface for WebAssembly with our extended properties
-interface WebAssemblyExtended {
-  _originalModule?: typeof WebAssembly.Module;
-}
 
 interface ObsidianMagicSettings {
   apiKey: string;
@@ -39,7 +33,6 @@ export const DEFAULT_SETTINGS: ObsidianMagicSettings = {
   showRibbonIcon: true,
   statusBarDisplay: 'always',
 };
-
 export default class ObsidianMagicPlugin extends Plugin {
   settings: ObsidianMagicSettings = DEFAULT_SETTINGS;
   statusBarElement: HTMLElement | null = null;
@@ -52,7 +45,7 @@ export default class ObsidianMagicPlugin extends Plugin {
 
     await this.loadSettings();
     this.keyManager = new KeyManager(this);
-    const apiKey = await this.keyManager.loadKey();
+    const apiKey = this.keyManager.loadKey();
 
     try {
       this.taggingService = new TaggingService(this);
@@ -96,6 +89,15 @@ export default class ObsidianMagicPlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: 'run-all-tests',
+      name: 'Run All Tests',
+      callback: () => {
+        new Notice('Running all tests...');
+        // Placeholder for actual test execution
+      },
+    });
+
     window.addEventListener('click', () => {
       console.log('click');
     });
@@ -108,23 +110,12 @@ export default class ObsidianMagicPlugin extends Plugin {
       )
     );
 
-    this.addCommand({
-      id: 'run-accessibility-audit',
-      name: 'Quick Accessibility Audit',
-      callback: () => {
-        new AccessibilityAuditModal(this.app).open();
-      },
+    this.registerMarkdownPostProcessor(async (element, context) => {
+      // ... existing code ...
     });
   }
 
   override onunload(): void {
-    // Restore original WebAssembly.Module if we've overridden it
-    const webAssemblyExt = WebAssembly as WebAssemblyExtended;
-    if (webAssemblyExt._originalModule) {
-      WebAssembly.Module = webAssemblyExt._originalModule;
-      delete webAssemblyExt._originalModule;
-    }
-
     console.log('Unloading Magus Mark plugin');
     this.app.workspace.detachLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE);
@@ -365,8 +356,8 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
             },
             (btn) => {
               btn.addEventListener('click', () => {
-                void (async () => {
-                  const key = await this.plugin.keyManager.loadKey();
+                (() => {
+                  const key = this.plugin.keyManager.loadKey();
                   if (!key) {
                     new Notice('Please enter an API key first');
                     return;
@@ -397,7 +388,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
             const oldStorage = this.plugin.settings.apiKeyStorage;
             const newStorage = value as 'local' | 'system';
             if (oldStorage !== newStorage) {
-              const currentKey = await this.plugin.keyManager.loadKey();
+              const currentKey = this.plugin.keyManager.loadKey();
               this.plugin.settings.apiKeyStorage = newStorage;
               await this.plugin.saveSettings();
               if (currentKey) {

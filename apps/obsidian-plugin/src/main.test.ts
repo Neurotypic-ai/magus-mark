@@ -37,7 +37,6 @@ const mockAppInstance = {
     on: vi.fn(() => ({ unsubscribe: vi.fn() })),
     getFileCache: vi.fn().mockReturnValue(null),
   },
-  // No need for Platform.isDesktopApp here as it's handled by the global mock when imported from 'obsidian'
 };
 
 // Local vi.mock('obsidian', ...) IS REMOVED.

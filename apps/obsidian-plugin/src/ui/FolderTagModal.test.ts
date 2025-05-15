@@ -1,6 +1,7 @@
 import { Setting } from 'obsidian';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createMockedPlugin } from '../__mocks__/obsidian';
 import { createMockObsidianElement } from '../testing/createMockObsidianElement';
 import { FolderTagModal } from './FolderTagModal';
 
@@ -14,6 +15,7 @@ const onSubmitCallback = vi.fn();
 
 let testPlugin: ObsidianMagicPlugin;
 let testApp: App;
+let mockFilesAndFolders: TAbstractFile[];
 
 describe('FolderTagModal', () => {
   let modal: FolderTagModal;
@@ -22,7 +24,7 @@ describe('FolderTagModal', () => {
     vi.clearAllMocks();
     onSubmitCallback.mockClear();
 
-    const mockFilesAndFolders: TAbstractFile[] = [
+    mockFilesAndFolders = [
       {
         path: 'folder1',
         name: 'folder1',
@@ -46,21 +48,15 @@ describe('FolderTagModal', () => {
       } as unknown as TAbstractFile,
     ];
 
-    testApp = {
-      vault: {
-        getAllLoadedFiles: vi.fn().mockReturnValue(mockFilesAndFolders),
-        getAbstractFileByPath: vi.fn((path: string) => mockFilesAndFolders.find((f) => f.path === path) || null),
-      },
-      workspace: {
-        // Mock workspace properties if needed by Modal's internals or FolderTagModal
-      } as any, // Use 'any' for simplicity or mock specific Workspace properties if errors arise
-      isDesktopApp: true, // Added this to mock App.isDesktopApp
-    } as unknown as App;
+    testPlugin = createMockedPlugin();
+    testApp = testPlugin.app;
 
-    testPlugin = {
-      app: testApp,
-      // Mock other plugin properties/methods if FolderTagModal uses them
-    } as unknown as ObsidianMagicPlugin;
+    // Mock methods on testApp.vault
+    vi.spyOn(testApp.vault, 'getAllLoadedFiles').mockReturnValue(mockFilesAndFolders);
+    vi.spyOn(testApp.vault, 'getAbstractFileByPath').mockImplementation(
+      (path: string) => mockFilesAndFolders.find((f) => f.path === path) || null
+    );
+    // testApp.isDesktopApp is handled by the Platform mock used in createMockApp
 
     modal = new FolderTagModal(testPlugin, onSubmitCallback);
   });

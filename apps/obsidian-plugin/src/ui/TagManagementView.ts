@@ -30,8 +30,7 @@ export class TagManagementView extends ItemView {
     // Add an await expression to satisfy the linter
     await Promise.resolve();
 
-    const container = this.containerEl.children[1];
-    if (!container) return;
+    const container = this.contentEl;
 
     container.empty();
     container.createEl('h2', { text: 'Magus Mark Tag Management' });
