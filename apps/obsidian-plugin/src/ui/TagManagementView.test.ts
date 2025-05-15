@@ -8,9 +8,6 @@ import type { MetadataCache, Vault, WorkspaceLeaf } from 'obsidian';
 import type { MockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
 import type ObsidianMagicPlugin from '../main';
 
-// Use the manual Obsidian stub for all obsidian imports
-vi.mock('obsidian', async () => await import('../__mocks__/obsidian'));
-
 // Define type for tag data
 interface TagData {
   id: string;

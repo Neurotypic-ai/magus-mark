@@ -82,7 +82,6 @@ describe('TagVisualizationView', () => {
       workspace: {
         on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
       } as unknown as Partial<Workspace>,
-      isDesktopApp: true,
     },
   } as unknown as ObsidianMagicPlugin;
 

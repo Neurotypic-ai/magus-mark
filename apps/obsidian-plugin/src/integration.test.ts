@@ -1,3 +1,4 @@
+import { App } from 'obsidian';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ObsidianMagicPlugin from './main';
@@ -5,94 +6,10 @@ import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
 
-import type { TFile, TFolder } from 'obsidian';
+import type { PluginManifest, TFile, TFolder } from 'obsidian';
+import type { Mock } from 'vitest';
 
-// Mock file interface with expected properties
-interface MockFile {
-  path: string;
-  basename: string;
-  extension: string;
-}
-
-// Mock Obsidian API with proper typing
-const mockApp = {
-  workspace: {
-    onLayoutReady: vi.fn().mockImplementation((callback: () => void) => {
-      callback();
-      return { unsubscribe: vi.fn() };
-    }),
-    on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-    getActiveFile: vi.fn().mockReturnValue({
-      path: 'test/document.md',
-      basename: 'document',
-      extension: 'md',
-    }),
-    getLeavesOfType: vi.fn().mockReturnValue([]),
-    detachLeavesOfType: vi.fn(),
-    getRightLeaf: vi.fn().mockReturnValue({
-      setViewState: vi.fn().mockResolvedValue(undefined),
-    }),
-    revealLeaf: vi.fn(),
-  },
-  vault: {
-    on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-    getMarkdownFiles: vi.fn().mockReturnValue([
-      {
-        path: 'file1.md',
-        basename: 'file1',
-        extension: 'md',
-      },
-      {
-        path: 'file2.md',
-        basename: 'file2',
-        extension: 'md',
-      },
-    ]),
-    read: vi.fn().mockImplementation((file: MockFile) => {
-      if (file.path === 'file1.md') {
-        return Promise.resolve(`---
-title: Test Document 1
-tags: [existing-tag-1, existing-tag-2]
----
-
-# Test Document 1
-
-This is test document 1 content.`);
-      } else {
-        return Promise.resolve(`---
-title: Test Document 2
----
-
-# Test Document 2
-
-This is test document 2 content.`);
-      }
-    }),
-    modify: vi.fn().mockResolvedValue(undefined),
-    createFolder: vi.fn().mockResolvedValue(undefined),
-    createBinary: vi.fn().mockResolvedValue(undefined),
-    delete: vi.fn().mockResolvedValue(undefined),
-  },
-  metadataCache: {
-    on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-    getFileCache: vi.fn().mockImplementation((file: MockFile) => {
-      if (file.path === 'file1.md') {
-        return {
-          frontmatter: {
-            title: 'Test Document 1',
-            tags: ['existing-tag-1', 'existing-tag-2'],
-          },
-        };
-      } else {
-        return {
-          frontmatter: {
-            title: 'Test Document 2',
-          },
-        };
-      }
-    }),
-  },
-};
+vi.mock('obsidian');
 
 // Mock OpenAI API response
 const mockTagDocument = vi.fn().mockResolvedValue({
@@ -151,13 +68,98 @@ vi.mock('../src/services/TaggingService', () => {
   };
 });
 
+// --- MOCKS TO ADD/VERIFY ---
+const mockIpcRendererInvoke = vi.fn();
+vi.mock('electron', () => ({
+  ipcRenderer: {
+    invoke: mockIpcRendererInvoke,
+  },
+}));
+// --- Start Refactored Mocks for 'obsidian' ---
+let getMarkdownFilesMock: Mock<(...args: any[]) => any>;
+let readMock: Mock<(...args: any[]) => any>;
+let modifyMock: Mock<(...args: any[]) => any>;
+let onMockVault: Mock<(...args: any[]) => any>;
+// Add other vault method mocks here if needed, e.g.:
+// let createFolderMock: Mock<(...args: any[]) => any>;
+
+let onLayoutReadyMock: Mock<(...args: any[]) => any>;
+let onMockWorkspace: Mock<(...args: any[]) => any>;
+let getActiveFileMock: Mock<(...args: any[]) => any>;
+let detachLeavesOfTypeMock: Mock<(...args: any[]) => any>;
+// Add other workspace method mocks here if needed, e.g.:
+// let getLeavesOfTypeMock: Mock<(...args: any[]) => any>;
+
+let onMockMetadataCache: Mock<(...args: any[]) => any>;
+let getFileCacheMock: Mock<(...args: any[]) => any>;
+
 describe('Integration Tests', () => {
   let plugin: ObsidianMagicPlugin;
+  let appInstanceFromMock: App; // To hold the instance from the mocked App constructor
+  const testManifest: PluginManifest = {
+    // Define a manifest
+    id: 'test-plugin-id',
+    name: 'Test Plugin',
+    version: '0.1.0',
+    minAppVersion: '0.15.0',
+    description: 'A test plugin.',
+    author: 'Test Author',
+    authorUrl: 'https://example.com',
+    isDesktopOnly: false,
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // @ts-expect-error - In the real code, this would take parameters
-    plugin = new ObsidianMagicPlugin();
+    mockIpcRendererInvoke.mockClear(); // Clear specific mock
+
+    // appInstanceFromMock will be an instance of the App from __mocks__/obsidian.ts
+    appInstanceFromMock = new App();
+
+    // Assign mocks from the appInstanceFromMock to the module-scoped variables
+    // This step is to keep the rest of the test logic (that uses these variables) unchanged.
+    // Ideally, tests would directly use vi.mocked(appInstanceFromMock.vault.read).mockXYZ(...)
+    getMarkdownFilesMock = vi.mocked(appInstanceFromMock.vault.getMarkdownFiles);
+    readMock = vi.mocked(appInstanceFromMock.vault.read);
+    modifyMock = vi.mocked(appInstanceFromMock.vault.modify);
+    onMockVault = vi.mocked(appInstanceFromMock.vault.on);
+
+    onLayoutReadyMock = vi.mocked(appInstanceFromMock.workspace.onLayoutReady);
+    getActiveFileMock = vi.mocked(appInstanceFromMock.workspace.getActiveFile);
+    detachLeavesOfTypeMock = vi.mocked(appInstanceFromMock.workspace.detachLeavesOfType);
+    onMockWorkspace = vi.mocked(appInstanceFromMock.workspace.on);
+
+    getFileCacheMock = vi.mocked(appInstanceFromMock.metadataCache.getFileCache);
+    onMockMetadataCache = vi.mocked(appInstanceFromMock.metadataCache.on);
+
+    // Configure the individual mock functions directly
+    getMarkdownFilesMock.mockReturnValue([
+      { path: 'file1.md', basename: 'file1', extension: 'md' },
+      { path: 'file2.md', basename: 'file2', extension: 'md' },
+    ] as TFile[]);
+    readMock.mockImplementation((file: TFile) => {
+      if (file.path === 'file1.md') return Promise.resolve('---\ntags: [existing-tag-1]\n---\nContent1');
+      return Promise.resolve('Content2');
+    });
+    modifyMock.mockResolvedValue(undefined);
+    onMockVault.mockReturnValue({ unsubscribe: vi.fn() });
+
+    onLayoutReadyMock.mockImplementation((cb) => cb());
+    getActiveFileMock.mockReturnValue({ path: 'test/document.md', basename: 'doc', extension: 'md' } as TFile);
+    detachLeavesOfTypeMock.mockImplementation(vi.fn()); // Ensure it's a fresh mock
+    onMockWorkspace.mockReturnValue({ unsubscribe: vi.fn() });
+
+    getFileCacheMock.mockImplementation((file: TFile) => {
+      if (file.path === 'file1.md') return { frontmatter: { tags: ['existing-tag-1'] } };
+      return {};
+    });
+    onMockMetadataCache.mockReturnValue({ unsubscribe: vi.fn() });
+
+    plugin = new ObsidianMagicPlugin(appInstanceFromMock, testManifest);
+
+    // Mock loadData and saveData on the plugin instance
+    plugin.loadData = vi.fn().mockResolvedValue({}); // Default settings or specific test settings
+    plugin.saveData = vi.fn().mockResolvedValue(undefined);
+
     await plugin.onload();
   });
 
@@ -184,14 +186,14 @@ describe('Integration Tests', () => {
       expect(mockTagDocument).toHaveBeenCalled();
       const calls = mockTagDocument.mock.calls;
       const apiCallContent = (calls[0]?.[0] ?? '') as string;
-      expect(apiCallContent).toContain('Test Document 1');
+      expect(apiCallContent).toContain('Content1'); // Adjusted for new mock content
 
       // Check the result
       expect(result.isOk()).toBe(true);
 
       // Verify file was modified with tags
-      expect(mockApp.vault.modify).toHaveBeenCalled();
-      const modifyCalls = mockApp.vault.modify.mock.calls;
+      expect(modifyMock).toHaveBeenCalled();
+      const modifyCalls = modifyMock.mock.calls;
       const modifiedContent = (modifyCalls[0]?.[1] ?? '') as string;
       expect(modifiedContent).toContain('domain: software-development');
       expect(modifiedContent).toContain('subdomains:');
@@ -204,8 +206,8 @@ describe('Integration Tests', () => {
 
     it('should handle files without existing frontmatter', async () => {
       // Mock a file without frontmatter
-      mockApp.vault.read = vi.fn().mockResolvedValue('# Test Document\n\nNo frontmatter here.');
-      mockApp.metadataCache.getFileCache = vi.fn().mockReturnValue({});
+      readMock.mockResolvedValueOnce('# Test Document\n\nNo frontmatter here.');
+      getFileCacheMock.mockReturnValueOnce({});
 
       const mockFile = {
         path: 'no-frontmatter.md',
@@ -217,8 +219,8 @@ describe('Integration Tests', () => {
       await plugin.taggingService.processFile(mockFile);
 
       // Verify file was modified with new frontmatter
-      expect(mockApp.vault.modify).toHaveBeenCalled();
-      const modifyCalls = mockApp.vault.modify.mock.calls;
+      expect(modifyMock).toHaveBeenCalled();
+      const modifyCalls = modifyMock.mock.calls;
       const modifiedContent = (modifyCalls[0]?.[1] ?? '') as string;
       expect(modifiedContent).toMatch(/^---/);
       expect(modifiedContent).toContain('domain: software-development');
@@ -244,7 +246,7 @@ describe('Integration Tests', () => {
       expect(result.getError()).toBeDefined();
 
       // Verify file was not modified
-      expect(mockApp.vault.modify).not.toHaveBeenCalled();
+      expect(modifyMock).not.toHaveBeenCalled();
     });
   });
 
@@ -263,7 +265,7 @@ describe('Integration Tests', () => {
         { path: 'test-folder/file2.md', basename: 'file2', extension: 'md' },
       ] as TFile[];
 
-      mockApp.vault.getMarkdownFiles = vi.fn().mockReturnValue(mockFiles);
+      getMarkdownFilesMock.mockReturnValue(mockFiles);
 
       // Tag the folder
       await plugin.tagFolder(mockFolder);
@@ -293,7 +295,7 @@ describe('Integration Tests', () => {
         { path: 'mixed-folder/doc.pdf', basename: 'doc', extension: 'pdf' },
       ];
 
-      mockApp.vault.getMarkdownFiles = vi.fn().mockReturnValue(allFiles.filter((f) => f.extension === 'md') as TFile[]);
+      getMarkdownFilesMock.mockReturnValue(allFiles.filter((f) => f.extension === 'md') as TFile[]);
 
       // Setup mock implementation to capture args
       let capturedFiles: TFile[] = [];
@@ -373,23 +375,35 @@ describe('Integration Tests', () => {
       expect(newPlugin.documentTagService).toBeInstanceOf(DocumentTagService);
 
       // Verify views were registered
-      expect(newPlugin.registerView).toHaveBeenCalledTimes(2);
+      vi.spyOn(newPlugin, 'registerView');
+      vi.spyOn(newPlugin, 'addCommand');
+      vi.spyOn(newPlugin, 'addRibbonIcon'); // For settings test
+      vi.spyOn(newPlugin, 'addStatusBarItem'); // For settings test
 
-      // Verify commands were registered
+      // Re-run onload with spies attached
+      await newPlugin.onload();
+
+      expect(newPlugin.registerView).toHaveBeenCalledTimes(2);
       expect(newPlugin.addCommand).toHaveBeenCalledTimes(4);
     });
 
     it('should clean up resources on unload', async () => {
       // Create and load a plugin
-      // @ts-expect-error - In the real code, this would take parameters
-      const newPlugin = new ObsidianMagicPlugin();
+      const newPlugin = new ObsidianMagicPlugin(new App(), testManifest); // Use new App() for fresh instance
+      newPlugin.loadData = vi.fn().mockResolvedValue({});
+      vi.spyOn(newPlugin, 'registerView');
+      vi.spyOn(newPlugin, 'addCommand');
+      vi.spyOn(newPlugin, 'addRibbonIcon');
+      vi.spyOn(newPlugin, 'addStatusBarItem');
       await newPlugin.onload();
 
       // Unload the plugin
       newPlugin.onunload();
 
       // Verify resources were cleaned up
-      expect(mockApp.workspace.detachLeavesOfType).toHaveBeenCalledTimes(2);
+      // detachLeavesOfTypeMock is associated with appInstanceFromMock, so this check might be tricky
+      // if newPlugin.app is a different instance. It should be: newPlugin.app.workspace.detachLeavesOfType
+      expect(vi.mocked(newPlugin.app.workspace.detachLeavesOfType)).toHaveBeenCalledTimes(2);
     });
 
     it('should load and apply settings properly', async () => {
@@ -404,12 +418,12 @@ describe('Integration Tests', () => {
         statusBarDisplay: 'never',
       };
 
-      // Create a plugin with custom settings
-      // @ts-expect-error - In the real code, this would take parameters
-      const newPlugin = new ObsidianMagicPlugin();
+      const newPlugin = new ObsidianMagicPlugin(new App(), testManifest); // Use new App() for fresh instance
       newPlugin.loadData = vi.fn().mockResolvedValue(mockSettings);
+      // Spy on methods that would be affected by settings
+      vi.spyOn(newPlugin, 'addRibbonIcon');
+      vi.spyOn(newPlugin, 'addStatusBarItem');
 
-      // Load the plugin
       await newPlugin.onload();
 
       // Verify settings were loaded and applied

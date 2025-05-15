@@ -10,9 +10,7 @@ import type * as Electron from 'electron';
 import type ObsidianMagicPlugin from '../main';
 
 // Safely access Electron APIs at runtime using the Obsidian-recommended pattern
-/* eslint-disable */
 const electron: typeof Electron | null = Platform.isDesktopApp ? window.require('electron') : null;
-/* eslint-enable */
 
 /**
  * Handles secure storage and management of API keys

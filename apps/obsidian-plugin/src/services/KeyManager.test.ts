@@ -15,29 +15,15 @@ import type ObsidianMagicPlugin from '../main';
 
 // --- Mocks ---
 
-// Mock for 'obsidian' module
-const mockNotice = vi.fn();
-vi.mock('obsidian', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('obsidian')>();
-  return {
-    ...actual,
-    Notice: mockNotice, // Use the hoisted mock function
-    Platform: {
-      // Ensure Platform is consistently mocked
-      isDesktopApp: true, // Default to desktop for most KeyManager tests
-      // Add other Platform properties if needed by KeyManager directly
-    },
-  };
-});
+// Local vi.mock('obsidian', ...) IS REMOVED
+// Vitest will use apps/obsidian-plugin/src/__mocks__/obsidian.ts automatically.
 
 // Mock for 'electron' module
 const mockIpcRendererInvoke = vi.fn();
 vi.mock('electron', () => ({
   ipcRenderer: {
     invoke: mockIpcRendererInvoke,
-    // Mock other ipcRenderer methods if KeyManager uses them
   },
-  // Mock other electron exports if KeyManager uses them
 }));
 
 // Helper for Base64 encoding matching KeyManager's encryptKey
@@ -63,9 +49,8 @@ describe('KeyManager', () => {
 
   beforeEach(() => {
     // Reset mocks and settings before each test
-    vi.clearAllMocks();
+    vi.clearAllMocks(); // This will also clear the globally mocked Notice
     mockIpcRendererInvoke.mockReset();
-    mockNotice.mockClear(); // Clear the hoisted Notice mock
     localStorage.clear();
 
     // Create mock settings
@@ -90,9 +75,6 @@ describe('KeyManager', () => {
     } as any;
 
     keyManager = new KeyManager(mockPlugin);
-
-    // Reset Notice mock
-    (Notice as ReturnType<typeof vi.fn>).mockClear();
   });
 
   afterEach(() => {
@@ -111,7 +93,7 @@ describe('KeyManager', () => {
       expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
       expect(result.isOk()).toBe(true); // saveKey returns Result
-      expect(mockNotice).toHaveBeenCalledWith('API key has been saved successfully');
+      expect(Notice).toHaveBeenCalledWith('API key has been saved successfully');
     });
 
     it('should save key to system keychain via IPC if storage is system', async () => {
@@ -126,7 +108,7 @@ describe('KeyManager', () => {
       expect(mockPlugin.settings.apiKey).toBe(''); // Local key should be cleared
       expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
       expect(result.isOk()).toBe(true); // saveKey returns Result
-      expect(mockNotice).toHaveBeenCalledWith('API key has been saved successfully');
+      expect(Notice).toHaveBeenCalledWith('API key has been saved successfully');
     });
 
     it('should return error Result if API key is empty', async () => {
@@ -137,7 +119,7 @@ describe('KeyManager', () => {
       expect((result.getError() as CoreAppError).message).toContain('API key cannot be empty');
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
-      expect(mockNotice).toHaveBeenCalledWith('Failed to save API key: API key cannot be empty');
+      expect(Notice).toHaveBeenCalledWith('Failed to save API key: API key cannot be empty');
     });
 
     it('should return error Result if saving to system keychain fails (IPC error)', async () => {
@@ -151,7 +133,7 @@ describe('KeyManager', () => {
       expect(result.getError()).toBeInstanceOf(APIError); // Check specific error type
       expect((result.getError() as CoreAppError).message).toContain('Failed to save to system keychain: IPC Failed');
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled(); // Should fail before saveSettings
-      expect(mockNotice).toHaveBeenCalledWith('Failed to save API key: Failed to save to system keychain: IPC Failed');
+      expect(Notice).toHaveBeenCalledWith('Failed to save API key: Failed to save to system keychain: IPC Failed');
     });
 
     it('should return error Result if saving to local storage fails (saveSettings error)', async () => {
@@ -166,7 +148,7 @@ describe('KeyManager', () => {
       // KeyManager wraps this in FileSystemError
       expect(result.getError()).toBeInstanceOf(CoreFileSystemError);
       expect((result.getError() as CoreAppError).message).toContain('Failed to save to local storage: Disk full');
-      expect(mockNotice).toHaveBeenCalledWith('Failed to save API key: Failed to save to local storage: Disk full');
+      expect(Notice).toHaveBeenCalledWith('Failed to save API key: Failed to save to local storage: Disk full');
     });
   });
 
@@ -227,9 +209,7 @@ describe('KeyManager', () => {
 
       expect(key).toBeNull();
       // Verify the Notice was called because the error was caught internally
-      expect(mockNotice).toHaveBeenCalledWith(
-        'Failed to load API key: Failed to load from system keychain: IPC Failed'
-      );
+      expect(Notice).toHaveBeenCalledWith('Failed to load API key: Failed to load from system keychain: IPC Failed');
     });
 
     it('should return null and show Notice if local decryption fails', async () => {
@@ -241,7 +221,7 @@ describe('KeyManager', () => {
 
       expect(key).toBeNull();
       // Verify the Notice was called because the error was caught internally
-      expect(mockNotice).toHaveBeenCalledWith(
+      expect(Notice).toHaveBeenCalledWith(
         expect.stringContaining('Failed to load API key: Failed to load from local storage:')
       );
     });
@@ -258,7 +238,7 @@ describe('KeyManager', () => {
       expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(1);
       expect(mockIpcRendererInvoke).not.toHaveBeenCalled();
       expect(result.isOk()).toBe(true); // deleteKey returns Result
-      expect(mockNotice).toHaveBeenCalledWith('API key has been deleted successfully');
+      expect(Notice).toHaveBeenCalledWith('API key has been deleted successfully');
     });
 
     it('should delete key from system keychain via IPC if storage is system', async () => {
@@ -269,7 +249,7 @@ describe('KeyManager', () => {
       expect(mockIpcRendererInvoke).toHaveBeenCalledWith('delete-secure-key', mockSettings.apiKeyKeychainId);
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled(); // Delete shouldn't save local settings
       expect(result.isOk()).toBe(true); // deleteKey returns Result
-      expect(mockNotice).toHaveBeenCalledWith('API key has been deleted successfully');
+      expect(Notice).toHaveBeenCalledWith('API key has been deleted successfully');
     });
 
     it('should return error Result if deleting from system keychain fails (IPC error)', async () => {
@@ -285,7 +265,7 @@ describe('KeyManager', () => {
         'Failed to delete from system keychain: IPC Failed'
       );
       expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
-      expect(mockNotice).toHaveBeenCalledWith(
+      expect(Notice).toHaveBeenCalledWith(
         'Failed to delete API key: Failed to delete from system keychain: IPC Failed'
       );
     });
@@ -301,9 +281,7 @@ describe('KeyManager', () => {
       expect(result.isFail()).toBe(true);
       expect(result.getError()).toBeInstanceOf(CoreFileSystemError);
       expect((result.getError() as CoreAppError).message).toContain('Failed to delete from local storage: Disk locked');
-      expect(mockNotice).toHaveBeenCalledWith(
-        'Failed to delete API key: Failed to delete from local storage: Disk locked'
-      );
+      expect(Notice).toHaveBeenCalledWith('Failed to delete API key: Failed to delete from local storage: Disk locked');
     });
   });
 

@@ -1,118 +1,105 @@
+import { App, MetadataCache, Notice, TFile, Vault } from 'obsidian';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Ensures __mocks__/obsidian.ts is used
+
+import { initializeCore } from '@magus-mark/core'; // Will import the mocked version
 import { APIError } from '@magus-mark/core/errors/APIError';
 import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
 import { TaggingError } from '@magus-mark/core/errors/TaggingError';
 
+import ObsidianMagicPlugin from '../main'; // This will be the mocked constructor
+
 import { TaggingService } from './TaggingService';
 
+import type { CoreModule } from '@magus-mark/core';
 import type { TagSet } from '@magus-mark/core/models/TagSet';
-import type { TFile } from 'obsidian';
+import type { PluginManifest } from 'obsidian';
+import type { Mock } from 'vitest';
 
-import type ObsidianMagicPlugin from '../main';
 import type { FileProcessingResult } from './TaggingService';
 
-// **** DEFINE MOCK IMPLEMENTATIONS ****
-const mockTagDocument = vi.fn();
-const mockParseDocument = vi.fn();
-const mockUpdateDocument = vi.fn();
-const mockSetApiKey = vi.fn();
-const mockSetModel = vi.fn();
+// Mock core dependencies
+const mockCoreParseDocument = vi.fn();
+const mockCoreTagDocument = vi.fn();
+const mockCoreUpdateDocument = vi.fn();
+// Assuming loadKey is not directly called by Obsidian TaggingService,
+// but API key is managed via plugin settings. If it is, it needs to be part of initializeCore mock.
 
-// Mock the return value of initializeCore
-const mockCoreServices = {
-  openAIClient: {
-    setApiKey: mockSetApiKey,
-    setModel: mockSetModel,
-  },
-  taggingService: {
-    tagDocument: mockTagDocument,
-  },
-  documentProcessor: {
-    parseDocument: mockParseDocument,
-    updateDocument: mockUpdateDocument,
-  },
-};
-
-// Mock only the initializeCore function from the core module
-vi.mock('@magus-mark/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@magus-mark/core')>();
-  return {
-    ...actual, // Keep other actual exports
-    initializeCore: vi.fn().mockReturnValue(mockCoreServices), // Mock initializeCore
-  };
-});
-
-// Mock KeyManager dependency
-const mockLoadKey = vi.fn();
-vi.mock('./KeyManager', () => ({
-  KeyManager: vi.fn(() => ({
-    loadKey: mockLoadKey,
+vi.mock('@magus-mark/core', () => ({
+  initializeCore: vi.fn(() => ({
+    documentProcessor: {
+      parseDocument: mockCoreParseDocument,
+      updateDocument: mockCoreUpdateDocument,
+    },
+    taggingService: {
+      // This is the CORE tagging service
+      tagDocument: mockCoreTagDocument,
+    },
+    // openAIClient: { /* mock methods if needed */ },
+    // taxonomyManager: { /* mock methods if needed */ },
+    // batchProcessingService: { /* mock methods if needed */ },
   })),
 }));
 
-// Mock obsidian Notice and App Vault methods
-const mockNotice = vi.fn();
-const mockVaultRead = vi.fn();
-const mockVaultModify = vi.fn();
-vi.mock('obsidian', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian')>();
-  return {
-    ...original, // Keep original exports
-    Notice: mockNotice, // Mock Notice specifically
-    // Mock parts of App needed
-    App: {
-      vault: {
-        read: mockVaultRead,
-        modify: mockVaultModify,
-      },
-    },
-  };
-});
-
-// Mock plugin instance (basic structure)
-const mockPlugin = {
-  app: {
-    vault: {
-      read: mockVaultRead,
-      modify: mockVaultModify,
-    },
-    isDesktopApp: true,
-  } as any, // Using 'any' for simplicity, refine if needed
-  settings: {
-    apiKey: 'test-key',
-    tagMode: 'overwrite',
-    enableAutoSync: true,
-    logLevel: 'info',
-    modelPreference: 'gpt-4o', // Add model pref
-    defaultTagBehavior: 'overwrite', // Add tag behavior
-    // other settings...
-  },
-  keyManager: { loadKey: mockLoadKey } as any,
-  // Simplify statusBarElement mock
-  statusBarElement: { setText: vi.fn() } as any, // Use 'as any' to bypass complex type issues
-} as unknown as ObsidianMagicPlugin; // Cast to allow partial mock
+vi.mock('../main'); // Mocks ObsidianMagicPlugin
+vi.mock('obsidian');
 
 // --- Tests ---
-
 describe('TaggingService', () => {
   let taggingService: TaggingService;
+  let pluginInstance: ObsidianMagicPlugin;
+  let mockCoreServices: CoreModule; // To hold the mocked core services
 
   beforeEach(() => {
-    // Reset mocks before each test
     vi.resetAllMocks();
 
-    // Mock loadKey result for successful configuration by default
-    mockLoadKey.mockResolvedValue('test-key');
+    // Initialize mocked core services
+    // initializeCore is already mocked to return the desired structure
+    mockCoreServices = initializeCore({ apiKey: 'test-core-key' });
 
-    // Mock file reading and document parsing results (used by core mocks)
-    mockVaultRead.mockResolvedValue('# Test Content');
-    mockParseDocument.mockReturnValue({ path: 'test.md', name: 'test', content: '# Test Content' });
+    // Configure imported mock functions from core
+    mockCoreParseDocument.mockReturnValue({ path: 'test.md', name: 'test', content: '# Test Content' });
+    // mockCoreTagDocument and mockCoreUpdateDocument will often be configured per test
 
-    // Create instance of the service - constructor calls mocked initializeCore
-    taggingService = new TaggingService(mockPlugin);
+    const MockedPlugin = ObsidianMagicPlugin as unknown as new (
+      app: App,
+      manifest: PluginManifest
+    ) => ObsidianMagicPlugin;
+    pluginInstance = new MockedPlugin({} as App, {} as PluginManifest);
 
-    // No need to spyOn coreServices methods directly as initializeCore is mocked
+    pluginInstance.app = {
+      vault: {
+        read: vi.fn().mockResolvedValue('# Test Content'),
+        modify: vi.fn().mockResolvedValue(undefined),
+      } as unknown as Vault,
+      metadataCache: {} as MetadataCache,
+    } as App;
+
+    pluginInstance.settings = {
+      apiKey: 'test-key', // This is the plugin's API key setting
+      defaultTags: {},
+    } as any;
+
+    pluginInstance.statusBarElement = {
+      setText: vi.fn(),
+    } as any;
+
+    // The TaggingService under test uses the pluginInstance, which internally might use core services.
+    // For this test, we are primarily testing the Obsidian TaggingService's logic,
+    // and its interactions with the Obsidian plugin instance and its direct dependencies.
+    // The actual calls to core services will go through the mocks defined above if TaggingService was using them directly.
+    // However, the current TaggingService seems to use plugin.core.taggingService.tagDocument etc.
+    // So we need to ensure pluginInstance.core is set up with our mocks.
+
+    // This is crucial: ensure the plugin instance used by TaggingService has the mocked core services.
+    // If TaggingService constructor itself calls initializeCore, that's covered by the top-level vi.mock.
+    // If TaggingService expects plugin.core to be set, we need to set it.
+    // Assuming TaggingService gets `core` via `plugin.core` or similar.
+    // Let's simulate that the plugin initializes its `core` property.
+    (pluginInstance as any).core = mockCoreServices;
+
+    taggingService = new TaggingService(pluginInstance);
   });
 
   afterEach(() => {
@@ -121,35 +108,36 @@ describe('TaggingService', () => {
 
   // --- Test Cases ---
 
-  // Initialize method is not public, tested implicitly
-
   describe('processFile', () => {
     const mockFile = { path: 'test.md', basename: 'test' } as TFile;
-    const mockTags: TagSet = { year: '2024', topical_tags: [], conversation_type: 'note', confidence: { overall: 1 } }; // Example TagSet
-    // Mock the return value of core tagDocument
+    const mockTags: TagSet = { year: '2024', topical_tags: [], conversation_type: 'note', confidence: { overall: 1 } };
     const mockTaggingResult = { success: true, tags: mockTags };
 
     it('should process a file successfully', async () => {
-      mockTagDocument.mockResolvedValue(mockTaggingResult);
+      // Now, mockCoreTagDocument is what the *core* tagging service would do.
+      // The Obsidian TaggingService uses this via pluginInstance.core.taggingService.tagDocument
+      mockCoreTagDocument.mockResolvedValue(mockTaggingResult);
+      mockCoreUpdateDocument.mockReturnValue('new file content');
 
       const result: FileProcessingResult = await taggingService.processFile(mockFile);
 
-      expect(mockVaultRead).toHaveBeenCalledWith(mockFile);
-      expect(mockParseDocument).toHaveBeenCalledWith(mockFile.path, mockFile.basename, '# Test Content');
-      expect(mockTagDocument).toHaveBeenCalled();
-      expect(mockUpdateDocument).toHaveBeenCalledWith(expect.anything(), mockTags);
-      expect(mockVaultModify).toHaveBeenCalledWith(mockFile, expect.any(String));
+      expect(pluginInstance.app.vault.read).toHaveBeenCalledWith(mockFile);
+      // Assuming the Obsidian TaggingService calls the core documentProcessor for parsing
+      expect(mockCoreParseDocument).toHaveBeenCalledWith(mockFile.path, mockFile.basename, '# Test Content');
+      expect(mockCoreTagDocument).toHaveBeenCalled(); // Core tagging service
+      expect(mockCoreUpdateDocument).toHaveBeenCalledWith(expect.anything(), mockTags); // Core document processor
+      expect(pluginInstance.app.vault.modify).toHaveBeenCalledWith(mockFile, 'new file content');
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         expect(result.getValue().file).toBe(mockFile);
         expect(result.getValue().tags).toEqual(mockTags);
       }
-      expect(mockNotice).toHaveBeenCalledWith('Successfully tagged document');
+      expect(Notice).toHaveBeenCalledWith('Successfully tagged document');
     });
 
     it('should handle API errors during processing', async () => {
       const apiError = new APIError('API Failed');
-      mockTagDocument.mockResolvedValue({ success: false, error: apiError });
+      mockCoreTagDocument.mockResolvedValue({ success: false, error: apiError });
 
       const result: FileProcessingResult = await taggingService.processFile(mockFile);
 
@@ -157,13 +145,14 @@ describe('TaggingService', () => {
       if (result.isFail()) {
         expect(result.getError()).toBeInstanceOf(APIError);
       }
-      expect(mockNotice).toHaveBeenCalledWith(expect.stringContaining('API Error: API Failed'));
-      expect(mockVaultModify).not.toHaveBeenCalled();
+      expect(Notice).toHaveBeenCalledWith(expect.stringContaining('API Error: API Failed'));
+      expect(pluginInstance.app.vault.modify).not.toHaveBeenCalled();
     });
 
     it('should handle API key errors during processing', async () => {
       const keyError = new ApiKeyError('Invalid Key');
-      mockTagDocument.mockImplementation(() => {
+      // If this error is thrown by the core tagging service
+      mockCoreTagDocument.mockImplementation(() => {
         throw keyError;
       });
 
@@ -173,32 +162,30 @@ describe('TaggingService', () => {
       if (result.isFail()) {
         expect(result.getError()).toBeInstanceOf(ApiKeyError);
       }
-      expect(mockNotice).toHaveBeenCalledWith(expect.stringContaining('API key missing'));
-      expect(mockVaultModify).not.toHaveBeenCalled();
+      expect(Notice).toHaveBeenCalledWith(expect.stringContaining('API key missing'));
+      expect(pluginInstance.app.vault.modify).not.toHaveBeenCalled();
     });
 
     it('should handle other errors during processing', async () => {
       const otherError = new Error('Something else went wrong');
-      mockTagDocument.mockResolvedValue({ success: false, error: otherError });
+      mockCoreTagDocument.mockResolvedValue({ success: false, error: otherError });
 
       const result: FileProcessingResult = await taggingService.processFile(mockFile);
 
       expect(result.isFail()).toBe(true);
       if (result.isFail()) {
-        expect(result.getError()).toBeInstanceOf(TaggingError);
+        expect(result.getError()).toBeInstanceOf(TaggingError); // The Obsidian service wraps it
       }
-      expect(mockNotice).toHaveBeenCalledWith(expect.stringContaining('Error tagging document'));
-      expect(mockVaultModify).not.toHaveBeenCalled();
+      expect(Notice).toHaveBeenCalledWith(expect.stringContaining('Error tagging document'));
+      expect(pluginInstance.app.vault.modify).not.toHaveBeenCalled();
     });
 
-    it('should return error if service is not configured (no API key)', async () => {
-      mockLoadKey.mockResolvedValue(null);
-      const unconfiguredPlugin = {
-        ...mockPlugin,
-        settings: { ...mockPlugin.settings, apiKey: '' },
-        statusBarElement: { setText: vi.fn() } as any,
-      }; // Use simplified mock
-      const unconfiguredService = new TaggingService(unconfiguredPlugin as ObsidianMagicPlugin);
+    it('should return error if service is not configured (no API key on plugin)', async () => {
+      // This test focuses on the Obsidian TaggingService's own API key check,
+      // which relies on pluginInstance.settings.apiKey.
+      pluginInstance.settings.apiKey = ''; // Simulate no API key on the plugin
+
+      const unconfiguredService = new TaggingService(pluginInstance); // Re-init with modified plugin
 
       const result: FileProcessingResult = await unconfiguredService.processFile(mockFile);
 
@@ -208,8 +195,8 @@ describe('TaggingService', () => {
         expect(error).toBeInstanceOf(ApiKeyError);
         expect(error.message).toContain('OpenAI API key is not configured');
       }
-      expect(mockTagDocument).not.toHaveBeenCalled();
-      expect(mockVaultModify).not.toHaveBeenCalled();
+      expect(mockCoreTagDocument).not.toHaveBeenCalled();
+      expect(pluginInstance.app.vault.modify).not.toHaveBeenCalled();
     });
   });
 
@@ -222,27 +209,36 @@ describe('TaggingService', () => {
     const mockTaggingResult = { success: true, tags: mockTags };
 
     beforeEach(() => {
-      mockVaultRead.mockResolvedValue('# Content');
-      mockParseDocument.mockImplementation((path, name, content) => ({ path, name, content }));
-      mockTagDocument.mockResolvedValue(mockTaggingResult);
-      mockUpdateDocument.mockReturnValue('---\ntags: processed\n---\n# Content');
-      mockVaultModify.mockResolvedValue(undefined);
-      vi.clearAllMocks();
-      // Ensure status bar mock exists
-      if (!mockPlugin.statusBarElement) {
-        mockPlugin.statusBarElement = { setText: vi.fn() } as any;
+      (pluginInstance.app.vault.read as Mock).mockResolvedValue('# Content');
+      mockCoreParseDocument.mockImplementation((path: string, name: string, content: string) => ({
+        path,
+        name,
+        content,
+      }));
+      mockCoreTagDocument.mockResolvedValue(mockTaggingResult);
+      mockCoreUpdateDocument.mockReturnValue(
+        `---
+tags: processed
+---
+# Content`
+      );
+      (pluginInstance.app.vault.modify as Mock).mockResolvedValue(undefined);
+
+      if (!pluginInstance.statusBarElement) {
+        pluginInstance.statusBarElement = { setText: vi.fn() } as any;
+      } else {
+        (pluginInstance.statusBarElement.setText as Mock).mockClear();
       }
     });
 
     it('should process multiple files and report progress', async () => {
       await taggingService.processFiles(mockFiles);
 
-      expect(mockTagDocument).toHaveBeenCalledTimes(mockFiles.length);
-      // Check status bar updates - add null check
-      if (mockPlugin.statusBarElement) {
-        expect(mockPlugin.statusBarElement.setText).toHaveBeenCalledWith('Magic: Processing files (50%)...');
-        expect(mockPlugin.statusBarElement.setText).toHaveBeenCalledWith('Magic: Processing files (100%)...');
-        expect(mockPlugin.statusBarElement.setText).toHaveBeenCalledWith('Magic: Ready');
+      expect(mockCoreTagDocument).toHaveBeenCalledTimes(mockFiles.length);
+      if (pluginInstance.statusBarElement) {
+        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magic: Processing files (50%)...');
+        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magic: Processing files (100%)...');
+        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magic: Ready');
       }
     });
 
@@ -250,12 +246,9 @@ describe('TaggingService', () => {
       const results = await taggingService.processFiles(mockFiles);
 
       expect(results).toHaveLength(mockFiles.length);
-      // Add explicit types and check index validity
       results.forEach((result: FileProcessingResult, index: number) => {
         expect(result.isOk()).toBe(true);
         if (result.isOk() && mockFiles[index]) {
-          // Ensure mockFiles[index] exists
-          // Use getValue() and optional chaining for path access
           expect(result.getValue().file.path).toBe(mockFiles[index].path);
           expect(result.getValue().tags).toEqual(mockTags);
         }
@@ -264,15 +257,15 @@ describe('TaggingService', () => {
 
     it('should handle errors for individual files', async () => {
       const errorFile = { path: 'error.md', basename: 'error' } as TFile;
-      const filesWithError = [mockFiles[0], errorFile, mockFiles[1]];
+      const filesWithError = [mockFiles[0]!, errorFile, mockFiles[1]!];
       const fileError = new Error('File processing error');
 
-      mockTagDocument
+      mockCoreTagDocument
         .mockResolvedValueOnce(mockTaggingResult)
         .mockResolvedValueOnce({ success: false, error: fileError })
         .mockResolvedValueOnce(mockTaggingResult);
 
-      const results = await taggingService.processFiles(filesWithError as TFile[]);
+      const results = await taggingService.processFiles(filesWithError);
 
       expect(results).toHaveLength(filesWithError.length);
       expect(results[0]?.isOk()).toBe(true);
@@ -281,17 +274,12 @@ describe('TaggingService', () => {
         expect(results[1].getError()).toBeInstanceOf(TaggingError);
       }
       expect(results[2]?.isOk()).toBe(true);
-      expect(mockNotice).toHaveBeenCalledWith(expect.stringContaining('Error tagging document'));
+      expect(Notice).toHaveBeenCalledWith(expect.stringContaining('Error tagging document'));
     });
 
     it('should return errors if service is not configured', async () => {
-      mockLoadKey.mockResolvedValue(null);
-      const unconfiguredPlugin = {
-        ...mockPlugin,
-        settings: { ...mockPlugin.settings, apiKey: '' },
-        statusBarElement: { setText: vi.fn() } as any,
-      };
-      const unconfiguredService = new TaggingService(unconfiguredPlugin as ObsidianMagicPlugin);
+      pluginInstance.settings.apiKey = ''; // Simulate no API key on the plugin
+      const unconfiguredService = new TaggingService(pluginInstance); // Re-init
 
       const results = await unconfiguredService.processFiles(mockFiles);
 
@@ -304,7 +292,7 @@ describe('TaggingService', () => {
           expect(error.message).toContain('OpenAI API key is not configured');
         }
       });
-      expect(mockTagDocument).not.toHaveBeenCalled();
+      expect(mockCoreTagDocument).not.toHaveBeenCalled();
     });
   });
 });
