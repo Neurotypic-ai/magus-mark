@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 import ObsidianMagicPlugin from '../main';
 import { createMockManifest } from '../testing/createMockManifest';
 import { MetadataCache } from './obsidian/MetadataCache';
+import { Modal } from './obsidian/Modal';
 import { Setting } from './obsidian/Setting';
 import { Vault } from './obsidian/Vault';
 
@@ -27,6 +28,8 @@ import type {
   Workspace as WorkspaceType,
 } from 'obsidian';
 import type { Mock } from 'vitest';
+
+export { Modal };
 
 export function normalizePath(path: string): string {
   return path.replace(/\\/g, '/');
@@ -192,6 +195,3 @@ export { PluginSettingTab } from './obsidian/PluginSettingTab';
 export { Setting } from './obsidian/Setting';
 export { Vault } from './obsidian/Vault';
 export { Workspace } from './obsidian/Workspace';
-
-// Import and re-export the detailed Modal mock
-export { Modal } from './obsidian/Modal';

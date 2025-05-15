@@ -21,6 +21,7 @@ describe('FolderTagModal', () => {
   let modal: FolderTagModal;
 
   beforeEach(() => {
+    // Reset mocks and state before each test
     vi.clearAllMocks();
     onSubmitCallback.mockClear();
 
@@ -59,6 +60,9 @@ describe('FolderTagModal', () => {
     // testApp.isDesktopApp is handled by the Platform mock used in createMockApp
 
     modal = new FolderTagModal(testPlugin, onSubmitCallback);
+
+    // Spy on modal methods
+    vi.spyOn(modal, 'close');
   });
 
   describe('UI Initialization', () => {

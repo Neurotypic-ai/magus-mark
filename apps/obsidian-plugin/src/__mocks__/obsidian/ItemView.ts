@@ -3,8 +3,7 @@ import { vi } from 'vitest';
 
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 
-import type { App, Component as ComponentType, EventRef, TFile } from 'obsidian';
-import type { Mock } from 'vitest';
+import type { App, Component as ComponentType, TFile } from 'obsidian';
 
 import type { WorkspaceLeaf } from './WorkspaceLeaf';
 
@@ -16,37 +15,35 @@ export class ItemView extends View implements ComponentType {
     this.leaf = leaf;
     this.containerEl = createMockObsidianElement<'div'>('div');
     this.app = leaf.app as unknown as App;
+
+    // Make instance methods mockable
+    this.addAction = vi.fn(this.addAction.bind(this));
+    this.load = vi.fn(this.load.bind(this));
+    this.onload = vi.fn(this.onload.bind(this));
+    this.unload = vi.fn(this.unload.bind(this));
+    this.onunload = vi.fn(this.onunload.bind(this));
+    this.getViewContainer = vi.fn(this.getViewContainer.bind(this));
+    this.addChild = vi.fn(this.addChild.bind(this));
+    this.removeChild = vi.fn(this.removeChild.bind(this));
+    this.register = vi.fn(this.register.bind(this));
+    this.registerEvent = vi.fn(this.registerEvent.bind(this));
+    this.registerInterval = vi.fn(this.registerInterval.bind(this));
   }
+
   getViewType(): string {
     return 'mock-item-view';
   }
+
   getDisplayText(): string {
     return 'Mock Item View';
   }
-  override registerDomEvent: Mock<(...args: any[]) => void> = vi.fn();
+
   addAction(icon: string, title: string, cb: (evt: MouseEvent) => any): HTMLElement {
     console.log('addAction', icon, title, cb);
     return createMockObsidianElement('div');
   }
-  override load: Mock<() => void> = vi.fn<() => void>();
-  override onload: Mock<() => void> = vi.fn<() => void>();
-  override unload: Mock<() => void> = vi.fn<() => void>();
-  override onunload: Mock<() => void> = vi.fn<() => void>();
+
   getViewContainer(): HTMLElement {
     return this.containerEl;
   }
-  override addChild: <T extends ComponentType>(child: T) => T = vi.fn(<T extends ComponentType>(child: T): T => {
-    return child;
-  });
-  override removeChild: <T extends ComponentType>(child: T) => T = vi.fn(<T extends ComponentType>(child: T): T => {
-    console.warn('removeChild mock: returning component');
-    return child;
-  });
-  override register: Mock<(cb: () => any) => void> = vi.fn((cb: () => any): void => {
-    cb();
-  });
-  override registerEvent: Mock<(eventRef: EventRef) => void> = vi.fn();
-  override registerInterval: Mock<(id: number) => number> = vi.fn((_id: number): number => {
-    return 0;
-  });
 }
