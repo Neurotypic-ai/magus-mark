@@ -1,5 +1,4 @@
-import { TFile, TFolder } from 'obsidian';
-
+import { TFile, TFolder } from '../obsidian';
 import { DataAdapter } from './DataAdapter';
 import { createMockMarkdownFiles, createMockTFile, createMockTFolder } from './FileMockHelpers';
 import { Events } from './MockEvents';

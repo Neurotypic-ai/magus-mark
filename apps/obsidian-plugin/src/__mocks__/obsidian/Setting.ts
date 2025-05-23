@@ -39,13 +39,13 @@ const clickableOptions = {
 };
 
 const buttonOptions = {
-  setButtonText: vi.fn(),
-  setClass: vi.fn(),
-  setCta: vi.fn(),
-  setIcon: vi.fn(),
-  setTooltip: vi.fn(),
-  removeCta: vi.fn(),
-  setWarning: vi.fn(),
+  setButtonText: vi.fn().mockReturnThis(),
+  setClass: vi.fn().mockReturnThis(),
+  setCta: vi.fn().mockReturnThis(),
+  setIcon: vi.fn().mockReturnThis(),
+  setTooltip: vi.fn().mockReturnThis(),
+  removeCta: vi.fn().mockReturnThis(),
+  setWarning: vi.fn().mockReturnThis(),
 };
 
 const extraButtonOptions = {
@@ -69,10 +69,12 @@ export class Setting extends Events implements SettingType {
     // All children created via .createEl are MockObsidianElement by contract
     this.settingEl = createMockObsidianElement<'div'>('div', { cls: 'setting-item' });
     const nameAndDescContainer = this.settingEl.createEl('div', { cls: 'setting-item-info' });
-    const nameEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-name' });
-    const descEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-description' });
-    const controlEl = this.settingEl.createEl('div', { cls: 'setting-item-control' });
-    const infoEl = this.settingEl.createEl('div', { cls: 'setting-item-info' });
+    const nameEl = nameAndDescContainer.createEl('div', { cls: 'setting-item-name' }) as MockObsidianElement<'div'>;
+    const descEl = nameAndDescContainer.createEl('div', {
+      cls: 'setting-item-description',
+    }) as MockObsidianElement<'div'>;
+    const controlEl = this.settingEl.createEl('div', { cls: 'setting-item-control' }) as MockObsidianElement<'div'>;
+    const infoEl = this.settingEl.createEl('div', { cls: 'setting-item-info' }) as MockObsidianElement<'div'>;
     this.nameEl = nameEl;
     this.descEl = descEl;
     this.controlEl = controlEl;
@@ -150,8 +152,13 @@ export class Setting extends Events implements SettingType {
     const component: ButtonComponent = {
       ...sharedOptions,
       ...clickableOptions,
-      ...buttonOptions,
       buttonEl: el,
+      setButtonText: vi.fn(() => component),
+      setClass: vi.fn(() => component),
+      setCta: vi.fn(() => component),
+      setIcon: vi.fn(() => component),
+      setTooltip: vi.fn(() => component),
+      removeCta: vi.fn(() => component),
       setWarning: vi.fn(() => component),
       then: vi.fn(() => component),
     };

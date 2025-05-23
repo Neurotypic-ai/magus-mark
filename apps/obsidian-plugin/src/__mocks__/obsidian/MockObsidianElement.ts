@@ -12,10 +12,13 @@ export interface ObsidianElementExtras {
     attrs?: ElementAttrs
   ): HTMLElementTagNameMap[K] & ObsidianElementExtras;
   createDiv(attrs?: ElementAttrs): HTMLDivElement & ObsidianElementExtras;
+  createSpan(attrs?: ElementAttrs): HTMLSpanElement & ObsidianElementExtras;
+  createPara(attrs?: ElementAttrs): HTMLParagraphElement & ObsidianElementExtras;
   setText(text: string): void;
   empty(): void;
   addClass(cls: string): void;
   removeClass(cls: string): void;
+  toggleClass(cls: string, value?: boolean): void;
   setAttr(attr: string, value: string): void;
   doc: Document;
 }

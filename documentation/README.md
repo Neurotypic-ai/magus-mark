@@ -1,10 +1,10 @@
-# OBSIDIAN MAGIC
+# MAGUS MARK
 
 ## Project Overview
 
-Obsidian Magic is a tool for organizing exports of ChatGPT conversations and other AI chat history in Obsidian (a
-markdown-based knowledge management application). The core functionality is an AI-powered tagging system that analyzes
-conversations and applies a consistent set of tags to make them easier to search, navigate, and understand.
+Magus Mark is a tool for organizing AI chat exports and technical knowledge in Obsidian (a markdown-based knowledge
+management application). The core functionality is an AI-powered tagging system that analyzes conversations and applies
+a consistent set of tags to make them easier to search, navigate, and understand.
 
 The project arose from the need to organize large collections of AI chat exports that become difficult to search and
 reference over time. While previous attempts at automated tagging resulted in too many inconsistent tags that diminished
@@ -21,9 +21,15 @@ The system consists of:
 3. **[Command Line Tool](./cli/cli-overview.md)** - A TypeScript CLI for batch processing
 4. **[Obsidian Plugin](./obsidian-plugin/plugin-overview.md)** - Deep integration with the Obsidian knowledge management
    system
-5. **[VS Code & Cursor Integration](./vscode-integration/vscode-overview.md)** - Development environment extensions with
-   MCP server integration
+5. **[VS Code Extension](./vscode-integration/vscode-overview.md)** - Development environment extensions with MCP server
+   integration
 6. **[Implementation Details](./implementation/project-structure.md)** - Technical implementation specifications
+
+## Project Structure
+
+- **[Applications](./apps.md)** - Detailed documentation for all application implementations (CLI, Obsidian Plugin, VS
+  Code Extension)
+- **[Packages](./packages.md)** - Shared libraries and configurations (Core, TypeScript Viewer, Nx Plugin, Configs)
 
 ## Build System
 
@@ -41,7 +47,7 @@ The project uses a modern build system with:
 The project implements a comprehensive testing strategy:
 
 - **Vitest** - Primary testing framework for most packages
-- **Mocha** - Used for VS Code integration tests (with ongoing migration for VS Code unit tests)
+- **Mocha** - Used for VS Code extension tests
 - **Co-located Tests** - Tests located alongside the source files they test
 - **Organized Mocks** - Dedicated mock files for complex dependencies
 - **Result Pattern** - Type-safe error handling and testing

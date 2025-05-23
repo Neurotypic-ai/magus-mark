@@ -1,7 +1,7 @@
 import { Setting } from 'obsidian';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createMockedPlugin } from '../__mocks__/obsidian';
+import { createMockApp, createMockedPlugin } from '../__mocks__/obsidian';
 import { createMockObsidianElement } from '../testing/createMockObsidianElement';
 import { FolderTagModal } from './FolderTagModal';
 
@@ -49,8 +49,8 @@ describe('FolderTagModal', () => {
       } as unknown as TAbstractFile,
     ];
 
-    testPlugin = createMockedPlugin();
-    testApp = testPlugin.app;
+    testApp = createMockApp();
+    testPlugin = createMockedPlugin() as unknown as ObsidianMagicPlugin;
 
     // Mock methods on testApp.vault
     vi.spyOn(testApp.vault, 'getAllLoadedFiles').mockReturnValue(mockFilesAndFolders);

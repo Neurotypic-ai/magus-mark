@@ -27,6 +27,16 @@ export function createMockObsidianElement<K extends keyof HTMLElementTagNameMap>
     el.appendChild(divEl);
     return divEl;
   });
+  el.createSpan = vi.fn((spanAttrs?: ElementAttrs): MockObsidianElement<'span'> => {
+    const spanEl = createMockObsidianElement('span', spanAttrs);
+    el.appendChild(spanEl);
+    return spanEl;
+  });
+  el.createPara = vi.fn((paraAttrs?: ElementAttrs): MockObsidianElement<'p'> => {
+    const paraEl = createMockObsidianElement('p', paraAttrs);
+    el.appendChild(paraEl);
+    return paraEl;
+  });
   el.setText = vi.fn((text: string) => {
     el.textContent = text;
   });

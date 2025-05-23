@@ -4,15 +4,14 @@ import { createMockObsidianElement } from '../../testing/createMockObsidianEleme
 import { Events } from './MockEvents';
 
 import type {
-  App,
   Debouncer,
   EventRef,
   MarkdownFileInfo,
+  OpenViewState,
   Side,
   SplitDirection,
   TFile,
   View,
-  WorkspaceContainer,
   WorkspaceItem as WorkspaceItemType,
   WorkspaceRoot as WorkspaceRootType,
   WorkspaceSidedock as WorkspaceSidedockType,
@@ -25,82 +24,8 @@ import type {
 import type { MockObsidianElement } from './MockObsidianElement';
 import type { WorkspaceLeaf } from './WorkspaceLeaf';
 
-interface MockWorkspaceParent extends WorkspaceItemType {
-  /* add specific parent props if any */
-}
-
 type Constructor<T = any> = new (...args: any[]) => T;
-
-vi.mock('obsidian', () => {
-  class WorkspaceItemMockImpl extends Events implements WorkspaceItemType {
-    getRoot: () => WorkspaceRootType = vi.fn();
-    getContainer: () => WorkspaceContainer = vi.fn();
-    parent: MockWorkspaceParent;
-    constructor(parent: MockWorkspaceParent) {
-      super();
-      this.parent = parent;
-    }
-    doc: Document = document;
-    win: Window = window;
-  }
-
-  class WorkspaceSidedockMockImpl extends WorkspaceItemMockImpl implements WorkspaceSidedockType {
-    collapsed = false;
-    toggle: () => void = vi.fn();
-    collapse: () => void = vi.fn();
-    expand: () => void = vi.fn();
-    constructor(parent: MockWorkspaceParent) {
-      super(parent);
-    }
-  }
-  class WorkspaceWindowMockImpl extends WorkspaceItemMockImpl implements WorkspaceWindowType {
-    override win: Window = window as Window;
-    override doc: Document = document as Document;
-    app: App = {} as App;
-    override parent: MockWorkspaceParent;
-    override getRoot: () => WorkspaceRootType = vi.fn();
-    override getContainer: () => WorkspaceContainer = vi.fn();
-    constructor(parent: MockWorkspaceParent) {
-      super(parent);
-      this.parent = parent;
-    }
-    activeLeaf: WorkspaceLeaf | undefined = undefined;
-    leftSplit: WorkspaceSplit = {} as WorkspaceSplit;
-    rightSplit: WorkspaceSplit = {} as WorkspaceSplit;
-    getLeafById: (id: string) => WorkspaceLeaf = vi.fn();
-    getLeavesOfType: (type: string) => WorkspaceLeaf[] = vi.fn();
-    getLeftLeaf: (sticky?: boolean) => WorkspaceLeaf = vi.fn();
-    getRightLeaf: (sticky?: boolean) => WorkspaceLeaf = vi.fn();
-    createLeafInParent: (parent: WorkspaceSplit, index?: number) => WorkspaceLeaf = vi.fn();
-    splitActiveLeaf: (direction?: 'vertical' | 'horizontal') => WorkspaceLeaf = vi.fn();
-    rootSplit: WorkspaceSplit = {} as WorkspaceSplit;
-    activeTabGroup: WorkspaceTabs | null = null;
-    setIcon = vi.fn<(iconId: string) => void>();
-    setTitle = vi.fn<(title: string) => void>();
-    onResize = vi.fn<() => void>();
-  }
-
-  class WorkspaceRootMockImpl extends WorkspaceItemMockImpl implements WorkspaceRootType {
-    getLeaf: (newLeaf?: boolean) => WorkspaceLeaf = vi.fn();
-    override win: Window = window as Window;
-    override doc: Document = document as Document;
-    constructor(parent: MockWorkspaceParent) {
-      super(parent);
-    }
-    activeEditor: MarkdownFileInfo | null = null;
-    activeLeaf: WorkspaceLeaf | null = null;
-    getUnpinnedLeaves: (type?: string) => WorkspaceLeaf[] = vi.fn();
-  }
-
-  const mockParent = {} as MockWorkspaceParent;
-
-  return {
-    WorkspaceSidedock: vi.fn().mockImplementation(() => new WorkspaceSidedockMockImpl(mockParent)),
-    WorkspaceRoot: vi.fn().mockImplementation(() => new WorkspaceRootMockImpl(mockParent)),
-    WorkspaceItem: WorkspaceItemMockImpl,
-    WorkspaceWindow: vi.fn().mockImplementation(() => new WorkspaceWindowMockImpl(mockParent)),
-  };
-});
+type PaneType = boolean | 'split' | 'tab' | 'window';
 
 export class Workspace extends Events implements WorkspaceType {
   activeLeaf: WorkspaceLeaf | null = null;
@@ -209,12 +134,4 @@ export class Workspace extends Events implements WorkspaceType {
     dimensions?: { x: number; y: number; width: number; height: number }
   ) => WorkspaceWindowType = vi.fn(() => ({}) as WorkspaceWindowType);
   openParentLeaf: (leaf: WorkspaceLeaf) => WorkspaceLeaf | null = vi.fn(() => null);
-}
-
-type PaneType = boolean | 'split' | 'tab' | 'window';
-interface OpenViewState {
-  active?: boolean;
-  eState?: any;
-  state?: any;
-  type?: string;
 }

@@ -1,4 +1,4 @@
-import { TFile, TFolder } from 'obsidian';
+import { TFile, TFolder } from '../obsidian';
 
 /**
  * Helper to create an array of mock markdown files.

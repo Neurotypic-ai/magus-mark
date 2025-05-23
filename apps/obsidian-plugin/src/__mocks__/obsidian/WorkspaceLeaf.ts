@@ -1,28 +1,124 @@
-import { WorkspaceTabs } from 'obsidian';
-
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
-import { ItemView } from './ItemView';
 import { Events } from './MockEvents';
 import { Vault } from './Vault';
 
 import type {
   Vault as VaultType,
   View,
+  WorkspaceContainer,
   WorkspaceContainer as WorkspaceContainerType,
   WorkspaceLeaf as WorkspaceLeafType,
   WorkspaceMobileDrawer,
   WorkspaceParent,
   WorkspaceRoot,
+  WorkspaceTabs,
 } from 'obsidian';
 
 import type { MockObsidianElement } from './MockObsidianElement';
 
-/** Minimal WorkspaceLeaf stub */
+// Enhanced mock for WorkspaceTabs with all required properties
+class MockWorkspaceTabs extends Events implements WorkspaceTabs {
+  parent: WorkspaceParent;
+  doc: Document = document;
+  win: Window = window;
 
+  constructor() {
+    super();
+    // Create a minimal WorkspaceParent mock
+    this.parent = {
+      ...new Events(),
+      doc: document,
+      win: window,
+      parent: null as any, // Will be set if needed
+      getRoot: () => this.getRoot(),
+      getContainer: () => this as any,
+    } as WorkspaceParent;
+  }
+
+  getRoot(): WorkspaceRoot {
+    // Return a self-referential mock
+    return {
+      ...new Events(),
+      doc: this.doc,
+      win: this.win,
+      parent: null as any,
+      getRoot: () => this.getRoot(),
+      getContainer: () => this as any,
+    } as WorkspaceRoot;
+  }
+
+  getContainer(): WorkspaceContainer {
+    return this as any;
+  }
+}
+
+// Simple View mock that extends Events - using type assertion to avoid protected method conflicts
+class MockView extends Events {
+  app: any;
+  icon: string = 'document';
+  navigation: boolean = false;
+  leaf: WorkspaceLeafType;
+  containerEl: HTMLElement;
+  scope: any = { register: () => {}, unregister: () => {} };
+
+  constructor(leaf: WorkspaceLeafType) {
+    super();
+    this.leaf = leaf;
+    this.app = (leaf as any).app;
+    this.containerEl = createMockObsidianElement('div');
+  }
+
+  getViewType(): string {
+    return 'mock-view';
+  }
+  getDisplayText(): string {
+    return 'Mock View';
+  }
+  getIcon(): string {
+    return this.icon;
+  }
+  getState(): any {
+    return {};
+  }
+  setState(): Promise<void> {
+    return Promise.resolve();
+  }
+  onResize(): void {}
+  onHeaderMenu(): void {}
+  onPaneMenu(): void {} // Add missing method
+  async onOpen(): Promise<void> {}
+  async onClose(): Promise<void> {}
+  getEphemeralState(): any {
+    return {};
+  }
+  setEphemeralState(): void {}
+
+  // Component methods
+  load(): void {}
+  onload(): void {}
+  unload(): void {}
+  onunload(): void {}
+  addChild<T extends any>(component: T): T {
+    return component;
+  }
+  removeChild<T extends any>(component: T): T {
+    return component;
+  }
+  register(cb: () => any): void {
+    cb();
+  }
+  registerEvent(): void {}
+  registerDomEvent(): void {}
+  registerInterval(id: number): number {
+    return id || window.setInterval(() => {}, 1000);
+  }
+}
+
+/** Minimal WorkspaceLeaf stub */
 export class WorkspaceLeaf extends Events implements WorkspaceLeafType {
   id = `leaf-${String(Math.random())}`;
   view: View;
-  parent: WorkspaceTabs | WorkspaceMobileDrawer = new WorkspaceTabs();
+  parent: MockWorkspaceTabs | WorkspaceMobileDrawer = new MockWorkspaceTabs();
   app: { vault: VaultType } = { vault: new Vault() }; // Basic app stub
   containerEl: MockObsidianElement<'div'> = createMockObsidianElement<'div'>('div'); // Use helper
 
@@ -31,7 +127,7 @@ export class WorkspaceLeaf extends Events implements WorkspaceLeafType {
 
   constructor() {
     super();
-    this.view = new ItemView(this);
+    this.view = new MockView(this) as unknown as View;
     this.containerEl.appendChild(createMockObsidianElement<'div'>('div'));
     this.containerEl.appendChild(createMockObsidianElement<'div'>('div'));
 

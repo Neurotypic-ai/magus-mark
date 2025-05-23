@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createMockedPlugin } from '../__mocks__/obsidian';
+import { WorkspaceLeaf, createMockApp, createMockedPlugin } from '../__mocks__/obsidian';
 import { createMockObsidianElement } from '../testing/createMockObsidianElement';
 import { TagManagementView } from './TagManagementView';
 
-import type { CachedMetadata, TFile, WorkspaceLeaf } from 'obsidian';
+import type { App, CachedMetadata, TFile, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
 
 import type { MockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
 import type ObsidianMagicPlugin from '../main';
@@ -23,23 +23,21 @@ interface TagManagementViewPrivates {
   renderTagsList: (container: HTMLElement, filterTerm?: string) => void;
 }
 
-// Mock WorkspaceLeaf more accurately for ItemView constructor
-const mockLeaf = {
-  view: {
-    file: { path: 'mock-leaf-file.md', basename: 'mock-leaf-file', extension: 'md' },
-  },
-  // Add other WorkspaceLeaf properties if needed by the view constructor or tests
-} as unknown as WorkspaceLeaf; // Cast remains necessary for partial mock
-
 describe('TagManagementView', () => {
   let view: TagManagementView;
   let mockContentContainer: HTMLElement; // Reference to the actual content area
   let mockPlugin: ObsidianMagicPlugin; // Changed type to allow full plugin mock
+  let mockApp: any;
+  let mockLeaf: WorkspaceLeafType;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockPlugin = createMockedPlugin(); // Use createMockedPlugin
+    mockApp = createMockApp();
+    mockLeaf = new WorkspaceLeaf() as unknown as WorkspaceLeafType;
+    (mockLeaf as any).app = mockApp as unknown as App;
+
+    mockPlugin = createMockedPlugin() as unknown as ObsidianMagicPlugin; // Use createMockedPlugin
 
     // Apply specific mocks to the app, metadataCache, and vault instances from the mocked plugin
     vi.spyOn(mockPlugin.app.metadataCache, 'getFileCache').mockReturnValue({

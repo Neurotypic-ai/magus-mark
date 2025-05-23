@@ -3,24 +3,47 @@ import { vi } from 'vitest';
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Events } from './MockEvents';
 
-import type { App as AppType, Modal as ModalType, Scope as ScopeType } from 'obsidian';
-
 import type { MockObsidianElement } from './MockObsidianElement';
+
+// Simple type definitions to avoid circular imports
+interface App {
+  [key: string]: any;
+}
+
+interface Scope {
+  register: any;
+  unregister: any;
+}
+
+interface ModalType {
+  app: App;
+  modalEl: any;
+  contentEl: any;
+  containerEl: any;
+  scope: Scope;
+  shouldRestoreSelection?: boolean;
+  open(): void;
+  close(): void;
+  onOpen(): void;
+  onClose(): void;
+  setTitle(title: string): this;
+  setContent(content: DocumentFragment): this;
+}
 
 /**
  * Modal mock implementation for testing
  * This follows Vitest's best practices for class mocks
  */
 export class Modal extends Events implements ModalType {
-  app: AppType;
+  app: App;
   modalEl: MockObsidianElement<'div'>;
   contentEl: MockObsidianElement<'div'>;
   containerEl: MockObsidianElement<'div'>;
   titleEl: MockObsidianElement<'h2'>;
-  scope: ScopeType;
+  scope: Scope;
   shouldRestoreSelection = true;
 
-  constructor(app: AppType) {
+  constructor(app: App) {
     super();
     this.app = app;
     this.modalEl = createMockObsidianElement<'div'>('div');

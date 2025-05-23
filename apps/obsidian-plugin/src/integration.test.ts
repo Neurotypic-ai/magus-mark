@@ -136,6 +136,12 @@ describe('Integration Tests', () => {
       { path: 'file1.md', basename: 'file1', extension: 'md' },
       { path: 'file2.md', basename: 'file2', extension: 'md' },
     ] as TFile[]);
+
+    // Also set up the vault's getMarkdownFiles method directly on the app instance
+    vi.mocked(appInstanceFromMock.vault).getMarkdownFiles.mockReturnValue([
+      { path: 'file1.md', basename: 'file1', extension: 'md' },
+      { path: 'file2.md', basename: 'file2', extension: 'md' },
+    ] as TFile[]);
     readMock.mockImplementation((file: TFile) => {
       if (file.path === 'file1.md') return Promise.resolve('---\ntags: [existing-tag-1]\n---\nContent1');
       return Promise.resolve('Content2');
@@ -342,19 +348,19 @@ describe('Integration Tests', () => {
       expect(plugin.saveData).toHaveBeenCalled();
     });
 
-    it('should load API key from appropriate storage', async () => {
+    it('should load API key from appropriate storage', () => {
       // Test loading from local
       plugin.settings.apiKeyStorage = 'local';
       plugin.settings.apiKey = 'local-key';
 
-      let key = await plugin.keyManager.loadKey();
+      let key = plugin.keyManager.loadKey();
       expect(key).toBe('local-key');
 
       // Test loading from system
       plugin.settings.apiKeyStorage = 'system';
       plugin.settings.apiKey = '';
 
-      key = await plugin.keyManager.loadKey();
+      key = plugin.keyManager.loadKey();
       expect(key).toBe('test-api-key');
       expect(mockSecureStorage.getPassword).toHaveBeenCalledWith(plugin.settings.apiKeyKeychainId);
     });

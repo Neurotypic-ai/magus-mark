@@ -1,12 +1,11 @@
-import { TFolder, Workspace } from 'obsidian';
 import { vi } from 'vitest';
 
-import ObsidianMagicPlugin from '../main';
-import { createMockManifest } from '../testing/createMockManifest';
+import { createMockObsidianElement } from '../testing/createMockObsidianElement';
 import { MetadataCache } from './obsidian/MetadataCache';
 import { Modal } from './obsidian/Modal';
 import { Setting } from './obsidian/Setting';
 import { Vault } from './obsidian/Vault';
+import { Workspace } from './obsidian/Workspace';
 
 import type {
   App as AppType,
@@ -20,7 +19,6 @@ import type {
   Menu as MenuType,
   MetadataCache as MetadataCacheType,
   Modifier as ModifierType,
-  PluginManifest as PluginManifestType,
   Scope as ScopeType,
   UserEvent as UserEventType,
   Vault as VaultType,
@@ -29,7 +27,77 @@ import type {
 } from 'obsidian';
 import type { Mock } from 'vitest';
 
+import type { MockObsidianElement } from './obsidian/MockObsidianElement';
+
+// Mock type for ObsidianMagicPlugin to avoid circular dependency
+interface MockObsidianMagicPlugin {
+  app: AppType;
+  settings: any;
+  [key: string]: any;
+}
+
+// Mock implementations for Obsidian file system classes
+export class TAbstractFile {
+  path: string;
+  name: string;
+  parent: TFolder | null;
+  vault: any;
+
+  constructor() {
+    this.path = '';
+    this.name = '';
+    this.parent = null;
+    this.vault = null;
+  }
+}
+
+export class TFile extends TAbstractFile {
+  basename: string;
+  extension: string;
+  stat: { mtime: number; ctime: number; size: number };
+
+  constructor() {
+    super();
+    this.basename = '';
+    this.extension = 'md';
+    this.stat = { mtime: Date.now(), ctime: Date.now(), size: 0 };
+  }
+}
+
+export class TFolder extends TAbstractFile {
+  children: (TFile | TFolder)[];
+  isRoot: () => boolean;
+
+  constructor() {
+    super();
+    this.children = [];
+    this.isRoot = vi.fn(() => this.path === '/');
+  }
+}
+
 export { Modal };
+
+// Mock Notice class for UI notifications - make it a function that can be spied on
+export const Notice: new (
+  message: string,
+  timeout?: number
+) => {
+  message: string;
+  timeout: number;
+  setMessage: (message: string) => any;
+  hide: () => void;
+} = vi.fn().mockImplementation(function (this: any, message: string, timeout = 5000) {
+  this.message = message;
+  this.timeout = timeout;
+  console.log(`[Mock Notice] ${message}`);
+
+  this.setMessage = vi.fn((newMessage: string) => {
+    this.message = newMessage;
+    return this;
+  });
+
+  this.hide = vi.fn();
+});
 
 export function normalizePath(path: string): string {
   return path.replace(/\\/g, '/');
@@ -96,10 +164,12 @@ export function createMockApp(): App {
   return new App();
 }
 
-export function createMockedPlugin(): ObsidianMagicPlugin {
+export function createMockedPlugin(): MockObsidianMagicPlugin {
   const mockApp = createMockApp();
-  const manifest = createMockManifest() as PluginManifestType;
-  return new ObsidianMagicPlugin(mockApp, manifest);
+  return {
+    app: mockApp,
+    settings: {},
+  };
 }
 
 // --- Add common Obsidian UI components to the mock ---
@@ -145,53 +215,72 @@ export class View extends Component {
   icon: string = 'any-icon';
   navigation: boolean = false;
   leaf: WorkspaceLeafType;
-  containerEl: HTMLElement;
+  containerEl: MockObsidianElement;
   scope: ScopeType;
 
   constructor(leaf: WorkspaceLeafType) {
     super();
     this.leaf = leaf;
     this.app = (leaf as any).app;
-    this.containerEl = typeof document !== 'undefined' ? document.createElement('div') : ({ style: {} } as HTMLElement);
+    this.containerEl = createMockObsidianElement('div');
     this.scope = {
       register: vi.fn(),
       unregister: vi.fn(),
     } as ScopeType;
+
+    // Initialize methods as mocks that can be overridden
+    this.getViewType = vi.fn(() => 'mock-view');
+    this.getDisplayText = vi.fn(() => 'Mock View');
+    this.getIcon = vi.fn(() => this.icon);
+    this.getState = vi.fn(() => ({}));
+    this.setState = vi.fn(() => Promise.resolve());
+    this.onResize = vi.fn();
+    this.onHeaderMenu = vi.fn();
+    this.onOpen = vi.fn(async (): Promise<void> => {});
+    this.onClose = vi.fn(async (): Promise<void> => {});
+    this.getEphemeralState = vi.fn(() => ({}));
+    this.setEphemeralState = vi.fn();
   }
 
-  getViewType: Mock<() => string> = vi.fn(() => 'mock-view');
-  getDisplayText: Mock<() => string> = vi.fn(() => 'Mock View');
-  getIcon: Mock<() => string> = vi.fn(() => this.icon);
-  getState: Mock<() => any> = vi.fn(() => ({}));
-  setState: Mock<(state: any, result: any) => Promise<void>> = vi.fn(() => Promise.resolve());
-  onResize: Mock<() => void> = vi.fn();
-  onHeaderMenu: Mock<(menu: any) => void> = vi.fn();
-  onOpen: () => Promise<void> = vi.fn(async (): Promise<void> => {});
-  onClose: () => Promise<void> = vi.fn(async (): Promise<void> => {});
-  getEphemeralState: Mock<() => any> = vi.fn(() => ({}));
-  setEphemeralState: Mock<(state: any) => void> = vi.fn();
+  getViewType: Mock<() => string>;
+  getDisplayText: Mock<() => string>;
+  getIcon: Mock<() => string>;
+  getState: Mock<() => any>;
+  setState: Mock<(state: any, result: any) => Promise<void>>;
+  onResize: Mock<() => void>;
+  onHeaderMenu: Mock<(menu: any) => void>;
+  onOpen: Mock<() => Promise<void>>;
+  onClose: Mock<() => Promise<void>>;
+  getEphemeralState: Mock<() => any>;
+  setEphemeralState: Mock<(state: any) => void>;
 }
 
 export class ItemView extends View {
+  contentEl: MockObsidianElement;
+
   constructor(leaf: WorkspaceLeafType) {
     super(leaf);
-    this.contentEl = typeof document !== 'undefined' ? document.createElement('div') : ({ style: {} } as HTMLElement);
-    if (typeof document !== 'undefined' && this.containerEl && this.contentEl) {
+    this.contentEl = createMockObsidianElement('div');
+    if (this.containerEl && this.contentEl) {
       this.containerEl.appendChild(this.contentEl);
     }
-  }
-  contentEl: HTMLElement;
 
-  override getViewType: Mock<() => string> = vi.fn().mockReturnValue('mock-item-view');
-  override getDisplayText: Mock<() => string> = vi.fn().mockReturnValue('Mock Item View');
+    // Override parent mock methods with new mock implementations
+    this.getViewType = vi.fn(() => 'mock-item-view');
+    this.getDisplayText = vi.fn(() => 'Mock Item View');
+    this.getIcon = vi.fn(() => 'any-icon');
+  }
+
+  // Declare as Mock types to match parent
+  override getViewType: Mock<() => string>;
+  override getDisplayText: Mock<() => string>;
+  override getIcon: Mock<() => string>;
 }
 
 // --- End common Obsidian UI components ---
 
-export { TFile, TFolder } from 'obsidian';
 export { WorkspaceLeaf } from './obsidian/WorkspaceLeaf';
 export { Plugin } from './obsidian/Plugin';
 export { PluginSettingTab } from './obsidian/PluginSettingTab';
 export { Setting } from './obsidian/Setting';
-export { Vault } from './obsidian/Vault';
 export { Workspace } from './obsidian/Workspace';
