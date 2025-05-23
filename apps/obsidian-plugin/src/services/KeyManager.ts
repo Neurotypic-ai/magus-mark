@@ -1,9 +1,11 @@
 import { Notice } from 'obsidian';
 
 import { APIError } from '@magus-mark/core/errors/APIError';
+import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
 import { AppError } from '@magus-mark/core/errors/AppError';
 import { FileSystemError } from '@magus-mark/core/errors/FileSystemError';
 import { Result } from '@magus-mark/core/errors/Result';
+import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
 
 import type ObsidianMagicPlugin from '../main';
 
@@ -79,6 +81,68 @@ export class KeyManager {
   validateKey(apiKey: string): boolean {
     // Simple validation for OpenAI API keys (sk-...)
     return !!apiKey && apiKey.startsWith('sk-') && apiKey.length > 20;
+  }
+
+  /**
+   * Test if an API key has the necessary permissions
+   * @param apiKey The API key to test
+   * @returns A Promise resolving to a Result with a boolean or an error
+   */
+  async testApiKey(apiKey: string): Promise<Result<boolean>> {
+    try {
+      if (!this.validateKey(apiKey)) {
+        return Result.fail(new ApiKeyError('Invalid API key format. OpenAI keys typically start with "sk-"'));
+      }
+
+      // Create a temporary client to test the API key
+      const client = new OpenAIClient({ apiKey });
+
+      try {
+        // Try to get available models, which requires the model.request scope
+        const models = await client.getAvailableModels();
+
+        if (models.length === 0) {
+          return Result.fail(
+            new ApiKeyError('API key validation failed. Your API key may not have the necessary permissions.')
+          );
+        }
+
+        return Result.ok(true);
+      } catch (error) {
+        const errorStr = String(error);
+
+        // Check for specific permission errors
+        if (
+          errorStr.includes('401') &&
+          (errorStr.includes('model.request') || errorStr.includes('insufficient permissions'))
+        ) {
+          return Result.fail(
+            new ApiKeyError(
+              'Your API key is missing the "model.request" scope. Please generate a new API key with the correct permissions from the OpenAI dashboard.'
+            )
+          );
+        } else if (errorStr.includes('401')) {
+          return Result.fail(new ApiKeyError('Authentication failed. Please check that your API key is valid.'));
+        } else if (errorStr.includes('429')) {
+          return Result.fail(
+            new APIError('Rate limit exceeded. Please try again later.', {
+              statusCode: 429,
+              recoverable: true,
+            })
+          );
+        } else {
+          return Result.fail(
+            new APIError(`API key validation failed: ${errorStr}`, {
+              recoverable: false,
+            })
+          );
+        }
+      }
+    } catch (error) {
+      return Result.fail(
+        error instanceof AppError ? error : new APIError(`API key validation failed: ${String(error)}`)
+      );
+    }
   }
 
   /**

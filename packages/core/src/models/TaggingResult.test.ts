@@ -28,7 +28,7 @@ describe('TaggingResult', () => {
       const tags = result.tags;
       expect(tags.year).toBe('2023');
       expect(tags.topical_tags.length).toBeGreaterThan(0);
-      expect(tags.confidence.overall).toBe(0.9);
+      expect(tags.confidence?.overall).toBe(0.9);
     }
     expect(result.error).toBeUndefined();
   });

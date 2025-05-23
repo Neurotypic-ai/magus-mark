@@ -13,6 +13,6 @@ export interface TagSet {
   life_area?: LifeAreaTag | undefined;
   topical_tags: TopicalTag[];
   conversation_type: ConversationTypeTag;
-  confidence: TagConfidence;
+  confidence: TagConfidence | null | undefined;
   explanations?: Record<string, string> | undefined;
 }

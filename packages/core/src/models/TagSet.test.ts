@@ -24,6 +24,6 @@ describe('TagSet', () => {
     expect(validTagSet.life_area).toBe('learning');
     expect(validTagSet.topical_tags.length).toBe(1);
     expect(validTagSet.conversation_type).toBe('deep-dive');
-    expect(validTagSet.confidence.overall).toBe(0.92);
+    expect(validTagSet.confidence?.overall).toBe(0.92);
   });
 });

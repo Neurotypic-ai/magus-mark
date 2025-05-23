@@ -138,6 +138,7 @@ export class OpenAIClient {
     this.client = new OpenAI({
       apiKey: this.config.apiKey,
       timeout: this.config.timeout,
+      dangerouslyAllowBrowser: true,
     });
   }
 
@@ -206,9 +207,15 @@ export class OpenAIClient {
       // Get list of models
       const response = await this.client.models.list();
 
+      // Guard against undefined or malformed response
+      if (!Array.isArray(response.data)) {
+        console.error('Unexpected response format from OpenAI models API:', response);
+        return [];
+      }
+
       // Map to model pricing objects with inferred pricing based on model name patterns
       return response.data.map((model) => {
-        const modelId = model.id;
+        const modelId = model.id || 'unknown';
         const pricing = this.inferModelPricing(modelId);
 
         return {

@@ -1,5 +1,5 @@
 {
-  "extends": "../config/typescript/base.json",
+  "extends": "@magus-mark/typescript-config/base/tsconfig.json",
   "compilerOptions": {},
   "include": ["**/*.md/**/*.ts", "**/*.md/**/*.tsx"]
 }

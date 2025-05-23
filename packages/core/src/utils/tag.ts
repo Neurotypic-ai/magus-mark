@@ -117,26 +117,26 @@ export function mergeTagSets(existingTags: TagSet | undefined, newTags: TagSet, 
       topical_tags: [...existingTags.topical_tags, ...newTags.topical_tags],
       // Merge confidence scores
       confidence: {
-        overall: Math.max(existingTags.confidence.overall, newTags.confidence.overall),
-        ...((existingTags.confidence.year ?? newTags.confidence.year) && {
-          year: Math.max(existingTags.confidence.year ?? 0, newTags.confidence.year ?? 0),
+        overall: Math.max(existingTags.confidence?.overall ?? 0, newTags.confidence?.overall ?? 0),
+        ...((existingTags.confidence?.year ?? newTags.confidence?.year) && {
+          year: Math.max(existingTags.confidence?.year ?? 0, newTags.confidence?.year ?? 0),
         }),
-        ...((existingTags.confidence.life_area ?? newTags.confidence.life_area) && {
-          life_area: Math.max(existingTags.confidence.life_area ?? 0, newTags.confidence.life_area ?? 0),
+        ...((existingTags.confidence?.life_area ?? newTags.confidence?.life_area) && {
+          life_area: Math.max(existingTags.confidence?.life_area ?? 0, newTags.confidence?.life_area ?? 0),
         }),
-        ...((existingTags.confidence.domain ?? newTags.confidence.domain) && {
-          domain: Math.max(existingTags.confidence.domain ?? 0, newTags.confidence.domain ?? 0),
+        ...((existingTags.confidence?.domain ?? newTags.confidence?.domain) && {
+          domain: Math.max(existingTags.confidence?.domain ?? 0, newTags.confidence?.domain ?? 0),
         }),
-        ...((existingTags.confidence.subdomain ?? newTags.confidence.subdomain) && {
-          subdomain: Math.max(existingTags.confidence.subdomain ?? 0, newTags.confidence.subdomain ?? 0),
+        ...((existingTags.confidence?.subdomain ?? newTags.confidence?.subdomain) && {
+          subdomain: Math.max(existingTags.confidence?.subdomain ?? 0, newTags.confidence?.subdomain ?? 0),
         }),
-        ...((existingTags.confidence.contextual ?? newTags.confidence.contextual) && {
-          contextual: Math.max(existingTags.confidence.contextual ?? 0, newTags.confidence.contextual ?? 0),
+        ...((existingTags.confidence?.contextual ?? newTags.confidence?.contextual) && {
+          contextual: Math.max(existingTags.confidence?.contextual ?? 0, newTags.confidence?.contextual ?? 0),
         }),
-        ...((existingTags.confidence.conversation_type ?? newTags.confidence.conversation_type) && {
+        ...((existingTags.confidence?.conversation_type ?? newTags.confidence?.conversation_type) && {
           conversation_type: Math.max(
-            existingTags.confidence.conversation_type ?? 0,
-            newTags.confidence.conversation_type ?? 0
+            existingTags.confidence?.conversation_type ?? 0,
+            newTags.confidence?.conversation_type ?? 0
           ),
         }),
       },
@@ -150,26 +150,26 @@ export function mergeTagSets(existingTags: TagSet | undefined, newTags: TagSet, 
 
   // Merge behavior - intelligently combine tag sets
   const mergedConfidence = {
-    overall: Math.max(existingTags.confidence.overall, newTags.confidence.overall),
-    ...((existingTags.confidence.year ?? newTags.confidence.year) && {
-      year: Math.max(existingTags.confidence.year ?? 0, newTags.confidence.year ?? 0),
+    overall: Math.max(existingTags.confidence?.overall ?? 0, newTags.confidence?.overall ?? 0),
+    ...((existingTags.confidence?.year ?? newTags.confidence?.year) && {
+      year: Math.max(existingTags.confidence?.year ?? 0, newTags.confidence?.year ?? 0),
     }),
-    ...((existingTags.confidence.life_area ?? newTags.confidence.life_area) && {
-      life_area: Math.max(existingTags.confidence.life_area ?? 0, newTags.confidence.life_area ?? 0),
+    ...((existingTags.confidence?.life_area ?? newTags.confidence?.life_area) && {
+      life_area: Math.max(existingTags.confidence?.life_area ?? 0, newTags.confidence?.life_area ?? 0),
     }),
-    ...((existingTags.confidence.domain ?? newTags.confidence.domain) && {
-      domain: Math.max(existingTags.confidence.domain ?? 0, newTags.confidence.domain ?? 0),
+    ...((existingTags.confidence?.domain ?? newTags.confidence?.domain) && {
+      domain: Math.max(existingTags.confidence?.domain ?? 0, newTags.confidence?.domain ?? 0),
     }),
-    ...((existingTags.confidence.subdomain ?? newTags.confidence.subdomain) && {
-      subdomain: Math.max(existingTags.confidence.subdomain ?? 0, newTags.confidence.subdomain ?? 0),
+    ...((existingTags.confidence?.subdomain ?? newTags.confidence?.subdomain) && {
+      subdomain: Math.max(existingTags.confidence?.subdomain ?? 0, newTags.confidence?.subdomain ?? 0),
     }),
-    ...((existingTags.confidence.contextual ?? newTags.confidence.contextual) && {
-      contextual: Math.max(existingTags.confidence.contextual ?? 0, newTags.confidence.contextual ?? 0),
+    ...((existingTags.confidence?.contextual ?? newTags.confidence?.contextual) && {
+      contextual: Math.max(existingTags.confidence?.contextual ?? 0, newTags.confidence?.contextual ?? 0),
     }),
-    ...((existingTags.confidence.conversation_type ?? newTags.confidence.conversation_type) && {
+    ...((existingTags.confidence?.conversation_type ?? newTags.confidence?.conversation_type) && {
       conversation_type: Math.max(
-        existingTags.confidence.conversation_type ?? 0,
-        newTags.confidence.conversation_type ?? 0
+        existingTags.confidence?.conversation_type ?? 0,
+        newTags.confidence?.conversation_type ?? 0
       ),
     }),
   };
@@ -177,8 +177,8 @@ export function mergeTagSets(existingTags: TagSet | undefined, newTags: TagSet, 
   return {
     // Use new year if confidence is higher, otherwise keep existing
     year:
-      newTags.confidence.year &&
-      (!existingTags.confidence.year || newTags.confidence.year > existingTags.confidence.year)
+      newTags.confidence?.year &&
+      (!existingTags.confidence?.year || newTags.confidence.year > existingTags.confidence.year)
         ? newTags.year
         : existingTags.year,
 
@@ -186,8 +186,8 @@ export function mergeTagSets(existingTags: TagSet | undefined, newTags: TagSet, 
     life_area:
       newTags.life_area &&
       (!existingTags.life_area ||
-        (newTags.confidence.life_area &&
-          existingTags.confidence.life_area &&
+        (newTags.confidence?.life_area &&
+          existingTags.confidence?.life_area &&
           newTags.confidence.life_area > existingTags.confidence.life_area))
         ? newTags.life_area
         : existingTags.life_area,
@@ -197,9 +197,7 @@ export function mergeTagSets(existingTags: TagSet | undefined, newTags: TagSet, 
 
     // Use new conversation type if confidence is higher, otherwise keep existing
     conversation_type:
-      newTags.confidence.conversation_type &&
-      (!existingTags.confidence.conversation_type ||
-        newTags.confidence.conversation_type > existingTags.confidence.conversation_type)
+      newTags.conversation_type > existingTags.conversation_type
         ? newTags.conversation_type
         : existingTags.conversation_type,
 
@@ -254,7 +252,7 @@ function mergeTopicalTags(existingTags: TopicalTag[], newTags: TopicalTag[]): To
  * @returns Overall confidence score
  */
 export function getOverallConfidence(tagSet: TagSet): ConfidenceScore {
-  return tagSet.confidence.overall;
+  return tagSet.confidence?.overall ?? 0;
 }
 
 /**
@@ -264,7 +262,7 @@ export function getOverallConfidence(tagSet: TagSet): ConfidenceScore {
  * @returns True if tag set needs review
  */
 export function needsReview(tagSet: TagSet, threshold = 0.7): boolean {
-  return tagSet.confidence.overall < threshold;
+  return (tagSet.confidence?.overall ?? 0) < threshold;
 }
 
 /**

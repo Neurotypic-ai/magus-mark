@@ -33,6 +33,7 @@
     "build": "tsc -b",
     "clean": "rm -rf dist",
     "clean:all": "rm -rf dist && rm -rf node_modules",
+    "dev": "tsc -b --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",

@@ -132,21 +132,33 @@ export class TaggingService {
    * Process tags based on confidence thresholds
    */
   private processTagsWithConfidence(tags: TagSet): TagSet {
-    const result = { ...tags };
+    // Ensure we have a valid tags object with required fields
+    const result: TagSet = {
+      ...tags,
+      // Ensure topical_tags exists and is an array
+      topical_tags: Array.isArray(tags.topical_tags) ? [...tags.topical_tags] : [],
+      // Ensure confidence exists and is an object
+      confidence: tags.confidence ?? { overall: 0 },
+    };
 
     // Filter out low confidence tags
     if (
       result.life_area &&
-      (!result.confidence.life_area || result.confidence.life_area < this.options.minConfidence)
+      (!result.confidence?.life_area || result.confidence.life_area < this.options.minConfidence)
     ) {
       delete result.life_area;
     }
 
     // Filter low confidence topical tags
-    result.topical_tags = result.topical_tags.filter(() => {
-      const domainConfidence = result.confidence.domain ?? 0;
-      return domainConfidence >= this.options.minConfidence;
-    });
+    if (Array.isArray(result.topical_tags)) {
+      result.topical_tags = result.topical_tags.filter(() => {
+        const domainConfidence = result.confidence?.domain ?? 0;
+        return domainConfidence >= this.options.minConfidence;
+      });
+    } else {
+      // If topical_tags is not an array, initialize it
+      result.topical_tags = [];
+    }
 
     // Generate explanations only if needed
     if (!this.options.generateExplanations) {
@@ -156,7 +168,7 @@ export class TaggingService {
       const explanationsToKeep: Record<string, string> = {};
 
       if (
-        result.confidence.life_area &&
+        result.confidence?.life_area &&
         result.confidence.life_area >= this.options.minConfidence &&
         result.confidence.life_area < this.options.reviewThreshold &&
         result.explanations['life_area']
@@ -165,7 +177,7 @@ export class TaggingService {
       }
 
       if (
-        result.confidence.domain &&
+        result.confidence?.domain &&
         result.confidence.domain >= this.options.minConfidence &&
         result.confidence.domain < this.options.reviewThreshold &&
         result.explanations['domain']
@@ -193,47 +205,59 @@ export class TaggingService {
       return newTags;
     }
 
+    // Ensure arrays exist and are valid
+    const safeNewTags = {
+      ...newTags,
+      topical_tags: Array.isArray(newTags.topical_tags) ? newTags.topical_tags : [],
+      confidence: newTags.confidence ?? { overall: 0 },
+    };
+
+    const safeExistingTags = {
+      ...existingTags,
+      topical_tags: Array.isArray(existingTags.topical_tags) ? existingTags.topical_tags : [],
+    };
+
     // Handle append mode - keep existing and add non-conflicting tags
     if (this.options.behavior === 'append') {
       // Year and conversation type are always overwritten
       const result: TagSet = {
-        ...existingTags,
-        year: newTags.year,
-        conversation_type: newTags.conversation_type,
-        confidence: newTags.confidence,
+        ...safeExistingTags,
+        year: safeNewTags.year,
+        conversation_type: safeNewTags.conversation_type,
+        confidence: safeNewTags.confidence,
       };
 
       // Only add life area if not already present
-      if (!existingTags.life_area && newTags.life_area) {
-        result.life_area = newTags.life_area;
+      if (!safeExistingTags.life_area && safeNewTags.life_area) {
+        result.life_area = safeNewTags.life_area;
       }
 
       // Add new topical tags that don't exist
-      const existingDomains = new Set(existingTags.topical_tags.map((tag) => tag.domain));
+      const existingDomains = new Set(safeExistingTags.topical_tags.map((tag) => tag.domain));
 
-      const newTopicalTags = newTags.topical_tags.filter((tag) => !existingDomains.has(tag.domain));
+      const newTopicalTags = safeNewTags.topical_tags.filter((tag) => !existingDomains.has(tag.domain));
 
-      result.topical_tags = [...existingTags.topical_tags, ...newTopicalTags];
+      result.topical_tags = [...safeExistingTags.topical_tags, ...newTopicalTags];
 
       return result;
     }
 
     // For merge mode (or any other behavior)
     // Start with new tags as the base
-    const result: TagSet = { ...newTags };
+    const result: TagSet = { ...safeNewTags };
 
     // Keep existing life area if new one doesn't exist or has low confidence
-    const lifeAreaConfidence = newTags.confidence.life_area ?? 0;
-    if (existingTags.life_area && (!newTags.life_area || lifeAreaConfidence < this.options.reviewThreshold)) {
-      result.life_area = existingTags.life_area;
+    const lifeAreaConfidence = safeNewTags.confidence.life_area ?? 0;
+    if (safeExistingTags.life_area && (!safeNewTags.life_area || lifeAreaConfidence < this.options.reviewThreshold)) {
+      result.life_area = safeExistingTags.life_area;
     }
 
     // Merge topical tags, preferring new ones for the same domain
-    const newDomains = new Set(newTags.topical_tags.map((tag) => tag.domain));
+    const newDomains = new Set(safeNewTags.topical_tags.map((tag) => tag.domain));
 
-    const existingNonConflictingTags = existingTags.topical_tags.filter((tag) => !newDomains.has(tag.domain));
+    const existingNonConflictingTags = safeExistingTags.topical_tags.filter((tag) => !newDomains.has(tag.domain));
 
-    result.topical_tags = [...newTags.topical_tags, ...existingNonConflictingTags];
+    result.topical_tags = [...safeNewTags.topical_tags, ...existingNonConflictingTags];
 
     return result;
   }

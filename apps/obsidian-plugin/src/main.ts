@@ -3,8 +3,8 @@ import { Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsid
 import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
+import { ApiKeyHelpModal } from './ui/ApiKeyHelpModal';
 import { FolderTagModal } from './ui/FolderTagModal';
-import { SampleModal } from './ui/SampleModal';
 import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
@@ -76,39 +76,6 @@ export default class ObsidianMagicPlugin extends Plugin {
 
     this.addCommands();
     this.registerContextMenu();
-
-    this.addRibbonIcon('dice', 'Show Notice', () => {
-      new Notice('Hello, world!');
-    });
-
-    this.addCommand({
-      id: 'open-sample-modal',
-      name: 'Open Sample Modal',
-      callback: () => {
-        new SampleModal(this.app).open();
-      },
-    });
-
-    this.addCommand({
-      id: 'run-all-tests',
-      name: 'Run All Tests',
-      callback: () => {
-        new Notice('Running all tests...');
-        // Placeholder for actual test execution
-      },
-    });
-
-    window.addEventListener('click', () => {
-      console.log('click');
-    });
-    this.registerInterval(
-      window.setInterval(
-        () => {
-          console.log('setInterval');
-        },
-        5 * 60 * 1000
-      )
-    );
 
     this.registerMarkdownPostProcessor((element: HTMLElement, context) => {
       const sourcePath = context.sourcePath;
@@ -374,8 +341,27 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
               new Notice('Invalid API key format. OpenAI keys typically start with "sk-"');
               return;
             }
+
+            // Save the key first (don't block on validation)
             await this.plugin.keyManager.saveKey(value);
             this.plugin.taggingService.updateApiKey(value);
+
+            // If there's a value, perform permission validation
+            if (value) {
+              void this.plugin.keyManager.testApiKey(value).then((result) => {
+                if (result.isFail()) {
+                  const error = result.getError();
+
+                  // If it's a specific permission issue, give detailed guidance
+                  if (error.message.includes('model.request')) {
+                    new Notice(
+                      '⚠️ Your API key may have insufficient permissions. When using Magus Mark, ensure your key has the "model.request" scope in OpenAI.',
+                      10000
+                    );
+                  }
+                }
+              });
+            }
           });
 
         text.inputEl.after(
@@ -397,13 +383,37 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
                     return;
                   }
                   new Notice('Testing API key...');
-                  const isValid = this.plugin.keyManager.validateKey(key);
-                  if (isValid) {
-                    new Notice('API key is valid!');
-                  } else {
-                    new Notice('API key is invalid or could not connect to OpenAI');
-                  }
+
+                  // Use the new testApiKey method to validate permissions
+                  void this.plugin.keyManager.testApiKey(key).then((result) => {
+                    if (result.isOk()) {
+                      new Notice('✅ API key is valid and has all required permissions!');
+                    } else {
+                      const error = result.getError();
+                      // Use HTML entities instead of emoji characters to avoid regex parsing issues
+                      new Notice(`\u274C ${error.message}`, 8000);
+                    }
+                  });
                 })();
+              });
+            }
+          )
+        );
+
+        // Add help button next to test button
+        text.inputEl.after(
+          createEl(
+            'button',
+            {
+              text: 'Help',
+              attr: {
+                style: 'margin-left: 4px;',
+                title: 'Get help with API key permissions',
+              },
+            },
+            (btn) => {
+              btn.addEventListener('click', () => {
+                new ApiKeyHelpModal(this.plugin).open();
               });
             }
           )

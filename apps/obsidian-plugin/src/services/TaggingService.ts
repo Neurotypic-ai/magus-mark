@@ -1,6 +1,8 @@
 /**
  * Service for integrating with the core tagging functionality
  */
+import { Notice } from 'obsidian';
+
 import { initializeCore } from '@magus-mark/core';
 import { APIError } from '@magus-mark/core/errors/APIError';
 import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
@@ -9,6 +11,8 @@ import { Result } from '@magus-mark/core/errors/Result';
 import { TaggingError } from '@magus-mark/core/errors/TaggingError';
 import { withRetry } from '@magus-mark/core/errors/retry';
 import { BehaviorSubject, Subject } from '@magus-mark/core/utils/observable';
+
+import { ApiKeyHelpModal } from '../ui/ApiKeyHelpModal';
 
 import type { Document } from '@magus-mark/core/models/Document';
 import type { TagSet } from '@magus-mark/core/models/TagSet';
@@ -152,17 +156,54 @@ export class TaggingService {
       // Emit ready status
       this.status.next('Magic: Ready');
 
-      // Emit error notices
+      // Get the error message and handle specific error cases
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStr = String(error);
+
+      // Handle specific API error cases
       if (error instanceof ApiKeyError) {
         this.notice.next('API key missing: Please add your OpenAI API key in settings');
       } else if (error instanceof APIError) {
-        this.notice.next(
-          `API Error: ${error.message}. ${error.statusCode === 429 ? 'Rate limit exceeded, try again later.' : ''}`
-        );
+        // Handle specific OpenAI API errors
+        if (error.statusCode === 401) {
+          // Handle 401 unauthorized errors - likely insufficient permissions
+          if (errorStr.includes('model.request') || errorStr.includes('insufficient permissions')) {
+            this.showApiPermissionError();
+          } else if (errorStr.includes('invalid_api_key')) {
+            this.notice.next('API Key Error: Your API key is invalid. Please check it in settings.');
+          } else {
+            this.notice.next(
+              'API Key Error: Authentication failed. Please check your API key or OpenAI account permissions.'
+            );
+          }
+        } else if (error.statusCode === 429) {
+          this.notice.next('Rate limit exceeded: Please wait a few minutes before trying again.');
+        } else if (error.statusCode && error.statusCode >= 500) {
+          this.notice.next('OpenAI server error: Their servers are experiencing issues. Please try again later.');
+        } else {
+          this.notice.next(`API Error: ${error.message}`);
+        }
       } else if (error instanceof FileSystemError) {
         this.notice.next(`File error: ${error.message}`);
+      } else if (error instanceof TaggingError) {
+        // Handle tagging-specific errors
+        if (errorStr.includes('model.request') || errorStr.includes('insufficient permissions')) {
+          this.showApiPermissionError();
+        } else if (errorStr.includes('filter') && errorStr.includes('undefined')) {
+          // Handle the specific "Cannot read properties of undefined (reading 'filter')" error
+          this.notice.next(
+            'Error processing API response: Received unexpected data format from OpenAI. Please try again or check your API key permissions.'
+          );
+        } else {
+          this.notice.next(`Tagging error: ${error.message}`);
+        }
+      } else if (errorStr.includes('filter') && errorStr.includes('undefined')) {
+        // Also catch the error outside of known error types
+        this.notice.next(
+          'Error processing API response: Received unexpected data format from OpenAI. Please try again or check your API key permissions.'
+        );
       } else {
-        this.notice.next(`Error tagging document: ${error instanceof Error ? error.message : String(error)}`);
+        this.notice.next(`Error tagging document: ${errorMessage}`);
       }
 
       return Result.fail(error instanceof Error ? error : new Error(String(error)));
@@ -216,5 +257,43 @@ export class TaggingService {
     }
 
     return results;
+  }
+
+  /**
+   * Show API permission error with help button
+   */
+  private showApiPermissionError(): void {
+    // Create a custom notice with a help button
+    const notice = new Notice('', 12000);
+
+    // Replace the notice content with custom HTML
+    const container = notice.messageEl.querySelector('.notice-content');
+    if (container) {
+      // Clear existing content
+      container.empty();
+
+      // Add message
+      container.createSpan({
+        text: 'API Key Error: You have insufficient permissions. Your API key needs the "model.request" scope.',
+      });
+
+      // Add a spacer
+      container.createSpan({ text: ' ' });
+
+      // Add help button
+      const helpButton = container.createEl('button', {
+        text: 'Help',
+        cls: 'mod-cta',
+        attr: {
+          style: 'padding: 2px 8px; margin-left: 8px;',
+        },
+      });
+
+      // Add click handler to open help modal
+      helpButton.addEventListener('click', () => {
+        notice.hide();
+        new ApiKeyHelpModal(this.plugin).open();
+      });
+    }
   }
 }
