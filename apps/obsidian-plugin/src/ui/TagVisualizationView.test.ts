@@ -4,7 +4,7 @@ import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './TagVisualiz
 
 import type { TFile, WorkspaceLeaf } from 'obsidian';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 // Mock some globals for the DOM environment
 Object.defineProperty(window, 'cancelAnimationFrame', {
@@ -14,7 +14,7 @@ Object.defineProperty(window, 'cancelAnimationFrame', {
 
 let view: TagVisualizationView;
 let mockLeaf: WorkspaceLeaf;
-let mockPlugin: ObsidianMagicPlugin;
+let mockPlugin: MagusMarkPlugin;
 
 describe('TagVisualizationView', () => {
   beforeEach(async () => {
@@ -22,7 +22,7 @@ describe('TagVisualizationView', () => {
 
     const { createMockApp, createMockedPlugin } = await import('../__mocks__/obsidian');
     const mockApp = createMockApp();
-    mockPlugin = createMockedPlugin() as unknown as ObsidianMagicPlugin;
+    mockPlugin = createMockedPlugin() as unknown as MagusMarkPlugin;
     mockPlugin.app = mockApp;
 
     // Create a mock leaf
@@ -126,31 +126,7 @@ describe('TagVisualizationView', () => {
       removeEventListener: vi.fn(),
     };
 
-    // Mock the view's createEl to intercept all element creation
-    vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string) => {
-      if (tag === 'canvas') {
-        const mockCanvas = document.createElement('canvas');
-        const mockContext = {
-          clearRect: vi.fn(),
-          beginPath: vi.fn(),
-          arc: vi.fn(),
-          fill: vi.fn(),
-          stroke: vi.fn(),
-          fillText: vi.fn(),
-          strokeText: vi.fn(),
-          save: vi.fn(),
-          restore: vi.fn(),
-          translate: vi.fn(),
-          scale: vi.fn(),
-          measureText: vi.fn(() => ({ width: 50 })),
-        } as unknown as CanvasRenderingContext2D;
-        vi.spyOn(mockCanvas, 'getContext').mockReturnValue(mockContext);
-        return mockCanvas as any;
-      }
-      return mockElement as any;
-    });
-
-    // Mock the container structure
+    // Mock the container structure that the view actually uses
     const mockContainer = {
       empty: vi.fn(),
       createEl: vi.fn().mockReturnValue(mockElement),
@@ -158,9 +134,10 @@ describe('TagVisualizationView', () => {
       children: [] as any[],
     };
 
-    // Mock containerEl to return our mock container
+    // Replace the view's containerEl with our mock - this is what the view actually uses
     Object.defineProperty(view, 'containerEl', {
-      get: () => mockContainer,
+      value: mockContainer,
+      writable: true,
       configurable: true,
     });
 

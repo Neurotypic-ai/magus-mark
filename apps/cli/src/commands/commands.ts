@@ -5,6 +5,8 @@
 // Import all commands
 import { configCommand } from './config';
 import { configInteractiveCommand } from './config-interactive';
+import { dashboardStandaloneCommand } from './dashboard-standalone';
+import { demoDashboardCommand } from './demo-dashboard';
 import { statsCommand } from './stats';
 import { tagCommand } from './tag';
 import { taxonomyCommand } from './taxonomy';
@@ -18,7 +20,16 @@ import type { CommandModule } from 'yargs';
  */
 export function getAllCommands(): CommandModule[] {
   // Import commands
-  return [tagCommand, testCommand, statsCommand, taxonomyCommand, configCommand, configInteractiveCommand];
+  return [
+    tagCommand,
+    testCommand,
+    statsCommand,
+    taxonomyCommand,
+    configCommand,
+    configInteractiveCommand,
+    dashboardStandaloneCommand, // 🔥 God Tier Dashboard Demo Command
+    demoDashboardCommand, // 🚀 Ultimate Standalone Demo
+  ];
 }
 
 // Export all commands
@@ -28,3 +39,5 @@ export { statsCommand } from './stats';
 export { taxonomyCommand } from './taxonomy';
 export { configCommand } from './config';
 export { configInteractiveCommand } from './config-interactive';
+export { dashboardStandaloneCommand } from './dashboard-standalone';
+export { demoDashboardCommand } from './demo-dashboard';

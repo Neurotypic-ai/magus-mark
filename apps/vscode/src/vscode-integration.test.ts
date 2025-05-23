@@ -160,12 +160,12 @@ suite('VS Code Integration', () => {
 
     createTreeViewStub.returns(mockTreeView);
 
-    const treeView = vscode.window.createTreeView('obsidianMagicTagExplorer', {}) as TreeView;
+    const treeView = vscode.window.createTreeView('magusMarkTagExplorer', {}) as TreeView;
 
     // Verify the tree view is created with the correct ID
     void expect(treeView).to.exist;
     void expect(createTreeViewStub.called).to.be.true;
-    void expect(createTreeViewStub.firstCall.args[0]).to.equal('obsidianMagicTagExplorer');
+    void expect(createTreeViewStub.firstCall.args[0]).to.equal('magusMarkTagExplorer');
   });
 
   test('should support command registration', () => {

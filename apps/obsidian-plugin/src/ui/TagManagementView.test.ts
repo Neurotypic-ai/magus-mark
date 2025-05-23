@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { WorkspaceLeaf, createMockApp, createMockedPlugin } from '../__mocks__/obsidian';
 import { createMockObsidianElement } from '../testing/createMockObsidianElement';
+import { createTestPlugin, resetPluginMocks } from '../testing/createTestPlugin';
 import { TagManagementView } from './TagManagementView';
 
 import type { App, CachedMetadata, TFile, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
 
 import type { MockObsidianElement } from '../__mocks__/obsidian/MockObsidianElement';
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 // Define type for tag data
 interface TagData {
@@ -26,24 +26,28 @@ interface TagManagementViewPrivates {
 describe('TagManagementView', () => {
   let view: TagManagementView;
   let mockContentContainer: HTMLElement; // Reference to the actual content area
-  let mockPlugin: ObsidianMagicPlugin; // Changed type to allow full plugin mock
+  let mockPlugin: MagusMarkPlugin;
   let mockApp: any;
   let mockLeaf: WorkspaceLeafType;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    // Reset all mocks to ensure clean state
+    resetPluginMocks();
+
+    const { createMockApp, WorkspaceLeaf } = await import('../__mocks__/obsidian');
 
     mockApp = createMockApp();
     mockLeaf = new WorkspaceLeaf() as unknown as WorkspaceLeafType;
     (mockLeaf as any).app = mockApp as unknown as App;
 
-    mockPlugin = createMockedPlugin() as unknown as ObsidianMagicPlugin; // Use createMockedPlugin
+    mockPlugin = createTestPlugin(mockApp);
 
     // Apply specific mocks to the app, metadataCache, and vault instances from the mocked plugin
     vi.spyOn(mockPlugin.app.metadataCache, 'getFileCache').mockReturnValue({
       frontmatter: { tags: ['test-tag'] },
       tags: [{ tag: '#inline-tag', position: { start: { line: 5 } } }],
     } as unknown as CachedMetadata);
+
     vi.spyOn(mockPlugin.app.vault, 'getMarkdownFiles').mockReturnValue([
       { path: 'note1.md' },
       { path: 'note2.md' },
@@ -54,11 +58,6 @@ describe('TagManagementView', () => {
 
     // Get the reference to the actual content container
     mockContentContainer = view.contentEl;
-    // No need to spyOn methods on mockContentContainer directly if using createMockObsidianElement's features
-    // If specific spies are needed on contentEl's methods (like empty, createEl), they can be set up here:
-    // e.g., vi.spyOn(mockContentContainer, 'empty'); vi.spyOn(mockContentContainer, 'createEl');
-    // However, createMockObsidianElement should already provide vi.fn() mocks for these.
-    // To assert on them, use vi.mocked(mockContentContainer.empty) or vi.mocked(mockContentContainer).empty
   });
 
   it('should return the correct view type', () => {

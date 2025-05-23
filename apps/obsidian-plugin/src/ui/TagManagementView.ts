@@ -2,14 +2,14 @@ import { ItemView } from 'obsidian';
 
 import type { WorkspaceLeaf } from 'obsidian';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 export const TAG_MANAGEMENT_VIEW_TYPE = 'magus-mark-tag-management';
 
 export class TagManagementView extends ItemView {
-  plugin: ObsidianMagicPlugin;
+  plugin: MagusMarkPlugin;
 
-  constructor(leaf: WorkspaceLeaf, plugin: ObsidianMagicPlugin) {
+  constructor(leaf: WorkspaceLeaf, plugin: MagusMarkPlugin) {
     super(leaf);
     this.plugin = plugin;
   }

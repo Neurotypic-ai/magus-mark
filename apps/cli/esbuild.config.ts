@@ -1,42 +1,69 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { build } from 'esbuild';
 
-import esbuild from 'esbuild';
+// Build main CLI
+await build({
+  entryPoints: ['src/index.ts'],
+  bundle: true,
+  minify: false,
+  sourcemap: true,
+  format: 'esm',
+  platform: 'node',
+  target: 'node18',
+  outfile: 'dist/cli.js',
+  external: [
+    // Node.js built-ins
+    'node:*',
+    'fs',
+    'path',
+    'crypto',
+    'util',
+    'events',
+    'stream',
+    'buffer',
+    'url',
+    'tty',
+    'os',
 
-const production = process.argv.includes('--production');
+    // Dependencies that should remain external
+    'yargs',
+    'chalk',
+    'ora',
+    'blessed',
+    'blessed-contrib',
+  ],
+  banner: {
+    js: '#!/usr/bin/env node\n',
+  },
+});
 
-// ES module equivalent of __filename and __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Build demo CLI (standalone)
+await build({
+  entryPoints: ['src/demo-cli.ts'],
+  bundle: true,
+  minify: false,
+  sourcemap: true,
+  format: 'esm',
+  platform: 'node',
+  target: 'node18',
+  outfile: 'dist/demo-cli.js',
+  external: [
+    // Node.js built-ins
+    'node:*',
+    'fs',
+    'path',
+    'crypto',
+    'util',
+    'events',
+    'stream',
+    'buffer',
+    'url',
+    'tty',
+    'os',
 
-// Type for the structure of package.json we care about
-interface PackageJson {
-  dependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-}
-
-// Read and parse package.json
-const packageJsonPath = path.join(__dirname, 'package.json');
-const pkg: PackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as PackageJson;
-
-// List all dependencies and peerDependencies as external
-const external = [...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.peerDependencies ?? {})];
-
-esbuild
-  .build({
-    entryPoints: ['src/index.ts'], // Your CLI entry point
-    bundle: true,
-    outfile: 'dist/cli.js',
-    platform: 'node',
-    target: 'node20', // Match your Node.js version
-    format: 'esm', // ES modules for Node
-    minify: production,
-    sourcemap: !production,
-    external: external, // Mark dependencies as external
-    logLevel: 'info',
-  })
-  .catch((error: unknown) => {
-    console.error('CLI build failed:', error);
-    process.exit(1);
-  });
+    // Dependencies that should remain external
+    'yargs',
+  ],
+  banner: {
+    js: '#!/usr/bin/env node\n',
+  },
+});

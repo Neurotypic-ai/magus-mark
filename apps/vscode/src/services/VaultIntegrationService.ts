@@ -7,6 +7,22 @@ import { Result } from '@magus-mark/core/errors/Result';
 import { ValidationError } from '@magus-mark/core/errors/ValidationError';
 import { toAppError } from '@magus-mark/core/errors/utils';
 
+// Add these interfaces for the enhanced features
+export interface TaggedNote {
+  path: string;
+  title?: string;
+  content?: string;
+  tags: string[];
+  lastModified?: Date;
+}
+
+export interface TagRelationship {
+  sourceTag: string;
+  targetTag: string;
+  strength: number;
+  type: 'co-occurrence' | 'hierarchical' | 'semantic';
+}
+
 /**
  * Interface for vault configuration
  */
@@ -543,6 +559,185 @@ export class VaultIntegrationService {
       await fs.writeFile(filePath, newContent, 'utf-8');
 
       return Result.ok(true);
+    } catch (error) {
+      return Result.fail(toAppError(error));
+    }
+  }
+
+  /**
+   * Get all notes from registered vaults
+   * @returns Promise that resolves to all tagged notes
+   */
+  public async getAllNotes(): Promise<Result<TaggedNote[]>> {
+    try {
+      const allNotes: TaggedNote[] = [];
+
+      for (const vault of this.vaults) {
+        const notesResult = await this.getNotesFromVault(vault);
+        if (notesResult.isOk()) {
+          allNotes.push(...notesResult.value);
+        }
+      }
+
+      return Result.ok(allNotes);
+    } catch (error) {
+      return Result.fail(toAppError(error));
+    }
+  }
+
+  /**
+   * Get notes from a specific vault
+   * @param vault The vault configuration
+   * @returns Promise that resolves to notes from the vault
+   */
+  private async getNotesFromVault(vault: VaultConfig): Promise<Result<TaggedNote[]>> {
+    try {
+      const notes: TaggedNote[] = [];
+      const markdownFiles = await this.findMarkdownFiles(vault.path);
+
+      for (const filePath of markdownFiles) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          const stats = await fs.stat(filePath);
+
+          // Parse frontmatter and extract tags
+          const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+          const match = frontmatterRegex.exec(content);
+
+          let tags: string[] = [];
+          let title: string | undefined;
+          let bodyContent = content;
+
+          if (match) {
+            const frontmatter = match[1] ?? '';
+            bodyContent = match[2] ?? '';
+
+            // Extract tags
+            const tagMatch = /tags:\s*\[(.*?)\]/s.exec(frontmatter);
+            if (tagMatch?.[1]) {
+              tags = tagMatch[1]
+                .split(',')
+                .map((tag) => tag.trim().replace(/['"]/g, ''))
+                .filter((tag) => tag.length > 0);
+            }
+
+            // Extract title
+            const titleMatch = /title:\s*["']?([^"'\n]+)["']?/.exec(frontmatter);
+            if (titleMatch?.[1]) {
+              title = titleMatch[1].trim();
+            }
+          }
+
+          // If no title in frontmatter, use first heading or filename
+          if (!title) {
+            const headingMatch = /^#\s+(.+)$/m.exec(bodyContent);
+            if (headingMatch?.[1]) {
+              title = headingMatch[1].trim();
+            } else {
+              title = path.basename(filePath, '.md');
+            }
+          }
+
+          const note: TaggedNote = {
+            path: filePath,
+            title,
+            content: bodyContent,
+            tags,
+            lastModified: stats.mtime,
+          };
+
+          notes.push(note);
+        } catch (fileError) {
+          // Skip files that can't be read
+          console.warn(`Could not read file ${filePath}:`, fileError);
+        }
+      }
+
+      return Result.ok(notes);
+    } catch (error) {
+      return Result.fail(toAppError(error));
+    }
+  }
+
+  /**
+   * Find all markdown files in a directory recursively
+   * @param directory The directory to search
+   * @returns Promise that resolves to array of markdown file paths
+   */
+  private async findMarkdownFiles(directory: string): Promise<string[]> {
+    const markdownFiles: string[] = [];
+
+    try {
+      const entries = await fs.readdir(directory, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+          // Skip .obsidian directory and other hidden directories
+          if (!entry.name.startsWith('.')) {
+            const subFiles = await this.findMarkdownFiles(fullPath);
+            markdownFiles.push(...subFiles);
+          }
+        } else if (entry.isFile() && entry.name.endsWith('.md')) {
+          markdownFiles.push(fullPath);
+        }
+      }
+    } catch (error) {
+      // If we can't read a directory, just skip it
+      console.warn(`Could not read directory ${directory}:`, error);
+    }
+
+    return markdownFiles;
+  }
+
+  /**
+   * Get tag relationships from all notes
+   * @returns Promise that resolves to tag relationships
+   */
+  public async getTagRelationships(): Promise<Result<TagRelationship[]>> {
+    try {
+      const notesResult = await this.getAllNotes();
+      if (notesResult.isErr()) {
+        return Result.fail(notesResult.error);
+      }
+
+      const notes = notesResult.value;
+      const relationships: TagRelationship[] = [];
+      const tagPairs = new Map<string, number>();
+
+      // Count tag co-occurrences
+      for (const note of notes) {
+        const tags = note.tags;
+        for (let i = 0; i < tags.length; i++) {
+          for (let j = i + 1; j < tags.length; j++) {
+            const tag1 = tags[i];
+            const tag2 = tags[j];
+            if (tag1 && tag2) {
+              const pair = [tag1, tag2].sort().join('|');
+              tagPairs.set(pair, (tagPairs.get(pair) || 0) + 1);
+            }
+          }
+        }
+      }
+
+      // Convert to relationships with strength calculation
+      for (const [pair, count] of tagPairs.entries()) {
+        const [tag1, tag2] = pair.split('|');
+        if (tag1 && tag2 && count > 1) {
+          // Only include relationships that occur more than once
+          const strength = Math.min(1, count / 10); // Normalize strength (max 1.0)
+
+          relationships.push({
+            sourceTag: tag1,
+            targetTag: tag2,
+            strength,
+            type: 'co-occurrence',
+          });
+        }
+      }
+
+      return Result.ok(relationships);
     } catch (error) {
       return Result.fail(toAppError(error));
     }

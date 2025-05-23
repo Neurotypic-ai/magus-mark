@@ -127,7 +127,9 @@ tags: [test, markdown]`;
       const malformed = 'title: Test\ninvalid'; // Missing colon
 
       // Temporarily mock console.error to suppress expected error logging from test runner
-      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        return undefined;
+      });
 
       // Expect the parseFrontmatter method to throw the specific wrapped error
       expect(() => processor.parseFrontmatter(malformed)).toThrow(/Failed to parse frontmatter/);

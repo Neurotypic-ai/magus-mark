@@ -8,7 +8,7 @@ import { APIError } from '@magus-mark/core/errors/APIError';
 import { ApiKeyError } from '@magus-mark/core/errors/ApiKeyError';
 import { TaggingError } from '@magus-mark/core/errors/TaggingError';
 
-import ObsidianMagicPlugin from '../main'; // This will be the mocked constructor
+import MagusMarkPlugin from '../main'; // This will be the mocked constructor
 
 import { TaggingService } from './TaggingService';
 
@@ -42,13 +42,13 @@ vi.mock('@magus-mark/core', () => ({
   })),
 }));
 
-vi.mock('../main'); // Mocks ObsidianMagicPlugin
+vi.mock('../main'); // Mocks MagusMarkPlugin
 vi.mock('obsidian');
 
 // --- Tests ---
 describe('TaggingService', () => {
   let taggingService: TaggingService;
-  let pluginInstance: ObsidianMagicPlugin;
+  let pluginInstance: MagusMarkPlugin;
   let mockCoreServices: CoreModule; // To hold the mocked core services
 
   beforeEach(() => {
@@ -62,10 +62,7 @@ describe('TaggingService', () => {
     mockCoreParseDocument.mockReturnValue({ path: 'test.md', name: 'test', content: '# Test Content' });
     // mockCoreTagDocument and mockCoreUpdateDocument will often be configured per test
 
-    const MockedPlugin = ObsidianMagicPlugin as unknown as new (
-      app: App,
-      manifest: PluginManifest
-    ) => ObsidianMagicPlugin;
+    const MockedPlugin = MagusMarkPlugin as unknown as new (app: App, manifest: PluginManifest) => MagusMarkPlugin;
     pluginInstance = new MockedPlugin({} as App, {} as PluginManifest);
 
     pluginInstance.app = {
@@ -254,9 +251,9 @@ tags: processed
 
       expect(mockCoreTagDocument).toHaveBeenCalledTimes(mockFiles.length);
       if (pluginInstance.statusBarElement) {
-        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magic: Processing files (50%)...');
-        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magic: Processing files (100%)...');
-        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magic: Ready');
+        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magus Mark: Processing files (50%)...');
+        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magus Mark: Processing files (100%)...');
+        expect(pluginInstance.statusBarElement.setText).toHaveBeenCalledWith('Magus Mark: Ready');
       }
     });
 

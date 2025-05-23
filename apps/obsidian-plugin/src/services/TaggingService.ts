@@ -19,7 +19,7 @@ import type { TagSet } from '@magus-mark/core/models/TagSet';
 import type { TaggingOptions } from '@magus-mark/core/models/TaggingOptions';
 import type { TFile } from 'obsidian';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 /**
  * Error types specific to the tagging service
@@ -55,15 +55,15 @@ export class TaggingService {
   /**
    * Status updates emitted for UI handlers
    */
-  public readonly status: BehaviorSubject<string> = new BehaviorSubject<string>('Magic: Ready');
+  public readonly status: BehaviorSubject<string> = new BehaviorSubject<string>('Magus Mark: Ready');
   /**
    * Notice messages emitted for UI handlers
    */
   public readonly notice: Subject<string> = new Subject<string>();
-  private plugin: ObsidianMagicPlugin;
+  private plugin: MagusMarkPlugin;
   private coreServices: ReturnType<typeof initializeCore>;
 
-  constructor(plugin: ObsidianMagicPlugin) {
+  constructor(plugin: MagusMarkPlugin) {
     this.plugin = plugin;
 
     // Initialize core services
@@ -104,7 +104,7 @@ export class TaggingService {
         throw new ApiKeyError('OpenAI API key is not configured');
       }
       // Emit processing status
-      this.status.next('Magic: Processing file...');
+      this.status.next('Magus Mark: Processing file...');
 
       // Read file content
       let content: string;
@@ -141,7 +141,7 @@ export class TaggingService {
 
         // Emit success notice and reset status
         this.notice.next('Successfully tagged document');
-        this.status.next('Magic: Ready');
+        this.status.next('Magus Mark: Ready');
 
         return Result.ok({
           file,
@@ -154,7 +154,7 @@ export class TaggingService {
       }
     } catch (error) {
       // Emit ready status
-      this.status.next('Magic: Ready');
+      this.status.next('Magus Mark: Ready');
 
       // Get the error message and handle specific error cases
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -240,7 +240,7 @@ export class TaggingService {
           const percent = Math.round((completed / total) * 100);
 
           if (this.plugin.statusBarElement) {
-            this.plugin.statusBarElement.setText(`Magic: Processing files (${String(percent)}%)...`);
+            this.plugin.statusBarElement.setText(`Magus Mark: Processing files (${String(percent)}%)...`);
           }
         });
       }
@@ -253,7 +253,7 @@ export class TaggingService {
 
     // Reset status
     if (this.plugin.statusBarElement) {
-      this.plugin.statusBarElement.setText('Magic: Ready');
+      this.plugin.statusBarElement.setText('Magus Mark: Ready');
     }
 
     return results;

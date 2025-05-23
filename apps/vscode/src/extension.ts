@@ -5,15 +5,34 @@ import * as vscode from 'vscode';
 
 import { LanguageModelAPI } from './cursor/LanguageModelAPI';
 import { MCPServer } from './cursor/MCPServer';
-import { VaultIntegrationService } from './services/VaultIntegrationService';
+import { SmartContextProvider } from './services/SmartContextProvider';
+import { VaultIntegrationService, type TaggedNote, type TagRelationship } from './services/VaultIntegrationService';
+import { KnowledgeGraphView } from './views/KnowledgeGraph';
 import { registerRecentActivity } from './views/RecentActivity';
+import { SmartSuggestionsView } from './views/SmartSuggestions';
 import { registerTagExplorer } from './views/TagExplorer';
 import { registerVaultBrowser } from './views/VaultBrowser';
+
+// Mock types for now - these would come from the actual core package
+interface OpenAIService {
+  generateCompletion(options: {
+    prompt: string;
+    maxTokens: number;
+    temperature: number;
+  }): Promise<{ isOk(): boolean; isErr(): boolean; value: string; error: Error }>;
+}
+
+interface TagEngine {
+  suggestTags(): Promise<{ isOk(): boolean; isErr(): boolean; value: string[]; error: Error }>;
+}
 
 // Store service instances for access from commands
 let mcpServer: MCPServer | undefined;
 let vaultService: VaultIntegrationService | undefined;
 let languageModelAPI: LanguageModelAPI | undefined;
+let smartContextProvider: SmartContextProvider | undefined;
+let knowledgeGraphView: KnowledgeGraphView | undefined;
+let smartSuggestionsView: SmartSuggestionsView | undefined;
 
 /**
  * Generate HTML for the response webview
@@ -103,7 +122,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const isCursorEnvironment = vscode.env.appName.includes('Cursor');
 
   // Check user configuration for Cursor features
-  const config = vscode.workspace.getConfiguration('obsidianMagic');
+  const config = vscode.workspace.getConfiguration('magusMark');
   const cursorFeaturesEnabled = config.get<boolean>('cursorFeatures.enabled', true);
 
   if (isCursorEnvironment && cursorFeaturesEnabled) {
@@ -468,7 +487,7 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
   // Register explorer view command
   const explorerCommand = vscode.commands.registerCommand('magus-mark.openTagExplorer', async () => {
     // Focus the tag explorer view
-    await vscode.commands.executeCommand('obsidianMagicTagExplorer.focus');
+    await vscode.commands.executeCommand('magusMarkTagExplorer.focus');
     vscode.window.showInformationMessage('Tag Explorer opened');
   });
 
@@ -690,9 +709,290 @@ function initializeExtension(context: vscode.ExtensionContext): void {
   const recentActivityView = registerRecentActivity(context, vaultService);
   context.subscriptions.push(recentActivityView);
 
+  // Initialize advanced AI-powered features
+  initializeAdvancedFeatures(context);
+
   // Set up any event listeners
 
   // Initialize any other extension features
+}
+
+/**
+ * Initialize advanced AI-powered features
+ */
+function initializeAdvancedFeatures(context: vscode.ExtensionContext): void {
+  try {
+    // Create mock instances for now - in a real implementation these would come from the core package
+    const mockOpenAIService: OpenAIService = {
+      generateCompletion: async (options: { prompt: string; maxTokens: number; temperature: number }) => {
+        // Mock implementation - in real code this would use the actual OpenAI service
+        if (languageModelAPI) {
+          const response = await languageModelAPI.generateCompletion(options.prompt, {
+            temperature: options.temperature,
+            maxTokens: options.maxTokens,
+          });
+          return { isOk: () => true, isErr: () => false, value: response, error: new Error('') };
+        }
+        return { isOk: () => false, isErr: () => true, value: '', error: new Error('Language model not available') };
+      },
+    } as OpenAIService;
+
+    const mockTagEngine: TagEngine = {
+      suggestTags: () => Promise.resolve({ isOk: () => true, isErr: () => false, value: [], error: new Error('') }),
+    } as TagEngine;
+
+    // Initialize Smart Context Provider
+    smartContextProvider = new SmartContextProvider(mockOpenAIService, mockTagEngine);
+
+    // Initialize Knowledge Graph View
+    knowledgeGraphView = new KnowledgeGraphView(context);
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(KnowledgeGraphView.viewType, knowledgeGraphView)
+    );
+
+    // Initialize Smart Suggestions View
+    smartSuggestionsView = new SmartSuggestionsView(context, smartContextProvider);
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(SmartSuggestionsView.viewType, smartSuggestionsView)
+    );
+
+    // Connect advanced services to MCP Server if it exists
+    if (mcpServer) {
+      mcpServer.setAdvancedServices(smartContextProvider, knowledgeGraphView);
+    }
+
+    // Set up data flow between services
+    if (vaultService) {
+      // Update views when vault data changes
+      vaultService.onVaultChanged(() => {
+        void (async () => {
+          if (!vaultService) return;
+          const notesResult = await vaultService.getAllNotes();
+          if (notesResult.isOk()) {
+            const notes: TaggedNote[] = notesResult.value;
+
+            // Update knowledge graph
+            const relationships = await vaultService.getTagRelationships();
+            if (relationships.isOk() && knowledgeGraphView) {
+              const relationshipData: TagRelationship[] = relationships.value;
+              knowledgeGraphView.updateData(notes, relationshipData);
+            }
+
+            // Update smart suggestions
+            if (smartSuggestionsView) {
+              smartSuggestionsView.updateNotes(notes);
+            }
+          }
+        })();
+      });
+    }
+
+    // Register enhanced commands
+    registerAdvancedCommands(context);
+
+    console.log('Advanced AI features initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize advanced features:', error);
+    vscode.window.showWarningMessage('Some advanced features could not be initialized');
+  }
+}
+
+/**
+ * Register commands for advanced features
+ */
+function registerAdvancedCommands(context: vscode.ExtensionContext): void {
+  // Enhanced Knowledge Graph command
+  const openKnowledgeGraphCommand = vscode.commands.registerCommand('magus-mark.openKnowledgeGraph', async () => {
+    await vscode.commands.executeCommand('magusKnowledgeGraph.focus');
+    vscode.window.showInformationMessage('Knowledge Graph opened - explore your content connections!');
+  });
+
+  // Smart Context Analysis command
+  const analyzeContextCommand = vscode.commands.registerCommand('magus-mark.analyzeContext', async () => {
+    if (!smartContextProvider || !vaultService) {
+      vscode.window.showErrorMessage('Smart context analysis not available');
+      return;
+    }
+
+    vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Analyzing current context...',
+        cancellable: false,
+      },
+      async () => {
+        if (!vaultService || !smartContextProvider) return;
+        const notesResult = await vaultService.getAllNotes();
+        if (notesResult.isOk()) {
+          const suggestions = await smartContextProvider.provideSmartSuggestions(notesResult.value, true);
+          if (suggestions.isOk() && suggestions.value.length > 0) {
+            await vscode.commands.executeCommand('magusSmartSuggestions.focus');
+            vscode.window.showInformationMessage(`Found ${suggestions.value.length.toString()} smart suggestions!`);
+          } else {
+            vscode.window.showInformationMessage('No suggestions available for current context');
+          }
+        }
+      }
+    );
+  });
+
+  // Intelligent Tagging command (enhanced version of existing tag command)
+  const intelligentTagCommand = vscode.commands.registerCommand('magus-mark.intelligentTag', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showInformationMessage('No active file to tag');
+      return;
+    }
+
+    if (!smartContextProvider) {
+      // Fallback to regular tagging
+      await vscode.commands.executeCommand('magus-mark.tagFile');
+      return;
+    }
+
+    const content = editor.document.getText();
+    const result = await smartContextProvider.getContextualTags(content);
+
+    if (result.isOk() && result.value.length > 0) {
+      const tagOptions = result.value.map((suggestion) => ({
+        label: suggestion.tag,
+        description: `Confidence: ${(suggestion.confidence * 100).toFixed(0)}%`,
+        detail: suggestion.reasoning,
+        picked: suggestion.confidence > 0.7, // Auto-select high confidence tags
+      }));
+
+      const selectedTags = await vscode.window.showQuickPick(tagOptions, {
+        canPickMany: true,
+        placeHolder: 'Select AI-suggested tags to apply',
+        title: 'Intelligent Tag Suggestions',
+      });
+
+      if (selectedTags && selectedTags.length > 0 && vaultService) {
+        const tagNames = selectedTags.map((tag) => tag.label);
+        const applyResult = await vaultService.applyTagsToDocument(editor.document.fileName, tagNames);
+
+        if (applyResult.isOk()) {
+          vscode.window.showInformationMessage(`Applied ${tagNames.length.toString()} intelligent tags!`);
+
+          // Track activity
+          smartContextProvider.trackFileActivity(editor.document.fileName, 'intelligent-tag');
+        }
+      }
+    } else {
+      vscode.window.showInformationMessage('No intelligent tag suggestions available');
+    }
+  });
+
+  // Explore Related Files command
+  const exploreRelatedCommand = vscode.commands.registerCommand('magus-mark.exploreRelated', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !smartContextProvider || !vaultService) {
+      vscode.window.showErrorMessage('Related file exploration not available');
+      return;
+    }
+
+    const notesResult = await vaultService.getAllNotes();
+    if (notesResult.isErr()) {
+      vscode.window.showErrorMessage('Could not load notes for analysis');
+      return;
+    }
+
+    const relatedFiles = await smartContextProvider.suggestRelatedFiles(editor.document.fileName, notesResult.value);
+
+    if (relatedFiles.length > 0) {
+      const fileOptions = relatedFiles.map((filePath) => {
+        const note = notesResult.value.find((n) => n.path === filePath);
+        return {
+          label: note?.title ?? path.basename(filePath),
+          description: filePath,
+          detail: `Tags: ${note?.tags.join(', ') ?? 'None'}`,
+        };
+      });
+
+      const selectedFile = await vscode.window.showQuickPick(fileOptions, {
+        placeHolder: 'Select a related file to open',
+        title: 'Related Files',
+      });
+
+      if (selectedFile) {
+        const uri = vscode.Uri.file(selectedFile.description);
+        await vscode.window.showTextDocument(uri);
+      }
+    } else {
+      vscode.window.showInformationMessage('No related files found');
+    }
+  });
+
+  // Generate Code Snippet command
+  const generateSnippetCommand = vscode.commands.registerCommand('magus-mark.generateSnippet', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !smartContextProvider) {
+      vscode.window.showErrorMessage('Code snippet generation not available');
+      return;
+    }
+
+    const description = await vscode.window.showInputBox({
+      prompt: 'Describe the code you want to generate',
+      placeHolder: 'e.g., "function to validate email addresses"',
+    });
+
+    if (!description) {
+      return;
+    }
+
+    const language = editor.document.languageId;
+    const context = editor.document.getText();
+
+    vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Generating intelligent code snippet...',
+        cancellable: false,
+      },
+      async () => {
+        if (!smartContextProvider) return;
+        const result = await smartContextProvider.provideIntelligentSnippets(context, language);
+
+        if (result.isOk() && result.value.length > 0) {
+          const snippetOptions = result.value.map((snippet) => ({
+            label: (snippet.metadata?.description as string) || 'Generated Snippet',
+            detail: snippet.reasoning,
+            snippet: snippet.content,
+          }));
+
+          const selectedSnippet = await vscode.window.showQuickPick(snippetOptions, {
+            placeHolder: 'Select a code snippet to insert',
+            title: 'Generated Snippets',
+          });
+
+          if (selectedSnippet) {
+            const selection = editor.selection;
+            await editor.edit((editBuilder) => {
+              if (selection.isEmpty) {
+                editBuilder.insert(selection.active, selectedSnippet.snippet);
+              } else {
+                editBuilder.replace(selection, selectedSnippet.snippet);
+              }
+            });
+
+            // Format the inserted code
+            await vscode.commands.executeCommand('editor.action.formatSelection');
+            vscode.window.showInformationMessage('Intelligent snippet inserted!');
+          }
+        } else {
+          vscode.window.showInformationMessage('Could not generate snippets for current context');
+        }
+      }
+    );
+  });
+
+  context.subscriptions.push(
+    openKnowledgeGraphCommand,
+    analyzeContextCommand,
+    intelligentTagCommand,
+    exploreRelatedCommand,
+    generateSnippetCommand
+  );
 }
 
 /**

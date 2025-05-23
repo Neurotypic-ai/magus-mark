@@ -238,9 +238,10 @@ export function registerTagExplorer(
 ): vscode.Disposable {
   const provider = new TagExplorerProvider(vaultService);
 
-  const treeView = vscode.window.createTreeView('obsidianMagicTagExplorer', {
+  const treeView = vscode.window.createTreeView('magusMarkTagExplorer', {
     treeDataProvider: provider,
     showCollapseAll: true,
+    canSelectMany: true,
   });
 
   // Register tree view commands
@@ -290,7 +291,7 @@ export function registerTagExplorer(
   const updateContext = () => {
     void vscode.commands.executeCommand(
       'setContext',
-      'obsidianMagic.hasVaults',
+      'magusMark.hasVaults',
       (vaultService?.getVaults().length ?? 0) > 0
     );
   };

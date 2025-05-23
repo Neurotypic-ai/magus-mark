@@ -66,73 +66,119 @@
       {
         "command": "magus-mark.taggedFilesList",
         "title": "Magus Mark: Show Tagged Files"
+      },
+      {
+        "command": "magus-mark.intelligentTag",
+        "title": "Magus Mark: Intelligent Tag with AI"
+      },
+      {
+        "command": "magus-mark.analyzeContext",
+        "title": "Magus Mark: Analyze Current Context"
+      },
+      {
+        "command": "magus-mark.exploreRelated",
+        "title": "Magus Mark: Explore Related Files"
+      },
+      {
+        "command": "magus-mark.generateSnippet",
+        "title": "Magus Mark: Generate Code Snippet"
       }
     ],
     "configuration": {
+      "title": "Magus Mark",
       "properties": {
-        "obsidianMagic.cursorFeatures.enabled": {
+        "magusMark.cursorFeatures.enabled": {
+          "type": "boolean",
           "default": true,
-          "description": "Enable Cursor-specific features like @magus-mark participant",
-          "type": "boolean"
+          "description": "Enable Cursor-specific features"
         },
-        "obsidianMagic.cursorFeatures.mcpServerPort": {
+        "magusMark.cursorFeatures.mcpServerPort": {
+          "type": "number",
           "default": 9876,
-          "description": "Port for the Model Context Protocol server",
-          "type": "number"
+          "description": "Port for MCP server communication with Cursor"
         },
-        "obsidianMagic.vault.autoDetect": {
+        "magusMark.vault.autoDetect": {
+          "type": "boolean",
           "default": true,
-          "description": "Automatically detect Obsidian vaults in workspace",
-          "type": "boolean"
+          "description": "Automatically detect Obsidian vaults in workspace"
         },
-        "obsidianMagic.vault.autoSync": {
-          "default": true,
-          "description": "Automatically sync with Obsidian vaults on startup",
-          "type": "boolean"
-        },
-        "obsidianMagic.ui.showTagsInExplorer": {
-          "default": true,
-          "description": "Show tags in file explorer",
-          "type": "boolean"
-        },
-        "obsidianMagic.ui.enableTagHighlighting": {
-          "default": true,
-          "description": "Enable syntax highlighting for tags",
-          "type": "boolean"
-        },
-        "obsidianMagic.ui.tagDecorationStyle": {
-          "default": "background",
-          "description": "Style for tag decorations",
-          "enum": [
-            "background",
-            "underline",
-            "outline"
-          ],
-          "type": "string"
-        },
-        "obsidianMagic.integration.enableCodeLens": {
-          "default": true,
-          "description": "Enable code lens for tags",
-          "type": "boolean"
-        },
-        "obsidianMagic.integration.enableAutotagging": {
+        "magusMark.vault.autoSync": {
+          "type": "boolean",
           "default": false,
-          "description": "Enable automatic tagging of files",
-          "type": "boolean"
+          "description": "Automatically sync vault changes"
         },
-        "obsidianMagic.advanced.logLevel": {
-          "default": "info",
-          "description": "Log level for debugging",
+        "magusMark.ui.showTagsInExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show tag explorer in sidebar"
+        },
+        "magusMark.ui.enableTagHighlighting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable tag highlighting in editor"
+        },
+        "magusMark.ui.tagDecorationStyle": {
+          "type": "string",
+          "enum": [
+            "badge",
+            "underline",
+            "highlight"
+          ],
+          "default": "badge",
+          "description": "Style for tag decorations"
+        },
+        "magusMark.integration.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CodeLens for tag operations"
+        },
+        "magusMark.integration.enableAutotagging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic tagging on file save"
+        },
+        "magusMark.advanced.logLevel": {
+          "type": "string",
           "enum": [
             "debug",
             "info",
             "warn",
             "error"
           ],
-          "type": "string"
+          "default": "info",
+          "description": "Logging level for debugging"
+        },
+        "magusMark.smartSuggestions.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI-powered tag suggestions"
+        },
+        "magusMark.smartSuggestions.maxSuggestions": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of suggestions to show"
+        },
+        "magusMark.knowledgeGraph.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable knowledge graph visualization"
+        },
+        "magusMark.knowledgeGraph.maxNodes": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum nodes to display in graph"
+        },
+        "magusMark.intelligentTagging.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable intelligent tagging features"
+        },
+        "magusMark.intelligentTagging.confidence": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Confidence threshold for automatic tagging"
         }
-      },
-      "title": "Magus Mark for VSCode"
+      }
     },
     "keybindings": [
       {
@@ -150,6 +196,34 @@
         "command": "magus-mark.searchTags",
         "key": "ctrl+shift+f",
         "mac": "cmd+shift+f"
+      },
+      {
+        "command": "magus-mark.intelligentTag",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "magus-mark.analyzeContext",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
+      },
+      {
+        "command": "magus-mark.openKnowledgeGraph",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k"
+      },
+      {
+        "command": "magus-mark.exploreRelated",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "magus-mark.generateSnippet",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s",
+        "when": "editorTextFocus"
       }
     ],
     "menus": {
@@ -158,11 +232,31 @@
           "command": "magus-mark.tagFile",
           "group": "magus-mark",
           "when": "resourceExtname == .md"
+        },
+        {
+          "command": "magus-mark.intelligentTag",
+          "group": "magus-mark",
+          "when": "resourceExtname == .md"
+        },
+        {
+          "command": "magus-mark.exploreRelated",
+          "group": "magus-mark",
+          "when": "resourceExtname == .md"
+        },
+        {
+          "command": "magus-mark.generateSnippet",
+          "group": "magus-mark",
+          "when": "editorTextFocus"
         }
       ],
       "explorer/context": [
         {
           "command": "magus-mark.tagFile",
+          "group": "magus-mark",
+          "when": "resourceExtname == .md"
+        },
+        {
+          "command": "magus-mark.intelligentTag",
           "group": "magus-mark",
           "when": "resourceExtname == .md"
         }
@@ -171,40 +265,47 @@
         {
           "command": "magus-mark.deleteTag",
           "group": "inline",
-          "when": "view == obsidianMagicTagExplorer && viewItem == tag"
+          "when": "view == magusMarkTagExplorer && viewItem == tag"
         }
       ],
       "view/title": [
         {
-          "command": "magus-mark.addTag",
-          "group": "navigation",
-          "when": "view == obsidianMagicTagExplorer"
-        },
-        {
-          "command": "magus-mark.searchTags",
-          "group": "navigation",
-          "when": "view == obsidianMagicTagExplorer"
+          "command": "magus-mark.refreshTags",
+          "when": "view == magusMarkTagExplorer && viewItem == tag",
+          "group": "navigation"
         }
       ]
     },
     "views": {
       "explorer": [
         {
-          "id": "obsidianMagicTagExplorer",
+          "id": "magusMarkTagExplorer",
           "name": "Magus Mark Tags",
-          "when": "obsidianMagic.hasVaults"
+          "when": "magusMark.hasVaults"
         }
       ],
       "magus-mark": [
         {
           "id": "magusMarkVaultBrowser",
           "name": "Vault Browser",
-          "when": "obsidianMagic.hasVaults"
+          "when": "magusMark.hasVaults"
         },
         {
           "id": "magusMarkRecentActivity",
           "name": "Recent Activity",
-          "when": "obsidianMagic.hasVaults"
+          "when": "magusMark.hasVaults"
+        },
+        {
+          "id": "magusKnowledgeGraph",
+          "name": "Knowledge Graph",
+          "when": "magusMark.hasVaults",
+          "type": "webview"
+        },
+        {
+          "id": "magusSmartSuggestions",
+          "name": "Smart Suggestions",
+          "when": "magusMark.hasVaults",
+          "type": "webview"
         }
       ]
     },
@@ -216,7 +317,20 @@
           "icon": "$(tag)"
         }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "magusMarkTagExplorer",
+        "contents": "No Obsidian vaults detected in this workspace.\n[Open Folder](command:vscode.openFolder)\n[Configure Vault Path](command:magus-mark.configureVault)",
+        "when": "magusMark.hasVaults"
+      },
+      {
+        "view": "magusMarkTagExplorer",
+        "contents": "Configure your OpenAI API key to start tagging.\n[Set API Key](command:magus-mark.setApiKey)",
+        "when": "magusMark.hasVaults",
+        "group": "setup"
+      }
+    ]
   },
   "dependencies": {
     "@magus-mark/core": "workspace:*",
@@ -229,20 +343,20 @@
     "@types/chai": "^5.2.2",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^22.15.18",
+    "@types/node": "^22.15.21",
     "@types/sinon": "^17.0.4",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "^1.100.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
-    "@vscode/vsce": "^3.3.2",
+    "@vscode/vsce": "^3.4.2",
     "chai": "^5.2.0",
     "esbuild": "^0.25.4",
-    "eslint": "^9.26.0",
+    "eslint": "^9.27.0",
     "glob": "11.0.2",
-    "mocha": "11.2.2",
+    "mocha": "11.4.0",
     "npm-run-all": "^4.1.5",
     "sinon": "^20.0.0",
     "typescript": "5.8.3"

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Import Result for proper mocking
 import { Result } from '@magus-mark/core/errors/Result';
 
-import ObsidianMagicPlugin from './main';
+import MagusMarkPlugin from './main';
 import { DocumentTagService } from './services/DocumentTagService';
 import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
@@ -24,7 +24,7 @@ const TEST_MANIFEST: PluginManifest = {
 };
 
 describe('Integration Tests', () => {
-  let plugin: ObsidianMagicPlugin;
+  let plugin: MagusMarkPlugin;
   let appInstanceFromMock: App;
 
   beforeEach(async () => {
@@ -62,23 +62,10 @@ describe('Integration Tests', () => {
     });
     vi.mocked(appInstanceFromMock.metadataCache).on.mockReturnValue({ unsubscribe: vi.fn() });
 
-    plugin = new ObsidianMagicPlugin(appInstanceFromMock, TEST_MANIFEST);
+    plugin = new MagusMarkPlugin(appInstanceFromMock, TEST_MANIFEST);
 
-    // Mock plugin methods
-    plugin.loadData = vi.fn().mockResolvedValue({});
-    plugin.saveData = vi.fn().mockResolvedValue(undefined);
-    plugin.addSettingTab = vi.fn();
-    plugin.registerView = vi.fn();
-    plugin.addRibbonIcon = vi.fn();
-    plugin.addStatusBarItem = vi.fn().mockReturnValue({
-      createEl: vi.fn(),
-      addClass: vi.fn(),
-      setText: vi.fn(),
-      setAttr: vi.fn(),
-    } as unknown as HTMLElement);
-    plugin.addCommand = vi.fn();
-    plugin.registerEvent = vi.fn();
-    plugin.registerMarkdownPostProcessor = vi.fn();
+    // Only mock loadData - let everything else run normally
+    vi.spyOn(plugin, 'loadData').mockResolvedValue({});
 
     await plugin.onload();
   });
@@ -224,7 +211,7 @@ describe('Integration Tests', () => {
     it('should initialize all required services on load', async () => {
       const { createMockApp } = await import('./__mocks__/obsidian');
       const freshApp = createMockApp();
-      const newPlugin = new ObsidianMagicPlugin(freshApp, TEST_MANIFEST);
+      const newPlugin = new MagusMarkPlugin(freshApp, TEST_MANIFEST);
 
       // Mock plugin methods
       newPlugin.loadData = vi.fn().mockResolvedValue({});
@@ -255,7 +242,7 @@ describe('Integration Tests', () => {
     it('should clean up resources on unload', async () => {
       const { createMockApp } = await import('./__mocks__/obsidian');
       const freshApp = createMockApp();
-      const newPlugin = new ObsidianMagicPlugin(freshApp, TEST_MANIFEST);
+      const newPlugin = new MagusMarkPlugin(freshApp, TEST_MANIFEST);
       newPlugin.loadData = vi.fn().mockResolvedValue({});
       newPlugin.addSettingTab = vi.fn();
       newPlugin.registerView = vi.fn();
@@ -289,7 +276,7 @@ describe('Integration Tests', () => {
 
       const { createMockApp } = await import('./__mocks__/obsidian');
       const freshApp = createMockApp();
-      const newPlugin = new ObsidianMagicPlugin(freshApp, TEST_MANIFEST);
+      const newPlugin = new MagusMarkPlugin(freshApp, TEST_MANIFEST);
       newPlugin.loadData = vi.fn().mockResolvedValue(mockSettings);
       newPlugin.addSettingTab = vi.fn();
       newPlugin.registerView = vi.fn();

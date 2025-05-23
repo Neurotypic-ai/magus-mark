@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import type { TagRelationship, TaggedNote } from '@obsidian-magic/core';
+import type { TagRelationship, TaggedNote } from '../services/VaultIntegrationService';
 
 interface GraphNode {
   id: string;

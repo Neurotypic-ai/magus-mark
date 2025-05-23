@@ -102,10 +102,10 @@ export function updateFrontmatter(content: string, newData: FrontmatterObject): 
 }
 
 /**
- * Type guard to check if an object might contain obsidianMagic tags
+ * Type guard to check if an object might contain magusMark tags
  */
-function isTagsObject(obj: unknown): obj is { obsidianMagic: unknown } {
-  return typeof obj === 'object' && obj !== null && 'obsidianMagic' in obj;
+function isTagsObject(obj: unknown): obj is { magusMark: unknown } {
+  return typeof obj === 'object' && obj !== null && 'magusMark' in obj;
 }
 
 /**
@@ -121,9 +121,9 @@ export function extractTagsFromFrontmatter(content: string): TagSet | undefined 
   try {
     const tags = frontmatter['tags'];
     if (tags && typeof tags === 'object' && isTagsObject(tags)) {
-      // We've verified the object has an obsidianMagic property
-      // We trust that it's a TagSet
-      return tags.obsidianMagic as TagSet;
+      // We've verified the object has a magusMark property
+
+      return tags.magusMark as TagSet;
     }
   } catch (error) {
     console.warn('Failed to extract tags from frontmatter:', error);
@@ -154,7 +154,7 @@ export function updateTagsInFrontmatter(content: string, tags: TagSet): string {
     tags: {
       ...existingTags,
       // Use the TagSet directly, js-yaml will handle serialization
-      obsidianMagic: tags as unknown as FrontmatterValue,
+      magusMark: tags as unknown as FrontmatterValue,
     },
   };
 

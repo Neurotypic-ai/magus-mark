@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 
-import type { TaggedNote } from '@obsidian-magic/core';
-
 import type { SmartContextProvider } from '../services/SmartContextProvider';
+import type { TaggedNote } from '../services/VaultIntegrationService';
 
 interface SmartSuggestion {
   type: 'tag' | 'file' | 'snippet' | 'note';
@@ -10,6 +9,12 @@ interface SmartSuggestion {
   relevance: number;
   reasoning: string;
   metadata?: Record<string, unknown>;
+}
+
+interface WebviewMessage {
+  command: string;
+  suggestion?: SmartSuggestion;
+  index?: number;
 }
 
 export class SmartSuggestionsView implements vscode.WebviewViewProvider {
@@ -28,8 +33,8 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
+    context: vscode.WebviewViewResolveContext,
+    token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
 
@@ -42,13 +47,17 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
 
     // Handle messages from webview
     webviewView.webview.onDidReceiveMessage(
-      async (message) => {
+      async (message: WebviewMessage) => {
         switch (message.command) {
           case 'applySuggestion':
-            await this.applySuggestion(message.suggestion);
+            if (message.suggestion) {
+              await this.applySuggestion(message.suggestion);
+            }
             break;
           case 'dismissSuggestion':
-            this.dismissSuggestion(message.index);
+            if (typeof message.index === 'number') {
+              this.dismissSuggestion(message.index);
+            }
             break;
           case 'refreshSuggestions':
             await this.refreshSuggestions();
@@ -64,8 +73,8 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
 
     // Listen for active editor changes
     vscode.window.onDidChangeActiveTextEditor(
-      async () => {
-        await this.refreshSuggestions();
+      () => {
+        void this.refreshSuggestions();
       },
       undefined,
       this._context.subscriptions
@@ -73,10 +82,10 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
 
     // Listen for text selection changes
     vscode.window.onDidChangeTextEditorSelection(
-      async () => {
+      () => {
         // Debounce to avoid too frequent updates
-        setTimeout(async () => {
-          await this.refreshSuggestions();
+        setTimeout(() => {
+          void this.refreshSuggestions();
         }, 1000);
       },
       undefined,
@@ -86,7 +95,7 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
 
   public updateNotes(notes: TaggedNote[]): void {
     this._notes = notes;
-    this.refreshSuggestions();
+    void this.refreshSuggestions();
   }
 
   private async loadInitialSuggestions(): Promise<void> {

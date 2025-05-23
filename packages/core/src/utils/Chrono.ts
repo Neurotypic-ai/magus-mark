@@ -105,10 +105,12 @@ export class Chrono {
         }
         timeoutId = setTimeout(
           () => {
-            fn(...pendingArgs!);
-            lastCall = Date.now();
-            timeoutId = null;
-            pendingArgs = null;
+            if (pendingArgs) {
+              fn(...pendingArgs);
+              lastCall = Date.now();
+              timeoutId = null;
+              pendingArgs = null;
+            }
           },
           limit - (now - lastCall)
         );
@@ -144,18 +146,27 @@ export class Chrono {
    * @param concurrency - Maximum number of concurrent tasks
    * @returns Promise that resolves when all tasks complete
    */
-  async runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
-    const results: T[] = new Array(tasks.length);
+  async runWithConcurrencyLimit<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<(T | Error)[]> {
+    const results: (T | Error)[] = [];
+    // Initialize array with proper length without using Array constructor
+    for (let idx = 0; idx < tasks.length; idx++) {
+      results[idx] = new Error('Task not completed');
+    }
+
     interface IndexedResult {
       index: number;
-      result: T;
+      result: T | Error;
     }
     const inFlight = new Map<Promise<IndexedResult>, number>();
     const keys = () => Array.from(inFlight.keys());
     for (let i = 0; i < tasks.length; i++) {
-      const p = tasks[i]!().then(
+      const task = tasks[i];
+      if (!task) {
+        throw new Error(`Task at index ${String(i)} is undefined`);
+      }
+      const p = task().then(
         (res) => ({ index: i, result: res }) as IndexedResult,
-        (err) => ({ index: i, result: err as T }) as IndexedResult
+        (err: unknown) => ({ index: i, result: err instanceof Error ? err : new Error(String(err)) }) as IndexedResult
       );
       inFlight.set(p, i);
       if (inFlight.size >= concurrency) {

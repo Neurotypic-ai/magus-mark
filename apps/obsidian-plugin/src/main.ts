@@ -12,7 +12,7 @@ import type { AIModel } from '@magus-mark/core/models/AIModel';
 import type { TagBehavior } from '@magus-mark/core/models/TagBehavior';
 import type { App } from 'obsidian';
 
-interface ObsidianMagicSettings {
+interface MagusMarkSettings {
   apiKey: string;
   apiKeyStorage: 'local' | 'system';
   apiKeyKeychainId: string;
@@ -23,7 +23,7 @@ interface ObsidianMagicSettings {
   statusBarDisplay: 'always' | 'processing' | 'never';
 }
 
-export const DEFAULT_SETTINGS: ObsidianMagicSettings = {
+export const DEFAULT_SETTINGS: MagusMarkSettings = {
   apiKey: '',
   apiKeyStorage: 'local',
   apiKeyKeychainId: '',
@@ -33,8 +33,9 @@ export const DEFAULT_SETTINGS: ObsidianMagicSettings = {
   showRibbonIcon: true,
   statusBarDisplay: 'always',
 };
-export default class ObsidianMagicPlugin extends Plugin {
-  settings: ObsidianMagicSettings = DEFAULT_SETTINGS;
+
+export default class MagusMarkPlugin extends Plugin {
+  settings: MagusMarkSettings = DEFAULT_SETTINGS;
   statusBarElement: HTMLElement | null = null;
   taggingService!: TaggingService;
   documentTagService!: DocumentTagService;
@@ -42,13 +43,21 @@ export default class ObsidianMagicPlugin extends Plugin {
 
   override async onload(): Promise<void> {
     console.log('[Magus Mark] Loading plugin...');
+    console.log('[DEBUG] onload step 1: About to call loadSettings');
 
     await this.loadSettings();
+    console.log('[DEBUG] onload step 2: loadSettings completed');
+
     this.keyManager = new KeyManager(this);
+    console.log('[DEBUG] onload step 3: KeyManager created');
+
     const apiKey = this.keyManager.loadKey();
+    console.log('[DEBUG] onload step 4: apiKey loaded:', !!apiKey);
 
     try {
       this.taggingService = new TaggingService(this);
+      console.log('[DEBUG] onload step 5: TaggingService created');
+
       if (apiKey) {
         this.taggingService.updateApiKey(apiKey);
       }
@@ -59,23 +68,33 @@ export default class ObsidianMagicPlugin extends Plugin {
     }
 
     this.documentTagService = new DocumentTagService(this);
-    this.addSettingTab(new ObsidianMagicSettingTab(this.app, this));
+    console.log('[DEBUG] onload step 6: DocumentTagService created');
+
+    this.addSettingTab(new MagusMarkSettingTab(this.app, this));
+    console.log('[DEBUG] onload step 7: SettingTab added');
+
     this.registerViews();
+    console.log('[DEBUG] onload step 8: Views registered');
 
     if (this.settings.showRibbonIcon) {
       this.addRibbonIcon('tag', 'Magus Mark', async () => {
         await this.activateTagManagementView();
       });
+      console.log('[DEBUG] onload step 9: Ribbon icon added');
     }
 
     if (this.settings.statusBarDisplay !== 'never') {
       this.statusBarElement = this.addStatusBarItem();
-      this.statusBarElement.createEl('span', { text: 'Magic: Ready' });
+      this.statusBarElement.createEl('span', { text: 'Magus Mark: Ready' });
       this.statusBarElement.addClass('magus-mark-status');
+      console.log('[DEBUG] onload step 10: Status bar added');
     }
 
     this.addCommands();
+    console.log('[DEBUG] onload step 11: Commands added');
+
     this.registerContextMenu();
+    console.log('[DEBUG] onload step 12: Context menu registered');
 
     this.registerMarkdownPostProcessor((element: HTMLElement, context) => {
       const sourcePath = context.sourcePath;
@@ -123,8 +142,8 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const data = (await this.loadData()) as Partial<ObsidianMagicSettings> | undefined;
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+    const data = (await this.loadData()) as Partial<MagusMarkSettings> | undefined;
+    this.settings = { ...DEFAULT_SETTINGS, ...(data || {}) };
   }
 
   async saveSettings(): Promise<void> {
@@ -282,7 +301,7 @@ export default class ObsidianMagicPlugin extends Plugin {
 
   async tagFolder(folder: TFolder, includeSubfolders = true): Promise<void> {
     if (this.statusBarElement) {
-      this.statusBarElement.setText('Magic: Collecting files...');
+      this.statusBarElement.setText('Magus Mark: Collecting files...');
     }
 
     const filesToProcess: TFile[] = [];
@@ -299,15 +318,15 @@ export default class ObsidianMagicPlugin extends Plugin {
 
     if (filesToProcess.length > 0) {
       if (this.statusBarElement) {
-        this.statusBarElement.setText(`Magic: Processing ${String(filesToProcess.length)} files...`);
+        this.statusBarElement.setText(`Magus Mark: Processing ${String(filesToProcess.length)} files...`);
       }
       await this.taggingService.processFiles(filesToProcess);
     } else {
       if (this.statusBarElement) {
-        this.statusBarElement.setText('Magic: No markdown files found');
+        this.statusBarElement.setText('Magus Mark: No markdown files found');
         setTimeout(() => {
           if (this.statusBarElement) {
-            this.statusBarElement.setText('Magic: Ready');
+            this.statusBarElement.setText('Magus Mark: Ready');
           }
         }, 3000);
       }
@@ -316,10 +335,10 @@ export default class ObsidianMagicPlugin extends Plugin {
   }
 }
 
-class ObsidianMagicSettingTab extends PluginSettingTab {
-  plugin: ObsidianMagicPlugin;
+class MagusMarkSettingTab extends PluginSettingTab {
+  plugin: MagusMarkPlugin;
 
-  constructor(app: App, plugin: ObsidianMagicPlugin) {
+  constructor(app: App, plugin: MagusMarkPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -527,7 +546,7 @@ class ObsidianMagicSettingTab extends PluginSettingTab {
               this.plugin.statusBarElement = null;
             } else if (value !== 'never' && !this.plugin.statusBarElement) {
               this.plugin.statusBarElement = this.plugin.addStatusBarItem();
-              this.plugin.statusBarElement.setText('Magic: Ready');
+              this.plugin.statusBarElement.setText('Magus Mark: Ready');
               this.plugin.statusBarElement.addClass('magus-mark-status');
             }
           })

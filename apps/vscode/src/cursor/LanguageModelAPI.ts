@@ -25,7 +25,7 @@ export interface ChatMessage {
 export class LanguageModelAPI implements vscode.Disposable {
   private disposables: vscode.Disposable[] = [];
   private systemPromptCache: string | null = null;
-  private readonly API_KEY_STORAGE_KEY = 'obsidianMagic.apiKey';
+  private readonly API_KEY_STORAGE_KEY = 'magusMark.apiKey';
 
   constructor(private readonly context: vscode.ExtensionContext) {
     // Initialize the API key if needed

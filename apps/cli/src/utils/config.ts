@@ -126,7 +126,14 @@ class ConfigImpl implements ConfigStorage {
       return value as Config[K];
     }
 
-    return this.data[key];
+    // Return the value from data if it exists, otherwise fall back to default
+    const value = this.data[key];
+    if (value !== undefined) {
+      return value;
+    }
+
+    // Fall back to default value
+    return DEFAULT_CONFIG[key];
   }
 
   /**

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Shared TypeScript configurations for Magus Mark",
   "private": true,
-  "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
+  "author": "Kevin Hallmark <magus-mark@littleblackhat.com>",
   "license": "MIT",
   "exports": {
     "./config/*/tsconfig.json": "./config/*/tsconfig.json"

@@ -1,5 +1,12 @@
 # Magus Mark CLI
 
+> 🔥 **EPIC ANNOUNCEMENT**: This CLI is being transformed into a **GOD TIER** tool! Check out our
+> [God Tier Enhancement Plan](../../documentation/cli/god-tier-enhancements.md) featuring Matrix-style dashboards, AI
+> intelligence, time-travel debugging, and revolutionary features that will make other CLIs weep in shame.
+>
+> 📋 **IMPLEMENTATION**: Follow our detailed [Implementation Guide](../../documentation/cli/implementation-guide.md) to
+> build the most badass CLI experience ever created.
+
 Command-line tool for processing and tagging conversations in Obsidian markdown files.
 
 ## Installation
@@ -7,13 +14,13 @@ Command-line tool for processing and tagging conversations in Obsidian markdown 
 ```bash
 # From the repository
 cd apps/cli
-npm link
+pnpm link
 
-# Or install globally from npm (once published)
-npm install -g @magus-mark/cli
+# Or install globally from pnpm (once published)
+pnpm install -g @magus-mark/cli
 
 # Or use without installing
-npx @magus-mark/cli <command>
+pnpx @magus-mark/cli <command>
 ```
 
 ## Quick Start

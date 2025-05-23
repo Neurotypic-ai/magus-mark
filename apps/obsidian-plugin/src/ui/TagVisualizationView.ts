@@ -2,7 +2,7 @@ import { ItemView } from 'obsidian';
 
 import type { WorkspaceLeaf } from 'obsidian';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 export const TAG_VISUALIZATION_VIEW_TYPE = 'magus-mark-tag-visualization';
 
@@ -19,7 +19,7 @@ interface TagNode {
 }
 
 export class TagVisualizationView extends ItemView {
-  private plugin: ObsidianMagicPlugin;
+  private plugin: MagusMarkPlugin;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private tags: TagNode[] = [];
@@ -32,7 +32,7 @@ export class TagVisualizationView extends ItemView {
   private colorMap: Record<string, string> = {};
   private animationFrameId: number | null = null;
 
-  constructor(leaf: WorkspaceLeaf, plugin: ObsidianMagicPlugin) {
+  constructor(leaf: WorkspaceLeaf, plugin: MagusMarkPlugin) {
     super(leaf);
     this.plugin = plugin;
   }

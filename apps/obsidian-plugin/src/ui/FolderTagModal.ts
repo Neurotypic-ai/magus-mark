@@ -1,6 +1,6 @@
 import { Modal, Notice, Setting, TFolder } from 'obsidian';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 export interface FolderTagModalType {
   folderItems: HTMLElement[];
@@ -17,7 +17,7 @@ export class FolderTagModal extends Modal implements FolderTagModalType {
   private includeSubfolders = true;
   private onSubmit: (folder: TFolder, includeSubfolders: boolean) => void;
 
-  constructor(plugin: ObsidianMagicPlugin, onSubmit: (folder: TFolder, includeSubfolders: boolean) => void) {
+  constructor(plugin: MagusMarkPlugin, onSubmit: (folder: TFolder, includeSubfolders: boolean) => void) {
     super(plugin.app);
     this.onSubmit = onSubmit;
   }

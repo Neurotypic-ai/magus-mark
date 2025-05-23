@@ -150,7 +150,7 @@ export class MarkdownProcessor {
       // Format and replace frontmatter
       const formattedFrontmatter = this.formatFrontmatter(updated);
       return content.replace(frontmatterRegex, `---\n${formattedFrontmatter}\n---`);
-    } catch (error) {
+    } catch {
       // Return the original content with the original frontmatter in case of error
       return content;
     }

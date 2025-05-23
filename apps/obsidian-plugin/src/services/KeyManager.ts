@@ -7,7 +7,7 @@ import { FileSystemError } from '@magus-mark/core/errors/FileSystemError';
 import { Result } from '@magus-mark/core/errors/Result';
 import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 /**
  * Handles secure storage and management of API keys
@@ -16,9 +16,9 @@ import type ObsidianMagicPlugin from '../main';
  * - Local encrypted storage
  */
 export class KeyManager {
-  private plugin: ObsidianMagicPlugin;
+  private plugin: MagusMarkPlugin;
 
-  constructor(plugin: ObsidianMagicPlugin) {
+  constructor(plugin: MagusMarkPlugin) {
     this.plugin = plugin;
   }
 

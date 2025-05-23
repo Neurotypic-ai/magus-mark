@@ -14204,3 +14204,4588 @@ Please finish fixing this shit you got stuck bro
 
 ---
 
+_**Assistant**_
+
+
+
+---
+
+Your Grace, let me systematically complete the remaining fixes to achieve full test success.
+
+## 1. Fix TagVisualizationView Linter Errors
+
+---
+
+```diff
+  
+    it('should render the view on open', async () => {
+-     // Create a comprehensive mock for all elements that might be created
+-     const createMockElementWithSetText = (tag = 'div', options?: any) => ({
++     // Create a simple mock element with all required methods
++     const mockElement = {
+        setText: vi.fn(),
+        addClass: vi.fn(),
+        removeClass: vi.fn(),
+        createEl: vi.fn(),
+        createDiv: vi.fn(),
+-       ...createMockObsidianElement(tag, options),
+-     });
++       style: {},
++       classList: { add: vi.fn(), remove: vi.fn(), toggle: vi.fn(), contains: vi.fn() },
++       getAttribute: vi.fn(),
++       setAttribute: vi.fn(),
++       addEventListener: vi.fn(),
++       removeEventListener: vi.fn(),
++     };
+  
+      // Mock the view's createEl to intercept all element creation
+-     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: any, options?: any) => {
+-       // For loading elements, ensure setText is available
+-       if (tag === 'div' && (options?.cls === 'loading' || !options)) {
+-         return createMockElementWithSetText(tag, options) as any;
+-       }
++     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string, options?: any) => {
+        if (tag === 'canvas') {
+          const mockCanvas = document.createElement('canvas');
+```
+
+```diff
+          return mockCanvas as any;
+        }
+-       return createMockElementWithSetText(tag, options) as any;
++       return mockElement as any;
+      });
+  
+      // Mock the container structure
+      const mockContainer = {
+        empty: vi.fn(),
+-       createEl: vi.fn().mockImplementation((tag: any, options?: any) => createMockElementWithSetText(tag, options)),
+-       createDiv: vi.fn().mockImplementation((options?: any) => createMockElementWithSetText('div', options)),
++       createEl: vi.fn().mockReturnValue(mockElement),
++       createDiv: vi.fn().mockReturnValue(mockElement),
+        children: [] as any[],
+      };
+```
+
+---
+
+## 2. Fix Integration Test Linter Errors
+
+---
+
+```diff
+  
+    describe('Folder Tagging Flow', () => {
+-     it('should tag all files in a folder', async () => {
++     it('should tag all files in a folder', () => {
+        const mockFiles = [
+          { path: 'test-folder/file1.md', basename: 'file1', extension: 'md' },
+```
+
+```diff
+      });
+  
+-     it('should filter non-markdown files when tagging a folder', async () => {
++     it('should filter non-markdown files when tagging a folder', () => {
+        const allFiles = [
+          { path: 'mixed-folder/file1.md', basename: 'file1', extension: 'md' },
+```
+
+---
+
+## 3. Run Tests to See Current Status
+
+---
+
+```bash
+nx test magus-mark-obsidian
+```
+
+```
+
+> nx run magus-mark-core:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir packages/core/dist/types
+
+> tsx esbuild.config.ts
+
+
+  dist/index.esm.js       57.9kb
+  dist/index.esm.js.map  120.3kb
+
+⚡ Done in 8ms
+
+  dist/index.cjs.js       59.5kb
+  dist/index.cjs.js.map  120.4kb
+
+⚡ Done in 9ms
+Core package build successful.
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/
+types
+
+src/ui/TagVisualizationView.test.ts:137:75 - error TS6133: 'options' is declared
+ but its value is never read.
+
+137     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string, op
+tions?: any) => {
+                                                                              ~~
+~~~~~
+
+
+Found 1 error in src/ui/TagVisualizationView.test.ts:137
+
+
+————————————————————————————————————————————————————————————————————————————————
+————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend
+on (3s)
+
+   ✖  1/2 failed
+   ✔  1/2 succeeded [0 read from cache]
+
+
+
+```
+
+---
+
+Quick fix for the unused variable:
+
+---
+
+```diff
+  
+      vi.spyOn(mockCanvas, 'getContext').mockReturnValue(mockContext);
+-     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: any, options?: any) => {
++     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string) => {
+        if (tag === 'canvas') {
+          return mockCanvas as any;
+        }
+-       return createMockObsidianElement(tag, options as Parameters<typeof createMockObsidianElement>[1]);
++       return createMockObsidianElement(tag, {} as Parameters<typeof createMockObsidianElement>[1]);
+      });
+    });
+```
+
+```diff
+  
+      // Mock the view's createEl to intercept all element creation
+-     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string, options?: any) => {
++     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string) => {
+        if (tag === 'canvas') {
+          const mockCanvas = document.createElement('canvas');
+```
+
+---
+
+Wait, that looks like it caused another issue. Let me check what's happening and fix it properly:
+
+---
+
+Read file: apps/obsidian-plugin/src/ui/TagVisualizationView.test.ts
+
+---
+
+I see the issue - there are two different spy setups. Let me fix this properly:
+
+---
+
+```diff
+      view = new TagVisualizationView(mockLeaf, mockPlugin);
+  
+-     // Mock canvas and context
++     // Initial mock setup for canvas - this will be overridden in specific tests
+      const mockCanvas = document.createElement('canvas');
+      const mockContext = {
+```
+
+---
+
+Now run the tests again:
+
+---
+
+```bash
+nx test magus-mark-obsidian
+```
+
+```
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/types
+
+src/ui/TagVisualizationView.test.ts:104:40 - error TS2345: Argument of type 'string' is not assignable to parameter of type 'keyof HTMLElementTagNameMap'
+.
+
+104       return createMockObsidianElement(tag, {} as Parameters<typeof createMockObsidianElement>[1]);
+                                           ~~~
+
+
+Found 1 error in src/ui/TagVisualizationView.test.ts:104
+
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (1s)
+
+   ✖  1/2 failed
+   ✔  1/2 succeeded [1 read from cache]
+
+
+06:35:36 with khallmark at Voyager …                                                                                                               4.6s 
+in magus-mark ➜
+```
+
+---
+
+Let me remove the problematic call to createMockObsidianElement entirely:
+
+---
+
+```diff
+      view = new TagVisualizationView(mockLeaf, mockPlugin);
+  
+-     // Initial mock setup for canvas - this will be overridden in specific tests
++     // Mock canvas for any tests that need it
+      const mockCanvas = document.createElement('canvas');
+      const mockContext = {
+```
+
+---
+
+```diff
+  
+      vi.spyOn(mockCanvas, 'getContext').mockReturnValue(mockContext);
+-     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string) => {
+-       if (tag === 'canvas') {
+-         return mockCanvas as any;
+-       }
+-       return createMockObsidianElement(tag, {} as Parameters<typeof createMockObsidianElement>[1]);
+-     });
+    });
+  
+```
+
+---
+
+Now run the tests again:
+
+---
+
+```bash
+nx test magus-mark-obsidian
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/types
+
+src/ui/TagVisualizationView.test.ts:3:1 - error TS6133: 'createMockObsidianElement' is declared but its value is never read.
+
+3 import { createMockObsidianElement } from '../testing/createMockObsidianElement';
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Found 1 error in src/ui/TagVisualizationView.test.ts:3
+
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (1s)
+
+   ✖  1/2 failed
+   ✔  1/2 succeeded [1 read from cache]
+
+
+06:35:56 with khallmark at Voyager …                                                                                                               4.4s 
+in magus-mark ➜
+```
+
+---
+
+Remove the unused import:
+
+---
+
+```diff
+  import { beforeEach, describe, expect, it, vi } from 'vitest';
+  
+- import { createMockObsidianElement } from '../testing/createMockObsidianElement';
+  import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './TagVisualizationView';
+  
+```
+
+---
+
+Now run the tests:
+
+---
+
+```bash
+nx test magus-mark-obsidian
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/types
+
+> tsx esbuild.config.ts
+
+[Magus Mark ESBuild] Build complete!
+[Magus Mark ESBuild] Output file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/main.js
+[Magus Mark ESBuild] copyAssets: Output directory ensured.
+[Magus Mark ESBuild] Copied manifest.json from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/manifest.json to /Users/khallm
+ark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/manifest.json
+[Magus Mark ESBuild] Copied styles.css from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/styles.css to /Users/khallmark/De
+sktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/styles.css
+[Magus Mark ESBuild] Copying assets directory from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/assets to /Users/khallmark
+/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/assets
+Install script stdout: Installed plugin magus-mark into documentation vault at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/documentation/.obsi
+dian/plugins/magus-mark
+Main.js copied from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/main.js to /Users/khallmark/Desktop/Code/neurotypic-
+ai/magus-mark/documentation/.obsidian/plugins/magus-mark/main.js
+
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+> vitest run
+
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+
+ ✓ src/types/plugin.test.ts (8 tests) 3ms
+ ✓ src/services/DocumentTagService.test.ts (6 tests) 3ms
+ ❯ src/ui/TagVisualizationView.test.ts (7 tests | 1 failed) 40ms
+   ✓ TagVisualizationView > should return the correct view type 4ms
+   ✓ TagVisualizationView > should return the correct display text 3ms
+   ✓ TagVisualizationView > should return the correct icon 6ms
+   × TagVisualizationView > should render the view on open 8ms
+     → expected "spy" to be called at least once
+   ✓ TagVisualizationView > should extract tag data from vault 9ms
+   ✓ TagVisualizationView > should handle zoom updates 6ms
+   ✓ TagVisualizationView > should handle filter updates 3ms
+ ✓ src/ui/TagManagementView.test.ts (6 tests) 54ms
+(node:89936) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:89963) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:89958) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > should handle folder selection
+handleFolderClick {
+  currentTarget: HTMLDivElement {
+    createEl: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createDiv: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createSpan: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createPara: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setText: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    empty: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    addClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    removeClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    toggleClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setAttr: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    doc: Document { location: [Getter/Setter], defaultView: [Getter] },
+    [Symbol(SameObject caches)]: [Object: null prototype] { dataset: DOMStringMap {} }
+  }
+}
+
+stderr | src/services/KeyManager.test.ts > KeyManager > loadKey > should return null and show Notice if local decryption fails
+Error loading API key: FileSystemError: Failed to load from local storage: Failed to decrypt key: Invalid encrypted key format
+    at KeyManager.loadFromLocalStorage (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:176:13)
+    at KeyManager.loadKey (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:54:19)
+    at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.test.ts:133:30
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:10
+3:11
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:59
+6:26
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:87
+9:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/
+dist/index.js:852:10)
+    at runTest (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/in
+dex.js:1360:12)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'FILE_SYSTEM_ERROR',
+  cause: undefined,
+  context: undefined,
+  recoverable: false,
+  path: undefined
+}
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > should handle folder search
+handleFolderSearch {
+  target: HTMLInputElement {
+    createEl: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createDiv: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createSpan: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createPara: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setText: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    empty: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    addClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    removeClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    toggleClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setAttr: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    doc: Document { location: [Getter/Setter], defaultView: [Getter] }
+  }
+}
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should tag selected folder when Tag button is clicked
+handleTagButtonClick
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should not tag if no folder is selected
+handleTagButtonClick
+
+ ✓ src/services/KeyManager.test.ts (10 tests) 19ms
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should respect the include subfolders option
+handleTagButtonClick
+
+(node:89935) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ src/ui/FolderTagModal.test.ts (9 tests | 8 failed) 144ms
+   × FolderTagModal > UI Initialization > should create necessary UI elements on open using Setting mock 15ms
+     → [Function Setting] is not a spy or a call to a spy!
+   × FolderTagModal > UI Initialization > should populate dropdown with folders 9ms
+     → expected "spy" to be called at least once
+   × FolderTagModal > UI Initialization > should display a list of folders 13ms
+     → expected "spy" to be called at least once
+   × FolderTagModal > Folder Selection > should handle folder selection 9ms
+     → expected false to be true // Object.is equality
+   × FolderTagModal > Folder Selection > should handle folder search 16ms
+     → expected '' to be 'none' // Object.is equality
+   × FolderTagModal > Tag Operation > should tag selected folder when Tag button is clicked 6ms
+     → expected "spy" to be called with arguments: [ ObjectContaining{…}, true ]
+
+Number of calls: 0
+
+   ✓ FolderTagModal > Tag Operation > should not tag if no folder is selected 34ms
+   × FolderTagModal > Tag Operation > should respect the include subfolders option 31ms
+     → expected "spy" to be called with arguments: [ ObjectContaining{…}, false ]
+
+Number of calls: 0
+
+   × FolderTagModal > Cancel Operation > should close modal when Cancel button is clicked 10ms
+     → Cannot read properties of undefined (reading 'calls')
+ ❯ src/services/TaggingService.test.ts (9 tests | 1 failed) 19ms
+   ✓ TaggingService > processFile > should process a file successfully 4ms
+   ✓ TaggingService > processFile > should handle API errors during processing 1ms
+   ✓ TaggingService > processFile > should handle API key errors during processing 1ms
+   ✓ TaggingService > processFile > should handle other errors during processing 1ms
+   ✓ TaggingService > processFile > should return error if service is not configured (no API key on plugin) 1ms
+   ✓ TaggingService > processFiles > should process multiple files and report progress 3ms
+   ✓ TaggingService > processFiles > should collect results for each file 4ms
+   × TaggingService > processFiles > should handle errors for individual files 4ms
+     → expected false to be true // Object.is equality
+   ✓ TaggingService > processFiles > should return errors if service is not configured 1ms
+ ❯ src/main.test.ts (8 tests | 8 failed) 25ms
+   × ObsidianMagicPlugin > should load settings on initialization 5ms
+     → expected "spy" to be called at least once
+   × ObsidianMagicPlugin > should initialize services on load 2ms
+     → expected undefined to be defined
+   × ObsidianMagicPlugin > should add ribbon icon based on settings 2ms
+     → expected "spy" to be called with arguments: [ 'tag', 'Magus Mark', Any<Function> ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should register views 8ms
+     → expected "spy" to be called with arguments: [ 'magus-mark-tag-management', …(1) ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should add commands 3ms
+     → expected "spy" to be called 4 times, but got 0 times
+   × ObsidianMagicPlugin > should add setting tab 2ms
+     → expected "spy" to be called with arguments: [ Any<Object> ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should add status bar item based on settings 2ms
+     → expected "spy" to be called at least once
+   × ObsidianMagicPlugin > should handle onunload correctly 2ms
+     → expected "spy" to be called with arguments: [ 'magus-mark-tag-management' ]
+
+Number of calls: 0
+
+ ❯ src/integration.test.ts (17 tests | 15 failed) 65ms
+   × Integration Tests > File Tagging Flow > should tag a file from start to finish successfully 5ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > File Tagging Flow > should handle files without existing frontmatter 2ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > File Tagging Flow > should handle API errors gracefully 6ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > Folder Tagging Flow > should tag all files in a folder 3ms
+     → expected undefined to be defined
+   × Integration Tests > Folder Tagging Flow > should filter non-markdown files when tagging a folder 3ms
+     → expected undefined to be defined
+   × Integration Tests > Key Management Flow > should save API key correctly 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should store API key in system keychain when configured 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should load API key from appropriate storage 5ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Plugin Lifecycle > should initialize all required services on load 4ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Plugin Lifecycle > should clean up resources on unload 3ms
+     → expected "spy" to be called 2 times, but got 0 times
+   × Integration Tests > Plugin Lifecycle > should load and apply settings properly 5ms
+     → expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…}
+   × Integration Tests > Service Initialization > should create a KeyManager instance 5ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Service Initialization > should create a TaggingService instance 2ms
+     → expected undefined to be an instance of TaggingService
+   × Integration Tests > Service Initialization > should create a DocumentTagService instance 2ms
+     → expected undefined to be an instance of DocumentTagService
+   ✓ Integration Tests > Service Initialization > should have an accessible vault 9ms
+   ✓ Integration Tests > Service Initialization > should handle folder tagging 3ms
+   × Integration Tests > FileHandling > should have services available for file processing 2ms
+     → expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 33 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should tag a file from start to finish successfully
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:114:33
+    112|       const mockResult = Result.ok(mockResultValue);
+    113| 
+    114|       const processFileSpy = vi.spyOn(plugin.taggingService, 'processFile').mockResolvedValue(mockResult);
+       |                                 ^
+    115| 
+    116|       const result = await plugin.taggingService.processFile(mockFile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should handle files without existing frontmatter
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:133:35
+    131| 
+    132|       // Just call the method, no need to spy since we're testing integration
+    133|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    134| 
+    135|       // Verify the method was called - integration test
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should handle API errors gracefully
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:147:35
+    145| 
+    146|       // Mock a service method to return error for testing
+    147|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    148| 
+    149|       // Since we're using actual services now, just verify the file was processed
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯��⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/33]
+⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > should tag all files in a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:164:37
+    162| 
+    163|       // Test that the service can handle folder operations
+    164|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    165|       expect(plugin.documentTagService).toBeDefined();
+    166|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > should filter non-markdown files when tagging a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:180:37
+    178| 
+    179|       // Test that services are available for file filtering
+    180|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    181|     });
+    182|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should save API key correctly
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:187:29
+    185|     it('should save API key correctly', async () => {
+    186|       const mockResult = Result.ok(true);
+    187|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockResolvedValue(mockResult);
+       |                             ^
+    188| 
+    189|       await plugin.keyManager.saveKey('new-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should store API key in system keychain when configured
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:198:29
+    196| 
+    197|       const mockResult = Result.ok(true);
+    198|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockResolvedValue(mockResult);
+       |                             ^
+    199| 
+    200|       await plugin.keyManager.saveKey('secure-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should load API key from appropriate storage
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:209:29
+    207|       plugin.settings.apiKey = 'local-key';
+    208| 
+    209|       const loadKeySpy = vi.spyOn(plugin.keyManager, 'loadKey').mockReturnValue('local-key');
+       |                             ^
+    210| 
+    211|       let key = plugin.keyManager.loadKey();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should initialize all required services on load
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:247:36
+    245|       await newPlugin.onload();
+    246| 
+    247|       expect(newPlugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                    ^
+    248|       expect(newPlugin.taggingService).toBeInstanceOf(TaggingService);
+    249|       expect(newPlugin.documentTagService).toBeInstanceOf(DocumentTagService);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should clean up resources on unload
+AssertionError: expected "spy" to be called 2 times, but got 0 times
+ ❯ src/integration.test.ts:276:69
+    274|       newPlugin.onunload();
+    275| 
+    276|       expect(vi.mocked(newPlugin.app.workspace.detachLeavesOfType)).toHaveBeenCalledTimes(2);
+       |                                                                     ^
+    277|     });
+    278| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should load and apply settings properly
+AssertionError: expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…}
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "apiKey": "saved-api-key",
++ {
++   "apiKey": "local-key",
++   "apiKeyKeychainId": "",
+    "apiKeyStorage": "local",
+-   "defaultTagBehavior": "replace",
+-   "enableAutoSync": true,
+-   "modelPreference": "gpt-3.5-turbo",
+-   "showRibbonIcon": false,
+-   "statusBarDisplay": "never",
++   "defaultTagBehavior": "merge",
++   "enableAutoSync": false,
++   "modelPreference": "gpt-4o",
++   "showRibbonIcon": true,
++   "statusBarDisplay": "always",
+  }
+
+ ❯ src/integration.test.ts:309:34
+    307|       await newPlugin.onload();
+    308| 
+    309|       expect(newPlugin.settings).toEqual(expect.objectContaining(mockSettings));
+       |                                  ^
+    310|       expect(newPlugin.addRibbonIcon).not.toHaveBeenCalled();
+    311|       expect(newPlugin.addStatusBarItem).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯���⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/33
+]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a KeyManager instance
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:317:33
+    315|   describe('Service Initialization', () => {
+    316|     it('should create a KeyManager instance', () => {
+    317|       expect(plugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                 ^
+    318|     });
+    319| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a TaggingService instance
+AssertionError: expected undefined to be an instance of TaggingService
+ ❯ src/integration.test.ts:321:37
+    319| 
+    320|     it('should create a TaggingService instance', () => {
+    321|       expect(plugin.taggingService).toBeInstanceOf(TaggingService);
+       |                                     ^
+    322|     });
+    323| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a DocumentTagService instance
+AssertionError: expected undefined to be an instance of DocumentTagService
+ ❯ src/integration.test.ts:325:41
+    323| 
+    324|     it('should create a DocumentTagService instance', () => {
+    325|       expect(plugin.documentTagService).toBeInstanceOf(DocumentTagService);
+       |                                         ^
+    326|     });
+    327| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > FileHandling > should have services available for file processing
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:355:37
+    353|   describe('FileHandling', () => {
+    354|     it('should have services available for file processing', () => {
+    355|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    356|       expect(plugin.documentTagService).toBeDefined();
+    357|       expect(plugin.app.vault).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should load settings on initialization
+AssertionError: expected "spy" to be called at least once
+ ❯ src/main.test.ts:57:29
+     55|   it('should load settings on initialization', async () => {
+     56|     await plugin.onload();
+     57|     expect(plugin.loadData).toHaveBeenCalled();
+       |                             ^
+     58|     expect(plugin.settings).toEqual(DEFAULT_SETTINGS);
+     59|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should initialize services on load
+AssertionError: expected undefined to be defined
+ ❯ src/main.test.ts:65:31
+     63| 
+     64|     // Verify services were created and assigned
+     65|     expect(plugin.keyManager).toBeDefined();
+       |                               ^
+     66|     expect(plugin.taggingService).toBeDefined();
+     67|     expect(plugin.documentTagService).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add ribbon icon based on settings
+AssertionError: expected "spy" to be called with arguments: [ 'tag', 'Magus Mark', Any<Function> ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:72:34
+     70|   it('should add ribbon icon based on settings', async () => {
+     71|     await plugin.onload();
+     72|     expect(plugin.addRibbonIcon).toHaveBeenCalledWith('tag', 'Magus Mark', expect.any(Function));
+       |                                  ^
+     73| 
+     74|     // Test with ribbon icon disabled
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯��⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/33]
+⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should register views
+AssertionError: expected "spy" to be called with arguments: [ 'magus-mark-tag-management', …(1) ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:96:33
+     94|   it('should register views', async () => {
+     95|     await plugin.onload();
+     96|     expect(plugin.registerView).toHaveBeenCalledWith('magus-mark-tag-management', expect.any(Function));
+       |                                 ^
+     97|     expect(plugin.registerView).toHaveBeenCalledWith('magus-mark-tag-visualization', expect.any(Function));
+     98|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add commands
+AssertionError: expected "spy" to be called 4 times, but got 0 times
+ ❯ src/main.test.ts:102:31
+    100|   it('should add commands', async () => {
+    101|     await plugin.onload();
+    102|     expect(plugin.addCommand).toHaveBeenCalledTimes(4);
+       |                               ^
+    103|     expect(plugin.addCommand).toHaveBeenCalledWith(expect.objectContaining({ id: 'tag-current-file' }));
+    104|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add setting tab
+AssertionError: expected "spy" to be called with arguments: [ Any<Object> ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:108:34
+    106|   it('should add setting tab', async () => {
+    107|     await plugin.onload();
+    108|     expect(plugin.addSettingTab).toHaveBeenCalledWith(expect.any(Object));
+       |                                  ^
+    109|   });
+    110| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add status bar item based on settings
+AssertionError: expected "spy" to be called at least once
+ ❯ src/main.test.ts:113:37
+    111|   it('should add status bar item based on settings', async () => {
+    112|     await plugin.onload();
+    113|     expect(plugin.addStatusBarItem).toHaveBeenCalled();
+       |                                     ^
+    114| 
+    115|     // Test with status bar disabled
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should handle onunload correctly
+AssertionError: expected "spy" to be called with arguments: [ 'magus-mark-tag-management' ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:133:58
+    131|     await plugin.onload();
+    132|     plugin.onunload();
+    133|     expect(mockAppInstance.workspace.detachLeavesOfType).toHaveBeenCalledWith('magus-mark-tag-management');
+       |                                                          ^
+    134|     expect(mockAppInstance.workspace.detachLeavesOfType).toHaveBeenCalledWith('magus-mark-tag-visualization');
+    135|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/33]⎯
+
+ FAIL  src/services/TaggingService.test.ts > TaggingService > processFiles > should handle errors for individual files
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/services/TaggingService.test.ts:299:34
+    297| 
+    298|       expect(results).toHaveLength(filesWithError.length);
+    299|       expect(results[0]?.isOk()).toBe(true);
+       |                                  ^
+    300|       expect(results[1]?.isFail()).toBe(true);
+    301|       if (results[1]?.isFail()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯[24/
+33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > UI Initialization > should create necessary UI elements on open using Setting mock
+TypeError: [Function Setting] is not a spy or a call to a spy!
+ ❯ src/ui/FolderTagModal.test.ts:72:23
+     70| 
+     71|       // Verify Setting constructor was called (for folder selection, search, etc.)
+     72|       expect(Setting).toHaveBeenCalled();
+       |                       ^
+     73|       expect(vi.mocked(Setting)).toHaveBeenCalledTimes(4);
+     74|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > UI Initialization > should populate dropdown with folders
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/FolderTagModal.test.ts:78:47
+     76|     it('should populate dropdown with folders', () => {
+     77|       modal.onOpen();
+     78|       expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
+       |                                               ^
+     79|     });
+     80| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > UI Initialization > should display a list of folders
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/FolderTagModal.test.ts:88:47
+     86|       modal.onOpen();
+     87| 
+     88|       expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
+       |                                               ^
+     89|       const listCreateEl = mockFolderList.createEl as any;
+     90|       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder1' }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > should handle folder selection
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/ui/FolderTagModal.test.ts:110:58
+    108| 
+    109|       privateModal.handleFolderClick({ currentTarget: folderItem1 } as unknown as MouseEvent);
+    110|       expect(folderItem1.classList.contains('selected')).toBe(true);
+       |                                                          ^
+    111|       expect(folderItem2.classList.contains('selected')).toBe(false);
+    112|       expect(privateModal.selectedFolderPath).toBe('folder1');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > should handle folder search
+AssertionError: expected '' to be 'none' // Object.is equality
+
+- Expected
++ Received
+
+- none
+
+ ❯ src/ui/FolderTagModal.test.ts:138:39
+    136|       privateModal.handleFolderSearch({ target: searchInput } as unknown as Event);
+    137|       expect(items[0]?.style.display).toBe('');
+    138|       expect(items[1]?.style.display).toBe('none');
+       |                                       ^
+    139|       expect(items[2]?.style.display).toBe('none');
+    140| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should tag selected folder when Tag button is clicked
+AssertionError: expected "spy" to be called with arguments: [ ObjectContaining{…}, true ]
+
+Number of calls: 0
+
+ ❯ src/ui/FolderTagModal.test.ts:166:32
+    164|       privateModal.handleTagButtonClick();
+    165| 
+    166|       expect(onSubmitCallback).toHaveBeenCalledWith(expect.objectContaining({ path: 'folder1' }), true);
+       |                                ^
+    167|       expect(privateModal.close).toHaveBeenCalled();
+    168|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should respect the include subfolders option
+AssertionError: expected "spy" to be called with arguments: [ ObjectContaining{…}, false ]
+
+Number of calls: 0
+
+ ❯ src/ui/FolderTagModal.test.ts:195:32
+    193|       privateModal.handleTagButtonClick();
+    194| 
+    195|       expect(onSubmitCallback).toHaveBeenCalledWith(expect.objectContaining({ path: 'folder1' }), false);
+       |                                ^
+    196|     });
+    197|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/
+33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Cancel Operation > should close modal when Cancel button is clicked
+TypeError: Cannot read properties of undefined (reading 'calls')
+ ❯ src/ui/FolderTagModal.test.ts:206:47
+    204| 
+    205|       // Find the cancel button setting (should be the 4th Setting call)
+    206|       const settingCalls = vi.mocked(Setting).mock.calls;
+       |                                               ^
+    207|       expect(settingCalls.length).toBeGreaterThanOrEqual(4);
+    208| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/33]⎯
+
+ FAIL  src/ui/TagVisualizationView.test.ts > TagVisualizationView > should render the view on open
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/TagVisualizationView.test.ts:169:33
+    167|     await view.onOpen();
+    168| 
+    169|     expect(mockContainer.empty).toHaveBeenCalled();
+       |                                 ^
+    170|   });
+    171| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/33]⎯
+
+
+ Test Files  5 failed | 4 passed (9)
+      Tests  33 failed | 47 passed (80)
+   Start at  06:36:05
+   Duration  1.15s (transform 656ms, setup 0ms, collect 1.94s, tests 372ms, environment 3.85s, prepare 950ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (3s)
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [1 read from cache]
+
+
+
+Task completed in 6.609 total:
+  User time: 9.516
+  System time: 2.569
+  CPU usage: 182%
+  Max memory: 292272 KB
+06:36:09 with khallmark at Voyager …                                                                                                               6.6s 
+in magus-mark ➜
+```
+
+---
+
+Perfect! Your Grace, I can see the core issue now. We're at **47 tests passing out of 80 total (59% success rate)** with complete TypeScript compilation, but the main problem is that the plugin services aren't being created because the `onload()` method isn't actually running its real logic. 
+
+The spies are blocking the real implementation. Let me fix this core issue:
+
+## 4. Fix Main Plugin Tests to Allow Real Service Creation
+
+---
+
+```diff
+      plugin = new ObsidianMagicPlugin(mockAppInstance as unknown as App, TEST_MANIFEST);
+  
+-     // Set up spies that will be used during onload, but don't interfere with execution
+-     // These methods need to be available for onload to call
+-     plugin.loadData = vi.fn().mockResolvedValue(DEFAULT_SETTINGS);
+-     plugin.saveData = vi.fn().mockResolvedValue(undefined);
+-     plugin.addSettingTab = vi.fn();
+-     plugin.registerView = vi.fn();
+-     plugin.addRibbonIcon = vi.fn();
+-     plugin.addStatusBarItem = vi.fn().mockReturnValue({
++     // Allow the real onload to execute by setting up spies that don't interfere
++     const originalLoadData = plugin.loadData.bind(plugin);
++     const originalSaveData = plugin.saveData.bind(plugin);
++     const originalAddSettingTab = plugin.addSettingTab.bind(plugin);
++     const originalRegisterView = plugin.registerView.bind(plugin);
++     const originalAddRibbonIcon = plugin.addRibbonIcon.bind(plugin);
++     const originalAddStatusBarItem = plugin.addStatusBarItem.bind(plugin);
++     const originalAddCommand = plugin.addCommand.bind(plugin);
++     const originalRegisterEvent = plugin.registerEvent.bind(plugin);
++     const originalRegisterMarkdownPostProcessor = plugin.registerMarkdownPostProcessor.bind(plugin);
++ 
++     // Override methods with spies that still call through
++     vi.spyOn(plugin, 'loadData').mockImplementation(async () => {
++       // Call the real implementation but return our test data
++       return DEFAULT_SETTINGS;
++     });
++     vi.spyOn(plugin, 'saveData').mockImplementation(async () => {
++       return originalSaveData(plugin.settings);
++     });
++     vi.spyOn(plugin, 'addSettingTab').mockImplementation(originalAddSettingTab);
++     vi.spyOn(plugin, 'registerView').mockImplementation(originalRegisterView);
++     vi.spyOn(plugin, 'addRibbonIcon').mockImplementation(originalAddRibbonIcon);
++     vi.spyOn(plugin, 'addStatusBarItem').mockImplementation(() => {
++       return {
+          createEl: vi.fn().mockReturnValue({
+            createEl: vi.fn(),
+```
+
+```diff
+          setText: vi.fn(),
+          setAttr: vi.fn(),
+-     } as unknown as HTMLElement);
+-     plugin.addCommand = vi.fn();
+-     plugin.registerEvent = vi.fn();
+-     plugin.registerMarkdownPostProcessor = vi.fn();
++       } as unknown as HTMLElement;
++     });
++     vi.spyOn(plugin, 'addCommand').mockImplementation(originalAddCommand);
++     vi.spyOn(plugin, 'registerEvent').mockImplementation(originalRegisterEvent);
++     vi.spyOn(plugin, 'registerMarkdownPostProcessor').mockImplementation(originalRegisterMarkdownPostProcessor);
+    });
+  
+```
+
+---
+
+Now let me run a quick test to see if the main services initialize:
+
+---
+
+Cancelled
+
+---
+
+_**User**_
+
+You got stuck
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, you're absolutely right. Let me take a much simpler approach and fix this systematically.
+
+The core issue is I was overcomplicating the plugin test setup. Let me fix this with a clean, simple approach:
+
+## 1. Simple Plugin Test Setup - Let onload() Run Normally
+
+---
+
+```diff
+      mockAppInstance = createMockApp();
+  
+-     // Create plugin instance with proper types
++     // Create plugin instance
+      plugin = new ObsidianMagicPlugin(mockAppInstance as unknown as App, TEST_MANIFEST);
+  
+-     // Allow the real onload to execute by setting up spies that don't interfere
+-     const originalLoadData = plugin.loadData.bind(plugin);
+-     const originalSaveData = plugin.saveData.bind(plugin);
+-     const originalAddSettingTab = plugin.addSettingTab.bind(plugin);
+-     const originalRegisterView = plugin.registerView.bind(plugin);
+-     const originalAddRibbonIcon = plugin.addRibbonIcon.bind(plugin);
+-     const originalAddStatusBarItem = plugin.addStatusBarItem.bind(plugin);
+-     const originalAddCommand = plugin.addCommand.bind(plugin);
+-     const originalRegisterEvent = plugin.registerEvent.bind(plugin);
+-     const originalRegisterMarkdownPostProcessor = plugin.registerMarkdownPostProcessor.bind(plugin);
+- 
+-     // Override methods with spies that still call through
+-     vi.spyOn(plugin, 'loadData').mockImplementation(async () => {
+-       // Call the real implementation but return our test data
+-       return DEFAULT_SETTINGS;
+-     });
+-     vi.spyOn(plugin, 'saveData').mockImplementation(async () => {
+-       return originalSaveData(plugin.settings);
+-     });
+-     vi.spyOn(plugin, 'addSettingTab').mockImplementation(originalAddSettingTab);
+-     vi.spyOn(plugin, 'registerView').mockImplementation(originalRegisterView);
+-     vi.spyOn(plugin, 'addRibbonIcon').mockImplementation(originalAddRibbonIcon);
+-     vi.spyOn(plugin, 'addStatusBarItem').mockImplementation(() => {
+-       return {
+-         createEl: vi.fn().mockReturnValue({
+-           createEl: vi.fn(),
+-           addClass: vi.fn(),
+-           setText: vi.fn(),
+-           setAttr: vi.fn(),
+-         }),
+-         addClass: vi.fn(),
+-         setText: vi.fn(),
+-         setAttr: vi.fn(),
+-       } as unknown as HTMLElement;
+-     });
+-     vi.spyOn(plugin, 'addCommand').mockImplementation(originalAddCommand);
+-     vi.spyOn(plugin, 'registerEvent').mockImplementation(originalRegisterEvent);
+-     vi.spyOn(plugin, 'registerMarkdownPostProcessor').mockImplementation(originalRegisterMarkdownPostProcessor);
++     // Only mock loadData to return test settings - let everything else run normally
++     vi.spyOn(plugin, 'loadData').mockResolvedValue(DEFAULT_SETTINGS);
+    });
+  
+```
+
+---
+
+## 2. Update Tests to Spy After onload() Completes
+
+---
+
+```diff
+  
+    it('should add ribbon icon based on settings', async () => {
++     // Spy on addRibbonIcon after plugin is created but before onload
++     const addRibbonIconSpy = vi.spyOn(plugin, 'addRibbonIcon').mockImplementation(vi.fn());
++     
+      await plugin.onload();
+-     expect(plugin.addRibbonIcon).toHaveBeenCalledWith('tag', 'Magus Mark', expect.any(Function));
++     expect(addRibbonIconSpy).toHaveBeenCalledWith('tag', 'Magus Mark', expect.any(Function));
+  
+      // Test with ribbon icon disabled
+      const pluginNoRibbon = new ObsidianMagicPlugin(mockAppInstance as unknown as App, TEST_MANIFEST);
+-     pluginNoRibbon.loadData = vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, showRibbonIcon: false });
+-     pluginNoRibbon.addRibbonIcon = vi.fn();
+-     pluginNoRibbon.addSettingTab = vi.fn();
+-     pluginNoRibbon.registerView = vi.fn();
+-     pluginNoRibbon.addStatusBarItem = vi.fn().mockReturnValue({
+-       createEl: vi.fn(),
+-       addClass: vi.fn(),
+-       setText: vi.fn(),
+-       setAttr: vi.fn(),
+-     } as unknown as HTMLElement);
+-     pluginNoRibbon.addCommand = vi.fn();
+-     pluginNoRibbon.registerEvent = vi.fn();
+-     pluginNoRibbon.registerMarkdownPostProcessor = vi.fn();
++     vi.spyOn(pluginNoRibbon, 'loadData').mockResolvedValue({ ...DEFAULT_SETTINGS, showRibbonIcon: false });
++     const noRibbonSpy = vi.spyOn(pluginNoRibbon, 'addRibbonIcon').mockImplementation(vi.fn());
+  
+      await pluginNoRibbon.onload();
+-     expect(pluginNoRibbon.addRibbonIcon).not.toHaveBeenCalled();
++     expect(noRibbonSpy).not.toHaveBeenCalled();
+    });
+  
+    it('should register views', async () => {
++     const registerViewSpy = vi.spyOn(plugin, 'registerView').mockImplementation(vi.fn());
++     
+      await plugin.onload();
+-     expect(plugin.registerView).toHaveBeenCalledWith('magus-mark-tag-management', expect.any(Function));
+-     expect(plugin.registerView).toHaveBeenCalledWith('magus-mark-tag-visualization', expect.any(Function));
++     expect(registerViewSpy).toHaveBeenCalledWith('magus-mark-tag-management', expect.any(Function));
++     expect(registerViewSpy).toHaveBeenCalledWith('magus-mark-tag-visualization', expect.any(Function));
+    });
+  
+    it('should add commands', async () => {
++     const addCommandSpy = vi.spyOn(plugin, 'addCommand').mockImplementation(vi.fn());
++     
+      await plugin.onload();
+-     expect(plugin.addCommand).toHaveBeenCalledTimes(4);
+-     expect(plugin.addCommand).toHaveBeenCalledWith(expect.objectContaining({ id: 'tag-current-file' }));
++     expect(addCommandSpy).toHaveBeenCalledTimes(4);
++     expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'tag-current-file' }));
+    });
+  
+    it('should add setting tab', async () => {
++     const addSettingTabSpy = vi.spyOn(plugin, 'addSettingTab').mockImplementation(vi.fn());
++     
+      await plugin.onload();
+-     expect(plugin.addSettingTab).toHaveBeenCalledWith(expect.any(Object));
++     expect(addSettingTabSpy).toHaveBeenCalledWith(expect.any(Object));
+    });
+  
+    it('should add status bar item based on settings', async () => {
++     const addStatusBarItemSpy = vi.spyOn(plugin, 'addStatusBarItem').mockImplementation(() => ({
++       createEl: vi.fn(),
++       addClass: vi.fn(),
++       setText: vi.fn(),
++       setAttr: vi.fn(),
++     } as unknown as HTMLElement));
++     
+      await plugin.onload();
+-     expect(plugin.addStatusBarItem).toHaveBeenCalled();
++     expect(addStatusBarItemSpy).toHaveBeenCalled();
+  
+      // Test with status bar disabled
+      const pluginNoStatus = new ObsidianMagicPlugin(mockAppInstance as unknown as App, TEST_MANIFEST);
+-     pluginNoStatus.loadData = vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, statusBarDisplay: 'never' });
+-     pluginNoStatus.addStatusBarItem = vi.fn();
+-     pluginNoStatus.addRibbonIcon = vi.fn();
+-     pluginNoStatus.addSettingTab = vi.fn();
+-     pluginNoStatus.registerView = vi.fn();
+-     pluginNoStatus.addCommand = vi.fn();
+-     pluginNoStatus.registerEvent = vi.fn();
+-     pluginNoStatus.registerMarkdownPostProcessor = vi.fn();
++     vi.spyOn(pluginNoStatus, 'loadData').mockResolvedValue({ ...DEFAULT_SETTINGS, statusBarDisplay: 'never' });
++     const noStatusSpy = vi.spyOn(pluginNoStatus, 'addStatusBarItem').mockImplementation(() => ({
++       createEl: vi.fn(),
++       addClass: vi.fn(),
++       setText: vi.fn(),
++       setAttr: vi.fn(),
++     } as unknown as HTMLElement));
+  
+      await pluginNoStatus.onload();
+-     expect(pluginNoStatus.addStatusBarItem).not.toHaveBeenCalled();
++     expect(noStatusSpy).not.toHaveBeenCalled();
+    });
+  
+```
+
+---
+
+## 3. Fix Integration Tests with Same Simple Approach
+
+---
+
+```diff
+      plugin = new ObsidianMagicPlugin(appInstanceFromMock, TEST_MANIFEST);
+  
+-     // Mock plugin methods
+-     plugin.loadData = vi.fn().mockResolvedValue({});
+-     plugin.saveData = vi.fn().mockResolvedValue(undefined);
+-     plugin.addSettingTab = vi.fn();
+-     plugin.registerView = vi.fn();
+-     plugin.addRibbonIcon = vi.fn();
+-     plugin.addStatusBarItem = vi.fn().mockReturnValue({
+-       createEl: vi.fn(),
+-       addClass: vi.fn(),
+-       setText: vi.fn(),
+-       setAttr: vi.fn(),
+-     } as unknown as HTMLElement);
+-     plugin.addCommand = vi.fn();
+-     plugin.registerEvent = vi.fn();
+-     plugin.registerMarkdownPostProcessor = vi.fn();
++     // Only mock loadData - let everything else run normally
++     vi.spyOn(plugin, 'loadData').mockResolvedValue({});
+  
+      await plugin.onload();
+```
+
+---
+
+## 4. Fix TagVisualizationView Test
+
+---
+
+```diff
+      };
+  
+-     // Mock the view's createEl to intercept all element creation
+-     vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string) => {
+-       if (tag === 'canvas') {
+-         const mockCanvas = document.createElement('canvas');
+-         const mockContext = {
+-           clearRect: vi.fn(),
+-           beginPath: vi.fn(),
+-           arc: vi.fn(),
+-           fill: vi.fn(),
+-           stroke: vi.fn(),
+-           fillText: vi.fn(),
+-           strokeText: vi.fn(),
+-           save: vi.fn(),
+-           restore: vi.fn(),
+-           translate: vi.fn(),
+-           scale: vi.fn(),
+-           measureText: vi.fn(() => ({ width: 50 })),
+-         } as unknown as CanvasRenderingContext2D;
+-         vi.spyOn(mockCanvas, 'getContext').mockReturnValue(mockContext);
+-         return mockCanvas as any;
+-       }
+-       return mockElement as any;
+-     });
+- 
+-     // Mock the container structure
++     // Mock the container structure that the view actually uses
+      const mockContainer = {
+        empty: vi.fn(),
+```
+
+```diff
+      };
+  
+-     // Mock containerEl to return our mock container
++     // Replace the view's containerEl with our mock - this is what the view actually uses
+      Object.defineProperty(view, 'containerEl', {
+-       get: () => mockContainer,
++       value: mockContainer,
++       writable: true,
+        configurable: true,
+      });
+```
+
+---
+
+## 5. Run Tests to See Progress
+
+---
+
+```bash
+nx test magus-mark-obsidian
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/
+types
+
+> tsx esbuild.config.ts
+
+[Magus Mark ESBuild] Build complete!
+[Magus Mark ESBuild] Output file: /Users/khallmark/Desktop/Code/neurotypic-ai/ma
+gus-mark/apps/obsidian-plugin/dist/main.js
+[Magus Mark ESBuild] copyAssets: Output directory ensured.
+[Magus Mark ESBuild] Copied manifest.json from /Users/khallmark/Desktop/Code/neu
+rotypic-ai/magus-mark/apps/obsidian-plugin/manifest.json to /Users/khallmark/Des
+ktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/manifest.json
+[Magus Mark ESBuild] Copied styles.css from /Users/khallmark/Desktop/Code/neurot
+ypic-ai/magus-mark/apps/obsidian-plugin/styles.css to /Users/khallmark/Desktop/C
+ode/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/styles.css
+[Magus Mark ESBuild] Copying assets directory from /Users/khallmark/Desktop/Code
+/neurotypic-ai/magus-mark/apps/obsidian-plugin/assets to /Users/khallmark/Deskto
+p/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/assets
+Install script stdout: Installed plugin magus-mark into documentation vault at /
+Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/documentation/.obsidian/pl
+ugins/magus-mark
+Main.js copied from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/
+obsidian-plugin/dist/main.js to /Users/khallmark/Desktop/Code/neurotypic-ai/magu
+s-mark/documentation/.obsidian/plugins/magus-mark/main.js
+
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/ma
+gus-mark/apps/obsidian-plugin
+> vitest run
+
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidia
+n-plugin
+
+ ✓ src/types/plugin.test.ts (8 tests) 3ms
+ ✓ src/services/DocumentTagService.test.ts (6 tests) 3ms
+ ❯ src/ui/TagVisualizationView.test.ts (7 tests | 1 failed) 42ms
+   ✓ TagVisualizationView > should return the correct view type 4ms
+   ✓ TagVisualizationView > should return the correct display text 3ms
+   ✓ TagVisualizationView > should return the correct icon 6ms
+   × TagVisualizationView > should render the view on open 8ms
+     → expected "spy" to be called at least once
+   ✓ TagVisualizationView > should extract tag data from vault 6ms
+   ✓ TagVisualizationView > should handle zoom updates 11ms
+   ✓ TagVisualizationView > should handle filter updates 3ms
+ ✓ src/ui/TagManagementView.test.ts (6 tests) 54ms
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > sho
+uld handle folder selection
+handleFolderClick {
+  currentTarget: HTMLDivElement {
+    createEl: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createDiv: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createSpan: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createPara: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setText: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    empty: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    addClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    removeClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    toggleClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setAttr: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    doc: Document { location: [Getter/Setter], defaultView: [Getter] },
+    [Symbol(SameObject caches)]: [Object: null prototype] { dataset: DOMStringMa
+p {} }
+  }
+}
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > sho
+uld handle folder search
+handleFolderSearch {
+  target: HTMLInputElement {
+    createEl: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createDiv: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createSpan: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    createPara: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setText: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    empty: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    addClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    removeClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    toggleClass: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    setAttr: [Function: spy] {
+      getMockName: [Function (anonymous)],
+      mockName: [Function (anonymous)],
+      mockClear: [Function (anonymous)],
+      mockReset: [Function (anonymous)],
+      mockRestore: [Function (anonymous)],
+      getMockImplementation: [Function (anonymous)],
+      mockImplementation: [Function (anonymous)],
+      mockImplementationOnce: [Function (anonymous)],
+      withImplementation: [Function: withImplementation],
+      mockReturnThis: [Function (anonymous)],
+      mockReturnValue: [Function (anonymous)],
+      mockReturnValueOnce: [Function (anonymous)],
+      mockResolvedValue: [Function (anonymous)],
+      mockResolvedValueOnce: [Function (anonymous)],
+      mockRejectedValue: [Function (anonymous)],
+      mockRejectedValueOnce: [Function (anonymous)]
+    },
+    doc: Document { location: [Getter/Setter], defaultView: [Getter] }
+  }
+}
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should
+ tag selected folder when Tag button is clicked
+handleTagButtonClick
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should
+ not tag if no folder is selected
+handleTagButtonClick
+
+stdout | src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should
+ respect the include subfolders option
+handleTagButtonClick
+
+(node:39394) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. 
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:39421) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. 
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:39417) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. 
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ src/ui/FolderTagModal.test.ts (9 tests | 8 failed) 121ms
+   × FolderTagModal > UI Initialization > should create necessary UI elements on
+ open using Setting mock 12ms
+     → [Function Setting] is not a spy or a call to a spy!
+   × FolderTagModal > UI Initialization > should populate dropdown with folders 
+13ms
+     → expected "spy" to be called at least once
+   × FolderTagModal > UI Initialization > should display a list of folders 12ms
+     → expected "spy" to be called at least once
+   × FolderTagModal > Folder Selection > should handle folder selection 13ms
+     → expected false to be true // Object.is equality
+   × FolderTagModal > Folder Selection > should handle folder search 21ms
+     → expected '' to be 'none' // Object.is equality
+   × FolderTagModal > Tag Operation > should tag selected folder when Tag button
+ is clicked 10ms
+     → expected "spy" to be called with arguments: [ ObjectContaining{…}, true ]
+
+Number of calls: 0
+
+   ✓ FolderTagModal > Tag Operation > should not tag if no folder is selected 11
+ms
+   × FolderTagModal > Tag Operation > should respect the include subfolders opti
+on 14ms
+     → expected "spy" to be called with arguments: [ ObjectContaining{…}, false 
+]
+
+Number of calls: 0
+
+   × FolderTagModal > Cancel Operation > should close modal when Cancel button i
+s clicked 14ms
+     → Cannot read properties of undefined (reading 'calls')
+stderr | src/services/KeyManager.test.ts > KeyManager > loadKey > should return 
+null and show Notice if local decryption fails
+Error loading API key: FileSystemError: Failed to load from local storage: Faile
+d to decrypt key: Invalid encrypted key format
+    at KeyManager.loadFromLocalStorage (/Users/khallmark/Desktop/Code/neurotypic
+-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:176:13)
+    at KeyManager.loadKey (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mar
+k/apps/obsidian-plugin/src/services/KeyManager.ts:54:19)
+    at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plug
+in/src/services/KeyManager.test.ts:133:30
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_module
+s/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:103:11
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_module
+s/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:596:26
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_module
+s/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:879:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-
+mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/in
+dex.js:852:10)
+    at runTest (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/no
+de_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:
+1360:12)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'FILE_SYSTEM_ERROR',
+  cause: undefined,
+  context: undefined,
+  recoverable: false,
+  path: undefined
+}
+
+(node:39393) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. 
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ src/services/KeyManager.test.ts (10 tests) 9ms
+ ❯ src/services/TaggingService.test.ts (9 tests | 1 failed) 17ms
+   ✓ TaggingService > processFile > should process a file successfully 3ms
+   ✓ TaggingService > processFile > should handle API errors during processing 1
+ms
+   ✓ TaggingService > processFile > should handle API key errors during processi
+ng 1ms
+   ✓ TaggingService > processFile > should handle other errors during processing
+ 1ms
+   ✓ TaggingService > processFile > should return error if service is not config
+ured (no API key on plugin) 1ms
+   ✓ TaggingService > processFiles > should process multiple files and report pr
+ogress 2ms
+   ✓ TaggingService > processFiles > should collect results for each file 3ms
+   × TaggingService > processFiles > should handle errors for individual files 4
+ms
+     → expected false to be true // Object.is equality
+   ✓ TaggingService > processFiles > should return errors if service is not conf
+igured 1ms
+ ❯ src/main.test.ts (8 tests | 8 failed) 25ms
+   × ObsidianMagicPlugin > should load settings on initialization 6ms
+     → expected "loadData" to be called at least once
+   × ObsidianMagicPlugin > should initialize services on load 2ms
+     → expected undefined to be defined
+   × ObsidianMagicPlugin > should add ribbon icon based on settings 2ms
+     → expected "addRibbonIcon" to be called with arguments: [ 'tag', 'Magus Mar
+k', Any<Function> ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should register views 4ms
+     → expected "registerView" to be called with arguments: [ 'magus-mark-tag-ma
+nagement', …(1) ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should add commands 5ms
+     → expected "addCommand" to be called 4 times, but got 0 times
+   × ObsidianMagicPlugin > should add setting tab 1ms
+     → expected "addSettingTab" to be called with arguments: [ Any<Object> ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should add status bar item based on settings 2ms
+     → expected "addStatusBarItem" to be called at least once
+   × ObsidianMagicPlugin > should handle onunload correctly 2ms
+     → expected "spy" to be called with arguments: [ 'magus-mark-tag-management'
+ ]
+
+Number of calls: 0
+
+ ❯ src/integration.test.ts (17 tests | 15 failed) 65ms
+   × Integration Tests > File Tagging Flow > should tag a file from start to fin
+ish successfully 7ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > File Tagging Flow > should handle files without existin
+g frontmatter 2ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > File Tagging Flow > should handle API errors gracefully
+ 6ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > Folder Tagging Flow > should tag all files in a folder 
+3ms
+     → expected undefined to be defined
+   × Integration Tests > Folder Tagging Flow > should filter non-markdown files 
+when tagging a folder 2ms
+     → expected undefined to be defined
+   × Integration Tests > Key Management Flow > should save API key correctly 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should store API key in system ke
+ychain when configured 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should load API key from appropri
+ate storage 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Plugin Lifecycle > should initialize all required servi
+ces on load 9ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Plugin Lifecycle > should clean up resources on unload 
+4ms
+     → expected "spy" to be called 2 times, but got 0 times
+   × Integration Tests > Plugin Lifecycle > should load and apply settings prope
+rly 6ms
+     → expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…
+}
+   × Integration Tests > Service Initialization > should create a KeyManager ins
+tance 6ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Service Initialization > should create a TaggingService
+ instance 2ms
+     → expected undefined to be an instance of TaggingService
+   × Integration Tests > Service Initialization > should create a DocumentTagSer
+vice instance 2ms
+     → expected undefined to be an instance of DocumentTagService
+   ✓ Integration Tests > Service Initialization > should have an accessible vaul
+t 2ms
+   ✓ Integration Tests > Service Initialization > should handle folder tagging 6
+ms
+   × Integration Tests > FileHandling > should have services available for file 
+processing 2ms
+     → expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 33 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should 
+tag a file from start to finish successfully
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:101:33
+     99|       const mockResult = Result.ok(mockResultValue);
+    100| 
+    101|       const processFileSpy = vi.spyOn(plugin.taggingService, 'processF…
+       |                                 ^
+    102| 
+    103|       const result = await plugin.taggingService.processFile(mockFile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should 
+handle files without existing frontmatter
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:120:35
+    118| 
+    119|       // Just call the method, no need to spy since we're testing inte…
+    120|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    121| 
+    122|       // Verify the method was called - integration test
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should 
+handle API errors gracefully
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:134:35
+    132| 
+    133|       // Mock a service method to return error for testing
+    134|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    135| 
+    136|       // Since we're using actual services now, just verify the file w…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > shoul
+d tag all files in a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:151:37
+    149| 
+    150|       // Test that the service can handle folder operations
+    151|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    152|       expect(plugin.documentTagService).toBeDefined();
+    153|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > shoul
+d filter non-markdown files when tagging a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:167:37
+    165| 
+    166|       // Test that services are available for file filtering
+    167|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    168|     });
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > shoul
+d save API key correctly
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:174:29
+    172|     it('should save API key correctly', async () => {
+    173|       const mockResult = Result.ok(true);
+    174|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockRe…
+       |                             ^
+    175| 
+    176|       await plugin.keyManager.saveKey('new-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > shoul
+d store API key in system keychain when configured
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:185:29
+    183| 
+    184|       const mockResult = Result.ok(true);
+    185|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockRe…
+       |                             ^
+    186| 
+    187|       await plugin.keyManager.saveKey('secure-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > shoul
+d load API key from appropriate storage
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:196:29
+    194|       plugin.settings.apiKey = 'local-key';
+    195| 
+    196|       const loadKeySpy = vi.spyOn(plugin.keyManager, 'loadKey').mockRe…
+       |                             ^
+    197| 
+    198|       let key = plugin.keyManager.loadKey();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should i
+nitialize all required services on load
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:234:36
+    232|       await newPlugin.onload();
+    233| 
+    234|       expect(newPlugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                    ^
+    235|       expect(newPlugin.taggingService).toBeInstanceOf(TaggingService);
+    236|       expect(newPlugin.documentTagService).toBeInstanceOf(DocumentTagS…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should c
+lean up resources on unload
+AssertionError: expected "spy" to be called 2 times, but got 0 times
+ ❯ src/integration.test.ts:263:69
+    261|       newPlugin.onunload();
+    262| 
+    263|       expect(vi.mocked(newPlugin.app.workspace.detachLeavesOfType)).to…
+       |                                                                     ^
+    264|     });
+    265| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should l
+oad and apply settings properly
+AssertionError: expected { apiKey: 'local-key', …(7) } to deeply equal ObjectCon
+taining{…}
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "apiKey": "saved-api-key",
++ {
++   "apiKey": "local-key",
++   "apiKeyKeychainId": "",
+    "apiKeyStorage": "local",
+-   "defaultTagBehavior": "replace",
+-   "enableAutoSync": true,
+-   "modelPreference": "gpt-3.5-turbo",
+-   "showRibbonIcon": false,
+-   "statusBarDisplay": "never",
++   "defaultTagBehavior": "merge",
++   "enableAutoSync": false,
++   "modelPreference": "gpt-4o",
++   "showRibbonIcon": true,
++   "statusBarDisplay": "always",
+  }
+
+ ❯ src/integration.test.ts:296:34
+    294|       await newPlugin.onload();
+    295| 
+    296|       expect(newPlugin.settings).toEqual(expect.objectContaining(mockS…
+       |                                  ^
+    297|       expect(newPlugin.addRibbonIcon).not.toHaveBeenCalled();
+    298|       expect(newPlugin.addStatusBarItem).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > sh
+ould create a KeyManager instance
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:304:33
+    302|   describe('Service Initialization', () => {
+    303|     it('should create a KeyManager instance', () => {
+    304|       expect(plugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                 ^
+    305|     });
+    306| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > sh
+ould create a TaggingService instance
+AssertionError: expected undefined to be an instance of TaggingService
+ ❯ src/integration.test.ts:308:37
+    306| 
+    307|     it('should create a TaggingService instance', () => {
+    308|       expect(plugin.taggingService).toBeInstanceOf(TaggingService);
+       |                                     ^
+    309|     });
+    310| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > sh
+ould create a DocumentTagService instance
+AssertionError: expected undefined to be an instance of DocumentTagService
+ ❯ src/integration.test.ts:312:41
+    310| 
+    311|     it('should create a DocumentTagService instance', () => {
+    312|       expect(plugin.documentTagService).toBeInstanceOf(DocumentTagServ…
+       |                                         ^
+    313|     });
+    314| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/33]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > FileHandling > should have 
+services available for file processing
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:342:37
+    340|   describe('FileHandling', () => {
+    341|     it('should have services available for file processing', () => {
+    342|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    343|       expect(plugin.documentTagService).toBeDefined();
+    344|       expect(plugin.app.vault).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should load settings on initiali
+zation
+AssertionError: expected "loadData" to be called at least once
+ ❯ src/main.test.ts:38:29
+     36|   it('should load settings on initialization', async () => {
+     37|     await plugin.onload();
+     38|     expect(plugin.loadData).toHaveBeenCalled();
+       |                             ^
+     39|     expect(plugin.settings).toEqual(DEFAULT_SETTINGS);
+     40|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should initialize services on lo
+ad
+AssertionError: expected undefined to be defined
+ ❯ src/main.test.ts:46:31
+     44| 
+     45|     // Verify services were created and assigned
+     46|     expect(plugin.keyManager).toBeDefined();
+       |                               ^
+     47|     expect(plugin.taggingService).toBeDefined();
+     48|     expect(plugin.documentTagService).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add ribbon icon based on 
+settings
+AssertionError: expected "addRibbonIcon" to be called with arguments: [ 'tag', '
+Magus Mark', Any<Function> ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:56:30
+     54| 
+     55|     await plugin.onload();
+     56|     expect(addRibbonIconSpy).toHaveBeenCalledWith('tag', 'Magus Mark',…
+       |                              ^
+     57| 
+     58|     // Test with ribbon icon disabled
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should register views
+AssertionError: expected "registerView" to be called with arguments: [ 'magus-ma
+rk-tag-management', …(1) ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:71:29
+     69| 
+     70|     await plugin.onload();
+     71|     expect(registerViewSpy).toHaveBeenCalledWith('magus-mark-tag-manag…
+       |                             ^
+     72|     expect(registerViewSpy).toHaveBeenCalledWith('magus-mark-tag-visua…
+     73|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add commands
+AssertionError: expected "addCommand" to be called 4 times, but got 0 times
+ ❯ src/main.test.ts:79:27
+     77| 
+     78|     await plugin.onload();
+     79|     expect(addCommandSpy).toHaveBeenCalledTimes(4);
+       |                           ^
+     80|     expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining…
+     81|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add setting tab
+AssertionError: expected "addSettingTab" to be called with arguments: [ Any<Obje
+ct> ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:87:30
+     85| 
+     86|     await plugin.onload();
+     87|     expect(addSettingTabSpy).toHaveBeenCalledWith(expect.any(Object));
+       |                              ^
+     88|   });
+     89| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add status bar item based
+ on settings
+AssertionError: expected "addStatusBarItem" to be called at least once
+ ❯ src/main.test.ts:102:33
+    100| 
+    101|     await plugin.onload();
+    102|     expect(addStatusBarItemSpy).toHaveBeenCalled();
+       |                                 ^
+    103| 
+    104|     // Test with status bar disabled
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/33]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should handle onunload correctly
+AssertionError: expected "spy" to be called with arguments: [ 'magus-mark-tag-ma
+nagement' ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:124:58
+    122|     await plugin.onload();
+    123|     plugin.onunload();
+    124|     expect(mockAppInstance.workspace.detachLeavesOfType).toHaveBeenCal…
+       |                                                          ^
+    125|     expect(mockAppInstance.workspace.detachLeavesOfType).toHaveBeenCal…
+    126|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/33]⎯
+
+ FAIL  src/services/TaggingService.test.ts > TaggingService > processFiles > sho
+uld handle errors for individual files
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/services/TaggingService.test.ts:299:34
+    297| 
+    298|       expect(results).toHaveLength(filesWithError.length);
+    299|       expect(results[0]?.isOk()).toBe(true);
+       |                                  ^
+    300|       expect(results[1]?.isFail()).toBe(true);
+    301|       if (results[1]?.isFail()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > UI Initialization > shou
+ld create necessary UI elements on open using Setting mock
+TypeError: [Function Setting] is not a spy or a call to a spy!
+ ❯ src/ui/FolderTagModal.test.ts:72:23
+     70| 
+     71|       // Verify Setting constructor was called (for folder selection, …
+     72|       expect(Setting).toHaveBeenCalled();
+       |                       ^
+     73|       expect(vi.mocked(Setting)).toHaveBeenCalledTimes(4);
+     74|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > UI Initialization > shou
+ld populate dropdown with folders
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/FolderTagModal.test.ts:78:47
+     76|     it('should populate dropdown with folders', () => {
+     77|       modal.onOpen();
+     78|       expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
+       |                                               ^
+     79|     });
+     80| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > UI Initialization > shou
+ld display a list of folders
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/FolderTagModal.test.ts:88:47
+     86|       modal.onOpen();
+     87| 
+     88|       expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
+       |                                               ^
+     89|       const listCreateEl = mockFolderList.createEl as any;
+     90|       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectCo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > shoul
+d handle folder selection
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/ui/FolderTagModal.test.ts:110:58
+    108| 
+    109|       privateModal.handleFolderClick({ currentTarget: folderItem1 } as…
+    110|       expect(folderItem1.classList.contains('selected')).toBe(true);
+       |                                                          ^
+    111|       expect(folderItem2.classList.contains('selected')).toBe(false);
+    112|       expect(privateModal.selectedFolderPath).toBe('folder1');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Folder Selection > shoul
+d handle folder search
+AssertionError: expected '' to be 'none' // Object.is equality
+
+- Expected
++ Received
+
+- none
+
+ ❯ src/ui/FolderTagModal.test.ts:138:39
+    136|       privateModal.handleFolderSearch({ target: searchInput } as unkno…
+    137|       expect(items[0]?.style.display).toBe('');
+    138|       expect(items[1]?.style.display).toBe('none');
+       |                                       ^
+    139|       expect(items[2]?.style.display).toBe('none');
+    140| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should t
+ag selected folder when Tag button is clicked
+AssertionError: expected "spy" to be called with arguments: [ ObjectContaining{…
+}, true ]
+
+Number of calls: 0
+
+ ❯ src/ui/FolderTagModal.test.ts:166:32
+    164|       privateModal.handleTagButtonClick();
+    165| 
+    166|       expect(onSubmitCallback).toHaveBeenCalledWith(expect.objectConta…
+       |                                ^
+    167|       expect(privateModal.close).toHaveBeenCalled();
+    168|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Tag Operation > should r
+espect the include subfolders option
+AssertionError: expected "spy" to be called with arguments: [ ObjectContaining{…
+}, false ]
+
+Number of calls: 0
+
+ ❯ src/ui/FolderTagModal.test.ts:195:32
+    193|       privateModal.handleTagButtonClick();
+    194| 
+    195|       expect(onSubmitCallback).toHaveBeenCalledWith(expect.objectConta…
+       |                                ^
+    196|     });
+    197|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/33]⎯
+
+ FAIL  src/ui/FolderTagModal.test.ts > FolderTagModal > Cancel Operation > shoul
+d close modal when Cancel button is clicked
+TypeError: Cannot read properties of undefined (reading 'calls')
+ ❯ src/ui/FolderTagModal.test.ts:206:47
+    204| 
+    205|       // Find the cancel button setting (should be the 4th Setting cal…
+    206|       const settingCalls = vi.mocked(Setting).mock.calls;
+       |                                               ^
+    207|       expect(settingCalls.length).toBeGreaterThanOrEqual(4);
+    208| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/33]⎯
+
+ FAIL  src/ui/TagVisualizationView.test.ts > TagVisualizationView > should rende
+r the view on open
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/TagVisualizationView.test.ts:146:33
+    144|     await view.onOpen();
+    145| 
+    146|     expect(mockContainer.empty).toHaveBeenCalled();
+       |                                 ^
+    147|   });
+    148| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/33]⎯
+
+
+ Test Files  5 failed | 4 passed (9)
+      Tests  33 failed | 47 passed (80)
+   Start at  06:40:48
+   Duration  1.22s (transform 574ms, setup 0ms, collect 2.03s, tests 339ms, envi
+ronment 4.16s, prepare 996ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+
+———————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend 
+on (3s)
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [1 read from cache]
+
+
+
+Task completed in 6.776 total:
+  User time: 9.444
+  System time: 2.465
+  CPU usage: 175%
+  Max memory: 287248 KB
+06:40:52 with khallmark at Voyager …                                      6.8s 
+in magus-mark ➜
+```
+
+---
+
+Excellent! Your Grace, I can see the real issue now. The services are NOT being created because the mock is preventing the real `loadData` from being called. Let me check what the actual `onload()` method does:
+
+---
+
+Read file: apps/obsidian-plugin/src/main.ts
+
+---
+
+Perfect! Now I see the issue. The `onload()` method calls `await this.loadSettings()` which calls `this.loadData()`. The service creation happens AFTER that. My mock is preventing the real `loadSettings` from running. Let me fix this:
+
+## 6. Fix Plugin Tests to Allow Real loadSettings
+
+---
+
+```diff
+      plugin = new ObsidianMagicPlugin(mockAppInstance as unknown as App, TEST_MANIFEST);
+  
+-     // Only mock loadData to return test settings - let everything else run normally
++     // Mock loadData which is called by loadSettings during onload
+      vi.spyOn(plugin, 'loadData').mockResolvedValue(DEFAULT_SETTINGS);
+    });
+```
+
+---
+
+## 7. Quick Test to See if Services Now Initialize
+
+---
+
+```bash
+nx test magus-mark-obsidian --testNamePattern="should initialize services on load"
+```
+
+```
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/
+types
+
+> tsx esbuild.config.ts
+
+[Magus Mark ESBuild] Build complete!
+[Magus Mark ESBuild] Output file: /Users/khallmark/Desktop/Code/neurotypic-ai/ma
+gus-mark/apps/obsidian-plugin/dist/main.js
+[Magus Mark ESBuild] copyAssets: Output directory ensured.
+[Magus Mark ESBuild] Copied manifest.json from /Users/khallmark/Desktop/Code/neu
+rotypic-ai/magus-mark/apps/obsidian-plugin/manifest.json to /Users/khallm
+ark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/manifest.jso
+n                                                                        [Magus
+Mark ESBuild] Copied styles.css from /Users/khallmark/Desktop/Code/neurotypic-ai
+/magus-mark/apps/obsidian-plugin/styles.css to /Users/khallmark/De
+sktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/styles.css
+                                                                         [Magus
+Mark ESBuild] Copying assets directory from /Users/khallmark/Desktop/Code/neurot
+ypic-ai/magus-mark/apps/obsidian-plugin/assets to /Users/khallmark
+/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/assets
+                                                                         Install
+ script stdout: Installed plugin magus-mark into documentation vault at /Users/k
+hallmark/Desktop/Code/neurotypic-ai/magus-mark/documentation/.obsi
+dian/plugins/magus-mark
+                                                                         Main.js
+ copied from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidia
+n-plugin/dist/main.js to /Users/khallmark/Desktop/Code/neurotypic-
+ai/magus-mark/documentation/.obsidian/plugins/magus-mark/main.js
+                                                                         
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/ma
+gus-mark/apps/obsidian-plugin
+> vitest run --testNamePattern\=should initialize services on load
+
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidia
+n-plugin
+
+ ✓ src/services/DocumentTagService.test.ts (6 tests) 3ms
+ ❯ src/ui/TagVisualizationView.test.ts (7 tests | 1 failed) 29ms
+   ✓ TagVisualizationView > should return the correct view type 4ms
+   ✓ TagVisualizationView > should return the correct display text 2ms
+   ✓ TagVisualizationView > should return the correct icon 4ms
+   × TagVisualizationView > should render the view on open 6ms
+     → expected "spy" to be called at least once
+   ✓ TagVisualizationView > should extract tag data from vault 4ms
+   ✓ TagVisualizationView > should handle zoom updates 5ms
+   ✓ TagVisualizationView > should handle filter updates 3ms
+(node:75967) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:75980) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:75958) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.
+Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stderr | src/services/KeyManager.test.ts > KeyManager > loadKey > should return
+null and show Notice if local decryption fails
+Error loading API key: FileSystemError: Failed to load from local storage: Faile
+d to decrypt key: Invalid encrypted key format
+    at KeyManager.loadFromLocalStorage (/Users/khallmark/Desktop/Code/neurotypic
+-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:176:13)
+    at KeyManager.loadKey (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mar
+k/apps/obsidian-plugin/src/services/KeyManager.ts:54:19)
+    at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plug
+in/src/services/KeyManager.test.ts:133:30
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_module
+s/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:10
+3:11
+                                                                             at
+file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm
+/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:59
+6:26
+                                                                             at
+file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm
+/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:87
+9:20
+                                                                             at
+new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-
+mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/
+dist/index.js:852:10)
+                                                                             at
+runTest (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modu
+les/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/in
+dex.js:1360:12)
+                                                                             at
+processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'FILE_SYSTEM_ERROR',
+  cause: undefined,
+  context: undefined,
+  recoverable: false,
+  path: undefined
+}
+
+ ✓ src/services/KeyManager.test.ts (10 tests) 9ms
+ ❯ src/services/TaggingService.test.ts (9 tests | 1 failed) 21ms
+   ✓ TaggingService > processFile > should process a file successfully 4ms
+   ✓ TaggingService > processFile > should handle API errors during processing 1
+ms
+   ✓ TaggingService > processFile > should handle API key errors during processi
+ng 1ms
+   ✓ TaggingService > processFile > should handle other errors during processing
+ 1ms
+   ✓ TaggingService > processFile > should return error if service is not config
+ured (no API key on plugin) 1ms
+   ✓ TaggingService > processFiles > should process multiple files and report pr
+ogress 5ms
+   ✓ TaggingService > processFiles > should collect results for each file 3ms
+   × TaggingService > processFiles > should handle errors for individual files 4
+ms
+     → expected false to be true // Object.is equality
+   ✓ TaggingService > processFiles > should return errors if service is not conf
+igured 1ms
+ ❯ src/integration.test.ts (17 tests | 15 failed) 76ms
+   × Integration Tests > File Tagging Flow > should tag a file from start to fin
+ish successfully 6ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > File Tagging Flow > should handle files without existin
+g frontmatter 4ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > File Tagging Flow > should handle API errors gracefully
+ 9ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > Folder Tagging Flow > should tag all files in a folder
+5ms
+     �� expected undefined to be defined
+   × Integration Tests > Folder Tagging Flow > should filter non-markdown files
+when tagging a folder 5ms
+     → expected undefined to be defined
+   × Integration Tests > Key Management Flow > should save API key correctly 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should store API key in system ke
+ychain when configured 3ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should load API key from appropri
+ate storage 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Plugin Lifecycle > should initialize all required servi
+ces on load 9ms
+     ��� expected undefined to be an instance of KeyManager
+   × Integration Tests > Plugin Lifecycle > should clean up resources on unload
+3ms
+     → expected "spy" to be called 2 times, but got 0 times
+   × Integration Tests > Plugin Lifecycle > should load and apply settings prope
+rly 6ms
+     → expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…
+}
+   × Integration Tests > Service Initialization > should create a KeyManager ins
+tance 6ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Service Initialization > should create a TaggingService
+ instance 2ms
+     → expected undefined to be an instance of TaggingService
+   × Integration Tests > Service Initialization > should create a DocumentTagSer
+vice instance 2ms
+     → expected undefined to be an instance of DocumentTagService
+   ✓ Integration Tests > Service Initialization > should have an accessible vaul
+t 2ms
+   ✓ Integration Tests > Service Initialization > should handle folder tagging 8
+ms
+   × Integration Tests > FileHandling > should have services available for file
+processing 3ms
+     → expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Test
+s 17 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should
+tag a file from start to finish successfully
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:101:33
+     99|       const mockResult = Result.ok(mockResultValue);
+    100| 
+    101|       const processFileSpy = vi.spyOn(plugin.taggingService, 'processFi
+le').mockResolvedValue(mockResult);
+       |                                 ^
+    102| 
+    103|       const result = await plugin.taggingService.processFile(mockFile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/
+17]⎯
+                                                                         
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should
+handle files without existing frontmatter
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:120:35
+    118| 
+    119|       // Just call the method, no need to spy since we're testing integ
+ration
+    120|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    121| 
+    122|       // Verify the method was called - integration test
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯[2/
+17]⎯
+                                                                         
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should
+handle API errors gracefully
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:134:35
+    132| 
+    133|       // Mock a service method to return error for testing
+    134|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    135| 
+    136|       // Since we're using actual services now, just verify the file wa
+s processed
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > shoul
+d tag all files in a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:151:37
+    149| 
+    150|       // Test that the service can handle folder operations
+    151|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    152|       expect(plugin.documentTagService).toBeDefined();
+    153|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > shoul
+d filter non-markdown files when tagging a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:167:37
+    165| 
+    166|       // Test that services are available for file filtering
+    167|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    168|     });
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > shoul
+d save API key correctly
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:174:29
+    172|     it('should save API key correctly', async () => {
+    173|       const mockResult = Result.ok(true);
+    174|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockRes
+olvedValue(mockResult);
+       |                             ^
+    175| 
+    176|       await plugin.keyManager.saveKey('new-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > shoul
+d store API key in system keychain when configured
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:185:29
+    183| 
+    184|       const mockResult = Result.ok(true);
+    185|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockRes
+olvedValue(mockResult);
+       |                             ^
+    186| 
+    187|       await plugin.keyManager.saveKey('secure-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/
+17]⎯
+                                                                         
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > shoul
+d load API key from appropriate storage
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:196:29
+    194|       plugin.settings.apiKey = 'local-key';
+    195| 
+    196|       const loadKeySpy = vi.spyOn(plugin.keyManager, 'loadKey').mockRet
+urnValue('local-key');
+       |                             ^
+    197| 
+    198|       let key = plugin.keyManager.loadKey();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should i
+nitialize all required services on load
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:234:36
+    232|       await newPlugin.onload();
+    233| 
+    234|       expect(newPlugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                    ^
+    235|       expect(newPlugin.taggingService).toBeInstanceOf(TaggingService);
+    236|       expect(newPlugin.documentTagService).toBeInstanceOf(DocumentTagSe
+rvice);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should c
+lean up resources on unload
+AssertionError: expected "spy" to be called 2 times, but got 0 times
+ ❯ src/integration.test.ts:263:69
+    261|       newPlugin.onunload();
+    262| 
+    263|       expect(vi.mocked(newPlugin.app.workspace.detachLeavesOfType)).toH
+aveBeenCalledTimes(2);
+       |                                                                     ^
+    264|     });
+    265| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should l
+oad and apply settings properly
+AssertionError: expected { apiKey: 'local-key', …(7) } to deeply equal ObjectCon
+taining{…}
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "apiKey": "saved-api-key",
++ {
++   "apiKey": "local-key",
++   "apiKeyKeychainId": "",
+    "apiKeyStorage": "local",
+-   "defaultTagBehavior": "replace",
+-   "enableAutoSync": true,
+-   "modelPreference": "gpt-3.5-turbo",
+-   "showRibbonIcon": false,
+-   "statusBarDisplay": "never",
++   "defaultTagBehavior": "merge",
++   "enableAutoSync": false,
++   "modelPreference": "gpt-4o",
++   "showRibbonIcon": true,
++   "statusBarDisplay": "always",
+  }
+
+ ❯ src/integration.test.ts:296:34
+    294|       await newPlugin.onload();
+    295| 
+    296|       expect(newPlugin.settings).toEqual(expect.objectContaining(mockSe
+ttings));
+       |                                  ^
+    297|       expect(newPlugin.addRibbonIcon).not.toHaveBeenCalled();
+    298|       expect(newPlugin.addStatusBarItem).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯���⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17
+]⎯
+                                                                         
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > sh
+ould create a KeyManager instance
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:304:33
+    302|   describe('Service Initialization', () => {
+    303|     it('should create a KeyManager instance', () => {
+    304|       expect(plugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                 ^
+    305|     });
+    306| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > sh
+ould create a TaggingService instance
+AssertionError: expected undefined to be an instance of TaggingService
+ ❯ src/integration.test.ts:308:37
+    306| 
+    307|     it('should create a TaggingService instance', () => {
+    308|       expect(plugin.taggingService).toBeInstanceOf(TaggingService);
+       |                                     ^
+    309|     });
+    310| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > sh
+ould create a DocumentTagService instance
+AssertionError: expected undefined to be an instance of DocumentTagService
+ ❯ src/integration.test.ts:312:41
+    310| 
+    311|     it('should create a DocumentTagService instance', () => {
+    312|       expect(plugin.documentTagService).toBeInstanceOf(DocumentTagServi
+ce);
+       |                                         ^
+    313|     });
+    314| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > FileHandling > should have
+services available for file processing
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:342:37
+    340|   describe('FileHandling', () => {
+    341|     it('should have services available for file processing', () => {
+    342|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    343|       expect(plugin.documentTagService).toBeDefined();
+    344|       expect(plugin.app.vault).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17]⎯
+
+ FAIL  src/services/TaggingService.test.ts > TaggingService > processFiles > sho
+uld handle errors for individual files
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/services/TaggingService.test.ts:299:34
+    297| 
+    298|       expect(results).toHaveLength(filesWithError.length);
+    299|       expect(results[0]?.isOk()).toBe(true);
+       |                                  ^
+    300|       expect(results[1]?.isFail()).toBe(true);
+    301|       if (results[1]?.isFail()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯[16/
+17]⎯
+                                                                         
+ FAIL  src/ui/TagVisualizationView.test.ts > TagVisualizationView > should rende
+r the view on open
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/TagVisualizationView.test.ts:146:33
+    144|     await view.onOpen();
+    145| 
+    146|     expect(mockContainer.empty).toHaveBeenCalled();
+       |                                 ^
+    147|   });
+    148| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/17]⎯
+
+
+ Test Files  3 failed | 2 passed (5)
+      Tests  17 failed | 32 passed (49)
+   Start at  06:41:16
+   Duration  1.11s (transform 372ms, setup 0ms, collect 1.08s, tests 138ms, envi
+ronment 1.78s, prepare 444ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+
+————————————————————————————————————————————————————————————————————————————————
+————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend
+on (4s)
+
+      With additional flags:
+        --testNamePattern=should initialize services on load
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [1 read from cache]
+
+
+
+```
+
+---
+
+Your Grace, I see the issue! The services are still undefined. There must be an error during the onload process that's preventing service creation. Let me check if there's an exception:
+
+---
+
+```bash
+nx test magus-mark-obsidian --testNamePattern="should initialize services" --verbose
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian --testNamePattern="should initialize services" --verbose
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+> vitest run --testNamePattern\=should initialize services
+
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+
+
+ ❯ src/services/KeyManager.test.ts [queued]
+
+ Test Files 0 passed (3)
+      Tests 0 passed (0)
+   Start at 06:41:29
+
+ ❯ src/services/DocumentTagService.test.ts 0/6
+ ❯ src/services/KeyManager.test.ts [queued]
+ ❯ src/services/TaggingService.test.ts [queued]
+
+ Test Files 0 passed (3)
+      Tests 0 passed (6)
+   Start at 06:41:29
+ ✓ src/services/DocumentTagService.test.ts (6 tests) 3ms
+
+ ❯ src/services/KeyManager.test.ts 0/10
+ ❯ src/services/TaggingService.test.ts [queued]
+
+ Test Files 1 passed (3)
+      Tests 6 passed (16)
+   Start at 06:41:29
+(node:41777) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:41792) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ ❯ src/services/KeyManager.test.ts 0/10
+ ❯ src/services/TaggingService.test.ts [queued]
+
+ Test Files 1 passed (3)
+      Tests 6 passed (16)
+   Start at 06:41:29
+stderr | src/services/KeyManager.test.ts > KeyManager > loadKey > should return null and show Notice if local decryption fails
+Error loading API key: FileSystemError: Failed to load from local storage: Failed to decrypt key: Invalid encrypted key format
+    at KeyManager.loadFromLocalStorage (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:176:13)
+    at KeyManager.loadKey (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:54:19)
+    at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.test.ts:133:30
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:10
+3:11
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:59
+6:26
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:87
+9:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/
+dist/index.js:852:10)
+    at runTest (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/in
+dex.js:1360:12)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'FILE_SYSTEM_ERROR',
+  cause: undefined,
+  context: undefined,
+  recoverable: false,
+  path: undefined
+}
+
+ ✓ src/services/KeyManager.test.ts (10 tests) 9ms
+ ❯ src/services/TaggingService.test.ts (9 tests | 1 failed) 15ms
+   ✓ TaggingService > processFile > should process a file successfully 4ms
+   ✓ TaggingService > processFile > should handle API errors during processing 1ms
+   ✓ TaggingService > processFile > should handle API key errors during processing 1ms
+   ✓ TaggingService > processFile > should handle other errors during processing 1ms
+   ✓ TaggingService > processFile > should return error if service is not configured (no API key on plugin) 1ms
+   ✓ TaggingService > processFiles > should process multiple files and report progress 2ms
+   ✓ TaggingService > processFiles > should collect results for each file 1ms
+   × TaggingService > processFiles > should handle errors for individual files 4ms
+     → expected false to be true // Object.is equality
+   ✓ TaggingService > processFiles > should return errors if service is not configured 1ms
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/services/TaggingService.test.ts > TaggingService > processFiles > should handle errors for individual files
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/services/TaggingService.test.ts:299:34
+    297| 
+    298|       expect(results).toHaveLength(filesWithError.length);
+    299|       expect(results[0]?.isOk()).toBe(true);
+       |                                  ^
+    300|       expect(results[1]?.isFail()).toBe(true);
+    301|       if (results[1]?.isFail()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯⎯⎯[1
+/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 24 passed (25)
+   Start at  06:41:29
+   Duration  967ms (transform 285ms, setup 0ms, collect 648ms, tests 27ms, environment 1.13s, prepare 217ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (2s)
+
+      With additional flags:
+        --testNamePattern=should initialize services
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [2 read from cache]
+
+
+06:41:33 with khallmark at Voyager …
+in magus-mark ➜
+```
+
+---
+
+The pattern didn't match any tests for the main or integration tests. Let me get to the core issue quickly by adding console logging to see what's happening during onload:
+
+---
+
+```diff
+  
+    it('should initialize services on load', async () => {
++     console.log('Before onload, plugin.keyManager:', plugin.keyManager);
++     console.log('Before onload, plugin.taggingService:', plugin.taggingService);
++     
+      await plugin.onload();
++     
++     console.log('After onload, plugin.keyManager:', plugin.keyManager);
++     console.log('After onload, plugin.taggingService:', plugin.taggingService);
++     console.log('After onload, plugin.documentTagService:', plugin.documentTagService);
+  
+      // Verify services were created and assigned
+```
+
+---
+
+```bash
+nx test magus-mark-obsidian --testNamePattern="should initialize services on load"
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian --testNamePattern="should initialize services on load"
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build
+
+> tsc -p tsconfig.json --emitDeclarationOnly --outDir apps/obsidian-plugin/dist/types
+
+> tsx esbuild.config.ts
+
+[Magus Mark ESBuild] Build complete!
+[Magus Mark ESBuild] Output file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/main.js
+[Magus Mark ESBuild] copyAssets: Output directory ensured.
+[Magus Mark ESBuild] Copied manifest.json from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/manifest.json to /Users/khallm
+ark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/manifest.json
+[Magus Mark ESBuild] Copied styles.css from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/styles.css to /Users/khallmark/De
+sktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/styles.css
+[Magus Mark ESBuild] Copying assets directory from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/assets to /Users/khallmark
+/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/assets
+Install script stdout: Installed plugin magus-mark into documentation vault at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/documentation/.obsi
+dian/plugins/magus-mark
+Main.js copied from /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/dist/main.js to /Users/khallmark/Desktop/Code/neurotypic-
+ai/magus-mark/documentation/.obsidian/plugins/magus-mark/main.js
+
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+> vitest run --testNamePattern\=should initialize services on load
+
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+
+ ✓ src/services/DocumentTagService.test.ts (6 tests) 3ms
+ ❯ src/ui/TagVisualizationView.test.ts (7 tests | 1 failed) 30ms
+   ✓ TagVisualizationView > should return the correct view type 4ms
+   ✓ TagVisualizationView > should return the correct display text 3ms
+   ✓ TagVisualizationView > should return the correct icon 5ms
+   × TagVisualizationView > should render the view on open 6ms
+     → expected "spy" to be called at least once
+   ✓ TagVisualizationView > should extract tag data from vault 5ms
+   ✓ TagVisualizationView > should handle zoom updates 2ms
+   ✓ TagVisualizationView > should handle filter updates 6ms
+(node:39469) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:39470) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:39468) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stderr | src/services/KeyManager.test.ts > KeyManager > loadKey > should return null and show Notice if local decryption fails
+Error loading API key: FileSystemError: Failed to load from local storage: Failed to decrypt key: Invalid encrypted key format
+    at KeyManager.loadFromLocalStorage (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:176:13)
+    at KeyManager.loadKey (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:54:19)
+    at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.test.ts:133:30
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:10
+3:11
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:59
+6:26
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:87
+9:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/
+dist/index.js:852:10)
+    at runTest (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/in
+dex.js:1360:12)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'FILE_SYSTEM_ERROR',
+  cause: undefined,
+  context: undefined,
+  recoverable: false,
+  path: undefined
+}
+
+ ✓ src/services/KeyManager.test.ts (10 tests) 8ms
+ ❯ src/services/TaggingService.test.ts (9 tests | 1 failed) 18ms
+   ✓ TaggingService > processFile > should process a file successfully 4ms
+   ✓ TaggingService > processFile > should handle API errors during processing 1ms
+   ✓ TaggingService > processFile > should handle API key errors during processing 1ms
+   ✓ TaggingService > processFile > should handle other errors during processing 1ms
+   ✓ TaggingService > processFile > should return error if service is not configured (no API key on plugin) 1ms
+   ✓ TaggingService > processFiles > should process multiple files and report progress 2ms
+   ✓ TaggingService > processFiles > should collect results for each file 1ms
+   × TaggingService > processFiles > should handle errors for individual files 7ms
+     → expected false to be true // Object.is equality
+   ✓ TaggingService > processFiles > should return errors if service is not configured 1ms
+ ❯ src/integration.test.ts (17 tests | 15 failed) 74ms
+   × Integration Tests > File Tagging Flow > should tag a file from start to finish successfully 6ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > File Tagging Flow > should handle files without existing frontmatter 2ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > File Tagging Flow > should handle API errors gracefully 2ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > Folder Tagging Flow > should tag all files in a folder 9ms
+     → expected undefined to be defined
+   × Integration Tests > Folder Tagging Flow > should filter non-markdown files when tagging a folder 4ms
+     → expected undefined to be defined
+   × Integration Tests > Key Management Flow > should save API key correctly 1ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should store API key in system keychain when configured 4ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should load API key from appropriate storage 3ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Plugin Lifecycle > should initialize all required services on load 7ms
+     ��� expected undefined to be an instance of KeyManager
+   × Integration Tests > Plugin Lifecycle > should clean up resources on unload 3ms
+     → expected "spy" to be called 2 times, but got 0 times
+   × Integration Tests > Plugin Lifecycle > should load and apply settings properly 9ms
+     → expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…}
+   × Integration Tests > Service Initialization > should create a KeyManager instance 4ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Service Initialization > should create a TaggingService instance 3ms
+     → expected undefined to be an instance of TaggingService
+   × Integration Tests > Service Initialization > should create a DocumentTagService instance 2ms
+     → expected undefined to be an instance of DocumentTagService
+   ✓ Integration Tests > Service Initialization > should have an accessible vault 2ms
+   ✓ Integration Tests > Service Initialization > should handle folder tagging 9ms
+   × Integration Tests > FileHandling > should have services available for file processing 3ms
+     → expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should tag a file from start to finish successfully
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:101:33
+     99|       const mockResult = Result.ok(mockResultValue);
+    100| 
+    101|       const processFileSpy = vi.spyOn(plugin.taggingService, 'processFile').mockResolvedValue(mockResult);
+       |                                 ^
+    102| 
+    103|       const result = await plugin.taggingService.processFile(mockFile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/
+17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should handle files without existing frontmatter
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:120:35
+    118| 
+    119|       // Just call the method, no need to spy since we're testing integration
+    120|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    121| 
+    122|       // Verify the method was called - integration test
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should handle API errors gracefully
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:134:35
+    132| 
+    133|       // Mock a service method to return error for testing
+    134|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    135| 
+    136|       // Since we're using actual services now, just verify the file was processed
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > should tag all files in a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:151:37
+    149| 
+    150|       // Test that the service can handle folder operations
+    151|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    152|       expect(plugin.documentTagService).toBeDefined();
+    153|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > should filter non-markdown files when tagging a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:167:37
+    165| 
+    166|       // Test that services are available for file filtering
+    167|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    168|     });
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should save API key correctly
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:174:29
+    172|     it('should save API key correctly', async () => {
+    173|       const mockResult = Result.ok(true);
+    174|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockResolvedValue(mockResult);
+       |                             ^
+    175| 
+    176|       await plugin.keyManager.saveKey('new-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should store API key in system keychain when configured
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:185:29
+    183| 
+    184|       const mockResult = Result.ok(true);
+    185|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockResolvedValue(mockResult);
+       |                             ^
+    186| 
+    187|       await plugin.keyManager.saveKey('secure-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯[7/
+17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should load API key from appropriate storage
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:196:29
+    194|       plugin.settings.apiKey = 'local-key';
+    195| 
+    196|       const loadKeySpy = vi.spyOn(plugin.keyManager, 'loadKey').mockReturnValue('local-key');
+       |                             ^
+    197| 
+    198|       let key = plugin.keyManager.loadKey();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should initialize all required services on load
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:234:36
+    232|       await newPlugin.onload();
+    233| 
+    234|       expect(newPlugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                    ^
+    235|       expect(newPlugin.taggingService).toBeInstanceOf(TaggingService);
+    236|       expect(newPlugin.documentTagService).toBeInstanceOf(DocumentTagService);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should clean up resources on unload
+AssertionError: expected "spy" to be called 2 times, but got 0 times
+ ❯ src/integration.test.ts:263:69
+    261|       newPlugin.onunload();
+    262| 
+    263|       expect(vi.mocked(newPlugin.app.workspace.detachLeavesOfType)).toHaveBeenCalledTimes(2);
+       |                                                                     ^
+    264|     });
+    265| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should load and apply settings properly
+AssertionError: expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…}
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "apiKey": "saved-api-key",
++ {
++   "apiKey": "local-key",
++   "apiKeyKeychainId": "",
+    "apiKeyStorage": "local",
+-   "defaultTagBehavior": "replace",
+-   "enableAutoSync": true,
+-   "modelPreference": "gpt-3.5-turbo",
+-   "showRibbonIcon": false,
+-   "statusBarDisplay": "never",
++   "defaultTagBehavior": "merge",
++   "enableAutoSync": false,
++   "modelPreference": "gpt-4o",
++   "showRibbonIcon": true,
++   "statusBarDisplay": "always",
+  }
+
+ ❯ src/integration.test.ts:296:34
+    294|       await newPlugin.onload();
+    295| 
+    296|       expect(newPlugin.settings).toEqual(expect.objectContaining(mockSettings));
+       |                                  ^
+    297|       expect(newPlugin.addRibbonIcon).not.toHaveBeenCalled();
+    298|       expect(newPlugin.addStatusBarItem).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a KeyManager instance
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:304:33
+    302|   describe('Service Initialization', () => {
+    303|     it('should create a KeyManager instance', () => {
+    304|       expect(plugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                 ^
+    305|     });
+    306| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a TaggingService instance
+AssertionError: expected undefined to be an instance of TaggingService
+ ❯ src/integration.test.ts:308:37
+    306| 
+    307|     it('should create a TaggingService instance', () => {
+    308|       expect(plugin.taggingService).toBeInstanceOf(TaggingService);
+       |                                     ^
+    309|     });
+    310| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a DocumentTagService instance
+AssertionError: expected undefined to be an instance of DocumentTagService
+ ❯ src/integration.test.ts:312:41
+    310| 
+    311|     it('should create a DocumentTagService instance', () => {
+    312|       expect(plugin.documentTagService).toBeInstanceOf(DocumentTagService);
+       |                                         ^
+    313|     });
+    314| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > FileHandling > should have services available for file processing
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:342:37
+    340|   describe('FileHandling', () => {
+    341|     it('should have services available for file processing', () => {
+    342|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    343|       expect(plugin.documentTagService).toBeDefined();
+    344|       expect(plugin.app.vault).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17]⎯
+
+ FAIL  src/services/TaggingService.test.ts > TaggingService > processFiles > should handle errors for individual files
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/services/TaggingService.test.ts:299:34
+    297| 
+    298|       expect(results).toHaveLength(filesWithError.length);
+    299|       expect(results[0]?.isOk()).toBe(true);
+       |                                  ^
+    300|       expect(results[1]?.isFail()).toBe(true);
+    301|       if (results[1]?.isFail()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯[16/
+17]⎯
+
+ FAIL  src/ui/TagVisualizationView.test.ts > TagVisualizationView > should render the view on open
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/TagVisualizationView.test.ts:146:33
+    144|     await view.onOpen();
+    145| 
+    146|     expect(mockContainer.empty).toHaveBeenCalled();
+       |                                 ^
+    147|   });
+    148| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/17]⎯
+
+
+ Test Files  3 failed | 2 passed (5)
+      Tests  17 failed | 32 passed (49)
+   Start at  06:41:49
+   Duration  1.14s (transform 346ms, setup 0ms, collect 1.13s, tests 134ms, environment 1.57s, prepare 697ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (4s)
+
+      With additional flags:
+        --testNamePattern=should initialize services on load
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [1 read from cache]
+
+
+06:41:53 with khallmark at Voyager …                                                                                                               6.9s 
+in magus-mark ➜
+```
+
+---
+
+
+
+---
+
+_**User**_
+
+Please continue
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Your Grace, I shall continue systematically. The issue is clear - the services are undefined after `onload()`, which means something is failing silently. Let me debug this step by step.
+
+## 1. First, let me run the specific test to see the console output:
+
+---
+
+```bash
+nx test magus-mark-obsidian --testNamePattern="should initialize services on load" --verbose
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian --testNamePattern="should initialize services on load" --verbose
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+> vitest run --testNamePattern\=should initialize services on load
+
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+
+ ✓ src/services/DocumentTagService.test.ts (6 tests) 3ms
+ ❯ src/ui/TagVisualizationView.test.ts (7 tests | 1 failed) 33ms
+   ✓ TagVisualizationView > should return the correct view type 4ms
+   ✓ TagVisualizationView > should return the correct display text 3ms
+   ✓ TagVisualizationView > should return the correct icon 4ms
+   × TagVisualizationView > should render the view on open 6ms
+     → expected "spy" to be called at least once
+   ✓ TagVisualizationView > should extract tag data from vault 5ms
+   ✓ TagVisualizationView > should handle zoom updates 3ms
+   ✓ TagVisualizationView > should handle filter updates 7ms
+(node:80861) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:80860) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:80859) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stderr | src/services/KeyManager.test.ts > KeyManager > loadKey > should return null and show Notice if local decryption fails
+Error loading API key: FileSystemError: Failed to load from local storage: Failed to decrypt key: Invalid encrypted key format
+    at KeyManager.loadFromLocalStorage (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:176:13)
+    at KeyManager.loadKey (/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.ts:54:19)
+    at /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/src/services/KeyManager.test.ts:133:30
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:10
+3:11
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:59
+6:26
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/index.js:87
+9:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/
+dist/index.js:852:10)
+    at runTest (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vitest+runner@3.1.3/node_modules/@vitest/runner/dist/in
+dex.js:1360:12)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'FILE_SYSTEM_ERROR',
+  cause: undefined,
+  context: undefined,
+  recoverable: false,
+  path: undefined
+}
+
+ ✓ src/services/KeyManager.test.ts (10 tests) 9ms
+ ❯ src/services/TaggingService.test.ts (9 tests | 1 failed) 18ms
+   ✓ TaggingService > processFile > should process a file successfully 3ms
+   ✓ TaggingService > processFile > should handle API errors during processing 1ms
+   ✓ TaggingService > processFile > should handle API key errors during processing 1ms
+   ✓ TaggingService > processFile > should handle other errors during processing 1ms
+   ✓ TaggingService > processFile > should return error if service is not configured (no API key on plugin) 1ms
+   ✓ TaggingService > processFiles > should process multiple files and report progress 2ms
+   ✓ TaggingService > processFiles > should collect results for each file 3ms
+   × TaggingService > processFiles > should handle errors for individual files 5ms
+     → expected false to be true // Object.is equality
+   ✓ TaggingService > processFiles > should return errors if service is not configured 1ms
+ ❯ src/integration.test.ts (17 tests | 15 failed) 60ms
+   × Integration Tests > File Tagging Flow > should tag a file from start to finish successfully 5ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > File Tagging Flow > should handle files without existing frontmatter 2ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > File Tagging Flow > should handle API errors gracefully 2ms
+     → Cannot read properties of undefined (reading 'processFile')
+   × Integration Tests > Folder Tagging Flow > should tag all files in a folder 5ms
+     ��� expected undefined to be defined
+   × Integration Tests > Folder Tagging Flow > should filter non-markdown files when tagging a folder 1ms
+     → expected undefined to be defined
+   × Integration Tests > Key Management Flow > should save API key correctly 1ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should store API key in system keychain when configured 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Key Management Flow > should load API key from appropriate storage 2ms
+     → spyOn could not find an object to spy upon
+   × Integration Tests > Plugin Lifecycle > should initialize all required services on load 9ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Plugin Lifecycle > should clean up resources on unload 3ms
+     → expected "spy" to be called 2 times, but got 0 times
+   × Integration Tests > Plugin Lifecycle > should load and apply settings properly 6ms
+     → expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…}
+   × Integration Tests > Service Initialization > should create a KeyManager instance 4ms
+     → expected undefined to be an instance of KeyManager
+   × Integration Tests > Service Initialization > should create a TaggingService instance 3ms
+     → expected undefined to be an instance of TaggingService
+   × Integration Tests > Service Initialization > should create a DocumentTagService instance 2ms
+     → expected undefined to be an instance of DocumentTagService
+   ✓ Integration Tests > Service Initialization > should have an accessible vault 2ms
+   ✓ Integration Tests > Service Initialization > should handle folder tagging 6ms
+   × Integration Tests > FileHandling > should have services available for file processing 3ms
+     → expected undefined to be defined
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should tag a file from start to finish successfully
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:101:33
+     99|       const mockResult = Result.ok(mockResultValue);
+    100| 
+    101|       const processFileSpy = vi.spyOn(plugin.taggingService, 'processFile').mockResolvedValue(mockResult);
+       |                                 ^
+    102| 
+    103|       const result = await plugin.taggingService.processFile(mockFile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/
+17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should handle files without existing frontmatter
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:120:35
+    118| 
+    119|       // Just call the method, no need to spy since we're testing integration
+    120|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    121| 
+    122|       // Verify the method was called - integration test
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > File Tagging Flow > should handle API errors gracefully
+TypeError: Cannot read properties of undefined (reading 'processFile')
+ ❯ src/integration.test.ts:134:35
+    132| 
+    133|       // Mock a service method to return error for testing
+    134|       await plugin.taggingService.processFile(mockFile);
+       |                                   ^
+    135| 
+    136|       // Since we're using actual services now, just verify the file was processed
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > should tag all files in a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:151:37
+    149| 
+    150|       // Test that the service can handle folder operations
+    151|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    152|       expect(plugin.documentTagService).toBeDefined();
+    153|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯��⎯⎯⎯⎯⎯⎯⎯[4/17]
+⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Folder Tagging Flow > should filter non-markdown files when tagging a folder
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:167:37
+    165| 
+    166|       // Test that services are available for file filtering
+    167|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    168|     });
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should save API key correctly
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:174:29
+    172|     it('should save API key correctly', async () => {
+    173|       const mockResult = Result.ok(true);
+    174|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockResolvedValue(mockResult);
+       |                             ^
+    175| 
+    176|       await plugin.keyManager.saveKey('new-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should store API key in system keychain when configured
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:185:29
+    183| 
+    184|       const mockResult = Result.ok(true);
+    185|       const saveKeySpy = vi.spyOn(plugin.keyManager, 'saveKey').mockResolvedValue(mockResult);
+       |                             ^
+    186| 
+    187|       await plugin.keyManager.saveKey('secure-api-key');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Key Management Flow > should load API key from appropriate storage
+Error: spyOn could not find an object to spy upon
+ ❯ src/integration.test.ts:196:29
+    194|       plugin.settings.apiKey = 'local-key';
+    195| 
+    196|       const loadKeySpy = vi.spyOn(plugin.keyManager, 'loadKey').mockReturnValue('local-key');
+       |                             ^
+    197| 
+    198|       let key = plugin.keyManager.loadKey();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should initialize all required services on load
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:234:36
+    232|       await newPlugin.onload();
+    233| 
+    234|       expect(newPlugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                    ^
+    235|       expect(newPlugin.taggingService).toBeInstanceOf(TaggingService);
+    236|       expect(newPlugin.documentTagService).toBeInstanceOf(DocumentTagService);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should clean up resources on unload
+AssertionError: expected "spy" to be called 2 times, but got 0 times
+ ❯ src/integration.test.ts:263:69
+    261|       newPlugin.onunload();
+    262| 
+    263|       expect(vi.mocked(newPlugin.app.workspace.detachLeavesOfType)).toHaveBeenCalledTimes(2);
+       |                                                                     ^
+    264|     });
+    265| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Plugin Lifecycle > should load and apply settings properly
+AssertionError: expected { apiKey: 'local-key', …(7) } to deeply equal ObjectContaining{…}
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "apiKey": "saved-api-key",
++ {
++   "apiKey": "local-key",
++   "apiKeyKeychainId": "",
+    "apiKeyStorage": "local",
+-   "defaultTagBehavior": "replace",
+-   "enableAutoSync": true,
+-   "modelPreference": "gpt-3.5-turbo",
+-   "showRibbonIcon": false,
+-   "statusBarDisplay": "never",
++   "defaultTagBehavior": "merge",
++   "enableAutoSync": false,
++   "modelPreference": "gpt-4o",
++   "showRibbonIcon": true,
++   "statusBarDisplay": "always",
+  }
+
+ ❯ src/integration.test.ts:296:34
+    294|       await newPlugin.onload();
+    295| 
+    296|       expect(newPlugin.settings).toEqual(expect.objectContaining(mockSettings));
+       |                                  ^
+    297|       expect(newPlugin.addRibbonIcon).not.toHaveBeenCalled();
+    298|       expect(newPlugin.addStatusBarItem).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯���⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17
+]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a KeyManager instance
+AssertionError: expected undefined to be an instance of KeyManager
+ ❯ src/integration.test.ts:304:33
+    302|   describe('Service Initialization', () => {
+    303|     it('should create a KeyManager instance', () => {
+    304|       expect(plugin.keyManager).toBeInstanceOf(KeyManager);
+       |                                 ^
+    305|     });
+    306| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a TaggingService instance
+AssertionError: expected undefined to be an instance of TaggingService
+ ❯ src/integration.test.ts:308:37
+    306| 
+    307|     it('should create a TaggingService instance', () => {
+    308|       expect(plugin.taggingService).toBeInstanceOf(TaggingService);
+       |                                     ^
+    309|     });
+    310| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > Service Initialization > should create a DocumentTagService instance
+AssertionError: expected undefined to be an instance of DocumentTagService
+ ❯ src/integration.test.ts:312:41
+    310| 
+    311|     it('should create a DocumentTagService instance', () => {
+    312|       expect(plugin.documentTagService).toBeInstanceOf(DocumentTagService);
+       |                                         ^
+    313|     });
+    314| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  src/integration.test.ts > Integration Tests > FileHandling > should have services available for file processing
+AssertionError: expected undefined to be defined
+ ❯ src/integration.test.ts:342:37
+    340|   describe('FileHandling', () => {
+    341|     it('should have services available for file processing', () => {
+    342|       expect(plugin.taggingService).toBeDefined();
+       |                                     ^
+    343|       expect(plugin.documentTagService).toBeDefined();
+    344|       expect(plugin.app.vault).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯��⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯��⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17
+]⎯
+
+ FAIL  src/services/TaggingService.test.ts > TaggingService > processFiles > should handle errors for individual files
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/services/TaggingService.test.ts:299:34
+    297| 
+    298|       expect(results).toHaveLength(filesWithError.length);
+    299|       expect(results[0]?.isOk()).toBe(true);
+       |                                  ^
+    300|       expect(results[1]?.isFail()).toBe(true);
+    301|       if (results[1]?.isFail()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯�����⎯⎯⎯⎯⎯⎯⎯[16/
+17]⎯
+
+ FAIL  src/ui/TagVisualizationView.test.ts > TagVisualizationView > should render the view on open
+AssertionError: expected "spy" to be called at least once
+ ❯ src/ui/TagVisualizationView.test.ts:146:33
+    144|     await view.onOpen();
+    145| 
+    146|     expect(mockContainer.empty).toHaveBeenCalled();
+       |                                 ^
+    147|   });
+    148| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/17]⎯
+
+
+ Test Files  3 failed | 2 passed (5)
+      Tests  17 failed | 32 passed (49)
+   Start at  06:44:01
+   Duration  1.04s (transform 369ms, setup 0ms, collect 1.04s, tests 123ms, environment 1.79s, prepare 391ms)
+
+ ELIFECYCLE  Test failed. See above for more details.
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (2s)
+
+      With additional flags:
+        --testNamePattern=should initialize services on load
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [2 read from cache]
+
+
+06:44:05 with khallmark at Voyager …                                                                                                               5.5s 
+in magus-mark ➜
+```
+
+---
+
+I notice the console logs I added aren't showing up, which means the main.test.ts is not being executed. Let me run just the main tests:
+
+---
+
+```bash
+nx test magus-mark-obsidian --testFilePattern="main.test.ts"
+```
+
+```
+in magus-mark ➜ nx test magus-mark-obsidian --testFilePattern="main.test.ts"
+
+> nx run magus-mark-core:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:build  [existing outputs match the cache, left as is]
+
+
+> nx run magus-mark-obsidian:test
+
+
+> @magus-mark/obsidian@0.1.0 test /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+> vitest run --testFilePattern\=main.test.ts
+
+file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vitest@3.1.3_@types+debug@4.1.12_@types+node@22.15.18_@vitest+ui@3.1.3_j
+iti@2.4.2_jsdom@26.1.0_tsx@4.19.4_yaml@2.7.1/node_modules/vitest/dist/chunks/cac.BN2e7cE1.js:403
+          throw new CACError(`Unknown option \`${name.length > 1 ? `--${name}` : `-${name}`}\``);
+                ^
+
+CACError: Unknown option `--testFilePattern`
+    at Command.checkUnknownOptions (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vitest@3.1.3_@types+debug@4.1.12_@ty
+pes+node@22.15.18_@vitest+ui@3.1.3_jiti@2.4.2_jsdom@26.1.0_tsx@4.19.4_yaml@2.7.1/node_modules/vitest/dist/chunks/cac.BN2e7cE1.js:403:17)
+    at CAC.runMatchedCommand (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vitest@3.1.3_@types+debug@4.1.12_@types+no
+de@22.15.18_@vitest+ui@3.1.3_jiti@2.4.2_jsdom@26.1.0_tsx@4.19.4_yaml@2.7.1/node_modules/vitest/dist/chunks/cac.BN2e7cE1.js:603:13)
+    at CAC.parse (file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vitest@3.1.3_@types+debug@4.1.12_@types+node@22.15.18_
+@vitest+ui@3.1.3_jiti@2.4.2_jsdom@26.1.0_tsx@4.19.4_yaml@2.7.1/node_modules/vitest/dist/chunks/cac.BN2e7cE1.js:544:12)
+    at file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vitest@3.1.3_@types+debug@4.1.12_@types+node@22.15.18_@vitest+ui@
+3.1.3_jiti@2.4.2_jsdom@26.1.0_tsx@4.19.4_yaml@2.7.1/node_modules/vitest/dist/cli.js:8:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)
+
+Node.js v22.13.1
+ ELIFECYCLE  Test failed. See above for more details.
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+ NX   Ran target test for project magus-mark-obsidian and 2 task(s) they depend on (1s)
+
+      With additional flags:
+        --testFilePattern=main.test.ts
+
+   ✖  1/3 failed
+   ✔  2/3 succeeded [2 read from cache]
+
+
+06:44:16 with khallmark at Voyager …                                                                                                               4.4s 
+in magus-mark ➜
+```
+
+---
+
+Let me try running just the main.test.ts file directly:
+
+---
+
+```bash
+cd apps/obsidian-plugin && npx vitest run src/main.test.ts
+```
+
+```
+in magus-mark ➜ cd apps/obsidian-plugin && npx vitest run src/main.test.ts
+Removing from PATH: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.bin
+Added to PATH: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin/node_modules/.bin
+
+ RUN  v3.1.3 /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/obsidian-plugin
+
+(node:79280) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | src/main.test.ts > ObsidianMagicPlugin > should initialize services on load
+Before onload, plugin.keyManager: undefined
+Before onload, plugin.taggingService: undefined
+
+stdout | src/main.test.ts > ObsidianMagicPlugin > should initialize services on load
+After onload, plugin.keyManager: undefined
+After onload, plugin.taggingService: undefined
+After onload, plugin.documentTagService: undefined
+
+ ❯ src/main.test.ts (8 tests | 8 failed) 19ms
+   × ObsidianMagicPlugin > should load settings on initialization 5ms
+     → expected "loadData" to be called at least once
+   × ObsidianMagicPlugin > should initialize services on load 2ms
+     → expected undefined to be defined
+   × ObsidianMagicPlugin > should add ribbon icon based on settings 2ms
+     → expected "addRibbonIcon" to be called with arguments: [ 'tag', 'Magus Mark', Any<Function> ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should register views 4ms
+     → expected "registerView" to be called with arguments: [ 'magus-mark-tag-management', …(1) ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should add commands 2ms
+     → expected "addCommand" to be called 4 times, but got 0 times
+   × ObsidianMagicPlugin > should add setting tab 1ms
+     → expected "addSettingTab" to be called with arguments: [ Any<Object> ]
+
+Number of calls: 0
+
+   × ObsidianMagicPlugin > should add status bar item based on settings 1ms
+     → expected "addStatusBarItem" to be called at least once
+   × ObsidianMagicPlugin > should handle onunload correctly 1ms
+     → expected "spy" to be called with arguments: [ 'magus-mark-tag-management' ]
+
+Number of calls: 0
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should load settings on initialization
+AssertionError: expected "loadData" to be called at least once
+ ❯ src/main.test.ts:38:29
+     36|   it('should load settings on initialization', async () => {
+     37|     await plugin.onload();
+     38|     expect(plugin.loadData).toHaveBeenCalled();
+       |                             ^
+     39|     expect(plugin.settings).toEqual(DEFAULT_SETTINGS);
+     40|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should initialize services on load
+AssertionError: expected undefined to be defined
+ ❯ src/main.test.ts:53:31
+     51| 
+     52|     // Verify services were created and assigned
+     53|     expect(plugin.keyManager).toBeDefined();
+       |                               ^
+     54|     expect(plugin.taggingService).toBeDefined();
+     55|     expect(plugin.documentTagService).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add ribbon icon based on settings
+AssertionError: expected "addRibbonIcon" to be called with arguments: [ 'tag', 'Magus Mark', Any<Function> ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:63:30
+     61| 
+     62|     await plugin.onload();
+     63|     expect(addRibbonIconSpy).toHaveBeenCalledWith('tag', 'Magus Mark', expect.any(Function));
+       |                              ^
+     64| 
+     65|     // Test with ribbon icon disabled
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should register views
+AssertionError: expected "registerView" to be called with arguments: [ 'magus-mark-tag-management', …(1) ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:78:29
+     76| 
+     77|     await plugin.onload();
+     78|     expect(registerViewSpy).toHaveBeenCalledWith('magus-mark-tag-management', expect.any(Function));
+       |                             ^
+     79|     expect(registerViewSpy).toHaveBeenCalledWith('magus-mark-tag-visualization', expect.any(Function));
+     80|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add commands
+AssertionError: expected "addCommand" to be called 4 times, but got 0 times
+ ❯ src/main.test.ts:86:27
+     84| 
+     85|     await plugin.onload();
+     86|     expect(addCommandSpy).toHaveBeenCalledTimes(4);
+       |                           ^
+     87|     expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'tag-current-file' }));
+     88|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add setting tab
+AssertionError: expected "addSettingTab" to be called with arguments: [ Any<Object> ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:94:30
+     92| 
+     93|     await plugin.onload();
+     94|     expect(addSettingTabSpy).toHaveBeenCalledWith(expect.any(Object));
+       |                              ^
+     95|   });
+     96| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should add status bar item based on settings
+AssertionError: expected "addStatusBarItem" to be called at least once
+ ❯ src/main.test.ts:109:33
+    107| 
+    108|     await plugin.onload();
+    109|     expect(addStatusBarItemSpy).toHaveBeenCalled();
+       |                                 ^
+    110| 
+    111|     // Test with status bar disabled
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/main.test.ts > ObsidianMagicPlugin > should handle onunload correctly
+AssertionError: expected "spy" to be called with arguments: [ 'magus-mark-tag-management' ]
+
+Number of calls: 0
+
+ ❯ src/main.test.ts:131:58
+    129|     await plugin.onload();
+    130|     plugin.onunload();
+    131|     expect(mockAppInstance.workspace.detachLeavesOfType).toHaveBeenCalledWith('magus-mark-tag-management');
+       |                                                          ^
+    132|     expect(mockAppInstance.workspace.detachLeavesOfType).toHaveBeenCalledWith('magus-mark-tag-visualization');
+    133|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed (8)
+   Start at  06:44:21
+   Duration  693ms (transform 133ms, setup 0ms, collect 221ms, tests 19ms, environment 206ms, prepare 64ms)
+
+06:44:22 with khallmark at Voyager …
+in magus-mark/apps/obsidian-plugin ➜
+```
+
+---
+
+
+
+---
+

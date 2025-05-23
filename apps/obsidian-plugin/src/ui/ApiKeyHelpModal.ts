@@ -1,12 +1,12 @@
 import { Modal } from 'obsidian';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 /**
  * Modal dialog that explains how to fix OpenAI API key permission issues
  */
 export class ApiKeyHelpModal extends Modal {
-  constructor(plugin: ObsidianMagicPlugin) {
+  constructor(plugin: MagusMarkPlugin) {
     super(plugin.app);
   }
 

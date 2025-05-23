@@ -10,7 +10,7 @@ import { KeyManager } from '../services/KeyManager';
 import type { AppError as CoreAppError } from '@magus-mark/core/errors/AppError';
 import type { Mock } from 'vitest';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 // --- Mocks ---
 
@@ -33,7 +33,7 @@ interface MockSettings {
 // --- Test Suite ---
 describe('KeyManager', () => {
   let keyManager: KeyManager;
-  let mockPlugin: ObsidianMagicPlugin;
+  let mockPlugin: MagusMarkPlugin;
   let mockSettings: MockSettings;
 
   beforeEach(() => {

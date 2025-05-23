@@ -1,6 +1,68 @@
 import * as vscode from 'vscode';
 
-import type { OpenAIService, Result, TagEngine, TagSuggestion, TaggedNote } from '@obsidian-magic/core';
+import type { TaggedNote } from './VaultIntegrationService';
+
+// Local Result type to replace the core package import
+export interface Result<T> {
+  isOk(): boolean;
+  isErr(): boolean;
+  value: T;
+  error: Error;
+}
+
+export class SimpleResult<T> implements Result<T> {
+  constructor(
+    private _isOk: boolean,
+    private _value?: T,
+    private _error?: Error
+  ) {}
+
+  isOk(): boolean {
+    return this._isOk;
+  }
+
+  isErr(): boolean {
+    return !this._isOk;
+  }
+
+  get value(): T {
+    if (this._isOk && this._value !== undefined) {
+      return this._value;
+    }
+    throw new Error('Cannot access value on error result');
+  }
+
+  get error(): Error {
+    if (!this._isOk && this._error) {
+      return this._error;
+    }
+    throw new Error('Cannot access error on success result');
+  }
+
+  static ok<T>(value: T): Result<T> {
+    return new SimpleResult(true, value);
+  }
+
+  static fail<T>(error: Error): Result<T> {
+    return new SimpleResult<T>(false, undefined, error);
+  }
+}
+
+// Local types to replace core package imports
+export interface TagSuggestion {
+  tag: string;
+  confidence: number;
+  reasoning: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OpenAIService {
+  generateCompletion(options: { prompt: string; maxTokens: number; temperature: number }): Promise<Result<string>>;
+}
+
+export interface TagEngine {
+  suggestTags(): Promise<Result<TagSuggestion[]>>;
+}
 
 interface ContextAnalysis {
   currentFile?: string;
@@ -47,16 +109,16 @@ export class SmartContextProvider {
 
       if (!forceRefresh && this._analysisCache.has(cacheKey)) {
         const cached = this._analysisCache.get(cacheKey)!;
-        return Result.ok(cached);
+        return SimpleResult.ok(cached);
       }
 
       const suggestions = await this.generateSuggestions(context, notes);
       this._analysisCache.set(cacheKey, suggestions);
       this._lastAnalysis = context;
 
-      return Result.ok(suggestions);
+      return SimpleResult.ok(suggestions);
     } catch (error) {
-      return Result.fail(new Error(`Failed to provide smart suggestions: ${error}`));
+      return SimpleResult.fail(new Error(`Failed to provide smart suggestions: ${error}`));
     }
   }
 
@@ -75,13 +137,13 @@ export class SmartContextProvider {
       });
 
       if (response.isErr()) {
-        return Result.fail(response.error);
+        return SimpleResult.fail(response.error);
       }
 
       const suggestions = this.parseTagSuggestions(response.value, context);
-      return Result.ok(suggestions);
+      return SimpleResult.ok(suggestions);
     } catch (error) {
-      return Result.fail(new Error(`Failed to get contextual tags: ${error}`));
+      return SimpleResult.fail(new Error(`Failed to get contextual tags: ${error}`));
     }
   }
 
@@ -142,13 +204,13 @@ export class SmartContextProvider {
       });
 
       if (response.isErr()) {
-        return Result.fail(response.error);
+        return SimpleResult.fail(response.error);
       }
 
       const snippets = this.parseSnippetSuggestions(response.value, language);
-      return Result.ok(snippets);
+      return SimpleResult.ok(snippets);
     } catch (error) {
-      return Result.fail(new Error(`Failed to provide intelligent snippets: ${error}`));
+      return SimpleResult.fail(new Error(`Failed to provide intelligent snippets: ${error}`));
     }
   }
 

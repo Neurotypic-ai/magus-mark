@@ -102,7 +102,7 @@ Content here`;
       const markdown = `---
 title: Test Note
 tags:
-  obsidianMagic:
+  magusMark:
     year: "2023"
     topical_tags: [${JSON.stringify(topicalTag)}]
     conversation_type: "deep-dive"
@@ -152,7 +152,7 @@ Test content`;
 
       expect(result).toContain('---');
       expect(result).toContain('tags');
-      expect(result).toContain('obsidianMagic');
+      expect(result).toContain('magusMark');
       expect(result).toContain('# No Frontmatter');
     });
 
@@ -160,7 +160,7 @@ Test content`;
       const content = `---
 title: Test Note
 tags:
-  obsidianMagic:
+  magusMark:
     year: "2022"
     topical_tags: [{"domain":"science"}]
     conversation_type: "question"
@@ -187,7 +187,7 @@ This is the content.`;
 
       expect(result).toContain('title: Test Note');
       expect(result).toContain('tags:');
-      expect(result).toContain('obsidianMagic:');
+      expect(result).toContain('magusMark:');
       expect(result).toMatch(/year:\s*'?2023'?/);
       expect(result).toMatch(/domain:\s*'?technology'?/);
       expect(result).toContain('# Content\n\nThis is the content.');

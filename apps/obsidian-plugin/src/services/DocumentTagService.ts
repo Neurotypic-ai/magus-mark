@@ -5,7 +5,7 @@ import { Notice, TFile } from 'obsidian';
 
 import type { DecorationSet, EditorView, ViewUpdate } from '@codemirror/view';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 /**
  * Tag widget shown in the editor
@@ -44,7 +44,7 @@ class TagWidget extends WidgetType {
 /**
  * ViewPlugin for CodeMirror that decorates tags in the document
  */
-const tagEditorPlugin = (plugin: ObsidianMagicPlugin) => {
+const tagEditorPlugin = (plugin: MagusMarkPlugin) => {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
@@ -122,9 +122,9 @@ const tagEditorPlugin = (plugin: ObsidianMagicPlugin) => {
  * Service for tagging and processing documents
  */
 export class DocumentTagService {
-  private plugin: ObsidianMagicPlugin;
+  private plugin: MagusMarkPlugin;
 
-  constructor(plugin: ObsidianMagicPlugin) {
+  constructor(plugin: MagusMarkPlugin) {
     this.plugin = plugin;
 
     // Register editor extensions when plugin is loaded

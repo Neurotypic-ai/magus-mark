@@ -3,15 +3,24 @@ import { vi } from 'vitest';
 import { Events } from './MockEvents';
 
 import type { Component as ComponentType, EventRef } from 'obsidian';
-import type { Mock } from 'vitest';
 
 export class Component extends Events implements ComponentType {
-  // These can remain as direct Mock properties if ComponentType allows for it
-  // or if they are additional mock helpers not strictly part of ComponentType's required methods.
-  load: Mock<() => void> = vi.fn();
-  onload: Mock<() => void> = vi.fn();
-  unload: Mock<() => void> = vi.fn();
-  onunload: Mock<() => void> = vi.fn();
+  // Make these real methods that can be properly overridden
+  load(): void {
+    // Default no-op implementation
+  }
+
+  onload(): void {
+    // Default no-op implementation - this will be overridden by child classes
+  }
+
+  unload(): void {
+    // Default no-op implementation
+  }
+
+  onunload(): void {
+    // Default no-op implementation - this will be overridden by child classes
+  }
 
   // Methods defined by ComponentType should be actual methods here
   addChild<T extends ComponentType>(child: T): T {
@@ -77,6 +86,5 @@ export class Component extends Events implements ComponentType {
     this.registerEvent = vi.fn(this.registerEvent);
     this.registerDomEvent = vi.fn(this.registerDomEvent) as any; // Cast for overload handling
     this.registerInterval = vi.fn(this.registerInterval);
-    // load, onload, unload, onunload are already vi.fn() properties, no need to wrap here if defined as such.
   }
 }

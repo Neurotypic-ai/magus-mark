@@ -6,10 +6,10 @@ import type { EditorView } from '@codemirror/view';
 import type { TFile } from 'obsidian';
 import type { Mock } from 'vitest';
 
-import type ObsidianMagicPlugin from '../main';
+import type MagusMarkPlugin from '../main';
 
 // Define interface for mocking the plugin
-interface MockObsidianMagicPlugin {
+interface MockMagusMarkPlugin {
   app: {
     vault: {
       read: Mock;
@@ -44,7 +44,7 @@ describe('DocumentTagService', () => {
   let documentTagService: DocumentTagService;
 
   // Define the mock plugin object with spies *first*
-  const mockPlugin: MockObsidianMagicPlugin = {
+  const mockPlugin: MockMagusMarkPlugin = {
     app: {
       vault: {
         read: vi.fn().mockResolvedValue('# Test Document\nHello world with #tag1 and #tag2'),
@@ -78,7 +78,7 @@ describe('DocumentTagService', () => {
     vi.clearAllMocks();
 
     // Instantiate the service with the fully mocked plugin
-    documentTagService = new DocumentTagService(mockPlugin as unknown as ObsidianMagicPlugin);
+    documentTagService = new DocumentTagService(mockPlugin as unknown as MagusMarkPlugin);
 
     // Reset mocks *after* instantiation if setup calls happen in constructor
     // vi.clearAllMocks(); // Usually better in afterEach

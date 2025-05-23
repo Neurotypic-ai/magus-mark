@@ -1,6 +1,16 @@
 # CLI Overview
 
-The Obsidian Magic CLI is a command-line tool for processing and tagging AI conversations in Markdown files. It's designed to work seamlessly with Obsidian vaults but can process any Markdown files containing conversation exports.
+> 🚀 **COMING SOON**: The CLI is being transformed into a **GOD TIER** tool with Matrix-style dashboards, AI
+> intelligence, and revolutionary features. See the [God Tier Enhancement Plan](./god-tier-enhancements.md) for the
+> complete badass roadmap.
+
+The Magus Mark CLI is a command-line tool for processing and tagging AI conversations in Markdown files. It's designed
+to work with exported chat logs from various AI platforms (ChatGPT, Claude, etc.) and apply consistent tagging to make
+them searchable and navigable within Obsidian.
+
+The CLI provides a rich, interactive interface with real-time progress updates, visual feedback, and comprehensive error
+handling. It's built on a modular architecture that separates concerns between UI rendering, business logic, and file
+operations.
 
 ## Architecture
 
@@ -13,16 +23,19 @@ The CLI is built with a modular architecture:
 
 ### Command Layer
 
-Commands are structured using Yargs' command module pattern, with each command defined in its own file in the `commands/` directory. This separation allows for easy addition of new commands and clear organization of code.
+Commands are structured using Yargs' command module pattern, with each command defined in its own file in the
+`commands/` directory. This separation allows for easy addition of new commands and clear organization of code.
 
 Each command consists of:
+
 - Command name and description
 - Options and arguments definitions
 - Handler function with implementation
 
 ### Service Layer
 
-The service layer interacts with the core tagging engine from `@obsidian-magic/core`. This layer is responsible for:
+The service layer interacts with the core tagging engine from `@magus-mark/core`. This layer is responsible for:
+
 - Preparing documents for tagging
 - Handling API interactions
 - Processing results
@@ -31,6 +44,7 @@ The service layer interacts with the core tagging engine from `@obsidian-magic/c
 ### Utility Layer
 
 Common utilities include:
+
 - Configuration management (`config.ts`)
 - Logging and output formatting (`logger.ts`)
 - Cost tracking and management (`cost-manager.ts`)
@@ -41,6 +55,7 @@ Common utilities include:
 ### UI Layer
 
 The UI components provide interactive elements:
+
 - Progress indicators
 - Interactive tag editing
 - Confirmation prompts
@@ -59,6 +74,7 @@ The UI components provide interactive elements:
 ## Workflow Management
 
 The CLI implements efficient workflow management with:
+
 - Concurrency control for parallel processing
 - Cost management to stay within budget
 - Progress tracking for large batches
@@ -68,6 +84,7 @@ The CLI implements efficient workflow management with:
 ## Configuration
 
 Configuration is managed through multiple layers:
+
 1. Built-in defaults
 2. Configuration files (via cosmiconfig)
 3. Environment variables
@@ -78,6 +95,7 @@ This layered approach allows for flexible configuration while maintaining sensib
 ## Error Handling
 
 The CLI implements a comprehensive error handling strategy:
+
 - Custom error classes for different types of failures
 - Graceful degradation when possible
 - Clear error messages with actionable information
@@ -87,11 +105,13 @@ The CLI implements a comprehensive error handling strategy:
 ## Cross-Platform Compatibility
 
 The CLI is designed to work across:
+
 - macOS
 - Windows
 - Linux
 
-File paths, configuration storage, and terminal interactions are all implemented with cross-platform compatibility in mind.
+File paths, configuration storage, and terminal interactions are all implemented with cross-platform compatibility in
+mind.
 
 ## Key Features
 
@@ -127,7 +147,8 @@ tag-conversations config import <file>     # Import configuration from file
 tag-conversations config export --format=json # Export configuration to file
 ```
 
-For a complete reference of all commands and their options, see the [Command Structure & Options](./command-structure.md) documentation.
+For a complete reference of all commands and their options, see the
+[Command Structure & Options](./command-structure.md) documentation.
 
 ## Usage Examples
 
@@ -245,18 +266,21 @@ For more details, see the [Workflow Orchestration](./workflow-orchestration.md) 
 Cost management is a core feature of the CLI with sophisticated tracking and control mechanisms:
 
 ### Real-time Cost Tracking
+
 - **Precise token counting**: Uses OpenAI's official tokenizer for accurate estimates
 - **Live cost monitoring**: Tracks actual API usage during processing with real-time updates
 - **Budget enforcement**: Configurable cost limits with automatic pausing/warning/stopping
 - **Session persistence**: Maintains cost data across processing sessions
 
 ### Intelligent Estimation
+
 - **Accurate dry-run estimates**: Per-file cost calculation using the cost manager
 - **Budget comparison**: Shows estimated vs. allocated budget before processing
 - **Model-specific pricing**: Handles different token rates for various models
 - **Token optimization**: Suggests ways to reduce costs while maintaining quality
 
 ### Budget Controls
+
 ```bash
 # Set hard limit with warning threshold
 tag-conversations tag ./convos/ --max-cost=10.00 --on-limit=pause
@@ -266,6 +290,7 @@ tag-conversations tag ./convos/ --dry-run --verbose
 ```
 
 ### Cost Analytics
+
 - **Historical tracking**: Maintains detailed usage records over time
 - **Model comparison**: Cost-efficiency analysis across different models
 - **Usage patterns**: Identifies optimization opportunities
@@ -278,12 +303,14 @@ For more details, see the [Cost Management](./cost-management.md) documentation.
 The CLI includes a comprehensive benchmarking system with advanced testing capabilities:
 
 ### Performance Evaluation
+
 - **Multi-model comparison**: Side-by-side evaluation of different AI models
 - **Accuracy metrics**: Precision, recall, F1-score measurements for classification quality
 - **Latency analysis**: Response time percentiles (P50, P90, P95) and averages
 - **Cost-efficiency analysis**: Cost per operation and tokens per classification
 
 ### Test Types
+
 ```bash
 # Standard benchmarking
 tag-conversations test --benchmark --models=gpt-3.5-turbo,gpt-4,gpt-4o
@@ -299,12 +326,14 @@ tag-conversations test --optimize-params --parameters=confidence,concurrency
 ```
 
 ### Built-in Test Datasets
+
 - **Standard**: General conversation samples (~100 files)
 - **Edge-case**: Challenging conversations with ambiguous topics
 - **Multilingual**: Conversations in multiple languages
 - **Technical**: Specialized technical conversations
 
 ### Advanced Features
+
 - **Parameter optimization**: Systematic testing to find optimal configuration
 - **Custom datasets**: Register and use your own test data
 - **Report generation**: HTML, JSON, and CSV export formats
@@ -312,6 +341,7 @@ tag-conversations test --optimize-params --parameters=confidence,concurrency
 - **Continuous benchmarking**: Scheduled regular performance evaluation
 
 ### Integration & Stress Testing
+
 - **API integration validation**: Tests OpenAI API connectivity and error handling
 - **File processing pipeline**: End-to-end workflow verification
 - **Performance regression**: Validates system performance under load
@@ -368,19 +398,19 @@ The CLI can be installed globally:
 
 ```bash
 # Using npm
-npm install -g @obsidian-magic/cli
+npm install -g @magus-mark/cli
 
 # Using yarn
-yarn global add @obsidian-magic/cli
+yarn global add @magus-mark/cli
 
 # Using pnpm
-pnpm add -g @obsidian-magic/cli
+pnpm add -g @magus-mark/cli
 ```
 
 Or run directly using npx:
 
 ```bash
-npx @obsidian-magic/cli tag ./conversations/
+npx @magus-mark/cli tag ./conversations/
 ```
 
 ## Related Documentation
@@ -397,4 +427,4 @@ npx @obsidian-magic/cli tag ./conversations/
 ## Related Components
 
 - The CLI shares core tagging logic with the [Obsidian Plugin](../obsidian-plugin/plugin-overview.md)
-- Model selection and API interaction are defined in [OpenAI Integration](../core/openai-integration.md) 
+- Model selection and API interaction are defined in [OpenAI Integration](../core/openai-integration.md)
