@@ -50,6 +50,22 @@
       {
         "command": "magus-mark.syncVault",
         "title": "Magus Mark: Sync Vaults"
+      },
+      {
+        "command": "magus-mark.openKnowledgeGraph",
+        "title": "Magus Mark: Open Knowledge Graph"
+      },
+      {
+        "command": "magus-mark.openTagDashboard",
+        "title": "Magus Mark: Open Tag Dashboard"
+      },
+      {
+        "command": "magus-mark.searchTags",
+        "title": "Magus Mark: Search Tags"
+      },
+      {
+        "command": "magus-mark.taggedFilesList",
+        "title": "Magus Mark: Show Tagged Files"
       }
     ],
     "configuration": {
@@ -73,11 +89,84 @@
           "default": true,
           "description": "Automatically sync with Obsidian vaults on startup",
           "type": "boolean"
+        },
+        "obsidianMagic.ui.showTagsInExplorer": {
+          "default": true,
+          "description": "Show tags in file explorer",
+          "type": "boolean"
+        },
+        "obsidianMagic.ui.enableTagHighlighting": {
+          "default": true,
+          "description": "Enable syntax highlighting for tags",
+          "type": "boolean"
+        },
+        "obsidianMagic.ui.tagDecorationStyle": {
+          "default": "background",
+          "description": "Style for tag decorations",
+          "enum": [
+            "background",
+            "underline",
+            "outline"
+          ],
+          "type": "string"
+        },
+        "obsidianMagic.integration.enableCodeLens": {
+          "default": true,
+          "description": "Enable code lens for tags",
+          "type": "boolean"
+        },
+        "obsidianMagic.integration.enableAutotagging": {
+          "default": false,
+          "description": "Enable automatic tagging of files",
+          "type": "boolean"
+        },
+        "obsidianMagic.advanced.logLevel": {
+          "default": "info",
+          "description": "Log level for debugging",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "type": "string"
         }
       },
       "title": "Magus Mark for VSCode"
     },
+    "keybindings": [
+      {
+        "command": "magus-mark.tagFile",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "magus-mark.openTagExplorer",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e"
+      },
+      {
+        "command": "magus-mark.searchTags",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f"
+      }
+    ],
     "menus": {
+      "editor/context": [
+        {
+          "command": "magus-mark.tagFile",
+          "group": "magus-mark",
+          "when": "resourceExtname == .md"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "magus-mark.tagFile",
+          "group": "magus-mark",
+          "when": "resourceExtname == .md"
+        }
+      ],
       "view/item/context": [
         {
           "command": "magus-mark.deleteTag",
@@ -90,6 +179,11 @@
           "command": "magus-mark.addTag",
           "group": "navigation",
           "when": "view == obsidianMagicTagExplorer"
+        },
+        {
+          "command": "magus-mark.searchTags",
+          "group": "navigation",
+          "when": "view == obsidianMagicTagExplorer"
         }
       ]
     },
@@ -97,7 +191,29 @@
       "explorer": [
         {
           "id": "obsidianMagicTagExplorer",
-          "name": "Magus Mark Tags"
+          "name": "Magus Mark Tags",
+          "when": "obsidianMagic.hasVaults"
+        }
+      ],
+      "magus-mark": [
+        {
+          "id": "magusMarkVaultBrowser",
+          "name": "Vault Browser",
+          "when": "obsidianMagic.hasVaults"
+        },
+        {
+          "id": "magusMarkRecentActivity",
+          "name": "Recent Activity",
+          "when": "obsidianMagic.hasVaults"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "magus-mark",
+          "title": "Magus Mark",
+          "icon": "$(tag)"
         }
       ]
     }
@@ -150,7 +266,7 @@
     "lint": "eslint src",
     "package": "pnpm run check-types && pnpm run lint && tsx esbuild.config.ts --production",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
-    "test:vscode": "vscode-test --config .vscode-test.js",
+    "test:vscode": "vscode-test --config .vscode-test.cjs",
     "vscode:prepublish": "pnpm run package"
   },
   "type": "module",

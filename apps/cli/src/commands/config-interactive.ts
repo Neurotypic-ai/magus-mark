@@ -2,9 +2,10 @@ import * as console from 'node:console';
 import * as path from 'node:path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
-import { ModelManager } from '@magus-mark/core/openai/ModelManager';
 import chalk from 'chalk';
 import * as fs from 'fs-extra';
+
+import { ModelManager } from '@magus-mark/core/openai/ModelManager';
 
 import { config } from '../utils/config';
 
@@ -295,13 +296,13 @@ export const configInteractiveCommand: CommandModule = {
 Next Steps:
 
 1. Run a test command:
-   tag-conversations test --benchmark
+   magus-mark test --benchmark
 
 2. Process your first file:
-   tag-conversations tag ./path/to/conversation.md
+   magus-mark tag ./path/to/conversation.md
 
 3. View command help:
-   tag-conversations <command> --help
+   magus-mark <command> --help
       `.trim(),
         'Getting Started'
       );

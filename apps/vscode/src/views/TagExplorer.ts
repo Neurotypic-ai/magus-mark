@@ -1,349 +1,304 @@
 import * as vscode from 'vscode';
 
-import { initializeCore } from '@magus-mark/core';
+import { Result } from '@magus-mark/core/errors/Result';
+import { toAppError } from '@magus-mark/core/errors/utils';
 
-import type { TaxonomyManager } from '@magus-mark/core/tagging/TaxonomyManager';
+import type { VaultIntegrationService } from '../services/VaultIntegrationService';
 
-// Tag node representation for the tree view
-export interface TagNode {
+interface TagTreeItem {
   id: string;
-  name: string;
-  description?: string | undefined;
-  children: TagNode[];
-  type: 'domain' | 'subdomain' | 'tag';
-  count: number;
+  label: string;
+  tooltip?: string;
+  contextValue?: string;
+  collapsibleState?: vscode.TreeItemCollapsibleState;
+  children?: TagTreeItem[];
+  usage?: number;
 }
 
 /**
- * TagExplorer class - Provides a tree data provider for the Magus Mark tag explorer
+ * Tag Explorer tree data provider
  */
-export class TagExplorer implements vscode.TreeDataProvider<TagNode>, vscode.Disposable {
-  private _onDidChangeTreeData: vscode.EventEmitter<TagNode | undefined | null> = new vscode.EventEmitter<
-    TagNode | undefined | null
-  >();
-  readonly onDidChangeTreeData: vscode.Event<TagNode | undefined | null> = this._onDidChangeTreeData.event;
+export class TagExplorerProvider implements vscode.TreeDataProvider<TagTreeItem> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<TagTreeItem | undefined | null>();
+  readonly onDidChangeTreeData: vscode.Event<TagTreeItem | undefined | null> = this._onDidChangeTreeData.event;
 
-  private tags: TagNode[] = [];
-  private disposables: vscode.Disposable[] = [];
-  private taxonomyManager: TaxonomyManager;
+  private tags: TagTreeItem[] = [];
 
-  /**
-   * Creates a new TagExplorer instance
-   * @param context The extension context
-   * @param taxonomyManager The taxonomy manager instance
-   */
-  constructor(_context: vscode.ExtensionContext, taxonomyManager: TaxonomyManager) {
-    this.taxonomyManager = taxonomyManager;
+  constructor(private vaultService: VaultIntegrationService | undefined = undefined) {
+    // Listen for vault changes to refresh tags
+    if (this.vaultService) {
+      this.vaultService.onVaultChanged(() => {
+        void this.refresh();
+      });
 
-    // Load initial tag data
-    void this.loadTagData().catch((error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      void vscode.window.showErrorMessage(`Failed to initialize tag explorer: ${errorMessage}`);
-    });
-
-    // Register for events that might change tag data
-    this.registerEventHandlers();
-
-    // Set up event listener for taxonomy changes if supported
-    const manager = this.taxonomyManager as unknown as { onChange?: (callback: () => void) => void };
-    if (typeof manager.onChange === 'function') {
-      manager.onChange(() => {
-        void this.loadTagData().catch((error: unknown) => {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-          void vscode.window.showErrorMessage(`Failed to refresh tags: ${errorMessage}`);
-        });
+      this.vaultService.onFileSynced(() => {
+        void this.refresh();
       });
     }
+
+    // Initial load
+    void this.refresh();
   }
 
-  /**
-   * Gets the parent of a node (not implemented)
-   * @param element The element to find the parent of
-   */
-  getParent?(element: TagNode): vscode.ProviderResult<TagNode> {
-    // For root level nodes, return null
-    if (!element.id.includes('.')) {
-      return null;
+  public getTreeItem(element: TagTreeItem): vscode.TreeItem {
+    const item = new vscode.TreeItem(element.label, element.collapsibleState);
+    item.id = element.id;
+    item.tooltip = element.tooltip ?? element.label;
+    item.contextValue = element.contextValue ?? '';
+
+    if (element.usage !== undefined) {
+      item.description = `(${element.usage.toString()})`;
     }
 
-    // Get the parent ID from the element's ID (everything before the last dot)
-    const parentId = element.id.split('.').slice(0, -1).join('.');
-
-    // Find the parent node by traversing the tag tree
-    const findParent = (nodes: TagNode[]): TagNode | null => {
-      for (const node of nodes) {
-        if (node.id === parentId) {
-          return node;
-        }
-        if (node.children.length > 0) {
-          const found = findParent(node.children);
-          if (found) {
-            return found;
-          }
-        }
-      }
-      return null;
-    };
-
-    return findParent(this.tags);
-  }
-
-  /**
-   * Resolves a tree item (not implemented)
-   * @param item The tree item to resolve
-   * @param element The associated element
-   * @param token Cancellation token
-   */
-  resolveTreeItem?(
-    item: vscode.TreeItem,
-    element: TagNode,
-    token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.TreeItem> {
-    // Return early if cancelled
-    if (token.isCancellationRequested) {
-      return null;
-    }
-
-    // Enhance the tree item with additional details
-    item.tooltip = new vscode.MarkdownString();
-    item.tooltip.isTrusted = true;
-    item.tooltip.supportHtml = true;
-
-    // Build rich tooltip content
-    const tooltipContent = [
-      `**${element.name}**`,
-      element.description ? `\n\n${element.description}` : '',
-      `\n\nType: ${element.type}`,
-      `\nItems: ${String(element.count)}`,
-      element.type !== 'domain' ? `\nFull path: ${element.id}` : '',
-    ].join('');
-
-    item.tooltip.appendMarkdown(tooltipContent);
-
-    // Add command for clicking on tags
-    if (element.type === 'subdomain' || element.type === 'tag') {
-      item.command = {
-        command: 'magus-mark.openTaggedFiles',
-        title: 'Open Tagged Files',
-        arguments: [element],
-      };
+    if (element.children && element.children.length === 0) {
+      item.collapsibleState = vscode.TreeItemCollapsibleState.None;
     }
 
     return item;
   }
 
-  /**
-   * Load tag data from the core tagging system
-   */
-  private async loadTagData(): Promise<void> {
-    try {
-      // Get the full taxonomy
-      const taxonomy = this.taxonomyManager.getTaxonomy();
-
-      // Convert taxonomy to TagNode structure
-      // Create domain level nodes
-      this.tags = await Promise.resolve(
-        taxonomy.domains.map((domain) => {
-          // Get subdomains for this domain, ensuring we have an array
-          const subdomains = taxonomy.subdomains[domain];
-          const subdomainArray = Array.isArray(subdomains)
-            ? subdomains
-            : typeof subdomains === 'string'
-              ? [subdomains]
-              : [];
-
-          // Create domain node
-          return {
-            id: domain,
-            name: domain,
-            type: 'domain' as const,
-            description: `${domain} domain`,
-            count: subdomainArray.length,
-            children: subdomainArray.map((subdomain: string) => {
-              // Create subdomain nodes
-              return {
-                id: `${domain}.${subdomain}`,
-                name: subdomain,
-                type: 'subdomain' as const,
-                description: `${subdomain} subdomain of ${domain}`,
-                count: 0, // We don't have usage count in the data model
-                children: [],
-              };
-            }),
-          };
-        })
-      );
-
-      // Notify tree view of data changes
-      this.refresh();
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      void vscode.window.showErrorMessage(`Failed to load tag taxonomy: ${errorMessage}`);
-      throw new Error(String(errorMessage)); // Re-throw as proper Error
-    }
-  }
-
-  /**
-   * Register for events that might change tag data
-   */
-  private registerEventHandlers(): void {
-    // Listen for command to add a new tag
-    const addTagDisposable = vscode.commands.registerCommand('magus-mark.addTag', async () => {
-      try {
-        // Prompt for tag name
-        const tagName = await vscode.window.showInputBox({
-          placeHolder: 'Enter tag name',
-          prompt: 'Enter a new tag name',
-        });
-
-        if (!tagName) return;
-
-        // Prompt for domain
-        const domains = this.tags.map((tag) => tag.name);
-        const domain = await vscode.window.showQuickPick(['<New Domain>', ...domains], {
-          placeHolder: 'Select domain or create new',
-        });
-
-        if (!domain) return;
-
-        if (domain === '<New Domain>') {
-          const newDomain = await vscode.window.showInputBox({
-            placeHolder: 'Enter domain name',
-            prompt: 'Enter a new domain name',
-          });
-
-          if (!newDomain) return;
-
-          // Add domain to taxonomy
-          this.taxonomyManager.addDomain(newDomain);
-
-          void vscode.window.showInformationMessage(`Domain '${newDomain}' added`);
-        }
-
-        // Add subdomain to taxonomy
-        if (domain !== '<New Domain>') {
-          this.taxonomyManager.addSubdomain(domain, tagName);
-          void vscode.window.showInformationMessage(`Tag '${tagName}' added to ${domain}`);
-        }
-
-        // Refresh the tree view
-        await this.loadTagData();
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        void vscode.window.showErrorMessage(`Failed to add tag: ${errorMessage}`);
-      }
-    });
-
-    // Listen for command to delete a tag
-    const deleteTagDisposable = vscode.commands.registerCommand('magus-mark.deleteTag', async (node: TagNode) => {
-      try {
-        // Confirm deletion
-        const confirmation = await vscode.window.showWarningMessage(
-          `Are you sure you want to delete ${node.type} '${node.name}'?`,
-          'Yes',
-          'No'
-        );
-
-        if (confirmation !== 'Yes') return;
-
-        // The core TaxonomyManager doesn't have direct delete methods
-        // We would need to implement custom deletion logic
-        void vscode.window.showInformationMessage('Deleting tags is not yet implemented in the core API');
-
-        // Refresh the tree view
-        await this.loadTagData();
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        void vscode.window.showErrorMessage(`Failed to delete ${node.type}: ${errorMessage}`);
-      }
-    });
-
-    this.disposables.push(addTagDisposable, deleteTagDisposable);
-  }
-
-  /**
-   * Refresh the tree view
-   * @param element Optional element to refresh, or undefined to refresh the entire tree
-   */
-  refresh(element?: TagNode): void {
-    this._onDidChangeTreeData.fire(element);
-  }
-
-  /**
-   * Get tree item for a given element
-   */
-  getTreeItem(element: TagNode): vscode.TreeItem {
-    const treeItem = new vscode.TreeItem(
-      element.name,
-      element.type === 'domain' && element.children.length > 0
-        ? vscode.TreeItemCollapsibleState.Expanded
-        : vscode.TreeItemCollapsibleState.None
-    );
-
-    // Set tree item properties
-    treeItem.id = element.id;
-    treeItem.tooltip = element.description ?? element.name;
-    treeItem.contextValue = element.type;
-
-    // Set appropriate icon based on type
-    if (element.type === 'domain') {
-      treeItem.iconPath = new vscode.ThemeIcon('symbol-folder');
-    } else {
-      treeItem.iconPath = new vscode.ThemeIcon('tag');
-    }
-
-    // Add badge for count if greater than 0
-    if (element.count > 0) {
-      treeItem.description = String(element.count);
-    }
-
-    return treeItem;
-  }
-
-  /**
-   * Get children for a given element, or root if no element provided
-   */
-  getChildren(element?: TagNode): TagNode[] {
+  public getChildren(element?: TagTreeItem): Thenable<TagTreeItem[]> {
     if (!element) {
-      return this.tags;
+      // Return root items
+      return Promise.resolve(this.tags);
     }
 
-    return element.children;
+    // Return children of the element
+    return Promise.resolve(element.children ?? []);
   }
 
-  /**
-   * Dispose of resources
-   */
-  dispose(): void {
-    for (const disposable of this.disposables) {
-      disposable.dispose();
+  public async refresh(): Promise<void> {
+    const result = await this.loadTags();
+    if (result.isOk()) {
+      this.tags = result.getValue();
+      this._onDidChangeTreeData.fire(undefined);
+    } else {
+      console.error('Failed to load tags:', result.getError().message);
+      this.tags = [
+        {
+          id: 'error',
+          label: 'Error loading tags',
+          tooltip: result.getError().message,
+          contextValue: 'error',
+        },
+      ];
+      this._onDidChangeTreeData.fire(undefined);
     }
-    this.disposables = [];
-    this._onDidChangeTreeData.dispose();
+  }
+
+  private async loadTags(): Promise<Result<TagTreeItem[]>> {
+    try {
+      const tags: TagTreeItem[] = [];
+
+      if (!this.vaultService) {
+        // Return some default tags if no vault service
+        tags.push({
+          id: 'no-vault',
+          label: 'No vaults connected',
+          tooltip: 'Add an Obsidian vault to see tags',
+          contextValue: 'info',
+        });
+        return Result.ok(tags);
+      }
+
+      const vaults = this.vaultService.getVaults();
+
+      if (vaults.length === 0) {
+        tags.push({
+          id: 'no-vaults',
+          label: 'No vaults found',
+          tooltip: 'Add an Obsidian vault to see tags',
+          contextValue: 'info',
+        });
+        return Result.ok(tags);
+      }
+
+      // Create a section for each vault
+      for (const vault of vaults) {
+        const vaultTags = await this.scanVaultForTags(vault.path);
+
+        if (vaultTags.isOk() && vaultTags.getValue().length > 0) {
+          tags.push({
+            id: `vault-${vault.path}`,
+            label: vault.name,
+            tooltip: `Tags from ${vault.name} (${vault.path})`,
+            contextValue: 'vault',
+            collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+            children: vaultTags.getValue(),
+          });
+        } else {
+          tags.push({
+            id: `vault-${vault.path}`,
+            label: `${vault.name} (no tags)`,
+            tooltip: `No tags found in ${vault.name}`,
+            contextValue: 'vault-empty',
+            collapsibleState: vscode.TreeItemCollapsibleState.None,
+          });
+        }
+      }
+
+      return Result.ok(tags);
+    } catch (error) {
+      return Result.fail(toAppError(error, 'TAG_LOAD_ERROR'));
+    }
+  }
+
+  private async scanVaultForTags(vaultPath: string): Promise<Result<TagTreeItem[]>> {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const tags = new Map<string, number>();
+
+      // Recursively scan for markdown files
+      const scanDirectory = async (dir: string): Promise<void> => {
+        try {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+
+            if (entry.isDirectory() && !entry.name.startsWith('.')) {
+              await scanDirectory(fullPath);
+            } else if (entry.isFile() && entry.name.endsWith('.md')) {
+              await this.extractTagsFromFile(fullPath, tags);
+            }
+          }
+        } catch (error) {
+          // Silently skip directories we can't read
+          console.warn(`Could not scan directory ${dir}:`, error);
+        }
+      };
+
+      await scanDirectory(vaultPath);
+
+      // Convert tags map to tree items
+      const tagItems: TagTreeItem[] = Array.from(tags.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([tag, usage]) => ({
+          id: `tag-${tag}`,
+          label: tag,
+          tooltip: `Tag: ${tag} (used ${usage.toString()} times)`,
+          contextValue: 'tag',
+          usage,
+        }));
+
+      return Result.ok(tagItems);
+    } catch (error) {
+      return Result.fail(toAppError(error, 'VAULT_SCAN_ERROR'));
+    }
+  }
+
+  private async extractTagsFromFile(filePath: string, tagsMap: Map<string, number>): Promise<void> {
+    try {
+      const fs = await import('fs/promises');
+      const content = await fs.readFile(filePath, 'utf-8');
+
+      // Extract tags from frontmatter
+      const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
+      const frontmatterMatch = frontmatterRegex.exec(content);
+
+      if (frontmatterMatch) {
+        const frontmatter = frontmatterMatch[1] ?? '';
+
+        // Look for tags in frontmatter
+        const tagMatches = /tags:\s*\[(.*?)\]/s.exec(frontmatter);
+        if (tagMatches?.[1]) {
+          const tags = tagMatches[1]
+            .split(',')
+            .map((tag) => tag.trim().replace(/['"]/g, ''))
+            .filter((tag) => tag.length > 0);
+
+          for (const tag of tags) {
+            tagsMap.set(tag, (tagsMap.get(tag) ?? 0) + 1);
+          }
+        }
+      }
+
+      // Also extract inline tags (e.g., #tag)
+      const inlineTagMatches = content.match(/#[\w-]+/g);
+      if (inlineTagMatches) {
+        for (const match of inlineTagMatches) {
+          const tag = match.substring(1); // Remove the #
+          tagsMap.set(tag, (tagsMap.get(tag) ?? 0) + 1);
+        }
+      }
+    } catch (error) {
+      // Silently skip files we can't read
+      console.warn(`Could not extract tags from ${filePath}:`, error);
+    }
   }
 }
 
 /**
- * Register the tag explorer view
- * @param context The extension context
- * @returns The tree view instance
+ * Register the Tag Explorer view
  */
-export function registerTagExplorer(context: vscode.ExtensionContext): vscode.TreeView<TagNode> {
-  // Initialize core services
-  const core = initializeCore({});
+export function registerTagExplorer(
+  _context: vscode.ExtensionContext,
+  vaultService?: VaultIntegrationService
+): vscode.Disposable {
+  const provider = new TagExplorerProvider(vaultService);
 
-  // Create tag explorer with core services
-  const tagExplorer = new TagExplorer(context, core.taxonomyManager);
-
-  // Register the tree data provider
   const treeView = vscode.window.createTreeView('obsidianMagicTagExplorer', {
-    treeDataProvider: tagExplorer,
+    treeDataProvider: provider,
     showCollapseAll: true,
   });
 
-  // Add explorer to subscriptions for cleanup
-  context.subscriptions.push(treeView);
-  context.subscriptions.push(tagExplorer);
+  // Register tree view commands
+  const addTagCommand = vscode.commands.registerCommand('magus-mark.addTag', async () => {
+    const tagName = await vscode.window.showInputBox({
+      prompt: 'Enter tag name',
+      placeHolder: 'my-new-tag',
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return 'Tag name cannot be empty';
+        }
+        if (!/^[\w-]+$/.test(value.trim())) {
+          return 'Tag name can only contain letters, numbers, and hyphens';
+        }
+        return null;
+      },
+    });
 
-  return treeView;
+    if (tagName) {
+      // TODO: Implement tag creation in core system
+      vscode.window.showInformationMessage(`Tag "${tagName.trim()}" will be created`);
+    }
+  });
+
+  const deleteTagCommand = vscode.commands.registerCommand('magus-mark.deleteTag', async (item: TagTreeItem) => {
+    if (item.contextValue === 'tag') {
+      const response = await vscode.window.showWarningMessage(
+        `Are you sure you want to delete the tag "${item.label}"?`,
+        { modal: true },
+        'Delete',
+        'Cancel'
+      );
+
+      if (response === 'Delete') {
+        // TODO: Implement tag deletion in core system
+        vscode.window.showInformationMessage(`Tag "${item.label}" will be deleted`);
+        await provider.refresh();
+      }
+    }
+  });
+
+  const refreshCommand = vscode.commands.registerCommand('magus-mark.refreshTagExplorer', () => {
+    void provider.refresh();
+  });
+
+  // Set context when tree view is visible
+  const updateContext = () => {
+    void vscode.commands.executeCommand(
+      'setContext',
+      'obsidianMagic.hasVaults',
+      (vaultService?.getVaults().length ?? 0) > 0
+    );
+  };
+
+  updateContext();
+  if (vaultService) {
+    vaultService.onVaultChanged(updateContext);
+  }
+
+  return vscode.Disposable.from(treeView, addTagCommand, deleteTagCommand, refreshCommand);
 }

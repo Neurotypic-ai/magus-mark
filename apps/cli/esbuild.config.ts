@@ -30,7 +30,7 @@ esbuild
     outfile: 'dist/cli.js',
     platform: 'node',
     target: 'node20', // Match your Node.js version
-    format: 'cjs', // CommonJS for Node
+    format: 'esm', // ES modules for Node
     minify: production,
     sourcemap: !production,
     external: external, // Mark dependencies as external

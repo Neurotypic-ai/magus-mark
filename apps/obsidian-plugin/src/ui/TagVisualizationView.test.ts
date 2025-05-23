@@ -1,104 +1,105 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TagVisualizationView } from './TagVisualizationView';
+import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './TagVisualizationView';
 
-import type { MetadataCache, Vault, Workspace, WorkspaceLeaf } from 'obsidian';
+import type { TFile, WorkspaceLeaf } from 'obsidian';
 
 import type ObsidianMagicPlugin from '../main';
 
-// Create a type for our test subject that exposes private methods for testing
-type TestableTagVisualizationView = TagVisualizationView & {
-  buildTagGraph: () => {
-    nodes: { id: string; label: string; count: number }[];
-    links: { source: string; target: string; weight: number }[];
-  };
-  setupVisualization: () => void;
-  getAllTags: () => { id: string; name: string; count: number; files: string[] }[];
-  filterVisualization: (filter: string) => void;
-  updateVisualization: () => void;
-};
-
-// Mock WorkspaceLeaf
-const mockLeaf = {
-  view: {
-    file: { path: 'mock-leaf-file.md', basename: 'mock-leaf-file', extension: 'md' },
-  },
-} as unknown as WorkspaceLeaf; // Cast remains necessary for partial mock
-
-// Properly mock canvas context with proper type handling
-const mockContext = {
-  clearRect: vi.fn(),
-  beginPath: vi.fn(),
-  moveTo: vi.fn(),
-  lineTo: vi.fn(),
-  stroke: vi.fn(),
-  fillText: vi.fn(),
-  arc: vi.fn(),
-  fill: vi.fn(),
-  canvas: {} as HTMLCanvasElement,
-  getContextAttributes: vi.fn(),
-  globalAlpha: 1,
-  globalCompositeOperation: 'source-over',
-  // Add other required properties to satisfy CanvasRenderingContext2D
-  fillStyle: '#000',
-  strokeStyle: '#000',
-  lineWidth: 1,
-  font: '12px sans-serif',
-  save: vi.fn(),
-  restore: vi.fn(),
-  translate: vi.fn(),
-  scale: vi.fn(),
-  rotate: vi.fn(),
-  getTransform: vi.fn(),
-  setTransform: vi.fn(),
-  resetTransform: vi.fn(),
-};
-
-// Properly mock getContext to handle contextId parameter
-vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((contextId) => {
-  if (contextId === '2d') {
-    return mockContext as unknown as CanvasRenderingContext2D;
-  }
-  return null;
+// Mock some globals for the DOM environment
+Object.defineProperty(window, 'cancelAnimationFrame', {
+  value: vi.fn(),
+  writable: true,
 });
 
+let view: TagVisualizationView;
+let mockLeaf: WorkspaceLeaf;
+let mockPlugin: ObsidianMagicPlugin;
+
 describe('TagVisualizationView', () => {
-  let view: TestableTagVisualizationView;
-  let mockContainerEl: HTMLElement; // To hold the view's container
-
-  // Using Partial for the mocks
-  const mockPlugin = {
-    app: {
-      metadataCache: {
-        getFileCache: vi.fn().mockReturnValue({
-          frontmatter: { tags: ['test-tag'] },
-          tags: [{ tag: '#inline-tag', position: { start: { line: 5 } } }],
-        }),
-        on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-      } as unknown as Partial<MetadataCache>,
-      vault: {
-        getMarkdownFiles: vi.fn().mockReturnValue([{ path: 'note1.md' }, { path: 'note2.md' }]),
-      } as unknown as Partial<Vault>,
-      workspace: {
-        on: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-      } as unknown as Partial<Workspace>,
-    },
-  } as unknown as ObsidianMagicPlugin;
-
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    // Create the view instance
-    view = new TagVisualizationView(mockLeaf, mockPlugin) as TestableTagVisualizationView;
-    // Get the container created by the ItemView mock constructor
-    mockContainerEl = view.containerEl;
-    // Add spies/mocks to the container if tests need them
-    vi.spyOn(mockContainerEl, 'empty');
-    vi.spyOn(mockContainerEl, 'createEl');
-    // Add more spies as needed
+
+    const { createMockApp, createMockedPlugin } = await import('../__mocks__/obsidian');
+    const mockApp = createMockApp();
+    mockPlugin = createMockedPlugin() as unknown as ObsidianMagicPlugin;
+    mockPlugin.app = mockApp;
+
+    // Create a mock leaf
+    mockLeaf = {
+      app: mockApp,
+      view: undefined,
+      getViewState: vi.fn(() => ({})),
+      setViewState: vi.fn(() => Promise.resolve()),
+      open: vi.fn(() => Promise.resolve()),
+      detach: vi.fn(),
+      getDisplayText: vi.fn(() => 'Mock Leaf'),
+      getIcon: vi.fn(() => 'mock-icon'),
+      tabHeaderEl: document.createElement('div'),
+      tabHeaderInnerIconEl: document.createElement('div'),
+      tabHeaderInnerTitleEl: document.createElement('div'),
+      activeTime: 0,
+      pinned: false,
+      working: false,
+    } as unknown as WorkspaceLeaf;
+
+    // Mock files for tag data
+    const mockFiles: TFile[] = [
+      { path: 'note1.md', basename: 'note1', extension: 'md' } as TFile,
+      { path: 'note2.md', basename: 'note2', extension: 'md' } as TFile,
+    ];
+
+    vi.mocked(mockApp.vault.getMarkdownFiles).mockReturnValue(mockFiles);
+    vi.mocked(mockApp.metadataCache.getFileCache).mockImplementation((file: TFile) => {
+      if (file.path === 'note1.md') {
+        return {
+          frontmatter: { tags: ['tag1', 'tag2'] },
+          tags: [
+            {
+              tag: '#inline-tag1',
+              position: { start: { line: 1, col: 0, offset: 0 }, end: { line: 1, col: 12, offset: 12 } },
+            },
+          ],
+        };
+      }
+      if (file.path === 'note2.md') {
+        return {
+          frontmatter: { tags: ['tag2', 'tag3'] },
+          tags: [
+            {
+              tag: '#inline-tag2',
+              position: { start: { line: 1, col: 0, offset: 0 }, end: { line: 1, col: 12, offset: 12 } },
+            },
+          ],
+        };
+      }
+      return null;
+    });
+
+    view = new TagVisualizationView(mockLeaf, mockPlugin);
+
+    // Mock canvas for any tests that need it
+    const mockCanvas = document.createElement('canvas');
+    const mockContext = {
+      clearRect: vi.fn(),
+      beginPath: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
+      measureText: vi.fn(() => ({ width: 50 })),
+    } as unknown as CanvasRenderingContext2D;
+
+    vi.spyOn(mockCanvas, 'getContext').mockReturnValue(mockContext);
   });
 
   it('should return the correct view type', () => {
-    expect(view.getViewType()).toBe('magus-mark-tag-visualization');
+    expect(view.getViewType()).toBe(TAG_VISUALIZATION_VIEW_TYPE);
   });
 
   it('should return the correct display text', () => {
@@ -110,60 +111,100 @@ describe('TagVisualizationView', () => {
   });
 
   it('should render the view on open', async () => {
-    // Mock the visualization methods
-    vi.spyOn(view, 'buildTagGraph').mockReturnValue({
-      nodes: [
-        { id: 'tag1', label: '#tag1', count: 3 },
-        { id: 'tag2', label: '#tag2', count: 1 },
-      ],
-      links: [{ source: 'tag1', target: 'tag2', weight: 1 }],
+    // Create a simple mock element with all required methods
+    const mockElement = {
+      setText: vi.fn(),
+      addClass: vi.fn(),
+      removeClass: vi.fn(),
+      createEl: vi.fn(),
+      createDiv: vi.fn(),
+      style: {},
+      classList: { add: vi.fn(), remove: vi.fn(), toggle: vi.fn(), contains: vi.fn() },
+      getAttribute: vi.fn(),
+      setAttribute: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+
+    // Mock the view's createEl to intercept all element creation
+    vi.spyOn(view.contentEl, 'createEl').mockImplementation((tag: string) => {
+      if (tag === 'canvas') {
+        const mockCanvas = document.createElement('canvas');
+        const mockContext = {
+          clearRect: vi.fn(),
+          beginPath: vi.fn(),
+          arc: vi.fn(),
+          fill: vi.fn(),
+          stroke: vi.fn(),
+          fillText: vi.fn(),
+          strokeText: vi.fn(),
+          save: vi.fn(),
+          restore: vi.fn(),
+          translate: vi.fn(),
+          scale: vi.fn(),
+          measureText: vi.fn(() => ({ width: 50 })),
+        } as unknown as CanvasRenderingContext2D;
+        vi.spyOn(mockCanvas, 'getContext').mockReturnValue(mockContext);
+        return mockCanvas as any;
+      }
+      return mockElement as any;
     });
 
-    vi.spyOn(view, 'setupVisualization').mockImplementation(() => {
-      // Empty implementation for the test
-      return;
+    // Mock the container structure
+    const mockContainer = {
+      empty: vi.fn(),
+      createEl: vi.fn().mockReturnValue(mockElement),
+      createDiv: vi.fn().mockReturnValue(mockElement),
+      children: [] as any[],
+    };
+
+    // Mock containerEl to return our mock container
+    Object.defineProperty(view, 'containerEl', {
+      get: () => mockContainer,
+      configurable: true,
     });
 
     await view.onOpen();
 
-    // Use the mocked containerEl obtained in beforeEach
-    expect(mockContainerEl.empty).toHaveBeenCalled();
-    expect(mockContainerEl.createEl).toHaveBeenCalledWith('h2', { text: 'Tag Visualization' });
+    expect(mockContainer.empty).toHaveBeenCalled();
   });
 
-  it('should build tag graph from vault data', () => {
-    // Mock the getAllTags method
-    vi.spyOn(view, 'getAllTags').mockReturnValue([
-      { id: 'tag-1', name: '#tag1', count: 3, files: ['note1.md', 'note2.md'] },
-      { id: 'tag-2', name: '#tag2', count: 1, files: ['note1.md'] },
-    ]);
+  it('should extract tag data from vault', () => {
+    // Test the private getTagData method by calling it indirectly
+    const privateView = view as any;
+    const tagData = privateView.getTagData();
 
-    const graph = view.buildTagGraph();
+    expect(Array.isArray(tagData)).toBe(true);
+    expect(tagData.length).toBeGreaterThan(0);
 
-    expect(graph).toHaveProperty('nodes');
-    expect(graph).toHaveProperty('links');
-    expect(graph.nodes.length).toBeGreaterThan(0);
+    // Check that tags have required properties
+    if (tagData.length > 0) {
+      expect(tagData[0]).toHaveProperty('id');
+      expect(tagData[0]).toHaveProperty('name');
+      expect(tagData[0]).toHaveProperty('count');
+    }
   });
 
-  it('should handle filtering the visualization', () => {
-    // Mock required methods
-    vi.spyOn(view, 'buildTagGraph').mockReturnValue({
-      nodes: [
-        { id: 'tag1', label: '#tag1', count: 3 },
-        { id: 'tag2', label: '#tag2', count: 1 },
-      ],
-      links: [{ source: 'tag1', target: 'tag2', weight: 1 }],
-    });
+  it('should handle zoom updates', () => {
+    const privateView = view as any;
+    privateView.updateZoom(1.5);
+    expect(privateView.zoomLevel).toBe(1.5);
+  });
 
-    vi.spyOn(view, 'updateVisualization').mockImplementation(() => {
-      // Empty implementation for visualization update in tests
-      return;
-    });
+  it('should handle filter updates', () => {
+    const privateView = view as any;
 
-    // Call the filter method
-    view.filterVisualization('tag1');
+    // Initialize some mock tags
+    privateView.tags = [
+      { id: 'tag1', name: '#test', count: 1, visible: true },
+      { id: 'tag2', name: '#other', count: 1, visible: true },
+    ];
 
-    // Expect updateVisualization to be called with filtered data
-    expect(view.updateVisualization).toHaveBeenCalled();
+    privateView.updateFilter('test');
+    expect(privateView.filterText).toBe('test');
+
+    // Check that visibility is updated correctly
+    expect(privateView.tags[0].visible).toBe(true);
+    expect(privateView.tags[1].visible).toBe(false);
   });
 });

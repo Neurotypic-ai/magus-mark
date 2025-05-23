@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import { Events } from './MockEvents';
 
 import type {
@@ -6,6 +8,7 @@ import type {
   TFile,
   TagCache as TagCacheType,
 } from 'obsidian';
+import type { Mock } from 'vitest';
 
 /**
  * Minimal MetadataCache stub with getFileCache returning a valid mock cache for any TFile.
@@ -22,7 +25,7 @@ export class MetadataCache extends Events implements MetadataCacheType {
    * Returns a mock file cache object for any TFile.
    * Override in tests if you need custom cache data.
    */
-  getFileCache(file?: TFile): CachedMetadataType | null {
+  getFileCache: Mock<(file?: TFile) => CachedMetadataType | null> = vi.fn((file?: TFile) => {
     console.log('getFileCache', file);
     return {
       frontmatter: { tags: ['test-tag'] },
@@ -34,16 +37,16 @@ export class MetadataCache extends Events implements MetadataCacheType {
       ],
       // Add other properties as needed or return null
     };
-  }
-  getCache(path: string): CachedMetadataType | null {
+  });
+  getCache: Mock<(path: string) => CachedMetadataType | null> = vi.fn((path: string) => {
     console.log('getCache', path);
     return null; // Or return mock cache
-  }
-  fileToLinktext(file: TFile): string {
-    return file.name;
-  }
-  getFirstLinkpathDest(linkpath: string, sourcePath: string): TFile | null {
-    console.log('getFirstLinkpathDest', linkpath, sourcePath);
-    return null; // Basic stub
-  }
+  });
+  fileToLinktext: Mock<(file: TFile) => string> = vi.fn((file: TFile) => file.name);
+  getFirstLinkpathDest: Mock<(linkpath: string, sourcePath: string) => TFile | null> = vi.fn(
+    (linkpath: string, sourcePath: string) => {
+      console.log('getFirstLinkpathDest', linkpath, sourcePath);
+      return null; // Basic stub
+    }
+  );
 }

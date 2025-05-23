@@ -38,16 +38,6 @@ const clickableOptions = {
   onClick: vi.fn(),
 };
 
-const buttonOptions = {
-  setButtonText: vi.fn().mockReturnThis(),
-  setClass: vi.fn().mockReturnThis(),
-  setCta: vi.fn().mockReturnThis(),
-  setIcon: vi.fn().mockReturnThis(),
-  setTooltip: vi.fn().mockReturnThis(),
-  removeCta: vi.fn().mockReturnThis(),
-  setWarning: vi.fn().mockReturnThis(),
-};
-
 const extraButtonOptions = {
   setDisabled: vi.fn(),
   setTooltip: vi.fn(),

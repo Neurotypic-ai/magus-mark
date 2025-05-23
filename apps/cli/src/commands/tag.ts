@@ -1,15 +1,19 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
-import { TaggingService } from '@magus-mark/core/openai/TaggingService';
-import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 import * as cliProgress from 'cli-progress';
 import * as fsExtra from 'fs-extra';
 
+import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
+import { TaggingService } from '@magus-mark/core/openai/TaggingService';
+import { Logger } from '@magus-mark/core/utils/Logger';
+
+import { TagEditor } from '../ui/tag-editor';
 import { config } from '../utils/config';
+import { costManager } from '../utils/cost-manager';
 import { extractTagsFromFrontmatter, updateTagsInFrontmatter } from '../utils/frontmatter';
+import { Workflow } from '../utils/workflow';
 
 import type { AIModel } from '@magus-mark/core/models/AIModel';
 import type { Document } from '@magus-mark/core/models/Document';
@@ -110,8 +114,6 @@ export const tagCommand: CommandModule = {
       const concurrency = options.concurrency ?? 3;
       const mode = options.mode ?? 'auto';
       const force = options.force ?? false;
-      const maxCost = options.maxCost;
-      const onLimit = options.onLimit ?? 'warn';
       const output = options.output;
       const dryRun = options.dryRun;
 
@@ -134,81 +136,127 @@ export const tagCommand: CommandModule = {
         process.exit(1);
       }
 
+      // Set up cost management
+      if (options.maxCost) {
+        costManager.setLimits({
+          hardLimit: options.maxCost,
+          warningThreshold: options.maxCost * 0.8,
+          onLimitReached: options.onLimit ?? 'warn',
+        });
+      }
+
+      // Initialize workflow for orchestration
+      const workflow = new Workflow<void>({
+        concurrency,
+        retryCount: 3,
+        retryDelay: 1000,
+        pauseOnError: false,
+      });
+
+      // Initialize tag editor for interactive mode
+      const tagEditor = new TagEditor({
+        minConfidence: minConfidence ?? 0.7,
+        reviewThreshold: reviewThreshold ?? 0.5,
+      });
+
       // Log startup information
       logger.info(chalk.bold('Starting conversation tagging'));
-      if (verbose) {
-        logger.info(
-          `Options: ${JSON.stringify(
-            {
-              ...options,
-              paths,
-            },
-            null,
-            2
-          )}`
-        );
-      }
 
-      // Collect all files to process
-      const filesToProcess: string[] = [];
+      // Add workflow event listeners
+      workflow.on('taskComplete', (taskId: string) => {
+        logger.debug(`Completed task: ${taskId}`);
+      });
 
-      for (const p of paths) {
-        if (!(await fsExtra.pathExists(p))) {
-          logger.warn(`Path does not exist: ${p}`);
-          continue;
-        }
+      workflow.on('taskError', (taskId: string, error: Error) => {
+        logger.error(`Task ${taskId} failed: ${error.message}`);
+      });
 
-        const stats = await fs.stat(p);
-
-        if (stats.isFile()) {
-          if (p.endsWith('.md') || p.endsWith('.markdown')) {
-            filesToProcess.push(p);
+      // Find all markdown files
+      const allFiles: string[] = [];
+      for (const inputPath of paths) {
+        try {
+          if (fsExtra.existsSync(inputPath)) {
+            const stat = await fs.stat(inputPath);
+            if (stat.isFile() && inputPath.endsWith('.md')) {
+              allFiles.push(inputPath);
+            } else if (stat.isDirectory()) {
+              const files = await findMarkdownFiles(inputPath);
+              allFiles.push(...files);
+            }
           } else {
-            logger.warn(`Skipping non-markdown file: ${p}`);
+            logger.warn(`Path does not exist: ${inputPath}`);
           }
-        } else if (stats.isDirectory()) {
-          // Recursively find all markdown files
-          await findMarkdownFiles(p, filesToProcess);
+        } catch (error) {
+          logger.error(`Error accessing path ${inputPath}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
-      if (filesToProcess.length === 0) {
+      if (allFiles.length === 0) {
         logger.warn('No valid files found to process.');
         return;
       }
 
       // Initialize tracking variables
       let totalProcessed = 0;
-      let totalTagged = 0;
       let totalErrors = 0;
       let totalCost = 0;
-      let fileResults: Record<string, { success: boolean; tags?: TagSet; error?: unknown }> = {};
 
       // In dry-run mode, just print the files that would be processed
       if (dryRun) {
-        logger.info(chalk.bold(`Found ${String(filesToProcess.length)} files for processing`));
+        logger.info(chalk.bold(`Found ${String(allFiles.length)} files for processing`));
 
         if (verbose) {
           logger.info('Files to process:');
-          filesToProcess.forEach((file) => {
+          allFiles.forEach((file) => {
             logger.info(`- ${file}`);
           });
         }
 
-        // Calculate rough cost estimate
-        // Assuming ~2000 tokens per file on average
-        const tokenEstimate = filesToProcess.length * 2000;
+        // Calculate more accurate cost estimate using cost manager
         const modelName = model ?? 'gpt-4o';
-        const isGpt4Model = modelName === 'gpt-4' || modelName === 'gpt-4o';
-        // GPT-4 models cost roughly $0.01 per 1K tokens, GPT-3.5 around $0.002
-        const costEstimate = isGpt4Model ? (tokenEstimate / 1000) * 0.01 : (tokenEstimate / 1000) * 0.002;
+        let totalEstimatedCost = 0;
+        let totalEstimatedTokens = 0;
+
+        for (const file of allFiles) {
+          try {
+            const content = await fs.readFile(file, 'utf-8');
+            // Rough estimation: ~1 token per 4 characters for input, plus ~300 tokens for output
+            const inputTokens = Math.ceil(content.length / 4);
+            const outputTokens = 300; // Estimated for tag generation
+
+            const estimatedCost = costManager.estimateCost(modelName, {
+              input: inputTokens,
+              output: outputTokens,
+            });
+
+            totalEstimatedCost += estimatedCost;
+            totalEstimatedTokens += inputTokens + outputTokens;
+          } catch {
+            // If we can't read the file, use default estimates
+            const defaultInputTokens = 2000;
+            const defaultOutputTokens = 300;
+            totalEstimatedTokens += defaultInputTokens + defaultOutputTokens;
+            totalEstimatedCost += costManager.estimateCost(modelName, {
+              input: defaultInputTokens,
+              output: defaultOutputTokens,
+            });
+          }
+        }
 
         logger.box(
           `
-Cost Estimate:
-- Files: ${String(filesToProcess.length)}
-- Estimated tokens: ~${String(tokenEstimate)}
-- Estimated cost: $${costEstimate.toFixed(2)}
+📊 Token Usage Estimate
+├── Files to process: ${String(allFiles.length)}
+├── Model: ${modelName}
+├── Estimated total tokens: ~${totalEstimatedTokens.toLocaleString()}
+├── Estimated cost: $${totalEstimatedCost.toFixed(4)} USD
+│
+${options.maxCost ? `├── Your budget: $${options.maxCost.toFixed(2)}` : ''}
+${
+  options.maxCost && totalEstimatedCost > options.maxCost
+    ? `└── ⚠️  Estimated cost exceeds budget!`
+    : `└── ✅ Within budget`
+}
         `.trim(),
           'Dry Run Summary'
         );
@@ -241,134 +289,127 @@ Cost Estimate:
       );
 
       if (mode !== 'interactive') {
-        progressBar.start(filesToProcess.length, 0);
+        progressBar.start(allFiles.length, 0);
       }
 
       // Process files
-      const processFile = async (filePath: string): Promise<void> => {
-        try {
-          // Read file content
-          const content = await fs.readFile(filePath, 'utf-8');
+      const processFile = (filePath: string): void => {
+        // Add this task to the workflow
+        const taskId = path.relative(process.cwd(), filePath);
 
-          // Extract existing tags from frontmatter
-          const existingTags = extractExistingTags(content);
+        workflow.addTask(
+          taskId,
+          async () => {
+            try {
+              const content = await fs.readFile(filePath, 'utf-8');
+              const existingTags = extractExistingTags(content);
 
-          // Skip files that already have tags if not in force mode and in differential mode
-          if (!force && mode === 'differential' && existingTags && Object.keys(existingTags).length > 0) {
-            if (verbose) {
-              logger.info(`Skipping already tagged file: ${filePath}`);
-            }
-            return;
-          }
-
-          // Create document object and handle undefined existingTags
-          // Instead of creating an empty TagSet which may not match the expected structure,
-          // we'll let the TaggingService handle the undefined case internally
-          const document: Document = {
-            id: path.basename(filePath, path.extname(filePath)),
-            content,
-            path: filePath,
-            metadata: {},
-            existingTags,
-          };
-
-          // Tag the document
-          const result = await taggingService.tagDocument(document);
-
-          if (!result.success) {
-            totalErrors++;
-            logger.error(`Failed to tag file ${filePath}: ${String(result.error?.message)}`);
-            fileResults[filePath] = { success: false, error: result.error };
-            return;
-          }
-
-          // In interactive mode, prompt for confirmation before updating
-          if (mode === 'interactive') {
-            // Since we checked result.success, we know result.tags exists
-            if (result.tags) {
-              const shouldUpdate = await promptForConfirmation(filePath, result.tags);
-              if (!shouldUpdate) {
-                logger.info(`Skipping file: ${filePath}`);
+              // Skip if file already has tags and not forced
+              if (existingTags && !force && mode === 'differential') {
+                logger.debug(`Skipping ${filePath} - already has tags`);
                 return;
               }
-            } else {
-              logger.warn(`No tags were generated for ${filePath}`);
-              return;
+
+              // Create document
+              const document: Document = {
+                id: path.basename(filePath, '.md'),
+                content,
+                path: filePath,
+                metadata: {
+                  wordCount: content.split(/\s+/).length,
+                  lastModified: new Date(),
+                },
+                existingTags,
+              };
+
+              // Tag the document
+              const result = await taggingService.tagDocument(document);
+
+              if (!result.success || !result.tags) {
+                throw new Error(result.error?.message ?? 'Failed to tag document');
+              }
+
+              const tagSet = result.tags;
+
+              // Track actual usage and cost
+              if (result.usage) {
+                const actualCost = costManager.trackUsage(
+                  options.model ?? 'gpt-4o',
+                  {
+                    input: result.usage.inputTokens || 0,
+                    output: result.usage.outputTokens || 0,
+                  },
+                  `process-${path.basename(filePath)}`
+                );
+                logger.debug(`File ${filePath} cost: $${actualCost.toFixed(4)}`);
+
+                // Check if cost manager is paused due to budget limits
+                if (costManager.isPaused()) {
+                  throw new Error('Processing paused due to cost limit');
+                }
+              }
+
+              // In interactive mode, review tags with the tag editor
+              if (mode === 'interactive') {
+                const tagsWithConfidence = tagSet.topical_tags.map((tag) => ({
+                  name: typeof tag === 'object' ? JSON.stringify(tag) : String(tag),
+                  confidence: 0.8, // Default confidence, would come from actual tagging service
+                }));
+
+                const existingTopicalTags = existingTags?.topical_tags
+                  ? existingTags.topical_tags.map((tag) =>
+                      typeof tag === 'object' ? JSON.stringify(tag) : String(tag)
+                    )
+                  : [];
+
+                const reviewResult = await tagEditor.reviewTags(filePath, tagsWithConfidence, existingTopicalTags);
+
+                if (!reviewResult.approved) {
+                  logger.info(`Skipping ${filePath} - user cancelled`);
+                  return;
+                }
+
+                // Update tagSet with user-approved tags
+                tagSet.topical_tags = reviewResult.tags as never[];
+              }
+
+              // Update file with tags
+              await updateFileWithTags(filePath, content, tagSet);
+              logger.info(`Tagged: ${chalk.green(filePath)}`);
+            } catch (error) {
+              logger.error(`Error processing ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+              throw error;
             }
-          }
-
-          // Update the file with new tags (with proper type guard check)
-          if (result.tags) {
-            await updateFileWithTags(filePath, content, result.tags);
-
-            totalTagged++;
-            totalProcessed++;
-
-            // Store results for output
-            fileResults[filePath] = {
-              success: true,
-              tags: result.tags,
-            };
-          } else {
-            logger.warn(`No tags were generated for ${filePath}`);
-            fileResults[filePath] = {
-              success: false,
-              error: 'No tags were generated',
-            };
-          }
-
-          // Update progress
-          if (mode !== 'interactive') {
-            progressBar.increment();
-          } else {
-            logger.info(`Tagged file: ${filePath}`);
-          }
-        } catch (error) {
-          totalErrors++;
-          logger.error(`Error processing file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
-          fileResults[filePath] = { success: false, error: String(error) };
-        }
+          },
+          1
+        ); // Normal priority
       };
 
-      // Configure concurrency limits
-      const batchSize = Math.min(concurrency, filesToProcess.length);
-      const batches = [];
-
-      // Split files into batches
-      for (let i = 0; i < filesToProcess.length; i += batchSize) {
-        batches.push(filesToProcess.slice(i, i + batchSize));
+      // Process files using the workflow
+      for (const filePath of allFiles) {
+        processFile(filePath);
       }
 
-      // Process batches
-      for (const batch of batches) {
-        await Promise.all(batch.map((file) => processFile(file)));
-
-        // Check if we've hit the cost limit
-        if (maxCost && totalCost >= maxCost) {
-          if (onLimit === 'stop') {
-            logger.warn(`Cost limit of $${String(maxCost)} reached. Stopping processing.`);
-            break;
-          } else if (onLimit === 'pause') {
-            const { continue: shouldContinue } = await promptUserForContinue(maxCost);
-
-            if (!shouldContinue) {
-              logger.warn('Processing stopped by user.');
-              break;
-            }
-          } else {
-            logger.warn(`Cost limit of $${String(maxCost)} reached, but continuing as requested.`);
-          }
-        }
-      }
+      // Start the workflow
+      const workflowResults = await workflow.start();
 
       // Stop progress bar
       if (mode !== 'interactive') {
         progressBar.stop();
       }
 
+      // Get workflow statistics
+      const stats = workflow.getStats();
+      totalProcessed = stats.completed;
+      totalErrors = stats.failed;
+
+      // Get actual cost data from cost manager
+      const sessionStats = costManager.getSessionStats();
+      totalCost = sessionStats.totalCost;
+
       // Save output if requested
       if (output) {
-        await fs.writeFile(output, JSON.stringify(fileResults, null, 2), 'utf-8');
+        await fs.writeFile(output, JSON.stringify(workflowResults, null, 2), 'utf-8');
         logger.info(`Results saved to ${output}`);
       }
 
@@ -377,9 +418,11 @@ Cost Estimate:
         `
 Summary:
 - Files processed: ${String(totalProcessed)}
-- Files tagged: ${String(totalTagged)}
+- Files tagged: ${String(totalProcessed)}
 - Errors: ${String(totalErrors)}
-- Estimated cost: $${totalCost.toFixed(2)}
+- Total tokens used: ${sessionStats.totalTokens.toLocaleString()}
+- Actual cost: $${totalCost.toFixed(4)}
+- Session duration: ${Math.round(sessionStats.duration / 1000)}s
       `.trim(),
         'Processing Complete'
       );
@@ -427,50 +470,4 @@ async function updateFileWithTags(filePath: string, content: string, tags: TagSe
   await fs.writeFile(filePath, updatedContent, 'utf-8');
 
   logger.debug(`Updated file ${filePath} with tags`);
-}
-
-/**
- * Prompt for confirmation in interactive mode
- */
-async function promptForConfirmation(filePath: string, tags: TagSet): Promise<boolean> {
-  console.log('\n' + chalk.bold(`File: ${filePath}`));
-  console.log(chalk.cyan('Proposed tags:'));
-  console.log(JSON.stringify(tags, null, 2));
-
-  // Simple prompt for yes/no
-  return new Promise((resolve) => {
-    console.log('Apply these tags? (y/n)');
-
-    const handleInput = (data: Buffer) => {
-      const input = data.toString().trim().toLowerCase();
-      process.stdin.removeListener('data', handleInput);
-      process.stdin.pause();
-      resolve(input === 'y' || input === 'yes');
-    };
-
-    process.stdin.resume();
-    process.stdin.once('data', handleInput);
-  });
-}
-
-/**
- * Prompt user whether to continue after hitting cost limit
- */
-async function promptUserForContinue(maxCost: number): Promise<{ continue: boolean }> {
-  console.log(`\nCost limit of $${String(maxCost)} reached. Continue processing? (y/n)`);
-
-  // Simple prompt for yes/no
-  const shouldContinue = await new Promise<boolean>((resolve) => {
-    const handleInput = (data: Buffer) => {
-      const input = data.toString().trim().toLowerCase();
-      process.stdin.removeListener('data', handleInput);
-      process.stdin.pause();
-      resolve(input === 'y' || input === 'yes');
-    };
-
-    process.stdin.resume();
-    process.stdin.once('data', handleInput);
-  });
-
-  return { continue: shouldContinue };
 }

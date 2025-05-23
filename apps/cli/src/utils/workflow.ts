@@ -1,8 +1,9 @@
 import { EventEmitter } from 'events';
 
+import chalk from 'chalk';
+
 import { Logger } from '@magus-mark/core/utils/Logger';
 
-const logger = Logger.getInstance('Workflow');
 /**
  * Task status type
  */
@@ -59,6 +60,8 @@ export class Workflow<T> extends EventEmitter {
   private completed = false;
   private activeCount = 0;
   private options: WorkflowOptions;
+  private keyboardEnabled = false;
+  private logger = Logger.getInstance('workflow');
 
   /**
    * Create a new workflow
@@ -68,11 +71,16 @@ export class Workflow<T> extends EventEmitter {
     this.options = {
       concurrency: 3,
       batchSize: 10,
-      retryCount: 2,
+      retryCount: 3,
       retryDelay: 1000,
       pauseOnError: false,
       ...options,
     };
+
+    // Setup keyboard controls if in interactive environment
+    if (process.stdin.isTTY && !process.env['CI']) {
+      this.setupKeyboardControls();
+    }
   }
 
   /**
@@ -80,7 +88,7 @@ export class Workflow<T> extends EventEmitter {
    */
   addTask(id: string, fn: () => Promise<T>, priority = 0): this {
     if (this.tasks.has(id)) {
-      logger.warn(`Task with ID ${id} already exists. Skipping.`);
+      this.logger.warn(`Task with ID ${id} already exists. Skipping.`);
       return this;
     }
 
@@ -111,13 +119,13 @@ export class Workflow<T> extends EventEmitter {
    */
   async start(): Promise<Record<string, T>> {
     if (this.queue.length === 0) {
-      logger.warn('No tasks to process.');
+      this.logger.warn('No tasks to process.');
       this.completed = true;
       this.emit('workflowComplete', {});
       return {};
     }
 
-    logger.info(
+    this.logger.info(
       `Starting workflow with ${String(this.queue.length)} tasks and concurrency ${String(this.options.concurrency)}`
     );
 
@@ -142,7 +150,7 @@ export class Workflow<T> extends EventEmitter {
   pause(): void {
     if (!this.paused) {
       this.paused = true;
-      logger.info('Workflow paused.');
+      this.logger.info('Workflow paused.');
       this.emit('pause');
     }
   }
@@ -153,7 +161,7 @@ export class Workflow<T> extends EventEmitter {
   resume(): void {
     if (this.paused) {
       this.paused = false;
-      logger.info('Workflow resumed.');
+      this.logger.info('Workflow resumed.');
       this.emit('resume');
       this.processNextBatch();
     }
@@ -163,7 +171,7 @@ export class Workflow<T> extends EventEmitter {
    * Cancel the workflow
    */
   cancel(): void {
-    logger.info('Workflow cancelled.');
+    this.logger.info('Workflow cancelled.');
     this.queue = [];
     this.emit('workflowComplete', this.results);
   }
@@ -284,5 +292,91 @@ export class Workflow<T> extends EventEmitter {
       // Process the next batch of tasks
       this.processNextBatch();
     }
+  }
+
+  /**
+   * Setup keyboard controls for interactive workflow management
+   */
+  private setupKeyboardControls(): void {
+    if (this.keyboardEnabled) return;
+
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    process.stdin.on('data', (data) => {
+      const key = data.toString();
+
+      // Ctrl+C - Exit
+      if (key === '\u0003') {
+        this.handleExitRequest();
+        return;
+      }
+
+      // Space - Pause/Resume
+      if (key === ' ') {
+        if (this.paused) {
+          this.resume();
+        } else {
+          this.pause();
+        }
+        return;
+      }
+
+      // S - Show status
+      if (key.toLowerCase() === 's') {
+        this.displayStatus();
+        return;
+      }
+
+      // H - Show help
+      if (key.toLowerCase() === 'h') {
+        this.displayKeyboardShortcuts();
+        return;
+      }
+    });
+
+    this.keyboardEnabled = true;
+  }
+
+  /**
+   * Display current workflow status
+   */
+  private displayStatus(): void {
+    const stats = this.getStats();
+    this.logger.info(
+      chalk.blue(`
+Workflow Status:
+- Total: ${String(stats.total)}
+- Processing: ${String(stats.processing)}  
+- Completed: ${String(stats.completed)}
+- Failed: ${String(stats.failed)}
+- Pending: ${String(stats.pending)}
+    `)
+    );
+  }
+
+  /**
+   * Display keyboard shortcuts help
+   */
+  private displayKeyboardShortcuts(): void {
+    this.logger.info(
+      chalk.cyan(`
+Keyboard Shortcuts:
+- Space: Pause/Resume
+- S: Show status
+- H: Show help  
+- Ctrl+C: Exit
+    `)
+    );
+  }
+
+  /**
+   * Handle exit request
+   */
+  private handleExitRequest(): void {
+    this.logger.warn('Exit requested. Cancelling workflow...');
+    this.cancel();
+    process.exit(0);
   }
 }

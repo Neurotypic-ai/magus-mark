@@ -121,7 +121,7 @@ describe('statsCommand', () => {
       format: 'table',
       reset: false,
       _: ['stats'],
-      $0: 'magus-mark',
+      $0: 'magus',
       period: 'all',
     } as ArgumentsCamelCase<StatsOptions>);
 
@@ -141,7 +141,7 @@ describe('statsCommand', () => {
       format: 'table',
       reset: true,
       _: ['stats'],
-      $0: 'magus-mark',
+      $0: 'magus',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify reset was called
@@ -156,7 +156,7 @@ describe('statsCommand', () => {
       format: 'json',
       reset: false,
       _: ['stats'],
-      $0: 'magus-mark',
+      $0: 'magus',
     } as ArgumentsCamelCase<StatsOptions>);
 
     // Verify JSON output

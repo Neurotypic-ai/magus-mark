@@ -1,20 +1,26 @@
 # CLI Benchmarking Capabilities
 
-The Obsidian Magic CLI includes a comprehensive benchmarking system to evaluate model performance, accuracy, and cost-effectiveness across different configurations.
+The Obsidian Magic CLI includes a comprehensive benchmarking system to evaluate model performance, accuracy, and cost-effectiveness across different configurations. The system provides advanced testing capabilities including integration tests, stress testing, and parameter optimization.
 
-## Benchmark Command
+## Test Command Overview
 
-The CLI provides a dedicated benchmark command for performance evaluation:
+The CLI provides comprehensive testing capabilities through the `test` command with multiple operation modes:
 
 ```bash
-# Run basic benchmark
+# Standard performance benchmarking
 tag-conversations test --benchmark
 
-# Run comprehensive benchmark with all models
-tag-conversations test --benchmark --all-models
+# Integration testing for system validation
+tag-conversations test --integration
 
-# Compare specific models
-tag-conversations test --benchmark --models=gpt-3.5-turbo,gpt-4
+# Stress testing with volume control
+tag-conversations test --stress-test --volume=1000 --concurrency=10
+
+# Parameter optimization for performance tuning
+tag-conversations test --optimize-params --parameters=confidence,concurrency
+
+# Comprehensive benchmark with all models
+tag-conversations test --benchmark --all-models --compare
 ```
 
 ## Benchmark Datasets
@@ -119,19 +125,65 @@ tag-conversations test --benchmark --models=gpt-3.5-turbo,gpt-4,claude-3-opus --
 
 ## Parameter Optimization
 
-The benchmark system can optimize processing parameters:
+The CLI provides advanced parameter optimization to fine-tune system performance:
 
-### Optimization Features
+### Optimization Capabilities
 
-- Systematic testing of different parameter combinations
-- Confidence threshold optimization
-- Concurrency parameter tuning
-- Token optimization strategy evaluation
-- Automatic identification of optimal configuration
+- **Systematic Parameter Testing**: Tests multiple parameter combinations systematically
+- **Performance Scoring**: Uses weighted scoring algorithm combining accuracy, speed, and cost
+- **Confidence Threshold Optimization**: Finds optimal confidence levels for auto-tagging
+- **Concurrency Tuning**: Determines optimal parallel processing levels
+- **Cost-Performance Balancing**: Identifies best cost-efficiency configurations
+
+### Parameter Optimization Execution
 
 ```bash
-# Run parameter optimization benchmark
-tag-conversations test --benchmark --optimize-params --parameters=confidence,concurrency
+# Optimize confidence and concurrency parameters
+tag-conversations test --optimize-params --parameters=confidence,concurrency
+
+# Optimize specific parameters with custom models
+tag-conversations test --optimize-params --parameters=confidence --models=gpt-4o
+
+# Full parameter optimization with detailed output
+tag-conversations test --optimize-params --verbose
+```
+
+### Optimization Results
+
+```
+Parameter Optimization Summary:
+
+Parameter: confidence
+Optimal value: 0.75
+Test results:
+  0.5: score 0.720
+  0.6: score 0.780
+  0.7: score 0.820
+  0.75: score 0.850 ←
+  0.8: score 0.830
+  0.9: score 0.790
+
+Parameter: concurrency
+Optimal value: 5
+Test results:
+  1: score 0.650
+  3: score 0.780
+  5: score 0.850 ←
+  7: score 0.820
+  10: score 0.750
+
+Recommendation: Update your configuration with these optimized values for better performance.
+```
+
+### Applying Optimized Parameters
+
+```bash
+# Apply optimized parameters to configuration
+tag-conversations config set minConfidence 0.75
+tag-conversations config set concurrency 5
+
+# Create a profile with optimized settings
+tag-conversations config create-profile optimized --min-confidence=0.75 --concurrency=5
 ```
 
 ## Continuous Benchmarking
@@ -170,42 +222,98 @@ tag-conversations benchmark run-scenario tagging-technical-content
 
 ## Integration Testing
 
-The benchmark system includes integration testing capabilities:
+The CLI includes comprehensive integration testing to validate system reliability:
 
-### Integration Tests
+### Test Coverage Areas
 
-- End-to-end workflow testing
-- API integration validation
-- Error handling verification
-- Performance regression testing
-- Configuration validation
+1. **API Integration**: Tests OpenAI API connectivity, authentication, and error handling
+2. **File Processing Pipeline**: Validates end-to-end markdown file processing workflow
+3. **Error Handling**: Verifies graceful degradation and recovery mechanisms
+4. **Configuration Validation**: Tests configuration loading and profile management
+5. **Workflow Orchestration**: Validates concurrent processing and queue management
+
+### Integration Test Execution
 
 ```bash
-# Run integration tests
+# Run all integration tests
 tag-conversations test --integration
 
-# Run specific integration test suite
-tag-conversations test --integration --suite=api-handling
+# Integration tests with specific models
+tag-conversations test --integration --models=gpt-3.5-turbo,gpt-4o
+
+# Verbose integration testing
+tag-conversations test --integration --verbose
+```
+
+### Integration Test Results
+
+```
+Integration Test Summary:
+
+API Integration:
+  Tests: 8 | Passed: 7 | Failed: 1
+
+File Processing Pipeline:
+  Tests: 5 | Passed: 5 | Failed: 0
+
+Error Handling:
+  Tests: 6 | Passed: 5 | Failed: 1
+
+Configuration Validation:
+  Tests: 4 | Passed: 4 | Failed: 0
+
+Workflow Orchestration:
+  Tests: 7 | Passed: 6 | Failed: 1
+
+Total Tests: 30
+Passed: 27
+Failed: 3
+Success Rate: 90.0%
 ```
 
 ## Stress Testing
 
-The CLI includes tools for stress testing the system:
+The CLI provides advanced stress testing capabilities for performance validation:
 
 ### Stress Test Features
 
-- Large volume processing simulation
-- Parallel processing stress testing
-- API quota limit testing
-- Error recovery validation
-- System resource monitoring
+- **Volume Testing**: Process large numbers of files to test scalability
+- **Concurrency Testing**: Validate parallel processing under high load
+- **Performance Metrics**: Measure response times, throughput, and error rates
+- **Resource Monitoring**: Track memory usage and processing efficiency
+- **API Resilience**: Test behavior under rate limiting and quota constraints
+
+### Stress Test Configuration
 
 ```bash
-# Run stress test
+# Basic stress test with 100 operations
+tag-conversations test --stress-test --volume=100
+
+# High-volume stress test with custom concurrency
 tag-conversations test --stress-test --volume=1000 --concurrency=10
 
-# Run targeted stress test
-tag-conversations test --stress-test --focus=api-resilience
+# Stress test with specific models
+tag-conversations test --stress-test --models=gpt-3.5-turbo --volume=500
+```
+
+### Stress Test Metrics
+
+```
+Stress Test Results:
+
+Volume: 1000 operations
+Concurrency: 10
+Successful: 985
+Failed: 15
+Error Rate: 1.50%
+
+Performance:
+Average Response Time: 1,247ms
+Min Response Time: 203ms
+Max Response Time: 4,892ms
+Throughput: 8.3 ops/sec
+
+✅ Stress tests passed!
 ```
 
 ## Performance Analysis Tools

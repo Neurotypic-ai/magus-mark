@@ -6,7 +6,9 @@ import * as vscode from 'vscode';
 import { LanguageModelAPI } from './cursor/LanguageModelAPI';
 import { MCPServer } from './cursor/MCPServer';
 import { VaultIntegrationService } from './services/VaultIntegrationService';
+import { registerRecentActivity } from './views/RecentActivity';
 import { registerTagExplorer } from './views/TagExplorer';
+import { registerVaultBrowser } from './views/VaultBrowser';
 
 // Store service instances for access from commands
 let mcpServer: MCPServer | undefined;
@@ -141,7 +143,7 @@ function createVaultStatusBar(context: vscode.ExtensionContext): void {
     vaultService.onVaultChanged(() => {
       const vaults = vaultService?.getVaults() ?? [];
       statusBarItem.text =
-        vaults.length > 0 ? `$(database) Obsidian Vaults (${String(vaults.length)})` : '$(database) Obsidian Vault';
+        vaults.length > 0 ? `$(database) Obsidian Vaults (${vaults.length.toString()})` : '$(database) Obsidian Vault';
     });
   }
 }
@@ -150,8 +152,8 @@ function createVaultStatusBar(context: vscode.ExtensionContext): void {
  * Activate Cursor-specific features including the MCP server
  */
 function activateCursorFeatures(context: vscode.ExtensionContext): void {
-  // Initialize the MCP server for Cursor integration
-  mcpServer = new MCPServer(context);
+  // Initialize the MCP server for Cursor integration with vault service
+  mcpServer = new MCPServer(context, vaultService);
 
   // Store the server instance in the context for disposal on deactivation
   context.subscriptions.push(mcpServer);
@@ -432,18 +434,16 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
 
               // If we have a vault service, try to save the tags information
               if (vaultService) {
-                try {
-                  // Use the vault service to apply tags to document
-                  const success = await vaultService.applyTagsToDocument(fileName, tagNames);
-                  if (success) {
-                    vscode.window.showInformationMessage(`Applied tags: ${tagNames.join(', ')}`);
-                  } else {
-                    vscode.window.showWarningMessage('Could not apply tags - document may not be in an Obsidian vault');
-                  }
-                } catch (error) {
-                  vscode.window.showErrorMessage(
-                    `Error applying tags: ${error instanceof Error ? error.message : String(error)}`
-                  );
+                const result = await vaultService.applyTagsToDocument(fileName, tagNames);
+                if (result.isOk() && result.getValue()) {
+                  vscode.window.showInformationMessage(`Applied tags: ${tagNames.join(', ')}`);
+
+                  // Track activity
+                  await vscode.commands.executeCommand('magus-mark.addTagActivity', fileName, tagNames);
+                } else if (result.isFail()) {
+                  vscode.window.showErrorMessage(`Error applying tags: ${result.getError().message}`);
+                } else {
+                  vscode.window.showWarningMessage('Could not apply tags - document may not be in an Obsidian vault');
                 }
               } else {
                 vscode.window.showInformationMessage(`Selected tags: ${tagNames.join(', ')}`);
@@ -503,21 +503,22 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
 
     const fileUri = await vscode.window.showOpenDialog(options);
     if (fileUri && fileUri.length > 0 && fileUri[0]) {
-      try {
-        if (!vaultService) {
-          vscode.window.showErrorMessage('Vault service not initialized');
-          return;
-        }
+      if (!vaultService) {
+        vscode.window.showErrorMessage('Vault service not initialized');
+        return;
+      }
 
-        const fsPath = fileUri[0].fsPath;
-        const addedVault = await vaultService.addVault(fsPath);
-        if (addedVault) {
+      const fsPath = fileUri[0].fsPath;
+      const result = await vaultService.addVault(fsPath);
+
+      if (result.isOk()) {
+        if (result.getValue()) {
           vscode.window.showInformationMessage(`Vault added: ${path.basename(fsPath)}`);
         } else {
-          vscode.window.showWarningMessage('Could not add vault. It may already be registered.');
+          vscode.window.showWarningMessage('Vault is already registered.');
         }
-      } catch (error) {
-        vscode.window.showErrorMessage(`Error adding vault: ${error instanceof Error ? error.message : String(error)}`);
+      } else {
+        vscode.window.showErrorMessage(`Error adding vault: ${result.getError().message}`);
       }
     }
   });
@@ -546,17 +547,16 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
     });
 
     if (selectedVault) {
-      try {
-        const removed = await vaultService.removeVault(selectedVault.description);
-        if (removed) {
-          vscode.window.showInformationMessage(`Vault removed: ${String(selectedVault.label)}`);
+      const result = await vaultService.removeVault(selectedVault.description);
+
+      if (result.isOk()) {
+        if (result.getValue()) {
+          vscode.window.showInformationMessage(`Vault removed: ${selectedVault.label}`);
         } else {
-          vscode.window.showWarningMessage('Could not remove vault');
+          vscode.window.showWarningMessage('Vault not found');
         }
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          `Error removing vault: ${error instanceof Error ? error.message : String(error)}`
-        );
+      } else {
+        vscode.window.showErrorMessage(`Error removing vault: ${result.getError().message}`);
       }
     }
   });
@@ -595,31 +595,30 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
       vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: `Synchronizing ${String(selectedVault.label === 'All Vaults' ? 'all vaults' : selectedVault.label)}...`,
+          title: `Synchronizing ${selectedVault.label === 'All Vaults' ? 'all vaults' : selectedVault.label}...`,
           cancellable: true,
         },
         async (_, token) => {
-          try {
-            if (selectedVault.label === 'All Vaults') {
-              if (!vaultService) {
-                vscode.window.showErrorMessage('Vault service not initialized');
-                return;
-              }
-
-              vaultService.syncAllVaults(token);
-              vscode.window.showInformationMessage('All vaults synchronized');
-            } else {
-              if (!vaultService) {
-                vscode.window.showErrorMessage('Vault service not initialized');
-                return;
-              }
-              await vaultService.syncVault(selectedVault.description);
-              vscode.window.showInformationMessage(`Vault synchronized: ${String(selectedVault.label)}`);
+          if (selectedVault.label === 'All Vaults') {
+            if (!vaultService) {
+              vscode.window.showErrorMessage('Vault service not initialized');
+              return;
             }
-          } catch (error) {
-            vscode.window.showErrorMessage(
-              `Error synchronizing vault: ${error instanceof Error ? error.message : String(error)}`
-            );
+
+            vaultService.syncAllVaults(token);
+            vscode.window.showInformationMessage('All vaults synchronized');
+          } else {
+            if (!vaultService) {
+              vscode.window.showErrorMessage('Vault service not initialized');
+              return;
+            }
+
+            const result = await vaultService.syncVault(selectedVault.description);
+            if (result.isOk()) {
+              vscode.window.showInformationMessage(`Vault synchronized: ${selectedVault.label}`);
+            } else {
+              vscode.window.showErrorMessage(`Error synchronizing vault: ${result.getError().message}`);
+            }
           }
 
           return Promise.resolve();
@@ -636,15 +635,60 @@ Provide a JSON array of suggested tags, with each tag having a 'name' and 'descr
     removeVaultCommand,
     syncVaultCommand
   );
+
+  // Register additional commands for new features
+  const searchTagsCommand = vscode.commands.registerCommand('magus-mark.searchTags', async () => {
+    // Show quick pick for tag search
+    const searchQuery = await vscode.window.showInputBox({
+      placeHolder: 'Search for tags...',
+      prompt: 'Enter search query for tags',
+    });
+
+    if (searchQuery) {
+      // TODO: Implement tag search functionality
+      vscode.window.showInformationMessage(`Searching for tags: ${searchQuery}`);
+    }
+  });
+
+  const openKnowledgeGraphCommand = vscode.commands.registerCommand('magus-mark.openKnowledgeGraph', () => {
+    // TODO: Implement knowledge graph visualization
+    vscode.window.showInformationMessage('Knowledge Graph visualization is planned for a future release');
+  });
+
+  const openTagDashboardCommand = vscode.commands.registerCommand('magus-mark.openTagDashboard', () => {
+    // TODO: Implement tag dashboard
+    vscode.window.showInformationMessage('Tag Dashboard is planned for a future release');
+  });
+
+  const taggedFilesListCommand = vscode.commands.registerCommand('magus-mark.taggedFilesList', () => {
+    // TODO: Implement tagged files list
+    vscode.window.showInformationMessage('Tagged files list is planned for a future release');
+  });
+
+  // Add new commands to subscriptions
+  context.subscriptions.push(
+    searchTagsCommand,
+    openKnowledgeGraphCommand,
+    openTagDashboardCommand,
+    taggedFilesListCommand
+  );
 }
 
 /**
  * Initialize core extension features
  */
 function initializeExtension(context: vscode.ExtensionContext): void {
-  // Initialize tag explorer view
-  const tagExplorerView = registerTagExplorer(context);
+  // Initialize tag explorer view with vault service
+  const tagExplorerView = registerTagExplorer(context, vaultService);
   context.subscriptions.push(tagExplorerView);
+
+  // Initialize vault browser view
+  const vaultBrowserView = registerVaultBrowser(context, vaultService);
+  context.subscriptions.push(vaultBrowserView);
+
+  // Initialize recent activity view
+  const recentActivityView = registerRecentActivity(context, vaultService);
+  context.subscriptions.push(recentActivityView);
 
   // Set up any event listeners
 

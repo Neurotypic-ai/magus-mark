@@ -128,12 +128,14 @@ export class App implements AppType {
   lastEvent: UserEventType | null;
   Setting: typeof Setting;
   isDesktopApp: boolean = Platform.isDesktopApp;
+  createElement: Mock<(tagName: string) => MockObsidianElement>;
 
   constructor() {
     this.vault = new Vault() as VaultType;
     this.workspace = new Workspace() as WorkspaceType;
     this.metadataCache = new MetadataCache() as MetadataCacheType;
     this.Setting = Setting;
+    this.createElement = vi.fn((tagName: string) => createMockObsidianElement(tagName as any));
 
     this.keymap = {
       pushScope: vi.fn(),
@@ -227,32 +229,52 @@ export class View extends Component {
       register: vi.fn(),
       unregister: vi.fn(),
     } as ScopeType;
-
-    // Initialize methods as mocks that can be overridden
-    this.getViewType = vi.fn(() => 'mock-view');
-    this.getDisplayText = vi.fn(() => 'Mock View');
-    this.getIcon = vi.fn(() => this.icon);
-    this.getState = vi.fn(() => ({}));
-    this.setState = vi.fn(() => Promise.resolve());
-    this.onResize = vi.fn();
-    this.onHeaderMenu = vi.fn();
-    this.onOpen = vi.fn(async (): Promise<void> => {});
-    this.onClose = vi.fn(async (): Promise<void> => {});
-    this.getEphemeralState = vi.fn(() => ({}));
-    this.setEphemeralState = vi.fn();
   }
 
-  getViewType: Mock<() => string>;
-  getDisplayText: Mock<() => string>;
-  getIcon: Mock<() => string>;
-  getState: Mock<() => any>;
-  setState: Mock<(state: any, result: any) => Promise<void>>;
-  onResize: Mock<() => void>;
-  onHeaderMenu: Mock<(menu: any) => void>;
-  onOpen: Mock<() => Promise<void>>;
-  onClose: Mock<() => Promise<void>>;
-  getEphemeralState: Mock<() => any>;
-  setEphemeralState: Mock<(state: any) => void>;
+  // Define abstract methods that child classes should override
+  getViewType(): string {
+    return 'mock-view';
+  }
+
+  getDisplayText(): string {
+    return 'Mock View';
+  }
+
+  getIcon(): string {
+    return this.icon;
+  }
+
+  getState(): any {
+    return {};
+  }
+
+  setState(_state: any, _result: any): Promise<void> {
+    return Promise.resolve();
+  }
+
+  onResize(): void {
+    // Default implementation
+  }
+
+  onHeaderMenu(_menu: any): void {
+    // Default implementation
+  }
+
+  async onOpen(): Promise<void> {
+    // Default implementation
+  }
+
+  async onClose(): Promise<void> {
+    // Default implementation
+  }
+
+  getEphemeralState(): any {
+    return {};
+  }
+
+  setEphemeralState(_state: any): void {
+    // Default implementation
+  }
 }
 
 export class ItemView extends View {
@@ -265,16 +287,8 @@ export class ItemView extends View {
       this.containerEl.appendChild(this.contentEl);
     }
 
-    // Override parent mock methods with new mock implementations
-    this.getViewType = vi.fn(() => 'mock-item-view');
-    this.getDisplayText = vi.fn(() => 'Mock Item View');
-    this.getIcon = vi.fn(() => 'any-icon');
+    // ItemView does NOT override any methods - let child classes provide their own implementations
   }
-
-  // Declare as Mock types to match parent
-  override getViewType: Mock<() => string>;
-  override getDisplayText: Mock<() => string>;
-  override getIcon: Mock<() => string>;
 }
 
 // --- End common Obsidian UI components ---

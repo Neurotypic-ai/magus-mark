@@ -133,6 +133,8 @@ For a complete reference of all commands and their options, see the [Command Str
 
 The CLI implements a flexible workflow engine with multiple operating modes:
 
+### Basic Tagging Operations
+
 ```bash
 # Process a single file
 tag-conversations tag ./path/to/conversation.md
@@ -154,15 +156,76 @@ tag-conversations tag ./conversations/ --mode=interactive
 
 # Force reprocessing of all files
 tag-conversations tag ./conversations/ --force
+```
 
-# Limit processing cost
+### Cost Management and Budget Control
+
+```bash
+# Limit processing cost with warning at 80%
 tag-conversations tag ./conversations/ --max-cost=5.00
 
-# Use a specific model
-tag-conversations tag ./conversations/ --model=gpt-4
+# Set action when hitting cost limit
+tag-conversations tag ./conversations/ --max-cost=10.00 --on-limit=pause
 
-# Run a benchmark
-tag-conversations test --benchmark --models=gpt-3.5-turbo,gpt-4
+# Get accurate cost estimate before processing
+tag-conversations tag ./conversations/ --dry-run
+
+# Use a specific model with cost awareness
+tag-conversations tag ./conversations/ --model=gpt-4 --max-cost=15.00
+```
+
+### Advanced Testing and Benchmarking
+
+```bash
+# Run basic performance benchmark
+tag-conversations test --benchmark
+
+# Compare multiple models with detailed metrics
+tag-conversations test --benchmark --models=gpt-3.5-turbo,gpt-4,gpt-4o --compare
+
+# Run integration tests
+tag-conversations test --integration
+
+# Perform stress testing with volume control
+tag-conversations test --stress-test --volume=1000 --concurrency=10
+
+# Optimize parameters for better performance
+tag-conversations test --optimize-params --parameters=confidence,concurrency
+
+# Use specific datasets for testing
+tag-conversations test --benchmark --dataset=technical --samples=50
+```
+
+### Configuration and Profile Management
+
+```bash
+# Create a configuration profile for fast processing
+tag-conversations config create-profile fast-tagging --model=gpt-3.5-turbo --concurrency=5
+
+# Switch to a different profile
+tag-conversations config use-profile fast-tagging
+
+# Validate model availability
+tag-conversations config validate-model gpt-4o
+
+# Export configuration for sharing
+tag-conversations config export --format=json --output=my-config.json
+```
+
+### Statistics and Analysis
+
+```bash
+# View usage statistics for the current month
+tag-conversations stats --period=month --type=all
+
+# Analyze files in a directory for tag distribution
+tag-conversations stats --directory=./conversations --format=table
+
+# Export usage data to CSV
+tag-conversations stats --period=all --output=usage-report.csv
+
+# Reset usage statistics
+tag-conversations stats --reset
 ```
 
 ## Workflow Orchestration
@@ -179,25 +242,80 @@ For more details, see the [Workflow Orchestration](./workflow-orchestration.md) 
 
 ## Cost Management
 
-Cost management is a core feature of the CLI:
+Cost management is a core feature of the CLI with sophisticated tracking and control mechanisms:
 
-- Precise token counting and cost estimation
-- Real-time usage tracking during processing
-- Budget controls with configurable thresholds
-- Intelligent model selection based on task requirements
-- Token optimization strategies for cost reduction
+### Real-time Cost Tracking
+- **Precise token counting**: Uses OpenAI's official tokenizer for accurate estimates
+- **Live cost monitoring**: Tracks actual API usage during processing with real-time updates
+- **Budget enforcement**: Configurable cost limits with automatic pausing/warning/stopping
+- **Session persistence**: Maintains cost data across processing sessions
+
+### Intelligent Estimation
+- **Accurate dry-run estimates**: Per-file cost calculation using the cost manager
+- **Budget comparison**: Shows estimated vs. allocated budget before processing
+- **Model-specific pricing**: Handles different token rates for various models
+- **Token optimization**: Suggests ways to reduce costs while maintaining quality
+
+### Budget Controls
+```bash
+# Set hard limit with warning threshold
+tag-conversations tag ./convos/ --max-cost=10.00 --on-limit=pause
+
+# Get detailed cost breakdown
+tag-conversations tag ./convos/ --dry-run --verbose
+```
+
+### Cost Analytics
+- **Historical tracking**: Maintains detailed usage records over time
+- **Model comparison**: Cost-efficiency analysis across different models
+- **Usage patterns**: Identifies optimization opportunities
+- **Export capabilities**: Generate cost reports for analysis
 
 For more details, see the [Cost Management](./cost-management.md) documentation.
 
 ## Benchmarking System
 
-The CLI includes a comprehensive benchmarking system:
+The CLI includes a comprehensive benchmarking system with advanced testing capabilities:
 
-- Performance evaluation across different models
-- Accuracy metrics for classification quality
-- Cost-efficiency analysis
-- Detailed reporting with visualizations
-- Parameter optimization tools
+### Performance Evaluation
+- **Multi-model comparison**: Side-by-side evaluation of different AI models
+- **Accuracy metrics**: Precision, recall, F1-score measurements for classification quality
+- **Latency analysis**: Response time percentiles (P50, P90, P95) and averages
+- **Cost-efficiency analysis**: Cost per operation and tokens per classification
+
+### Test Types
+```bash
+# Standard benchmarking
+tag-conversations test --benchmark --models=gpt-3.5-turbo,gpt-4,gpt-4o
+
+# Integration testing
+tag-conversations test --integration
+
+# Stress testing with volume control
+tag-conversations test --stress-test --volume=1000 --concurrency=10
+
+# Parameter optimization
+tag-conversations test --optimize-params --parameters=confidence,concurrency
+```
+
+### Built-in Test Datasets
+- **Standard**: General conversation samples (~100 files)
+- **Edge-case**: Challenging conversations with ambiguous topics
+- **Multilingual**: Conversations in multiple languages
+- **Technical**: Specialized technical conversations
+
+### Advanced Features
+- **Parameter optimization**: Systematic testing to find optimal configuration
+- **Custom datasets**: Register and use your own test data
+- **Report generation**: HTML, JSON, and CSV export formats
+- **Model recommendations**: Automatic selection based on performance criteria
+- **Continuous benchmarking**: Scheduled regular performance evaluation
+
+### Integration & Stress Testing
+- **API integration validation**: Tests OpenAI API connectivity and error handling
+- **File processing pipeline**: End-to-end workflow verification
+- **Performance regression**: Validates system performance under load
+- **Resource monitoring**: Memory usage and processing efficiency tracking
 
 For more details, see the [Benchmarking Capabilities](./benchmarking.md) documentation.
 

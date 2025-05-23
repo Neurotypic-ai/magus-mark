@@ -162,7 +162,7 @@ describe('testCommand', () => {
       samples: 1,
       verbose: true,
       _: [],
-      $0: 'magus-mark',
+      $0: 'magus',
     } as unknown as ArgumentsCamelCase;
 
     const handlerFn = testCommand.handler;
@@ -186,7 +186,7 @@ describe('testCommand', () => {
     // Mock the models input to avoid the "split" error
     const argv = {
       _: ['test'],
-      $0: 'magus-mark',
+      $0: 'magus',
       prompt: 'Test prompt',
       models: 'gpt-3.5-turbo',
       verbose: false,
@@ -264,7 +264,7 @@ describe('testCommand', () => {
       models: 'gpt-4o',
       samples: 10,
       _: [],
-      $0: 'magus-mark',
+      $0: 'magus',
     } as unknown as ArgumentsCamelCase;
 
     const handlerFn = testCommand.handler;

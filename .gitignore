@@ -74,3 +74,5 @@ storybook-static
 
 bundle-analysis.json
 report.html
+
+.vscode-test/

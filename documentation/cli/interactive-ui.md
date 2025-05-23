@@ -1,7 +1,6 @@
 # Interactive UI Features
 
-The Obsidian Magic CLI implements a rich interactive user interface for an engaging and intuitive command-line
-experience.
+The Obsidian Magic CLI implements a rich interactive user interface for an engaging and intuitive command-line experience. The system provides real-time feedback, sophisticated progress visualization, and comprehensive cost monitoring during processing.
 
 ## Terminal UI Components
 
@@ -9,13 +8,13 @@ The CLI leverages several high-quality libraries to create an interactive termin
 
 ### Libraries and Components
 
-- **inquirer**: Interactive prompts and menus
-- **ora**: Elegant terminal spinners
-- **chalk**: Terminal text styling and coloring
-- **cli-progress**: Customizable progress bars
-- **boxen**: Information boxes for statistics and summaries
-- **figures**: Unicode symbols for better visual indicators
-- **gradient-string**: Colorful gradient text for emphasis
+- **@inquirer/prompts**: Modern interactive prompts and menus with enhanced UX
+- **ora**: Elegant terminal spinners with success/failure states
+- **chalk**: Terminal text styling and coloring for enhanced readability
+- **cli-progress**: Customizable progress bars with real-time updates
+- **boxen**: Information boxes for statistics, summaries, and cost breakdowns
+- **figures**: Unicode symbols for better visual indicators and status display
+- **fs-extra**: Enhanced file system operations with better error handling
 
 ## Interactive Workflows
 

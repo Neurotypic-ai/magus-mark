@@ -16,10 +16,10 @@ async function build() {
     await fs.ensureDir('./bin');
 
     // Check if bin script exists, if not create it
-    const binFile = './bin/tag-conversations.js';
+    const binFile = './bin/magus-mark.js';
     const binContent = `#!/usr/bin/env node
 
-import('../dist/index.js').catch(err => {
+import('../dist/cli.js').catch(err => {
   console.error('Fatal error:', err);
   process.exit(1);
 });
@@ -31,9 +31,9 @@ import('../dist/index.js').catch(err => {
       await fs.chmod(binFile, '755'); // Make executable
     }
 
-    // Run TypeScript compiler
-    console.log(chalk.yellow('Compiling TypeScript...'));
-    await execAsync('tsc -b');
+    // Run esbuild
+    console.log(chalk.yellow('Building with esbuild...'));
+    await execAsync('tsx esbuild.config.ts');
 
     console.log(chalk.green('Build completed successfully!'));
   } catch (error) {

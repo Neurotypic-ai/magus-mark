@@ -1,6 +1,6 @@
 # CLI Cost Management System
 
-The Obsidian Magic CLI implements a sophisticated cost management and estimation system to ensure predictable and optimized API usage.
+The Obsidian Magic CLI implements a sophisticated, real-time cost management and estimation system to ensure predictable and optimized API usage. The system provides accurate token counting, budget enforcement, and comprehensive usage analytics.
 
 ## Token Estimation
 
@@ -51,30 +51,51 @@ The system includes strategies to optimize token usage for long conversations:
 
 ## Real-time Monitoring
 
-The CLI tracks usage in real-time during processing:
+The CLI tracks usage in real-time during processing with sophisticated budget enforcement:
 
-### Cost Tracking
+### Live Cost Tracking
 
-- Tracks actual API usage during processing
-- Compares real vs. estimated costs continuously
-- Displays running cost totals with model-specific breakdown
+- **Actual API usage monitoring**: Tracks real token consumption and costs during processing
+- **Real vs. estimated comparison**: Continuously compares actual costs against initial estimates
+- **Session cost accumulation**: Maintains running totals with detailed model-specific breakdown
+- **Per-file cost attribution**: Records individual file processing costs for detailed analysis
 
-### Budget Controls
+### Advanced Budget Controls
 
-- Implements configurable budget thresholds with automatic pausing
-- Displays progress bars with cost information
-- Updates estimated remaining cost as processing continues
+- **Configurable cost limits**: Set hard limits with automatic warning thresholds (default 80%)
+- **Dynamic budget enforcement**: Real-time checking against limits with immediate action
+- **Session persistence**: Maintains cost data across processing sessions and resumable operations
+- **Multi-level warnings**: Progressive alerts as costs approach configured limits
 
-### Action Thresholds
+### Budget Enforcement Actions
 
-Configure automatic actions when approaching limits:
+Configure automatic responses when approaching or exceeding limits:
 
 ```bash
-# Set maximum spend for this run
+# Set maximum spend with warning at 80% ($4.00)
 tag-conversations tag ./convos/ --max-cost=5.00
 
-# Set action when approaching limit
-tag-conversations tag ./convos/ --on-limit=pause|warn|stop
+# Pause processing when limit reached (allows manual review)
+tag-conversations tag ./convos/ --max-cost=10.00 --on-limit=pause
+
+# Stop processing immediately on limit (strict budget control)
+tag-conversations tag ./convos/ --max-cost=15.00 --on-limit=stop
+
+# Warn but continue processing (monitoring mode)
+tag-conversations tag ./convos/ --max-cost=20.00 --on-limit=warn
+```
+
+### Real-time Cost Display
+
+During processing, the CLI shows:
+
+```
+Tagging Progress | ████████████████████ | 100% | 25/25 files
+📊 Session Summary:
+├── Current cost: $3.47 of $5.00 budget (69%)
+├── Estimated remaining: $1.23
+├── Files processed: 25/25
+└── Average cost per file: $0.139
 ```
 
 ## Usage Analytics

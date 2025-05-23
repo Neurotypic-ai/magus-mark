@@ -48,9 +48,9 @@ export class Modal extends Events implements ModalType {
     this.app = app;
     this.modalEl = createMockObsidianElement<'div'>('div');
     this.modalEl.addClass('modal');
-    this.contentEl = this.modalEl.createDiv({ cls: 'modal-content' });
-    this.titleEl = this.modalEl.createEl<'h2'>('h2', { cls: 'modal-title' });
-    this.containerEl = this.modalEl.createDiv({ cls: 'modal-container' });
+    this.contentEl = this.modalEl.createDiv({ cls: 'modal-content' }) as MockObsidianElement<'div'>;
+    this.titleEl = this.modalEl.createEl<'h2'>('h2', { cls: 'modal-title' }) as MockObsidianElement<'h2'>;
+    this.containerEl = this.modalEl.createDiv({ cls: 'modal-container' }) as MockObsidianElement<'div'>;
     this.scope = {
       register: vi.fn(),
       unregister: vi.fn(),

@@ -1,4 +1,3 @@
-import { Setting } from 'obsidian';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createMockApp, createMockedPlugin } from '../__mocks__/obsidian';
@@ -6,7 +5,6 @@ import { createMockObsidianElement } from '../testing/createMockObsidianElement'
 import { FolderTagModal } from './FolderTagModal';
 
 import type { App, ButtonComponent, TAbstractFile, TFolder } from 'obsidian';
-import type { Mock } from 'vitest';
 
 import type ObsidianMagicPlugin from '../main';
 
@@ -57,7 +55,6 @@ describe('FolderTagModal', () => {
     vi.spyOn(testApp.vault, 'getAbstractFileByPath').mockImplementation(
       (path: string) => mockFilesAndFolders.find((f) => f.path === path) || null
     );
-    // testApp.isDesktopApp is handled by the Platform mock used in createMockApp
 
     modal = new FolderTagModal(testPlugin, onSubmitCallback);
 
@@ -66,12 +63,14 @@ describe('FolderTagModal', () => {
   });
 
   describe('UI Initialization', () => {
-    it('should create necessary UI elements on open using Setting mock', () => {
+    it('should create necessary UI elements on open using Setting mock', async () => {
+      const { Setting } = await import('obsidian');
+
       modal.onOpen();
 
-      const MockSettingClass = vi.mocked(Setting);
-      expect(MockSettingClass).toHaveBeenCalledTimes(4);
-      // ... other checks ...
+      // Verify Setting constructor was called (for folder selection, search, etc.)
+      expect(Setting).toHaveBeenCalled();
+      expect(vi.mocked(Setting)).toHaveBeenCalledTimes(4);
     });
 
     it('should populate dropdown with folders', () => {
@@ -84,14 +83,10 @@ describe('FolderTagModal', () => {
 
       (modal.contentEl as any).querySelector = vi.fn().mockReturnValue(mockFolderList);
 
-      // Assuming onOpen calls renderFolderList, or call it directly for focused testing
       modal.onOpen();
-      // If onOpen calls renderFolderList internally, this might be redundant
-      // or call modal.renderFolderList() if it's a public method and onOpen doesn't set it up for this test.
-      // For this pass, assuming onOpen is sufficient to trigger the logic that uses getAllLoadedFiles and populates the list.
 
       expect(testApp.vault.getAllLoadedFiles).toHaveBeenCalled();
-      const listCreateEl = mockFolderList.createEl as Mock;
+      const listCreateEl = mockFolderList.createEl as any;
       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder1' }));
       expect(listCreateEl).toHaveBeenCalledWith('div', expect.objectContaining({ text: 'folder2' }));
       expect(listCreateEl).not.toHaveBeenCalledWith('div', expect.objectContaining({ text: 'test.md' }));
@@ -100,7 +95,7 @@ describe('FolderTagModal', () => {
 
   describe('Folder Selection', () => {
     it('should handle folder selection', () => {
-      modal.onOpen(); // Ensure modal is set up
+      modal.onOpen();
 
       const folderItem1 = createMockObsidianElement('div', { cls: 'folder-item', text: 'folder1' });
       folderItem1.dataset['path'] = 'folder1';
@@ -161,10 +156,9 @@ describe('FolderTagModal', () => {
         type: 'checkbox',
       }) as unknown as HTMLInputElement;
       privateModal.includeSubfoldersCheckbox.checked = true;
-      privateModal.close = vi.fn(); // Mock the close method
+      privateModal.close = vi.fn();
 
       const selectedFolder = { path: 'folder1', name: 'folder1', isFolder: () => true } as unknown as TFolder;
-      // Ensure testApp.vault.getAbstractFileByPath is used if the modal re-fetches the folder
       testApp.vault.getAbstractFileByPath = vi.fn().mockReturnValue(selectedFolder);
 
       privateModal.handleTagButtonClick();
@@ -203,34 +197,44 @@ describe('FolderTagModal', () => {
   });
 
   describe('Cancel Operation', () => {
-    it('should close modal when Cancel button is clicked', () => {
-      modal.onOpen();
-      const MockSettingClass = vi.mocked(Setting);
-      // Assuming the 4th Setting call is the one that adds the cancel button
-      const cancelButtonSettingInstance = MockSettingClass.mock.results[3]?.value as unknown as Setting;
+    it('should close modal when Cancel button is clicked', async () => {
+      const { Setting } = await import('obsidian');
 
-      // Check if the instance and addButton mock exist before proceeding
-      const addButtonMock = vi.mocked(cancelButtonSettingInstance.addButton);
-      const cancelButtonConfigFn = addButtonMock.mock.calls[0]?.[0];
+      modal.onOpen();
+
+      // Find the cancel button setting (should be the 4th Setting call)
+      const settingCalls = vi.mocked(Setting).mock.calls;
+      expect(settingCalls.length).toBeGreaterThanOrEqual(4);
+
+      // Get the cancel button setting instance (4th call result)
+      const cancelButtonSetting = vi.mocked(Setting).mock.instances[3];
+      expect(cancelButtonSetting).toBeDefined();
+
+      if (!cancelButtonSetting) {
+        throw new Error('Cancel button setting should be defined');
+      }
+
+      const addButtonMock = vi.mocked(cancelButtonSetting.addButton);
+      expect(addButtonMock).toHaveBeenCalled();
+
+      // Get the button configuration function
+      const buttonConfigFn = addButtonMock.mock.calls[0]?.[0];
+      expect(buttonConfigFn).toBeDefined();
 
       const mockCancelButton = {
         setButtonText: vi.fn().mockReturnThis(),
         onClick: vi.fn().mockImplementation((cb: () => void) => {
-          // Simulate the button's onClick calling the provided callback
-          cb();
-          return mockCancelButton; // Return this for chaining if any
+          cb(); // Execute the callback immediately
+          return mockCancelButton;
         }),
       } as unknown as ButtonComponent;
 
-      modal.close = vi.fn(); // Ensure modal.close is a mock before it's called
+      modal.close = vi.fn();
 
-      if (cancelButtonConfigFn) {
-        cancelButtonConfigFn(mockCancelButton);
-        // The onClick of the mockCancelButton should have been called, which in turn calls modal.close
+      // Execute the button configuration function
+      if (buttonConfigFn) {
+        buttonConfigFn(mockCancelButton);
         expect(modal.close).toHaveBeenCalled();
-      } else {
-        // This case means addButton was called, but not with a config function, or the mock setup is unexpected.
-        throw new Error('Test setup check: Cancel button config function not found in addButton mock calls.');
       }
     });
   });

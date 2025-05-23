@@ -3,175 +3,148 @@
  * Magus Mark CLI
  * A command-line tool for analyzing and tagging AI conversations
  */
-'use strict';
-
-import fs from 'node:fs';
-import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import chalk from 'chalk';
-import { config as dotenvConfig } from 'dotenv';
-import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import yargs from 'yargs/yargs';
 
-import { AppError } from '@magus-mark/core/errors/AppError';
 import { Logger } from '@magus-mark/core/utils/Logger';
 
-import { getAllCommands } from './commands/commands';
-import { config } from './utils/config';
-import { costManager } from './utils/cost-manager';
+import { configCommand } from './commands/config';
+import { configInteractiveCommand } from './commands/config-interactive';
+import { statsCommand } from './commands/stats';
+import { tagCommand } from './commands/tag';
+import { taxonomyCommand } from './commands/taxonomy';
+import { testCommand } from './commands/test';
 
-// Determine the directory of the current module
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+import type { ArgumentsCamelCase, Argv } from 'yargs';
 
-// Construct the path to package.json relative to the current file
-const packageJsonPath = path.join(__dirname, '..', 'package.json');
-
-// Read and parse package.json
-const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-
-// Initialize logger
 const logger = Logger.getInstance('cli');
 
-// Import update-notifier dynamically to avoid linter errors
-type UpdateNotifier = (options: { pkg: { name: string; version: string } }) => { notify(): void };
-
-// Check for updates asynchronously
-(async () => {
+// Function to get package version
+function getPackageVersion(): string {
   try {
-    // Import dynamically using ES module syntax
-    const updateNotifierModule = await import('update-notifier');
-    const updateNotifier = updateNotifierModule.default as UpdateNotifier;
-    updateNotifier({ pkg }).notify();
+    const packageJsonPath = new URL('../package.json', import.meta.url);
+    const packageJson = JSON.parse(readFileSync(fileURLToPath(packageJsonPath), 'utf8')) as { version: string };
+    return packageJson.version;
   } catch {
-    logger.debug('Update notifier not available');
-  }
-})().catch(() => {
-  // Ignore any errors from the update check
-});
-
-// Initialize the CLI tool
-dotenvConfig();
-
-// Set log level from environment variable or config
-const logLevel = process.env['LOG_LEVEL'] ?? config.get('logLevel') ?? 'info';
-const outputFormat = process.env['OUTPUT_FORMAT'] ?? config.get('outputFormat') ?? 'pretty';
-
-// Configure logger
-logger.configure({
-  logLevel: logLevel as 'error' | 'warn' | 'info' | 'debug',
-  outputFormat: outputFormat as 'pretty' | 'json' | 'silent',
-});
-
-/**
- * Banner function
- */
-function showBanner() {
-  if (outputFormat !== 'silent') {
-    logger.box(
-      `Magus Mark v${pkg.version}\n` + `Current cost limit: ${logger.formatCost(costManager.getCostLimit())}`,
-      'CLI Tool'
-    );
+    return 'unknown';
   }
 }
 
-// Display banner and welcome message
-showBanner();
+const packageVersion = getPackageVersion();
 
-/**
- * Main CLI application
- */
-async function main() {
-  try {
-    // Set up command line arguments
-    const cli = yargs(hideBin(process.argv))
-      .scriptName('magus-mark')
-      .usage('$0 <command> [options]')
-      .demandCommand(1, 'You must specify a command')
-      .strict()
-      .alias('h', 'help')
-      .alias('v', 'version')
-      .wrap(120)
-      .fail((msg: string, err: Error) => {
-        // Handle custom errors
-        if (err instanceof AppError) {
-          logger.error(err.format());
-          if (err.recoverable) {
-            logger.info('Try running with --verbose for more details');
-          }
-        } else {
-          logger.error(msg || err.message);
-        }
-        process.exit(1);
-      });
-
-    // Register all commands
-    for (const command of getAllCommands()) {
-      cli.command(command);
+// Create Yargs instance
+const cli = yargs(hideBin(process.argv))
+  .scriptName('magus-mark')
+  .version(packageVersion)
+  .strict()
+  .demandCommand(1, 'You must provide a command')
+  .help()
+  .showHelpOnFail(true)
+  .wrap(120)
+  .epilogue('For more information, visit: https://github.com/your-org/magus-mark')
+  .middleware((argv: ArgumentsCamelCase<Record<string, unknown>>) => {
+    // Global middleware for all commands
+    const verbose = argv['verbose'] as boolean | undefined;
+    if (verbose) {
+      logger.configure({ logLevel: 'debug', outputFormat: 'pretty' });
     }
 
-    // Add global options
-    cli.options({
-      config: {
-        describe: 'Path to configuration file',
-        type: 'string',
-      },
-      verbose: {
-        describe: 'Show detailed output',
-        type: 'boolean',
-        alias: 'V',
-      },
-      output: {
-        describe: 'Output file path',
-        type: 'string',
-        alias: 'o',
-      },
-      'output-format': {
-        describe: 'Output format',
-        choices: ['pretty', 'json', 'silent'],
-        default: config.get('outputFormat'),
-      },
-    });
-
-    // Add version information
-    cli.version(`v${pkg.version}`);
-
-    // Add banner and help text
-    const banner = chalk.bold.green(`Magus Mark CLI v${pkg.version}`);
-    cli.epilogue(`For more information, see https://github.com/khallmark/magus-mark`);
-
-    // Display banner before executing commands
-    cli.middleware([
-      (argv) => {
-        if (!argv['help'] && !argv['version']) {
-          console.log(banner);
-          console.log();
-        }
-        return Promise.resolve();
-      },
-    ]);
-
-    // Parse the arguments
-    await cli.parse();
-  } catch (error) {
-    // Handle uncaught errors
-    if (error instanceof AppError) {
-      logger.error(error.format());
-    } else if (error instanceof Error) {
-      logger.error(`Unexpected error: ${error.message}`);
-      if (logLevel === 'debug') {
-        console.error(error);
-      }
-    } else {
-      logger.error(`Unknown error: ${String(error)}`);
+    // Log startup info
+    logger.debug(`CLI v${packageVersion} starting...`);
+  })
+  .command(tagCommand)
+  .command(configCommand)
+  .command(configInteractiveCommand)
+  .command(statsCommand)
+  .command(taxonomyCommand)
+  .command(testCommand)
+  .option('verbose', {
+    describe: 'Show detailed output',
+    type: 'boolean',
+    alias: 'v',
+    global: true,
+  })
+  .option('config', {
+    describe: 'Path to configuration file',
+    type: 'string',
+    global: true,
+  })
+  .option('output-format', {
+    describe: 'Output format',
+    choices: ['pretty', 'json', 'silent'] as const,
+    default: 'pretty' as const,
+    global: true,
+  })
+  .example('$0 tag ./conversations/', 'Process all markdown files in the conversations directory')
+  .example('$0 config set apiKey your-key-here', 'Set your OpenAI API key')
+  .example('$0 setup', 'Run interactive configuration setup')
+  .example('$0 stats --period=week', 'Show usage statistics for the past week')
+  .fail((msg, err, yargsInstance: Argv) => {
+    if (err) {
+      logger.error(`Error: ${err.message}`);
+    } else if (msg) {
+      logger.error(`Error: ${msg}`);
     }
+
+    logger.info(chalk.gray('Run with --help to see available commands and options.'));
+
+    // Show help if the command is not recognized
+    if (msg && (msg.includes('Unknown argument') || msg.includes('Unknown command'))) {
+      console.log('\n');
+      console.log(yargsInstance.help());
+    }
+
     process.exit(1);
-  }
-}
+  });
 
-// Run the application
-main().catch((err: unknown) => {
-  // This should never happen as main() already catches errors
-  console.error('Critical error:', err);
+// Error handling for unhandled rejections and exceptions
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error(`Unhandled Rejection at: ${String(promise)}, reason: ${String(reason)}`);
+  // Graceful shutdown
   process.exit(1);
 });
+
+process.on('uncaughtException', (error) => {
+  logger.error(`Uncaught Exception thrown: ${error.message}`);
+  // Graceful shutdown
+  process.exit(1);
+});
+
+// Graceful shutdown on SIGINT (Ctrl+C)
+process.on('SIGINT', () => {
+  logger.info('\nReceived SIGINT. Gracefully shutting down...');
+  process.exit(0);
+});
+
+// Graceful shutdown on SIGTERM
+process.on('SIGTERM', () => {
+  logger.info('Received SIGTERM. Gracefully shutting down...');
+  process.exit(0);
+});
+
+// Print welcome message with CLI version
+const welcomeMessage = `
+${chalk.bold.blue('Magus Mark CLI')} ${chalk.gray('v' + packageVersion)}
+${chalk.gray('AI-powered conversation tagging for Obsidian')}
+
+${chalk.cyan('Quick Start:')}
+  ${chalk.white('magus-mark setup')}          Run interactive configuration
+  ${chalk.white('magus-mark tag <paths>')}    Tag conversation files
+  ${chalk.white('magus-mark --help')}         Show all available commands
+
+${chalk.yellow('Documentation:')} https://github.com/your-org/magus-mark/tree/main/apps/cli
+`;
+
+// If no command is provided, show the welcome message
+if (process.argv.length === 2) {
+  console.log(welcomeMessage);
+  console.log(chalk.gray('\nRun "magus-mark --help" to see all available commands.'));
+  process.exit(0);
+}
+
+// Parse and execute commands
+void cli.parse();

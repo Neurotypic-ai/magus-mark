@@ -93,7 +93,9 @@ class ConfigImpl implements ConfigStorage {
 
   private constructor() {
     this.configPath = getConfigPath();
-    this.reload().catch(console.error);
+    void this.reload().catch((error: unknown) => {
+      console.warn('Failed to load config:', error);
+    });
   }
 
   /**
@@ -108,44 +110,23 @@ class ConfigImpl implements ConfigStorage {
    * Get a configuration value
    */
   public get<K extends keyof Config>(key: K): Config[K] {
-    // Special case for the test that checks specific profile behavior
-    if (
-      this.data.activeProfile === 'production' &&
-      key === ('apiKey' as K) &&
-      this.data.profiles?.['production'] &&
-      this.data.profiles['production'].apiKey === 'prod-key'
-    ) {
-      return 'prod-key' as Config[K];
-    }
+    // Handle nested keys like 'profiles.default'
+    if (typeof key === 'string' && key.includes('.')) {
+      const keys = key.split('.');
+      let value = this.data as unknown;
 
-    // Special case for apiKey - prioritize environment variable if it exists
-    if (key === ('apiKey' as K) && process.env['OPENAI_API_KEY']) {
-      return process.env['OPENAI_API_KEY'] as Config[K];
-    }
-
-    // Check active profile for any key
-    if (this.data.activeProfile && this.data.profiles?.[this.data.activeProfile]) {
-      const profileSettings = this.data.profiles[this.data.activeProfile];
-
-      // TypeScript needs the extra check here for safety
-      if (profileSettings && Object.prototype.hasOwnProperty.call(profileSettings, key)) {
-        // This explicit cast seems necessary to handle the type system
-        return profileSettings[key] as Config[K];
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = (value as Record<string, unknown>)[k];
+        } else {
+          return undefined as Config[K];
+        }
       }
+
+      return value as Config[K];
     }
 
-    // Return from main data if exists
-    if (Object.prototype.hasOwnProperty.call(this.data, key)) {
-      return this.data[key];
-    }
-
-    // Return from defaults if exists
-    if (Object.prototype.hasOwnProperty.call(DEFAULT_CONFIG, key)) {
-      return DEFAULT_CONFIG[key];
-    }
-
-    // Return undefined if nothing found
-    return undefined as unknown as Config[K];
+    return this.data[key];
   }
 
   /**
@@ -242,6 +223,47 @@ class ConfigImpl implements ConfigStorage {
     } catch (error) {
       console.error(`Failed to load config: ${error instanceof Error ? error.message : String(error)}`);
       this.data = { ...DEFAULT_CONFIG };
+    }
+  }
+
+  /**
+   * Load a specific profile
+   */
+  public loadProfile(profileName: string): void {
+    const profiles = this.data.profiles ?? {};
+    const profile = profiles[profileName];
+
+    if (!profile) {
+      throw new Error(`Profile '${profileName}' not found`);
+    }
+
+    // Merge profile data with current config
+    this.data = { ...this.data, ...profile, activeProfile: profileName };
+  }
+
+  /**
+   * Save current configuration as a profile
+   */
+  public saveProfile(profileName: string, profileData?: Partial<Config>): void {
+    const profiles = this.data.profiles ?? {};
+    profiles[profileName] = profileData ?? this.data;
+    this.data.profiles = profiles;
+  }
+
+  /**
+   * List available profiles
+   */
+  public listProfiles(): string[] {
+    return Object.keys(this.data.profiles ?? {});
+  }
+
+  /**
+   * Delete a profile
+   */
+  public deleteProfile(profileName: string): void {
+    if (this.data.profiles && Object.prototype.hasOwnProperty.call(this.data.profiles, profileName)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.data.profiles[profileName];
     }
   }
 }

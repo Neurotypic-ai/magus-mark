@@ -8,6 +8,8 @@ import { config } from '../utils/config';
 
 import type { CommandModule } from 'yargs';
 
+import type { Config } from '../types/config';
+
 const logger = Logger.getInstance('config');
 const modelManager = ModelManager.getInstance();
 const fileUtils = new FileUtils(process.cwd());
@@ -162,7 +164,7 @@ export const configCommand: CommandModule = {
             .option('output', {
               describe: 'Output file path',
               type: 'string',
-              default: './magus-mark-config.json',
+              default: './magus-config.json',
               alias: 'o',
             }),
         handler: async (argv) => {
@@ -238,6 +240,107 @@ export const configCommand: CommandModule = {
               logger.error(`Error validating model: ${String(error)}`);
             }
           }
+        },
+      })
+      .command({
+        command: 'create-profile <name>',
+        describe: 'Create a new configuration profile',
+        builder: (yargs) =>
+          yargs
+            .positional('name', {
+              describe: 'Profile name',
+              type: 'string',
+              demandOption: true,
+            })
+            .option('model', {
+              describe: 'Default model for this profile',
+              type: 'string',
+            })
+            .option('concurrency', {
+              describe: 'Concurrency setting',
+              type: 'number',
+            }),
+        handler: async (argv) => {
+          const { name, model, concurrency } = argv as {
+            name: string;
+            model?: string;
+            concurrency?: number;
+          };
+
+          const profileData: Partial<Config> = {};
+          if (model) profileData.defaultModel = model;
+          if (concurrency) profileData.concurrency = concurrency;
+
+          config.saveProfile(name, profileData);
+          await config.save();
+
+          logger.info(`Profile '${name}' created successfully.`);
+        },
+      })
+      .command({
+        command: 'list-profiles',
+        describe: 'List all configuration profiles',
+        handler: () => {
+          const profiles = config.listProfiles();
+
+          if (profiles.length === 0) {
+            logger.info('No profiles found.');
+            return;
+          }
+
+          logger.info('Available profiles:');
+          profiles.forEach((profile) => {
+            const isActive = config.get('activeProfile') === profile;
+            logger.info(`${isActive ? '* ' : '  '}${profile}`);
+          });
+        },
+      })
+      .command({
+        command: 'use-profile <name>',
+        describe: 'Switch to a configuration profile',
+        builder: (yargs) =>
+          yargs.positional('name', {
+            describe: 'Profile name',
+            type: 'string',
+            demandOption: true,
+          }),
+        handler: async (argv) => {
+          const { name } = argv as { name: string };
+
+          try {
+            config.loadProfile(name);
+            await config.save();
+            logger.info(`Switched to profile '${name}'.`);
+          } catch (error) {
+            logger.error(`Failed to load profile: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        },
+      })
+      .command({
+        command: 'delete-profile <name>',
+        describe: 'Delete a configuration profile',
+        builder: (yargs) =>
+          yargs.positional('name', {
+            describe: 'Profile name',
+            type: 'string',
+            demandOption: true,
+          }),
+        handler: async (argv) => {
+          const { name } = argv as { name: string };
+
+          const confirmDelete = await confirm({
+            message: `Are you sure you want to delete profile '${name}'?`,
+            default: false,
+          });
+
+          if (!confirmDelete) {
+            logger.info('Profile deletion cancelled.');
+            return;
+          }
+
+          config.deleteProfile(name);
+          await config.save();
+          logger.info(`Profile '${name}' deleted.`);
         },
       })
       .demandCommand(1, 'You must specify a command')

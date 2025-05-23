@@ -1,7 +1,7 @@
 {
   "author": "Kevin Hallmark <obsdian-magic@littleblackhat.com>",
   "bin": {
-    "magus": "./dist/cli.js"
+    "magus-mark": "./dist/cli.js"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.5.1",
@@ -49,14 +49,14 @@
     "cli"
   ],
   "license": "MIT",
-  "main": "dist/index.js",
+  "main": "dist/cli.js",
   "name": "@magus-mark/cli",
   "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc -b --watch",
+    "build": "tsx esbuild.config.ts",
+    "dev": "tsx esbuild.config.ts --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "start": "node dist/index.js",
+    "start": "node dist/cli.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",

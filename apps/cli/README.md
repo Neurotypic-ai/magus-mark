@@ -20,13 +20,13 @@ npx @magus-mark/cli <command>
 
 ```bash
 # Set up your configuration (interactive)
-tag-conversations setup
+magus-mark setup
 
 # Process a single file
-tag-conversations tag ./path/to/conversation.md
+magus-mark tag ./path/to/conversation.md
 
 # Process a directory of files
-tag-conversations tag ./path/to/conversations/
+magus-mark tag ./path/to/conversations/
 ```
 
 ## Commands
@@ -36,12 +36,12 @@ tag-conversations tag ./path/to/conversations/
 Process and tag conversations.
 
 ```bash
-tag-conversations tag [paths..] [options]
+magus-mark tag [paths..] [options]
 
 # Examples
-tag-conversations tag ./path/to/conversation.md
-tag-conversations tag ./path/to/conversations/ --mode=differential
-tag-conversations tag ./convos/ --model=gpt-4 --max-cost=10.00
+magus-mark tag ./path/to/conversation.md
+magus-mark tag ./path/to/conversations/ --mode=differential
+magus-mark tag ./convos/ --model=gpt-4 --max-cost=10.00
 ```
 
 Options:
@@ -65,13 +65,13 @@ Options:
 Manage configuration.
 
 ```bash
-tag-conversations config <command> [options]
+magus-mark config <command> [options]
 
 # Examples
-tag-conversations config get apiKey
-tag-conversations config set defaultModel gpt-4
-tag-conversations config import ./my-config.json
-tag-conversations config export --format=json
+magus-mark config get apiKey
+magus-mark config set defaultModel gpt-4
+magus-mark config import ./my-config.json
+magus-mark config export --format=json
 ```
 
 Subcommands:
@@ -81,18 +81,18 @@ Subcommands:
 - `import <file>`: Import configuration from file
 - `export`: Export configuration to file
 - `reset`: Reset configuration to defaults
-- `setup`: Interactive configuration setup (alias: `tag-conversations setup`)
+- `setup`: Interactive configuration setup (alias: `magus-mark setup`)
 
 ### `test`
 
 Run tests and benchmarks.
 
 ```bash
-tag-conversations test [options]
+magus-mark test [options]
 
 # Examples
-tag-conversations test --benchmark
-tag-conversations test --models=gpt-3.5-turbo,gpt-4 --samples=10
+magus-mark test --benchmark
+magus-mark test --models=gpt-3.5-turbo,gpt-4 --samples=10
 ```
 
 Options:
@@ -108,11 +108,11 @@ Options:
 View statistics and reports.
 
 ```bash
-tag-conversations stats [options]
+magus-mark stats [options]
 
 # Examples
-tag-conversations stats --period=month
-tag-conversations stats --type=cost
+magus-mark stats --period=month
+magus-mark stats --type=cost
 ```
 
 Options:
@@ -125,20 +125,19 @@ Options:
 Manage taxonomy.
 
 ```bash
-tag-conversations taxonomy <command> [options]
+magus-mark taxonomy <command> [options]
 
 # Examples
-tag-conversations taxonomy list
-tag-conversations taxonomy create --domain=Programming
+magus-mark taxonomy list
+magus-mark taxonomy add-domain Programming
 ```
 
 Subcommands:
 
 - `list`: List all taxonomies
-- `get <domain>`: Get a specific taxonomy
-- `create <domain>`: Create a new taxonomy
-- `update <domain>`: Update an existing taxonomy
-- `delete <domain>`: Delete a taxonomy
+- `add-domain <domain>`: Add a new domain
+- `add-subdomain <domain> <subdomain>`: Add a new subdomain
+- `add-tag <tag>`: Add a contextual tag
 
 Options:
 
@@ -150,10 +149,10 @@ Options:
 
 The CLI can be configured in multiple ways:
 
-1. Interactive setup: `tag-conversations setup`
-2. Environment variables: `OPENAI_API_KEY=your-key tag-conversations`
-3. Configuration file: `tag-conversations --config=./my-config.json`
-4. Direct config commands: `tag-conversations config set apiKey your-key`
+1. Interactive setup: `magus-mark setup`
+2. Environment variables: `OPENAI_API_KEY=your-key magus-mark`
+3. Configuration file: `magus-mark --config=./my-config.json`
+4. Direct config commands: `magus-mark config set apiKey your-key`
 
 Configuration is stored in:
 

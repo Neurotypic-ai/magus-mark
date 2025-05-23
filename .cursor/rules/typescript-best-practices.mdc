@@ -3,8 +3,11 @@ description: TypeScript best practices and coding standards
 globs: **/*.ts,**/*.tsx
 alwaysApply: true
 ---
-
 # TypeScript Best Practices
+
+## Main Rules
+
+- Never disable eslint errors under any circumstances
 
 ## Project Configuration
 
