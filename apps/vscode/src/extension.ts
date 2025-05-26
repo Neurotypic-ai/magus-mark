@@ -824,7 +824,8 @@ function registerAdvancedCommands(context: vscode.ExtensionContext): void {
         if (!vaultService || !smartContextProvider) return;
         const notesResult = await vaultService.getAllNotes();
         if (notesResult.isOk()) {
-          const suggestions = await smartContextProvider.provideSmartSuggestions(notesResult.value, true);
+          const notes: TaggedNote[] = notesResult.value;
+          const suggestions = await smartContextProvider.provideSmartSuggestions(notes, true);
           if (suggestions.isOk() && suggestions.value.length > 0) {
             await vscode.commands.executeCommand('magusSmartSuggestions.focus');
             vscode.window.showInformationMessage(`Found ${suggestions.value.length.toString()} smart suggestions!`);

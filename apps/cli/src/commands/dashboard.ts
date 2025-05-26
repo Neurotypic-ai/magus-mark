@@ -4,6 +4,7 @@ import { MetricsEngine } from '../dashboard/MetricsEngine.js';
 import type { CommandModule } from 'yargs';
 
 import type { DashboardConfig } from '../dashboard/DashboardManager.js';
+import type { MetricData } from '../dashboard/MetricsEngine.js';
 
 interface DashboardOptions {
   layout: 'grid' | 'sidebar' | 'split' | 'custom';
@@ -14,7 +15,22 @@ interface DashboardOptions {
   record?: string;
 }
 
-export const dashboardCommand: CommandModule<{}, DashboardOptions> = {
+interface GraphSeriesData {
+  title: string;
+  x: number[];
+  y: number[];
+  style: { line: string };
+}
+
+interface MetricCollectorInterface {
+  updateProgress(progress: number): void;
+  addCost(cost: number): void;
+  recordTokens(tokens: number): void;
+  recordLatency(latency: number): void;
+  recordLog(level: string, message: string): void;
+}
+
+export const dashboardCommand: CommandModule<Record<string, unknown>, DashboardOptions> = {
   command: 'dashboard',
   describe: '🔥 Launch the Matrix-style real-time God Tier dashboard',
 
@@ -69,7 +85,7 @@ export const dashboardCommand: CommandModule<{}, DashboardOptions> = {
 
       // Start the badass dashboard
       console.log('🔥 Launching the most badass CLI dashboard ever created...');
-      await dashboard.startDashboard();
+      dashboard.startDashboard();
 
       // Set up graceful shutdown
       process.on('SIGINT', () => {
@@ -96,8 +112,8 @@ async function loadDashboardConfig(argv: DashboardOptions): Promise<DashboardCon
     try {
       const fs = await import('fs/promises');
       const configData = await fs.readFile(argv.config, 'utf-8');
-      return JSON.parse(configData);
-    } catch (error) {
+      return JSON.parse(configData) as DashboardConfig;
+    } catch {
       console.warn(`⚠️  Failed to load config file ${argv.config}, using defaults`);
     }
   }
@@ -164,27 +180,27 @@ function setupMetricsCollection(dashboard: DashboardManager, metrics: MetricsEng
   metrics.startCollection('system:cpu', 2000);
 
   // Set up real-time data feeds to dashboard widgets
-  metrics.on('processing:progress', (data) => {
+  metrics.on('processing:progress', (data: MetricData) => {
     dashboard.updateWidget('processing-status', { percent: data.value });
   });
 
-  metrics.on('cost:updated', (data) => {
+  metrics.on('cost:updated', (data: MetricData) => {
     dashboard.updateWidget('cost-tracker', { value: data.value.toFixed(4) });
   });
 
-  metrics.on('tokens:usage', (data) => {
+  metrics.on('tokens:usage', () => {
     const history = metrics.getHistoricalData('tokens:usage');
     const series = formatGraphData(history, 'Tokens/min');
     dashboard.updateWidget('token-usage', { series });
   });
 
-  metrics.on('api:latency', (data) => {
+  metrics.on('api:latency', () => {
     const history = metrics.getHistoricalData('api:latency');
     const series = formatGraphData(history, 'Latency (ms)');
     dashboard.updateWidget('api-latency', { series });
   });
 
-  metrics.on('system:memory', (data) => {
+  metrics.on('system:memory', (data: MetricData) => {
     dashboard.updateWidget('system-memory', {
       data: [
         { label: 'Used', percent: data.value, color: 'green' },
@@ -193,9 +209,9 @@ function setupMetricsCollection(dashboard: DashboardManager, metrics: MetricsEng
     });
   });
 
-  metrics.on('system:log', (data) => {
-    const level = data.tags?.level || 'info';
-    const message = data.tags?.message || `Log entry ${data.value}`;
+  metrics.on('system:log', (data: MetricData) => {
+    const level = data.tags?.level ?? 'info';
+    const message = data.tags?.message ?? `Log entry ${String(data.value)}`;
     const timestamp = new Date(data.timestamp).toLocaleTimeString();
 
     dashboard.updateWidget('system-log', {
@@ -212,7 +228,7 @@ function setupMetricsCollection(dashboard: DashboardManager, metrics: MetricsEng
     });
   });
 
-  dashboard.on('theme:changed', (newTheme) => {
+  dashboard.on('theme:changed', (newTheme: string) => {
     metrics.recordMetric('system:log', {
       timestamp: Date.now(),
       value: 1,
@@ -220,7 +236,7 @@ function setupMetricsCollection(dashboard: DashboardManager, metrics: MetricsEng
     });
   });
 
-  dashboard.on('widget:updated', (widgetId) => {
+  dashboard.on('widget:updated', () => {
     // Track widget update frequency for performance monitoring
   });
 
@@ -228,7 +244,7 @@ function setupMetricsCollection(dashboard: DashboardManager, metrics: MetricsEng
   simulateSampleData(metrics);
 }
 
-function formatGraphData(history: any[], label: string): any {
+function formatGraphData(history: MetricData[], label: string): GraphSeriesData[] {
   const data = history.slice(-50).map((point, index) => ({
     x: index,
     y: point.value,
@@ -251,20 +267,23 @@ function simulateSampleData(metrics: MetricsEngine): void {
     progress = Math.min(100, progress + Math.random() * 5);
     if (progress >= 100) progress = 0;
 
-    const collector = (metrics as any).collectors.get('processing:progress');
+    const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
+      'processing:progress'
+    );
     if (collector) {
       collector.updateProgress(progress);
     }
   }, 2000);
 
   // Simulate cost accumulation
-  let totalCost = 0;
   setInterval(() => {
-    totalCost += Math.random() * 0.001; // Small incremental cost
+    const costIncrement = Math.random() * 0.001;
 
-    const collector = (metrics as any).collectors.get('cost:updated');
+    const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
+      'cost:updated'
+    );
     if (collector) {
-      collector.addCost(Math.random() * 0.001);
+      collector.addCost(costIncrement);
     }
   }, 3000);
 
@@ -272,7 +291,9 @@ function simulateSampleData(metrics: MetricsEngine): void {
   setInterval(() => {
     const tokens = Math.floor(Math.random() * 1000) + 100;
 
-    const collector = (metrics as any).collectors.get('tokens:usage');
+    const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
+      'tokens:usage'
+    );
     if (collector) {
       collector.recordTokens(tokens);
     }
@@ -282,7 +303,9 @@ function simulateSampleData(metrics: MetricsEngine): void {
   setInterval(() => {
     const latency = Math.random() * 2000 + 100; // 100-2100ms
 
-    const collector = (metrics as any).collectors.get('api:latency');
+    const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
+      'api:latency'
+    );
     if (collector) {
       collector.recordLatency(latency);
     }
@@ -305,7 +328,9 @@ function simulateSampleData(metrics: MetricsEngine): void {
     const levels = ['info', 'warn', 'debug', 'error'];
     const level = levels[Math.floor(Math.random() * levels.length)];
 
-    const collector = (metrics as any).collectors.get('system:log');
+    const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
+      'system:log'
+    );
     if (collector) {
       collector.recordLog(level, message);
     }

@@ -9,9 +9,17 @@ export interface CacheConfig {
   persistent: boolean;
 }
 
+type CacheMetadata = Record<string, unknown>;
+
+interface CompressionResult {
+  compressed: boolean;
+  data: string;
+  originalSize: number;
+}
+
 export interface CacheEntry<T> {
   key: string;
-  value: T;
+  value: T | CompressionResult;
   timestamp: number;
   accessCount: number;
   lastAccessed: number;
@@ -32,9 +40,9 @@ export class SmartCache<T> extends EventEmitter {
     this.startCleanupTimer();
   }
 
-  async set(key: string, value: T, metadata?: any): Promise<void> {
+  async set(key: string, value: T, metadata?: CacheMetadata): Promise<void> {
     const contentHash = this.generateContentHash(value);
-    const semanticHash = await this.generateSemanticHash(value, metadata);
+    const semanticHash = this.generateSemanticHash(value, metadata);
 
     // Check for semantic duplicates
     if (this.config.strategy === 'semantic' && semanticHash) {
@@ -45,7 +53,7 @@ export class SmartCache<T> extends EventEmitter {
       }
     }
 
-    const processedValue = this.config.compression ? await this.compress(value) : value;
+    const processedValue = this.config.compression ? this.compress(value) : value;
     const size = this.estimateSize(processedValue);
 
     const entry: CacheEntry<T> = {
@@ -61,8 +69,10 @@ export class SmartCache<T> extends EventEmitter {
 
     // Remove existing entry if updating
     if (this.cache.has(key)) {
-      const oldEntry = this.cache.get(key)!;
-      this.totalSize -= oldEntry.size;
+      const oldEntry = this.cache.get(key);
+      if (oldEntry) {
+        this.totalSize -= oldEntry.size;
+      }
     }
 
     this.cache.set(key, entry);
@@ -99,7 +109,7 @@ export class SmartCache<T> extends EventEmitter {
 
     this.emit('cache:hit', key);
 
-    const value = this.config.compression ? await this.decompress(entry.value) : entry.value;
+    const value = this.config.compression ? this.decompress(entry.value) : (entry.value as T);
 
     return value;
   }
@@ -146,7 +156,7 @@ export class SmartCache<T> extends EventEmitter {
     return createHash('sha256').update(content).digest('hex');
   }
 
-  private async generateSemanticHash(value: T, metadata?: any): Promise<string | undefined> {
+  private generateSemanticHash(value: T, metadata?: CacheMetadata): string | undefined {
     if (this.config.strategy !== 'semantic') return undefined;
 
     // Use AI embeddings or content analysis for semantic similarity
@@ -157,10 +167,14 @@ export class SmartCache<T> extends EventEmitter {
     // 3. Create a hash based on semantic similarity clusters
 
     const content = typeof value === 'string' ? value : JSON.stringify(value);
-    const words = content.toLowerCase().match(/\b\w+\b/g) || [];
+    const words = content.toLowerCase().match(/\b\w+\b/g) ?? [];
     const sortedWords = words.sort().join('');
 
-    return createHash('md5').update(sortedWords).digest('hex').substring(0, 16);
+    // Include metadata in semantic hash if provided
+    const metadataContent = metadata ? JSON.stringify(metadata) : '';
+    const combinedContent = sortedWords + metadataContent;
+
+    return createHash('md5').update(combinedContent).digest('hex').substring(0, 16);
   }
 
   private findBySemanticHash(hash: string): CacheEntry<T> | undefined {
@@ -184,27 +198,28 @@ export class SmartCache<T> extends EventEmitter {
   private async evict(): Promise<void> {
     switch (this.config.strategy) {
       case 'lru':
-        await this.evictLRU();
+        this.evictLRU();
         break;
       case 'semantic':
-        await this.evictSemantic();
+        this.evictSemantic();
         break;
       case 'content-aware':
-        await this.evictContentAware();
+        this.evictContentAware();
         break;
     }
   }
 
-  private async evictLRU(): Promise<void> {
+  private evictLRU(): void {
     if (this.accessOrder.length === 0) return;
 
     const oldestKey = this.accessOrder[0];
-    this.delete(oldestKey);
-
-    this.emit('cache:evicted', oldestKey, 'lru');
+    if (oldestKey) {
+      this.delete(oldestKey);
+      this.emit('cache:evicted', oldestKey, 'lru');
+    }
   }
 
-  private async evictSemantic(): Promise<void> {
+  private evictSemantic(): void {
     // Find entries with similar semantic hashes and evict the older ones
     const semanticGroups = new Map<string, CacheEntry<T>[]>();
 
@@ -213,30 +228,36 @@ export class SmartCache<T> extends EventEmitter {
         if (!semanticGroups.has(entry.semanticHash)) {
           semanticGroups.set(entry.semanticHash, []);
         }
-        semanticGroups.get(entry.semanticHash)!.push(entry);
+        const group = semanticGroups.get(entry.semanticHash);
+        if (group) {
+          group.push(entry);
+        }
       }
     }
 
     // Find groups with multiple entries and evict older ones
-    for (const [hash, entries] of semanticGroups) {
+    for (const entries of semanticGroups.values()) {
       if (entries.length > 1) {
         // Sort by last accessed (oldest first)
         entries.sort((a, b) => a.lastAccessed - b.lastAccessed);
 
         // Evict all but the most recently accessed
         for (let i = 0; i < entries.length - 1; i++) {
-          this.delete(entries[i].key);
-          this.emit('cache:evicted', entries[i].key, 'semantic');
-          return; // Only evict one at a time
+          const entryToEvict = entries[i];
+          if (entryToEvict) {
+            this.delete(entryToEvict.key);
+            this.emit('cache:evicted', entryToEvict.key, 'semantic');
+            return; // Only evict one at a time
+          }
         }
       }
     }
 
     // If no semantic duplicates found, fall back to LRU
-    await this.evictLRU();
+    this.evictLRU();
   }
 
-  private async evictContentAware(): Promise<void> {
+  private evictContentAware(): void {
     // Analyze content characteristics and evict based on:
     // 1. Size (large items first)
     // 2. Access frequency (low frequency first)
@@ -258,8 +279,9 @@ export class SmartCache<T> extends EventEmitter {
     // Sort by score (highest score = first to evict)
     scoredEntries.sort((a, b) => b.score - a.score);
 
-    if (scoredEntries.length > 0) {
-      const toEvict = scoredEntries[0].entry;
+    const firstEntry = scoredEntries[0];
+    if (firstEntry) {
+      const toEvict = firstEntry.entry;
       this.delete(toEvict.key);
       this.emit('cache:evicted', toEvict.key, 'content-aware');
     }
@@ -273,7 +295,7 @@ export class SmartCache<T> extends EventEmitter {
     this.accessOrder.push(key);
   }
 
-  private async compress(value: T): Promise<any> {
+  private compress(value: T): CompressionResult {
     // Placeholder for compression logic
     // In a real implementation, this would use a compression library like zlib
     const content = typeof value === 'string' ? value : JSON.stringify(value);
@@ -286,17 +308,34 @@ export class SmartCache<T> extends EventEmitter {
     };
   }
 
-  private async decompress(value: any): Promise<T> {
+  private decompress(value: T | CompressionResult): T {
     // Placeholder for decompression logic
-    if (value?.compressed) {
+    if (this.isCompressionResult(value)) {
       return value.data as T;
     }
-    return value as T;
+    return value;
   }
 
-  private estimateSize(value: any): number {
+  private isCompressionResult(value: unknown): value is CompressionResult {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'compressed' in value &&
+      'data' in value &&
+      'originalSize' in value &&
+      typeof (value as CompressionResult).compressed === 'boolean' &&
+      typeof (value as CompressionResult).data === 'string' &&
+      typeof (value as CompressionResult).originalSize === 'number'
+    );
+  }
+
+  private estimateSize(value: T | CompressionResult): number {
     if (typeof value === 'string') {
       return value.length * 2; // Rough estimate for UTF-16
+    }
+
+    if (this.isCompressionResult(value)) {
+      return value.data.length * 2;
     }
 
     return JSON.stringify(value).length * 2;
@@ -309,11 +348,10 @@ export class SmartCache<T> extends EventEmitter {
   }
 
   private cleanupExpired(): void {
-    const now = Date.now();
     const keysToDelete: string[] = [];
 
     for (const [key, entry] of this.cache.entries()) {
-      if (now - entry.timestamp > this.config.ttl) {
+      if (Date.now() - entry.timestamp > this.config.ttl) {
         keysToDelete.push(key);
       }
     }
@@ -325,7 +363,6 @@ export class SmartCache<T> extends EventEmitter {
   }
 
   getStats(): CacheStats {
-    const now = Date.now();
     let hits = 0;
     let totalAccesses = 0;
 
@@ -390,9 +427,9 @@ export class SmartCache<T> extends EventEmitter {
     return 1 - differences / maxLength;
   }
 
-  preload(keys: string[]): Promise<void[]> {
+  preload(keys: string[]): Promise<(T | undefined)[]> {
     // Preload cache with predicted keys
-    return Promise.all(keys.map((key) => this.get(key).then(() => {})));
+    return Promise.all(keys.map((key) => this.get(key)));
   }
 
   export(): CacheExport<T> {

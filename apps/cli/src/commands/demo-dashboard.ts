@@ -53,7 +53,7 @@ export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
     const color = themeColors[argv.theme];
 
     console.log(`${color}🎨 Theme: ${argv.theme.toUpperCase()}${reset}`);
-    console.log(`${color}⏱️  Duration: ${argv.duration} seconds${reset}`);
+    console.log(`${color}⏱️  Duration: ${String(argv.duration)} seconds${reset}`);
     console.log(`${color}🚀 Initializing the most BADASS CLI dashboard ever created...${reset}\n`);
 
     // Simulate dashboard startup
@@ -119,7 +119,7 @@ function drawDashboard(theme: string, elapsed: number, duration: number): void {
   console.log('║                          🔥 MAGUS MARK GOD TIER DASHBOARD 🔥                         ║');
   console.log('╠══════════════════════════════════════════════════════════════════════════════════════╣');
   console.log(
-    `║ Theme: ${theme.padEnd(15)} │ Uptime: ${elapsed}s ${' '.repeat(10)} │ Demo: ${duration - elapsed}s remaining ║`
+    `║ Theme: ${theme.padEnd(15)} │ Uptime: ${String(elapsed)}s ${' '.repeat(10)} │ Demo: ${String(duration - elapsed)}s remaining ║`
   );
   console.log('╠══════════════════════════════════════════════════════════════════════════════════════╣');
   console.log(`${reset}${color}`);
@@ -127,7 +127,7 @@ function drawDashboard(theme: string, elapsed: number, duration: number): void {
   // Processing Status
   const progress = Math.min(100, (elapsed * 3.33) % 100);
   const progressBar = '█'.repeat(Math.floor(progress / 2.5)) + '░'.repeat(40 - Math.floor(progress / 2.5));
-  console.log(`║ ⚡ Processing Status: [${progressBar}] ${progress.toFixed(1)}%              ║`);
+  console.log(`║ ⚡ Processing Status: [${progressBar}] ${String(progress.toFixed(1))}%              ║`);
 
   // Cost Tracker
   const cost = (elapsed * 0.0123).toFixed(4);
@@ -138,16 +138,16 @@ function drawDashboard(theme: string, elapsed: number, duration: number): void {
   // Token Usage
   const tokens = Math.floor(elapsed * 42.7 + Math.sin(elapsed) * 100);
   console.log(
-    `║ 🎯 Token Usage: ${tokens.toString().padEnd(8)} tokens/min │ Total: ${(tokens * elapsed).toLocaleString().padEnd(10)} ║`
+    `║ 🎯 Token Usage: ${String(tokens).padEnd(8)} tokens/min │ Total: ${(tokens * elapsed).toLocaleString().padEnd(10)} ║`
   );
 
   // API Latency
   const latency = Math.floor(150 + Math.sin(elapsed * 0.5) * 50);
-  console.log(`║ 🚀 API Latency: ${latency}ms ${' '.repeat(12)} │ Avg: 165ms │ P99: 240ms      ║`);
+  console.log(`║ 🚀 API Latency: ${String(latency)}ms ${' '.repeat(12)} │ Avg: 165ms │ P99: 240ms      ║`);
 
   // System Memory
   const memUsed = Math.floor(45 + Math.sin(elapsed * 0.3) * 15);
-  console.log(`║ 🧠 Memory Usage: ${memUsed}% ${' '.repeat(11)} │ Heap: 234MB │ RSS: 156MB      ║`);
+  console.log(`║ 🧠 Memory Usage: ${String(memUsed)}% ${' '.repeat(11)} │ Heap: 234MB │ RSS: 156MB      ║`);
 
   console.log('╠══════════════════════════════════════════════════════════════════════════════════════╣');
   console.log('║                                  📋 SYSTEM LOG                                       ║');
@@ -155,10 +155,10 @@ function drawDashboard(theme: string, elapsed: number, duration: number): void {
 
   // Dynamic log messages
   const logs = [
-    `[${new Date().toLocaleTimeString()}] INFO: 🚀 Processing conversation batch #${elapsed}`,
+    `[${new Date().toLocaleTimeString()}] INFO: 🚀 Processing conversation batch #${String(elapsed)}`,
     `[${new Date().toLocaleTimeString()}] INFO: ✅ API request completed successfully`,
-    `[${new Date().toLocaleTimeString()}] WARN: ⚠️  Token limit approaching (${Math.floor(tokens)}%)`,
-    `[${new Date().toLocaleTimeString()}] INFO: 📊 Cache hit ratio: ${Math.floor(87 + Math.sin(elapsed) * 10)}%`,
+    `[${new Date().toLocaleTimeString()}] WARN: ⚠️  Token limit approaching (${String(Math.floor(tokens))}%)`,
+    `[${new Date().toLocaleTimeString()}] INFO: 📊 Cache hit ratio: ${String(Math.floor(87 + Math.sin(elapsed) * 10))}%`,
     `[${new Date().toLocaleTimeString()}] INFO: 🔌 Plugin loaded: enhanced-tagger v2.1.0`,
     `[${new Date().toLocaleTimeString()}] INFO: 🔥 God Tier performance achieved!`,
   ];
@@ -190,3 +190,5 @@ function getStatus(elapsed: number): string {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export { sleep }; // Export for potential reuse
