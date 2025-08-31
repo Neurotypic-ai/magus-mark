@@ -1,9 +1,7 @@
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+// Bundle the schema at build-time via esbuild text loader
+// esbuild config must set loader for '.sql' to 'text'
+import schemaSql from './schema.sql';
 
 export function loadSchema(): string {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  return readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
+  return schemaSql as string;
 }

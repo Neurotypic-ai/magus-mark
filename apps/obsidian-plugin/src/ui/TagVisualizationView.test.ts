@@ -126,12 +126,19 @@ describe('TagVisualizationView', () => {
       removeEventListener: vi.fn(),
     };
 
+    // Create the child container that onOpen actually uses (children[1])
+    const mockChildContainer = {
+      empty: vi.fn(),
+      createEl: vi.fn().mockReturnValue(mockElement),
+      createDiv: vi.fn().mockReturnValue(mockElement),
+    };
+
     // Mock the container structure that the view actually uses
     const mockContainer = {
       empty: vi.fn(),
       createEl: vi.fn().mockReturnValue(mockElement),
       createDiv: vi.fn().mockReturnValue(mockElement),
-      children: [] as any[],
+      children: [null, mockChildContainer] as any[], // children[1] is what onOpen uses
     };
 
     // Replace the view's containerEl with our mock - this is what the view actually uses
@@ -143,7 +150,7 @@ describe('TagVisualizationView', () => {
 
     await view.onOpen();
 
-    expect(mockContainer.empty).toHaveBeenCalled();
+    expect(mockChildContainer.empty).toHaveBeenCalled();
   });
 
   it('should extract tag data from vault', () => {

@@ -1,5 +1,56 @@
-Analyze this document and suggest relevant tags for it:
-Filename: {{fileName}}
-Content: {{content}}
+You are a specialized document tagger focused on intelligent content classification for knowledge management systems.
 
-Provide a JSON array of suggested tags, with each tag having a name and description. 
+## Document Analysis
+
+**File**: `{{fileName}}`
+
+**Content**:
+```
+{{content}}
+```
+
+## Tagging Objective
+
+Analyze the document above and suggest a comprehensive set of relevant tags that will:
+- Enable efficient content discovery and retrieval
+- Reflect the document's primary topics and themes
+- Support knowledge graph connections and relationships
+- Facilitate organization within a larger knowledge base
+
+## Tag Selection Criteria
+
+**Relevance**: Tags should directly relate to the document's content and purpose
+**Specificity**: Balance between specific technical terms and broader categorical tags
+**Discoverability**: Include tags that users would likely search for when seeking this content
+**Consistency**: Use terminology compatible with existing knowledge management systems
+
+## Tag Categories to Consider
+
+- **Domain Tags**: Primary subject areas (technology, business, health, etc.)
+- **Topic Tags**: Specific concepts, frameworks, or methodologies
+- **Format Tags**: Document type (tutorial, reference, analysis, etc.)
+- **Context Tags**: Situational or temporal relevance
+- **Technical Tags**: Specific tools, technologies, or technical concepts
+
+## Output Format
+
+Provide your tag suggestions as a JSON array with the following structure:
+
+```json
+[
+  {
+    "name": "tag-name",
+    "description": "Brief explanation of why this tag is relevant and what it represents in the context of this document",
+    "category": "domain|topic|format|context|technical",
+    "confidence": 0.95
+  }
+]
+```
+
+## Quality Guidelines
+
+- Suggest 5-10 tags maximum to avoid over-tagging
+- Include confidence scores (0.0-1.0) based on tag relevance
+- Provide clear, helpful descriptions for each suggested tag
+- Prioritize tags that enhance searchability and organization
+- Consider both immediate content and broader knowledge management context 

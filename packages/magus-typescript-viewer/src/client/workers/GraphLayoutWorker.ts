@@ -27,149 +27,79 @@ interface LayoutConfig {
   animationDuration?: number;
 }
 
-// Simple ELK-like layout algorithm
-class LayoutEngine {
-  private config: LayoutConfig;
+// Handle messages from the main thread using ELK layered layout
+self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
+  const { nodes, edges, config } = event.data.payload;
 
-  constructor(config: LayoutConfig) {
-    this.config = config;
-  }
+  try {
+    const ELK = await import('elkjs/lib/elk.bundled.js');
+    const elk = new ELK.default();
 
-  public process(nodes: DependencyNode[], edges: Edge[]): { nodes: DependencyNode[]; edges: Edge[] } {
-    // Clone the nodes and edges to avoid mutation
-    const processedNodes = this.cloneNodes(nodes);
-    const processedEdges = this.cloneEdges(edges);
+    const defaultWidth = 200;
+    const defaultHeight = 120;
 
-    if (processedNodes.length === 0) {
-      return { nodes: processedNodes, edges: processedEdges };
-    }
+    const elkNodes = nodes.map((node) => ({
+      id: node.id,
+      width: (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth,
+      height: (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight,
+      layoutOptions: {
+        ...(node.data?.parentId && { 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' }),
+      },
+    }));
 
-    // Group nodes by type for hierarchical layout
-    const nodesByType = this.groupNodesByType(processedNodes);
+    const validEdges = edges.filter(
+      (edge) => nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target)
+    );
 
-    // Calculate positions based on node types and relationships
-    this.positionNodes(processedNodes, processedEdges, nodesByType);
+    const elkEdges = validEdges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    }));
 
-    return {
-      nodes: processedNodes,
-      edges: processedEdges,
-    };
-  }
+    const elkGraph = {
+      id: 'root',
+      layoutOptions: {
+        'elk.algorithm': 'layered',
+        'elk.direction': config.rankdir,
+        'elk.spacing.nodeNode': String(config.nodesep),
+        'elk.layered.spacing.nodeNodeBetweenLayers': String(config.ranksep),
+        'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+        'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+        'org.eclipse.elk.layered.cycleBreaking.strategy': 'GREEDY',
+        ...(elkNodes.some((n) => (n.layoutOptions as Record<string, string>)['elk.hierarchyHandling']) && {
+          'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+        }),
+      },
+      children: elkNodes,
+      edges: elkEdges,
+    } as const;
 
-  private cloneNodes(nodes: DependencyNode[]): DependencyNode[] {
-    return nodes.map((node) => ({ ...node }));
-  }
+    const layoutedGraph = await elk.layout(elkGraph);
 
-  private cloneEdges(edges: Edge[]): Edge[] {
-    return edges.map((edge) => ({ ...edge }));
-  }
-
-  private groupNodesByType(nodes: DependencyNode[]): Record<string, DependencyNode[]> {
-    const groups: Record<string, DependencyNode[]> = {};
-
-    nodes.forEach((node) => {
-      const type = node.type ?? 'default';
-      groups[type] ??= [];
-      groups[type].push(node);
-    });
-
-    return groups;
-  }
-
-  private positionNodes(nodes: DependencyNode[], edges: Edge[], nodesByType: Record<string, DependencyNode[]>): void {
-    // Determine the layout direction
-    const isHorizontal = this.config.rankdir === 'LR' || this.config.rankdir === 'RL';
-
-    // Prioritize node types for layout (packages -> modules -> classes/interfaces)
-    const nodeTypeOrder = ['package', 'module', 'class', 'interface'];
-
-    // Initial spacing values
-    const xSpacing = isHorizontal ? this.config.ranksep : this.config.nodesep;
-    const ySpacing = isHorizontal ? this.config.nodesep : this.config.ranksep;
-
-    // Position each type of node in layers
-    let xOffset = 0;
-
-    nodeTypeOrder.forEach((type) => {
-      if (!nodesByType[type]) return;
-
-      const typeNodes = nodesByType[type];
-      const nodesPerRow = Math.ceil(Math.sqrt(typeNodes.length));
-
-      // Position nodes in a grid
-      typeNodes.forEach((node, index) => {
-        const row = Math.floor(index / nodesPerRow);
-        const col = index % nodesPerRow;
-
-        if (isHorizontal) {
-          node.position = {
-            x: xOffset + col * xSpacing,
-            y: row * ySpacing,
-          };
-        } else {
-          node.position = {
-            x: col * xSpacing,
-            y: xOffset + row * ySpacing,
-          };
-        }
-      });
-
-      // Update offset for the next layer
-      const layerSize = isHorizontal ? nodesPerRow * xSpacing : Math.ceil(typeNodes.length / nodesPerRow) * ySpacing;
-
-      xOffset += layerSize + this.config.ranksep * 2;
-    });
-
-    // Adjust positions based on parent-child relationships
-    this.adjustPositionsForRelationships(nodes, edges, isHorizontal);
-  }
-
-  private adjustPositionsForRelationships(nodes: DependencyNode[], edges: Edge[], isHorizontal: boolean): void {
-    // Create a map of node IDs to nodes for quick lookup
-    const nodeMap = new Map<string, DependencyNode>();
-    nodes.forEach((node) => nodeMap.set(node.id.toString(), node));
-
-    // Adjust child nodes to be closer to parents
-    edges.forEach((edge) => {
-      const source = nodeMap.get(edge.source.toString());
-      const target = nodeMap.get(edge.target.toString());
-
-      if (source && target) {
-        // If the edge represents a parent-child relationship
-        if ((edge.type === 'inheritance' || edge.type === 'implements') && source.type !== target.type) {
-          // Move child slightly closer to parent
-          const parentPos = isHorizontal ? source.position.x : source.position.y;
-          const childPos = isHorizontal ? target.position.x : target.position.y;
-
-          // Calculate the adjustment (move 20% closer)
-          const adjustment = (childPos - parentPos) * 0.2;
-
-          if (isHorizontal) {
-            target.position.x -= adjustment;
-          } else {
-            target.position.y -= adjustment;
-          }
-        }
+    const newNodes = nodes.map((node) => {
+      const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
+      if (elkNode) {
+        return {
+          ...node,
+          position: { x: elkNode.x ?? 0, y: elkNode.y ?? 0 },
+        };
       }
+      return node;
+    });
+
+    self.postMessage({
+      type: 'layout-complete',
+      payload: { nodes: newNodes, edges: validEdges },
+    });
+  } catch (error) {
+    console.error('ELK layout error:', error);
+    // Fallback: return nodes unchanged
+    self.postMessage({
+      type: 'layout-complete',
+      payload: { nodes, edges },
     });
   }
-}
-
-// Handle messages from the main thread
-self.onmessage = (event: MessageEvent<WorkerMessage>) => {
-  const { payload } = event.data;
-
-  const { nodes, edges, config } = payload;
-
-  // Process the layout
-  const layoutEngine = new LayoutEngine(config);
-  const result = layoutEngine.process(nodes, edges);
-
-  // Send the result back to the main thread
-  self.postMessage({
-    type: 'layout-complete',
-    payload: result,
-  });
 };
 
 // Export empty object to satisfy TypeScript

@@ -23,6 +23,8 @@ class TagWidget extends WidgetType {
   toDOM(): HTMLElement {
     const dom = document.createElement('span');
     dom.classList.add('magus-mark-tag-widget');
+    dom.setAttribute('role', 'button');
+    dom.setAttribute('tabindex', '0');
 
     // Extract tag name without the hash
     const tagName = this.tag.startsWith('#') ? this.tag.substring(1) : this.tag;
@@ -35,6 +37,14 @@ class TagWidget extends WidgetType {
       e.preventDefault();
       e.stopPropagation();
       this.onClick(this.tag);
+    });
+
+    // Keyboard accessibility
+    dom.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.onClick(this.tag);
+      }
     });
 
     return dom;
@@ -155,14 +165,21 @@ export class DocumentTagService {
     );
 
     // Register handler for file save
+    // Cooldown map to prevent re-entrancy / repeated processing
+    const cooldown = new Map<string, number>();
+    const COOLDOWN_MS = 15_000;
     this.plugin.registerEvent(
       this.plugin.app.vault.on('modify', (file) => {
         if (this.plugin.settings.enableAutoSync && file instanceof TFile) {
-          // Only process if file has been saved for a certain amount of time
-          // to avoid processing during active editing
+          const now = Date.now();
+          const last = cooldown.get(file.path) ?? 0;
+          if (now - last < COOLDOWN_MS) return;
+          cooldown.set(file.path, now);
+
+          // Delay to avoid processing during active editing
           setTimeout(() => {
             void this.checkAndTagFile(file);
-          }, 5000); // 5 second delay to avoid processing during active editing
+          }, 5000);
         }
       })
     );

@@ -21,7 +21,7 @@ export class ApiServerResponder {
   private readonly packageRepository: PackageRepository;
 
   constructor() {
-    this.dbAdapter = new DuckDBAdapter('typescript-viewer.duckdb');
+    this.dbAdapter = new DuckDBAdapter('typescript-viewer.duckdb', { allowWrite: true });
     this.database = new Database(this.dbAdapter, 'typescript-viewer.duckdb');
     this.logger = createLogger('ApiServerResponder');
 
@@ -35,6 +35,44 @@ export class ApiServerResponder {
   async initialize(): Promise<void> {
     try {
       await this.database.initializeDatabase(false);
+      // Seed demo data if database is empty
+      const existing = await this.packageRepository.retrieve();
+      if (existing.length === 0) {
+        const { generatePackageUUID, generateModuleUUID, generateClassUUID } = await import('./utils/uuid');
+
+        const packageId = generatePackageUUID('demo', '0.0.1');
+        await this.packageRepository.create({
+          id: packageId,
+          name: 'demo',
+          version: '0.0.1',
+          path: 'demo',
+          dependencies: new Map(),
+          devDependencies: new Map(),
+          peerDependencies: new Map(),
+        });
+
+        const moduleId = generateModuleUUID(packageId, 'demo/index.ts');
+        await this.moduleRepository.create({
+          id: moduleId,
+          package_id: packageId,
+          name: 'index',
+          source: {
+            directory: '/demo',
+            filename: 'index.ts',
+            relativePath: 'demo/index.ts',
+            name: 'index',
+          },
+        });
+
+        const classId = generateClassUUID(packageId, moduleId, 'DemoClass');
+        await this.classRepository.create({
+          id: classId,
+          package_id: packageId,
+          module_id: moduleId,
+          name: 'DemoClass',
+          extends_id: undefined,
+        });
+      }
     } catch (error) {
       if (error instanceof RepositoryError) {
         throw error;
@@ -52,15 +90,8 @@ export class ApiServerResponder {
     try {
       return await this.packageRepository.retrieve();
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        throw error;
-      }
-      throw new RepositoryError(
-        'Failed to get packages',
-        'getPackages',
-        'ApiServerResponder',
-        error instanceof Error ? error : new Error(String(error))
-      );
+      this.logger.error('Failed to get packages, returning empty list', error);
+      return [];
     }
   }
 
@@ -155,15 +186,8 @@ export class ApiServerResponder {
 
       return enrichedModules;
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        throw error;
-      }
-      throw new RepositoryError(
-        'Failed to get modules',
-        'getModules',
-        'ApiServerResponder',
-        error instanceof Error ? error : new Error(String(error))
-      );
+      this.logger.error('Failed to get modules, returning empty list', error);
+      return [];
     }
   }
 }

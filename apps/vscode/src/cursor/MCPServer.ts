@@ -88,8 +88,6 @@ interface TagSuggestion {
   description: string;
 }
 
-
-
 /**
  * Model Context Protocol Server implementation
  * Enables VS Code extension to participate in Cursor AI conversations via the @magus-mark participant
@@ -105,7 +103,6 @@ export class MCPServer implements vscode.Disposable {
   private disposables: vscode.Disposable[] = [];
   private port: number;
   private _smartContextProvider?: SmartContextProvider;
-  private _knowledgeGraphView?: KnowledgeGraphView;
 
   constructor(context: vscode.ExtensionContext, vaultService?: VaultIntegrationService) {
     // Get configured port from settings
@@ -776,22 +773,16 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
   }
 
   // Add this method to inject the new services
-  public setAdvancedServices(smartContextProvider: SmartContextProvider, knowledgeGraphView: KnowledgeGraphView): void {
+  public setAdvancedServices(
+    smartContextProvider: SmartContextProvider,
+    _knowledgeGraphView: KnowledgeGraphView
+  ): void {
     this._smartContextProvider = smartContextProvider;
-    this._knowledgeGraphView = knowledgeGraphView;
+    // Intentionally unused for now; reserved for future use
+    void _knowledgeGraphView;
   }
 
-  // Add these new handler methods
-
-  private handleKnowledgeGraphQuery(): Promise<unknown> {
-    // TODO: Implement when proper interfaces are available
-    return Promise.resolve({ error: 'Not implemented yet' });
-  }
-
-  private handleContextAnalysis(): Promise<unknown> {
-    // TODO: Implement when proper interfaces are available
-    return Promise.resolve({ error: 'Not implemented yet' });
-  }
+  // --
 
   private handleCodeAnalysis(): Promise<unknown> {
     // TODO: Implement when proper interfaces are available
@@ -813,72 +804,5 @@ If applicable, provide specific commands, keyboard shortcuts, or settings that c
     return Promise.resolve({ error: 'Not implemented yet' });
   }
 
-  // Add these helper methods as stubs - TODO: Implement when proper types are available
-
-  private performSemanticSearch(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private performStructuralSearch(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private performTemporalSearch(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private detectCodePatterns(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private calculateCodeMetrics(): Record<string, number> {
-    // TODO: Implement with proper types
-    return {};
-  }
-
-  private analyzeTagRelationships(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private suggestTagHierarchy(): Record<string, string[]> {
-    // TODO: Implement with proper types
-    return {};
-  }
-
-  private performFileClustering(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private clusterByTags(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private clusterByContent(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private clusterHybrid(): unknown[] {
-    // TODO: Implement with proper types
-    return [];
-  }
-
-  private loadServerConfig(): Promise<unknown> {
-    const config = vscode.workspace.getConfiguration('magusMark');
-    const port = config.get<number>('cursorFeatures.mcpServerPort', 9876);
-
-    return Promise.resolve({
-      port,
-      host: 'localhost',
-      maxConnections: 10,
-      enableLogging: true,
-    });
-  }
+  // --
 }

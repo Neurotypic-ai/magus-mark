@@ -5,6 +5,8 @@ import { KeyManager } from './services/KeyManager';
 import { TaggingService } from './services/TaggingService';
 import { ApiKeyHelpModal } from './ui/ApiKeyHelpModal';
 import { FolderTagModal } from './ui/FolderTagModal';
+import { NoticeHandler } from './ui/NoticeHandler';
+import { StatusBarHandler } from './ui/StatusBarHandler';
 import { TAG_MANAGEMENT_VIEW_TYPE, TagManagementView } from './ui/TagManagementView';
 import { TAG_VISUALIZATION_VIEW_TYPE, TagVisualizationView } from './ui/TagVisualizationView';
 
@@ -40,6 +42,8 @@ export default class MagusMarkPlugin extends Plugin {
   taggingService!: TaggingService;
   documentTagService!: DocumentTagService;
   keyManager!: KeyManager;
+  private statusBarHandler?: StatusBarHandler;
+  private noticeHandler?: NoticeHandler;
 
   override async onload(): Promise<void> {
     console.log('[Magus Mark] Loading plugin...');
@@ -87,8 +91,27 @@ export default class MagusMarkPlugin extends Plugin {
       this.statusBarElement = this.addStatusBarItem();
       this.statusBarElement.createEl('span', { text: 'Magus Mark: Ready' });
       this.statusBarElement.addClass('magus-mark-status');
+
+      // Wire status updates
+      this.statusBarHandler = new StatusBarHandler(
+        {
+          setText: (text: string) => {
+            if (!this.statusBarElement) return;
+            this.statusBarElement.setText(text);
+            if (this.settings.statusBarDisplay === 'processing') {
+              const isIdle = /ready/i.test(text);
+              this.statusBarElement.style.display = isIdle ? 'none' : '';
+            }
+          },
+        },
+        this.taggingService.status
+      );
+
       console.log('[DEBUG] onload step 10: Status bar added');
     }
+
+    // Wire notice handler
+    this.noticeHandler = new NoticeHandler((msg) => new Notice(msg), this.taggingService.notice);
 
     this.addCommands();
     console.log('[DEBUG] onload step 11: Commands added');
@@ -561,13 +584,13 @@ class MagusMarkSettingTab extends PluginSettingTab {
     const linksContainer = containerEl.createDiv('settings-links');
     const docsLink = linksContainer.createEl('a', {
       text: 'Documentation',
-      href: 'https://magus-mark.com/docs',
+      href: 'https://github.com/neurotypic-ai/magus-mark#readme',
     });
     docsLink.setAttr('target', '_blank');
 
     const githubLink = linksContainer.createEl('a', {
       text: 'GitHub Repository',
-      href: 'https://github.com/your-github/magus-mark',
+      href: 'https://github.com/neurotypic-ai/magus-mark',
     });
     githubLink.setAttr('target', '_blank');
   }

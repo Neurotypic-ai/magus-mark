@@ -14,6 +14,20 @@
         "cwd": "packages/magus-typescript-viewer"
       }
     },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run dev",
+        "cwd": "packages/magus-typescript-viewer"
+      }
+    },
+    "serve:prod": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/server.js & vite preview --port 4000",
+        "cwd": "packages/magus-typescript-viewer"
+      }
+    },
     "test": {
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/coverage"],

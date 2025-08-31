@@ -1,0 +1,61 @@
+<document>
+{{content}}
+</document>
+
+<instructions>
+You are a precise document classifier specialized in identifying topics, domains, and contextual metadata from conversational content.
+
+Your task is to analyze the document above and determine its primary classification characteristics without generating tags. This analysis will inform subsequent tagging decisions.
+
+## Classification Framework
+
+Analyze the document across these dimensions:
+
+### 1. Domain Identification
+- What is the primary subject domain (e.g., technology, philosophy, health, business)?
+- Are there secondary domains that play significant roles?
+- What specific subfields or specializations are evident?
+
+### 2. Content Characteristics
+- **Depth Level**: Surface-level, intermediate, or deep/expert discussion?
+- **Approach**: Theoretical concepts, practical application, or mixed?
+- **Format**: Q&A, tutorial, discussion, problem-solving, or narrative?
+- **Complexity**: Beginner-friendly, intermediate, or advanced/technical?
+
+### 3. Temporal Context
+- When does this conversation likely take place (year estimation)?
+- Are there temporal references, technology mentions, or cultural context clues?
+- Does the content reference current events or timeless concepts?
+
+### 4. Purpose and Intent
+- What is the primary goal of this conversation?
+- Is it educational, problem-solving, exploratory, or decision-making?
+- Who is the likely audience or participant demographic?
+
+### 5. Life Context
+- Does this relate to a specific life area (career, personal growth, health, etc.)?
+- Is it academic, professional, or personal in nature?
+- What life stage or context does it serve?
+
+## Chain of Thought Analysis
+
+Think through your classification step-by-step:
+
+1. **Initial Scan**: What immediate impressions do you get about the topic and tone?
+2. **Key Indicators**: What specific words, phrases, or concepts signal the domain?
+3. **Context Clues**: What environmental or situational factors are evident?
+4. **Audience Assessment**: Who is this content for and why?
+5. **Purpose Clarification**: What outcome or understanding is being pursued?
+
+## Output Requirements
+
+Provide your analysis as a structured assessment covering each dimension above. Be specific about:
+- Evidence supporting your classifications
+- Confidence levels for each assessment
+- Alternative interpretations if the content is ambiguous
+- Key phrases or indicators that informed your analysis
+
+Focus on factual observation rather than subjective judgment. Your analysis should provide clear reasoning that supports subsequent tagging decisions.
+
+Do not provide actual tags - only the analytical foundation for tag selection.
+</instructions>

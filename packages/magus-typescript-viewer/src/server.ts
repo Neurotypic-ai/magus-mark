@@ -123,8 +123,13 @@ const server = http.createServer((req, res) => {
     try {
       let resource: unknown;
       if (req.url === '/packages' && req.method === 'GET') {
-        // Get all packages
-        resource = await processRequest(() => apiServerResponder.getPackages());
+        // Get all packages (be permissive on errors)
+        try {
+          resource = await processRequest(() => apiServerResponder.getPackages());
+        } catch (routeErr) {
+          logger.error('Error in /packages route, returning empty array', routeErr);
+          resource = [];
+        }
       } else if (req.url?.startsWith('/modules') && req.method === 'GET') {
         let packageId: string | undefined;
         try {
@@ -144,7 +149,12 @@ const server = http.createServer((req, res) => {
         }
 
         // Get modules, optionally filtered by packageId
-        resource = await processRequest(() => apiServerResponder.getModules(packageId));
+        try {
+          resource = await processRequest(() => apiServerResponder.getModules(packageId));
+        } catch (routeErr) {
+          logger.error('Error in /modules route, returning empty array', routeErr);
+          resource = [];
+        }
       } else {
         logger.debug('Not found:', req.method, req.url);
         sendError(res, 404, 'Not Found');

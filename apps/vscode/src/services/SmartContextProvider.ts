@@ -13,8 +13,8 @@ export interface Result<T> {
 export class SimpleResult<T> implements Result<T> {
   constructor(
     private _isOk: boolean,
-    private _value?: T,
-    private _error?: Error
+    private _value?: T | undefined,
+    private _error?: Error | undefined
   ) {}
 
   isOk(): boolean {
@@ -99,7 +99,10 @@ export class SmartContextProvider {
   constructor(openAIService: OpenAIService, tagEngine: TagEngine) {
     this._openAIService = openAIService;
     this._tagEngine = tagEngine;
-    this.initializeProjectContext();
+    // mark fields as used to satisfy TS when tree-shaken
+    void this._tagEngine;
+    void this._lastAnalysis;
+    void this.initializeProjectContext().catch(console.error);
   }
 
   public async provideSmartSuggestions(notes: TaggedNote[], forceRefresh = false): Promise<Result<SmartSuggestion[]>> {
@@ -108,7 +111,10 @@ export class SmartContextProvider {
       const cacheKey = this.getCacheKey(context);
 
       if (!forceRefresh && this._analysisCache.has(cacheKey)) {
-        const cached = this._analysisCache.get(cacheKey)!;
+        const cached = this._analysisCache.get(cacheKey);
+        if (!cached) {
+          return SimpleResult.fail(new Error('Cache entry unexpectedly missing'));
+        }
         return SimpleResult.ok(cached);
       }
 
@@ -118,14 +124,14 @@ export class SmartContextProvider {
 
       return SimpleResult.ok(suggestions);
     } catch (error) {
-      return SimpleResult.fail(new Error(`Failed to provide smart suggestions: ${error}`));
+      return SimpleResult.fail(new Error(`Failed to provide smart suggestions: ${String(error)}`));
     }
   }
 
   public async getContextualTags(content: string): Promise<Result<TagSuggestion[]>> {
     try {
       const context = await this.analyzeCurrentContext();
-      const projectTags = this._projectContext?.projectTags || [];
+      const projectTags = this._projectContext?.projectTags ?? [];
 
       // Enhanced prompt that considers project context
       const prompt = this.buildContextualTagPrompt(content, context, projectTags);
@@ -143,11 +149,11 @@ export class SmartContextProvider {
       const suggestions = this.parseTagSuggestions(response.value, context);
       return SimpleResult.ok(suggestions);
     } catch (error) {
-      return SimpleResult.fail(new Error(`Failed to get contextual tags: ${error}`));
+      return SimpleResult.fail(new Error(`Failed to get contextual tags: ${String(error)}`));
     }
   }
 
-  public async suggestRelatedFiles(currentFile: string, notes: TaggedNote[]): Promise<string[]> {
+  public suggestRelatedFiles(currentFile: string, notes: TaggedNote[]): string[] {
     const current = notes.find((note) => note.path === currentFile);
     if (!current) {
       return [];
@@ -167,8 +173,8 @@ export class SmartContextProvider {
       score += commonTags.length * 2;
 
       // Content similarity (simple keyword matching)
-      const currentWords = new Set(current.content?.toLowerCase().split(/\s+/) || []);
-      const noteWords = note.content?.toLowerCase().split(/\s+/) || [];
+      const currentWords = new Set(current.content?.toLowerCase().split(/\s+/) ?? []);
+      const noteWords = note.content?.toLowerCase().split(/\s+/) ?? [];
       const commonWords = noteWords.filter((word) => word.length > 3 && currentWords.has(word));
       score += commonWords.length * 0.5;
 
@@ -191,9 +197,7 @@ export class SmartContextProvider {
 
   public async provideIntelligentSnippets(context: string, language?: string): Promise<Result<SmartSuggestion[]>> {
     try {
-      if (!language) {
-        language = this.detectLanguage(context);
-      }
+      language ??= this.detectLanguage(context);
 
       const prompt = this.buildSnippetPrompt(context, language);
 
@@ -210,7 +214,7 @@ export class SmartContextProvider {
       const snippets = this.parseSnippetSuggestions(response.value, language);
       return SimpleResult.ok(snippets);
     } catch (error) {
-      return SimpleResult.fail(new Error(`Failed to provide intelligent snippets: ${error}`));
+      return SimpleResult.fail(new Error(`Failed to provide intelligent snippets: ${String(error)}`));
     }
   }
 
@@ -242,13 +246,13 @@ export class SmartContextProvider {
 
     // File suggestions based on current context
     if (context.currentFile) {
-      const relatedFiles = await this.suggestRelatedFiles(context.currentFile, notes);
+      const relatedFiles = this.suggestRelatedFiles(context.currentFile, notes);
       relatedFiles.forEach((filePath, index) => {
         const note = notes.find((n) => n.path === filePath);
         if (note) {
           suggestions.push({
             type: 'file',
-            content: note.title || filePath.split('/').pop() || 'Untitled',
+            content: note.title ?? filePath.split('/').pop() ?? 'Untitled',
             relevance: Math.max(0.1, 1 - index * 0.1),
             reasoning: `Related to current file through shared tags: ${note.tags.slice(0, 3).join(', ')}`,
             metadata: { path: filePath, tags: note.tags },
@@ -259,7 +263,7 @@ export class SmartContextProvider {
 
     // Tag suggestions for current content
     if (context.selectedText || context.currentFile) {
-      const content = context.selectedText || (await this.getCurrentFileContent());
+      const content = context.selectedText ?? (await this.getCurrentFileContent());
       if (content) {
         const tagResult = await this.getContextualTags(content);
         if (tagResult.isOk()) {
@@ -268,7 +272,7 @@ export class SmartContextProvider {
               type: 'tag',
               content: tagSuggestion.tag,
               relevance: tagSuggestion.confidence,
-              reasoning: tagSuggestion.reasoning || 'AI-suggested based on content analysis',
+              reasoning: tagSuggestion.reasoning,
               metadata: { confidence: tagSuggestion.confidence },
             });
           });
@@ -299,7 +303,7 @@ export class SmartContextProvider {
         type: 'tag',
         content: tag,
         relevance: 0.8 - index * 0.1,
-        reasoning: `Frequently used in this ${this._projectContext!.projectType} project`,
+        reasoning: `Frequently used in this ${this._projectContext?.projectType ?? 'unknown'} project`,
         metadata: { projectSpecific: true },
       });
     });
@@ -373,16 +377,16 @@ Snippets:`;
     const lines = response.split('\n');
 
     for (const line of lines) {
-      const match = /^(.+?)\s*\(confidence:\s*([\d.]+)\)\s*-\s*(.+)$/.exec(line);
+      const match = /^(.*?)\s*\(confidence:\s*([\d.]+)\)\s*-\s*(.*)$/.exec(line);
       if (match) {
         const [, tag, confidenceStr, reasoning] = match;
-        const confidence = parseFloat(confidenceStr);
+        const confidence = parseFloat(confidenceStr || '0');
 
         if (tag && confidence >= 0.3) {
           suggestions.push({
             tag: tag.trim(),
             confidence,
-            reasoning: reasoning.trim(),
+            reasoning: (reasoning || '').trim(),
             metadata: { source: 'ai-contextual', language: context.language },
           });
         }
@@ -402,11 +406,11 @@ Snippets:`;
 
       suggestions.push({
         type: 'snippet',
-        content: code.trim(),
+        content: (code || '').trim(),
         relevance: 0.8,
-        reasoning: reasoning.trim(),
+        reasoning: (reasoning || '').trim(),
         metadata: {
-          description: description.trim(),
+          description: (description || '').trim(),
           language,
           insertable: true,
         },
@@ -453,22 +457,24 @@ Snippets:`;
     for (const file of packageJsonFiles.slice(0, 3)) {
       try {
         const content = await vscode.workspace.fs.readFile(file);
-        const packageJson = JSON.parse(content.toString());
+        const packageJson = JSON.parse(content.toString()) as Record<string, unknown>;
 
-        if (packageJson.keywords) {
-          tags.push(...packageJson.keywords);
+        if (packageJson['keywords'] && Array.isArray(packageJson['keywords'])) {
+          tags.push(...(packageJson['keywords'] as string[]));
         }
 
-        if (packageJson.dependencies) {
+        if (packageJson['dependencies'] && typeof packageJson['dependencies'] === 'object') {
           // Add major framework tags
           const frameworks = ['react', 'vue', 'angular', 'express', 'fastify', 'next'];
+          const deps = packageJson['dependencies'] as Record<string, unknown>;
+          const devDeps = (packageJson['devDependencies'] as Record<string, unknown>) ?? {};
           for (const framework of frameworks) {
-            if (packageJson.dependencies[framework] || packageJson.devDependencies?.[framework]) {
+            if (deps[framework] || devDeps[framework]) {
               tags.push(framework);
             }
           }
         }
-      } catch (error) {
+      } catch {
         // Ignore parsing errors
       }
     }

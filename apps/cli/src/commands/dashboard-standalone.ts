@@ -10,12 +10,33 @@ interface DashboardOptions {
   layout: 'grid' | 'sidebar' | 'split' | 'custom';
   theme: 'matrix' | 'cyberpunk' | 'minimal' | 'hacker';
   refreshRate: number;
-  config?: string;
+  config: string | undefined;
   minimal: boolean;
-  record?: string;
+  record: string | undefined;
 }
 
-export const dashboardStandaloneCommand: CommandModule<object, DashboardOptions> = {
+function isDashboardLayout(value: unknown): value is DashboardOptions['layout'] {
+  return value === 'grid' || value === 'sidebar' || value === 'split' || value === 'custom';
+}
+
+function isDashboardTheme(value: unknown): value is DashboardOptions['theme'] {
+  return value === 'matrix' || value === 'cyberpunk' || value === 'minimal' || value === 'hacker';
+}
+
+function normalizeOptions(raw: unknown): DashboardOptions {
+  const obj = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  const layout = isDashboardLayout(obj['layout']) ? obj['layout'] : 'grid';
+  const theme = isDashboardTheme(obj['theme']) ? obj['theme'] : 'matrix';
+  const refreshRateSource = obj['refreshRate'] ?? obj['refresh-rate'];
+  const refreshRate =
+    typeof refreshRateSource === 'number' && Number.isFinite(refreshRateSource) ? refreshRateSource : 1000;
+  const config = typeof obj['config'] === 'string' ? obj['config'] : undefined;
+  const minimal = typeof obj['minimal'] === 'boolean' ? obj['minimal'] : false;
+  const record = typeof obj['record'] === 'string' ? obj['record'] : undefined;
+  return { layout, theme, refreshRate, config, minimal, record };
+}
+
+export const dashboardStandaloneCommand: CommandModule = {
   command: 'dashboard-demo',
   describe: '🔥 Launch the Matrix-style real-time God Tier dashboard (standalone demo)',
 
@@ -56,13 +77,14 @@ export const dashboardStandaloneCommand: CommandModule<object, DashboardOptions>
   },
 
   handler: (argv) => {
+    const options = normalizeOptions(argv);
     console.log('🚀 Initializing God Tier Dashboard Demo...');
-    console.log(`🎨 Theme: ${argv.theme.toUpperCase()}`);
-    console.log(`📊 Layout: ${argv.layout}`);
+    console.log(`🎨 Theme: ${options.theme.toUpperCase()}`);
+    console.log(`📊 Layout: ${options.layout}`);
     console.log('🔥 THIS IS THE MOST BADASS CLI DASHBOARD EVER CREATED!');
 
     try {
-      const config: DashboardConfig = loadDashboardConfig(argv);
+      const config: DashboardConfig = loadDashboardConfig(options);
       const metricsEngine = new MetricsEngine();
       const dashboard = new DashboardManager(config);
 

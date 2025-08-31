@@ -5,12 +5,13 @@ import type { Interface as SharedInterface } from '../../shared/types/Interface'
 import type { Method } from '../../shared/types/Method';
 import type { Module } from '../../shared/types/Module';
 import type { Package } from '../../shared/types/Package';
-import type { Parameter } from '../../shared/types/Parameter';
 import type { Property as SharedProperty } from '../../shared/types/Property';
 import type { TypeCollection } from '../../shared/types/TypeCollection';
 import type {
   ClassStructure,
   DependencyPackageGraph,
+  DependencyRef,
+  ImportRef,
   InterfaceStructure,
   ModuleStructure,
   NodeMethod,
@@ -186,9 +187,10 @@ export class GraphDataAssembler {
         source: {
           relativePath,
         },
+        imports: this.transformImportCollection(this.typeCollectionToArray(module.imports)),
         classes: this.transformClassCollection(this.typeCollectionToArray(module.classes)),
         interfaces: this.transformInterfaceCollection(this.typeCollectionToArray(module.interfaces)),
-        created_at: module.created_at.toISOString(),
+        created_at: typeof module.created_at === 'string' ? module.created_at : module.created_at.toISOString(),
       } as ModuleStructure;
     });
   }
@@ -214,17 +216,20 @@ export class GraphDataAssembler {
     const result: Record<string, ClassStructure> = {};
 
     classes.forEach((cls) => {
-      result[cls.name] = {
+      const classObj: ClassStructure = {
         id: cls.id,
         name: cls.name,
-        extends_id: cls.extends_id ?? '',
-        implemented_interfaces: this.transformInterfaceCollection(
-          this.typeCollectionToArray(cls.implemented_interfaces)
-        ),
+        implemented_interfaces: this.transformInterfaceRefs(this.typeCollectionToArray(cls.implemented_interfaces)),
         properties: this.transformPropertyCollection(this.typeCollectionToArray(cls.properties)),
         methods: this.transformMethodCollection(this.typeCollectionToArray(cls.methods)),
-        created_at: cls.created_at.toISOString(),
-      };
+        created_at: typeof cls.created_at === 'string' ? cls.created_at : cls.created_at.toISOString(),
+      } as unknown as ClassStructure;
+
+      if (cls.extends_id) {
+        (classObj as { extends_id?: string }).extends_id = cls.extends_id;
+      }
+
+      result[cls.name] = classObj;
     });
 
     return result;
@@ -242,10 +247,10 @@ export class GraphDataAssembler {
       result[intf.name] = {
         id: intf.id,
         name: intf.name,
-        extends_ids: this.typeCollectionToArray(intf.extended_interfaces).map((i) => i.id),
+        extended_interfaces: this.transformInterfaceRefs(this.typeCollectionToArray(intf.extended_interfaces)),
         properties: this.transformPropertyCollection(this.typeCollectionToArray(intf.properties)),
         methods: this.transformMethodCollection(this.typeCollectionToArray(intf.methods)),
-        created_at: intf.created_at.toISOString(),
+        created_at: typeof intf.created_at === 'string' ? intf.created_at : intf.created_at.toISOString(),
       };
     });
 
@@ -297,8 +302,53 @@ export class GraphDataAssembler {
       name: pkg.name,
       version: pkg.version,
       path: pkg.path,
-      created_at: pkg.created_at.toISOString(),
+      created_at: typeof pkg.created_at === 'string' ? pkg.created_at : pkg.created_at.toISOString(),
+      dependencies: this.transformDependencyCollection(this.typeCollectionToArray(pkg.dependencies)),
+      devDependencies: this.transformDependencyCollection(this.typeCollectionToArray(pkg.devDependencies)),
+      peerDependencies: this.transformDependencyCollection(this.typeCollectionToArray(pkg.peerDependencies)),
     };
+  }
+
+  /**
+   * Transforms a collection of interfaces into a record of InterfaceRefs keyed by id
+   */
+  private transformInterfaceRefs(interfaces: SharedInterface[]): Record<string, { id: string; name?: string }> {
+    const result: Record<string, { id: string; name?: string }> = {};
+    interfaces.forEach((intf) => {
+      result[intf.id] = { id: intf.id, name: intf.name };
+    });
+    return result;
+  }
+
+  /**
+   * Transforms a collection of imports into a record of ImportRef keyed by uuid
+   */
+  private transformImportCollection(
+    imports: { uuid: string; name?: string; relativePath?: string }[]
+  ): Record<string, ImportRef> {
+    const result: Record<string, ImportRef> = {};
+    imports.forEach((imp) => {
+      const ref: ImportRef = { uuid: imp.uuid } as ImportRef;
+      if (imp.name !== undefined) {
+        (ref as { name?: string }).name = imp.name;
+      }
+      if (imp.relativePath !== undefined) {
+        (ref as { path?: string }).path = imp.relativePath;
+      }
+      result[imp.uuid] = ref;
+    });
+    return result;
+  }
+
+  /**
+   * Transforms a collection of packages into a record of DependencyRef keyed by id
+   */
+  private transformDependencyCollection(packages: Package[]): Record<string, DependencyRef> {
+    const result: Record<string, DependencyRef> = {};
+    packages.forEach((p) => {
+      result[p.id] = { id: p.id, name: p.name, version: p.version } as DependencyRef;
+    });
+    return result;
   }
 
   /**

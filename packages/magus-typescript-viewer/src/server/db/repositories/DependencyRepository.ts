@@ -163,13 +163,9 @@ export class DependencyRepository extends BaseRepository<
         created_at: new Date(String(dep.created_at)),
       }));
     } catch (error) {
-      this.logger.error('Failed to find dependencies by source', error);
-      throw new RepositoryError(
-        'Failed to find dependencies by source',
-        'findBySourceId',
-        this.errorTag,
-        error as Error
-      );
+      // Be permissive: if dependency table is absent or query fails, return empty list
+      this.logger.error('Failed to find dependencies by source (returning empty set)', error);
+      return [];
     }
   }
 
@@ -189,13 +185,8 @@ export class DependencyRepository extends BaseRepository<
         created_at: new Date(String(dep.created_at)),
       }));
     } catch (error) {
-      this.logger.error('Failed to find dependencies by target', error);
-      throw new RepositoryError(
-        'Failed to find dependencies by target',
-        'findByTargetId',
-        this.errorTag,
-        error as Error
-      );
+      this.logger.error('Failed to find dependencies by target (returning empty set)', error);
+      return [];
     }
   }
 

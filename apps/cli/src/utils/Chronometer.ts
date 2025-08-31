@@ -1,10 +1,11 @@
 import path from 'path';
 
+import * as fs from 'fs-extra';
+
 import { AppError } from '@magus-mark/core/errors/AppError';
 import { Result } from '@magus-mark/core/errors/Result';
 import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
 import { TaggingService } from '@magus-mark/core/openai/TaggingService';
-import * as fs from 'fs-extra';
 
 import type { AIModel } from '@magus-mark/core/models/AIModel';
 
@@ -111,6 +112,7 @@ class Chronometer {
    * Get the singleton instance
    */
   public static getInstance(): Chronometer {
+    Chronometer.instance ??= new Chronometer();
     return Chronometer.instance;
   }
 

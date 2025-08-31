@@ -80,8 +80,10 @@ class CostManager {
     const dataDir = path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.', '.magus-mark');
     this.dataFile = path.join(dataDir, 'usage-data.json');
 
-    // Load existing data
-    this.loadUsageData();
+    // Load existing data asynchronously
+    void this.loadUsageDataAsync().catch((error) => {
+      logger.warn(`Failed to load usage data: ${error instanceof Error ? error.message : String(error)}`);
+    });
   }
 
   /**
@@ -234,12 +236,12 @@ class CostManager {
   }
 
   /**
-   * Load usage data from file
+   * Load usage data from file (async version)
    */
-  private loadUsageData(): void {
+  private async loadUsageDataAsync(): Promise<void> {
     try {
-      if (fs.existsSync(this.dataFile)) {
-        const data = fs.readJSONSync(this.dataFile) as unknown;
+      if (await fs.pathExists(this.dataFile)) {
+        const data = (await fs.readJSON(this.dataFile)) as unknown;
         // Validate that the loaded data is an array
         if (Array.isArray(data)) {
           this.usageData = data as UsageRecord[];
@@ -347,6 +349,9 @@ class CostManager {
     return this.limits.hardLimit;
   }
 }
+
+// Initialize singleton instance
+CostManager.instance = new CostManager();
 
 // Export singleton instance
 export const costManager: CostManager = CostManager.getInstance();

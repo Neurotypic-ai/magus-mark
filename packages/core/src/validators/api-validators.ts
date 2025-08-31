@@ -9,7 +9,7 @@ import { tagSetSchema } from './tags-validators';
 // Basic API validators
 export const aiModelSchema: z.ZodString = z.string();
 
-export const apiKeyStorageSchema: z.ZodEnum<['local', 'system']> = z.enum(['local', 'system']);
+export const apiKeyStorageSchema: z.ZodType<'local' | 'system'> = z.enum(['local', 'system'] as const);
 
 export const taggingResultSchema: z.ZodObject<{
   success: z.ZodBoolean;
@@ -33,33 +33,20 @@ export const taggingResultSchema: z.ZodObject<{
     .optional(),
 });
 
-export const taggingOptionsSchema: z.ZodObject<{
-  model: z.ZodString;
-  behavior: z.ZodEnum<['append', 'replace', 'merge']>;
-  minConfidence: z.ZodNumber;
-  reviewThreshold: z.ZodNumber;
-  generateExplanations: z.ZodBoolean;
-  taxonomy: z.ZodOptional<typeof tagSetSchema>;
-}> = z.object({
+export const taggingOptionsSchema: ReturnType<typeof z.object> = z.object({
   model: aiModelSchema,
-  behavior: z.enum(['append', 'replace', 'merge']),
+  behavior: z.enum(['append', 'replace', 'merge'] as const),
   minConfidence: z.number().min(0).max(1),
   reviewThreshold: z.number().min(0).max(1),
   generateExplanations: z.boolean(),
   taxonomy: tagSetSchema.optional(),
 });
 
-export const documentSchema: z.ZodObject<{
-  id: z.ZodString;
-  path: z.ZodString;
-  content: z.ZodString;
-  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-  existingTags: z.ZodOptional<typeof tagSetSchema>;
-}> = z.object({
+export const documentSchema: ReturnType<typeof z.object> = z.object({
   id: z.string(),
   path: z.string(),
   content: z.string(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   existingTags: tagSetSchema.optional(),
 });
 
@@ -100,66 +87,31 @@ export const apiUsageStatsSchema: z.ZodObject<{
   currency: z.literal('USD'),
 });
 
-export const apiRequestTrackingSchema: z.ZodObject<{
-  requestId: z.ZodString;
-  model: z.ZodString;
-  startTime: z.ZodDate;
-  endTime: z.ZodOptional<z.ZodDate>;
-  status: z.ZodEnum<['pending', 'success', 'error']>;
-  usage: z.ZodOptional<typeof apiUsageStatsSchema>;
-  error: z.ZodOptional<typeof apiErrorSchema>;
-}> = z.object({
+export const apiRequestTrackingSchema: ReturnType<typeof z.object> = z.object({
   requestId: z.string(),
   model: z.string(),
   startTime: z.date(),
   endTime: z.date().optional(),
-  status: z.enum(['pending', 'success', 'error']),
+  status: z.enum(['pending', 'success', 'error'] as const),
   usage: apiUsageStatsSchema.optional(),
   error: apiErrorSchema.optional(),
 });
 
-export const apiConfigSchema: z.ZodObject<{
-  apiKey: z.ZodString;
-  apiKeyStorage: z.ZodEnum<['local', 'system']>;
-  organizationId: z.ZodOptional<z.ZodString>;
-  defaultModel: z.ZodString;
-  timeoutMs: z.ZodNumber;
-  maxRetries: z.ZodNumber;
-  costPerTokenMap: z.ZodRecord<z.ZodString, z.ZodNumber>;
-}> = z.object({
+export const apiConfigSchema: ReturnType<typeof z.object> = z.object({
   apiKey: z.string().min(1, 'API key cannot be empty'),
   apiKeyStorage: apiKeyStorageSchema,
   organizationId: z.string().optional(),
   defaultModel: aiModelSchema,
   timeoutMs: z.number().int().positive(),
   maxRetries: z.number().int().nonnegative(),
-  costPerTokenMap: z.record(z.number().nonnegative()),
+  costPerTokenMap: z.record(z.string(), z.number().nonnegative()),
 });
 
-export const batchTaggingJobSchema: z.ZodObject<{
-  id: z.ZodString;
-  documents: z.ZodArray<z.ZodString>;
-  options: typeof taggingOptionsSchema;
-  status: z.ZodEnum<['pending', 'processing', 'completed', 'failed']>;
-  progress: z.ZodObject<{
-    total: z.ZodNumber;
-    completed: z.ZodNumber;
-    failed: z.ZodNumber;
-  }>;
-  stats: z.ZodOptional<
-    z.ZodObject<{
-      startTime: z.ZodDate;
-      endTime: z.ZodOptional<z.ZodDate>;
-      totalTokens: z.ZodNumber;
-      totalCost: z.ZodNumber;
-      currency: z.ZodLiteral<'USD'>;
-    }>
-  >;
-}> = z.object({
+export const batchTaggingJobSchema: ReturnType<typeof z.object> = z.object({
   id: z.string(),
   documents: z.array(z.string()),
   options: taggingOptionsSchema,
-  status: z.enum(['pending', 'processing', 'completed', 'failed']),
+  status: z.enum(['pending', 'processing', 'completed', 'failed'] as const),
   progress: z.object({
     total: z.number().int().nonnegative(),
     completed: z.number().int().nonnegative(),

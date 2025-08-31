@@ -1,26 +1,20 @@
-import { getMembersAsProperties } from '../components/DependencyGraph';
+// import { getMembersAsProperties } from '../components/DependencyGraph';
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getNodeStyle } from '../theme/graphTheme';
 
-import type {
-  ClassStructure,
-  DependencyKind,
-  DependencyNode,
-  DependencyPackageGraph,
-  InterfaceStructure,
-} from '../components/DependencyGraph/types';
+import type { DependencyKind, DependencyNode, DependencyPackageGraph } from '../components/DependencyGraph/types';
 
 /**
  * Creates empty items that match the expected interface for getMembersAsProperties
  */
-function createCompatibleTypeInput(item: ClassStructure | InterfaceStructure) {
-  return {
-    id: item.id,
-    name: item.name,
-    properties: [],
-    methods: [],
-  };
-}
+// function createCompatibleTypeInput(item: ClassStructure | InterfaceStructure) {
+//   return {
+//     id: item.id,
+//     name: item.name,
+//     properties: [],
+//     methods: [],
+//   };
+// }
 
 /**
  * Creates graph nodes from the provided dependency package graph data
@@ -68,8 +62,8 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               data: {
                 parentId: module.id,
                 label: cls.name,
-                properties: cls.properties,
-                methods: cls.methods,
+                properties: cls.properties ?? [],
+                methods: cls.methods ?? [],
               },
               style: getNodeStyle('class'),
               extent: 'parent',
@@ -87,8 +81,8 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               data: {
                 parentId: module.id,
                 label: iface.name,
-                properties: iface.properties,
-                methods: iface.methods,
+                properties: iface.properties ?? [],
+                methods: iface.methods ?? [],
               },
               style: getNodeStyle('interface'),
               extent: 'parent',

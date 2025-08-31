@@ -25,14 +25,32 @@ export class Database {
    * Verifies that the database schema exists by checking for the presence of required tables
    */
   private async verifySchema(): Promise<boolean> {
-    try {
-      // Try to query the packages table - if it exists, our schema is probably initialized
-      await this.adapter.query('SELECT 1 FROM packages LIMIT 1');
-      return true;
-    } catch (error) {
-      console.log('Schema verification failed:', error instanceof Error ? error.message : String(error));
-      return false;
+    const requiredTables = [
+      'packages',
+      'dependencies',
+      'modules',
+      'classes',
+      'interfaces',
+      'methods',
+      'parameters',
+      'properties',
+      'imports',
+      'class_implements',
+      'interface_extends',
+      'class_extends',
+    ];
+
+    for (const table of requiredTables) {
+      try {
+        // Check if table exists by selecting 1 row
+        await this.adapter.query(`SELECT 1 FROM ${table} LIMIT 1`);
+      } catch (error) {
+        console.log(`Schema verification missing table: ${table}`);
+        return false;
+      }
     }
+
+    return true;
   }
 
   public async initializeDatabase(reset = false): Promise<void> {
@@ -101,7 +119,16 @@ export class Database {
       .filter((stmt) => stmt.length > 0);
 
     for (const stmt of statements) {
-      await this.adapter.query(stmt);
+      try {
+        await this.adapter.query(stmt);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        // Ignore idempotent errors when tables or indexes already exist
+        if (/already exists/i.test(message)) {
+          continue;
+        }
+        throw error;
+      }
     }
   }
 

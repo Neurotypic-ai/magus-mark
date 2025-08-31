@@ -5,26 +5,18 @@ import * as vscode from 'vscode';
 
 import { LanguageModelAPI } from './cursor/LanguageModelAPI';
 import { MCPServer } from './cursor/MCPServer';
-import { SmartContextProvider } from './services/SmartContextProvider';
-import { VaultIntegrationService, type TaggedNote, type TagRelationship } from './services/VaultIntegrationService';
+import { SimpleResult, SmartContextProvider } from './services/SmartContextProvider';
+import { VaultIntegrationService } from './services/VaultIntegrationService';
 import { KnowledgeGraphView } from './views/KnowledgeGraph';
 import { registerRecentActivity } from './views/RecentActivity';
 import { SmartSuggestionsView } from './views/SmartSuggestions';
 import { registerTagExplorer } from './views/TagExplorer';
 import { registerVaultBrowser } from './views/VaultBrowser';
 
-// Mock types for now - these would come from the actual core package
-interface OpenAIService {
-  generateCompletion(options: {
-    prompt: string;
-    maxTokens: number;
-    temperature: number;
-  }): Promise<{ isOk(): boolean; isErr(): boolean; value: string; error: Error }>;
-}
+import type { OpenAIService, TagEngine, TagSuggestion } from './services/SmartContextProvider';
+import type { TagRelationship, TaggedNote } from './services/VaultIntegrationService';
 
-interface TagEngine {
-  suggestTags(): Promise<{ isOk(): boolean; isErr(): boolean; value: string[]; error: Error }>;
-}
+// Types provided by SmartContextProvider (Result pattern)
 
 // Store service instances for access from commands
 let mcpServer: MCPServer | undefined;
@@ -725,21 +717,20 @@ function initializeAdvancedFeatures(context: vscode.ExtensionContext): void {
     // Create mock instances for now - in a real implementation these would come from the core package
     const mockOpenAIService: OpenAIService = {
       generateCompletion: async (options: { prompt: string; maxTokens: number; temperature: number }) => {
-        // Mock implementation - in real code this would use the actual OpenAI service
         if (languageModelAPI) {
           const response = await languageModelAPI.generateCompletion(options.prompt, {
             temperature: options.temperature,
             maxTokens: options.maxTokens,
           });
-          return { isOk: () => true, isErr: () => false, value: response, error: new Error('') };
+          return SimpleResult.ok(response);
         }
-        return { isOk: () => false, isErr: () => true, value: '', error: new Error('Language model not available') };
+        return SimpleResult.fail(new Error('Language model not available'));
       },
-    } as OpenAIService;
+    };
 
     const mockTagEngine: TagEngine = {
-      suggestTags: () => Promise.resolve({ isOk: () => true, isErr: () => false, value: [], error: new Error('') }),
-    } as TagEngine;
+      suggestTags: () => Promise.resolve(SimpleResult.ok<TagSuggestion[]>([])),
+    };
 
     // Initialize Smart Context Provider
     smartContextProvider = new SmartContextProvider(mockOpenAIService, mockTagEngine);
@@ -769,12 +760,12 @@ function initializeAdvancedFeatures(context: vscode.ExtensionContext): void {
           if (!vaultService) return;
           const notesResult = await vaultService.getAllNotes();
           if (notesResult.isOk()) {
-            const notes: TaggedNote[] = notesResult.value;
+            const notes: TaggedNote[] = notesResult.getValue();
 
             // Update knowledge graph
             const relationships = await vaultService.getTagRelationships();
             if (relationships.isOk() && knowledgeGraphView) {
-              const relationshipData: TagRelationship[] = relationships.value;
+              const relationshipData: TagRelationship[] = relationships.getValue();
               knowledgeGraphView.updateData(notes, relationshipData);
             }
 
@@ -808,13 +799,13 @@ function registerAdvancedCommands(context: vscode.ExtensionContext): void {
   });
 
   // Smart Context Analysis command
-  const analyzeContextCommand = vscode.commands.registerCommand('magus-mark.analyzeContext', async () => {
+  const analyzeContextCommand = vscode.commands.registerCommand('magus-mark.analyzeContext', () => {
     if (!smartContextProvider || !vaultService) {
       vscode.window.showErrorMessage('Smart context analysis not available');
       return;
     }
 
-    vscode.window.withProgress(
+    void vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: 'Analyzing current context...',
@@ -824,7 +815,7 @@ function registerAdvancedCommands(context: vscode.ExtensionContext): void {
         if (!vaultService || !smartContextProvider) return;
         const notesResult = await vaultService.getAllNotes();
         if (notesResult.isOk()) {
-          const notes: TaggedNote[] = notesResult.value;
+          const notes: TaggedNote[] = notesResult.getValue();
           const suggestions = await smartContextProvider.provideSmartSuggestions(notes, true);
           if (suggestions.isOk() && suggestions.value.length > 0) {
             await vscode.commands.executeCommand('magusSmartSuggestions.focus');
@@ -893,16 +884,16 @@ function registerAdvancedCommands(context: vscode.ExtensionContext): void {
     }
 
     const notesResult = await vaultService.getAllNotes();
-    if (notesResult.isErr()) {
+    if (notesResult.isFail()) {
       vscode.window.showErrorMessage('Could not load notes for analysis');
       return;
     }
 
-    const relatedFiles = await smartContextProvider.suggestRelatedFiles(editor.document.fileName, notesResult.value);
+    const relatedFiles = smartContextProvider.suggestRelatedFiles(editor.document.fileName, notesResult.getValue());
 
     if (relatedFiles.length > 0) {
       const fileOptions = relatedFiles.map((filePath) => {
-        const note = notesResult.value.find((n) => n.path === filePath);
+        const note = notesResult.getValue().find((n) => n.path === filePath);
         return {
           label: note?.title ?? path.basename(filePath),
           description: filePath,
@@ -956,7 +947,7 @@ function registerAdvancedCommands(context: vscode.ExtensionContext): void {
 
         if (result.isOk() && result.value.length > 0) {
           const snippetOptions = result.value.map((snippet) => ({
-            label: (snippet.metadata?.description as string) || 'Generated Snippet',
+            label: (snippet.metadata ? (snippet.metadata['description'] as string) : undefined) ?? 'Generated Snippet',
             detail: snippet.reasoning,
             snippet: snippet.content,
           }));

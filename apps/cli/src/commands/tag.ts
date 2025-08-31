@@ -333,11 +333,12 @@ ${
 
               // Track actual usage and cost
               if (result.usage) {
+                const { inputTokens, outputTokens } = result.usage ?? { inputTokens: 0, outputTokens: 0 };
                 const actualCost = costManager.trackUsage(
                   options.model ?? 'gpt-4o',
                   {
-                    input: result.usage.inputTokens || 0,
-                    output: result.usage.outputTokens || 0,
+                    input: inputTokens,
+                    output: outputTokens,
                   },
                   `process-${path.basename(filePath)}`
                 );
@@ -422,7 +423,7 @@ Summary:
 - Errors: ${String(totalErrors)}
 - Total tokens used: ${sessionStats.totalTokens.toLocaleString()}
 - Actual cost: $${totalCost.toFixed(4)}
-- Session duration: ${Math.round(sessionStats.duration / 1000)}s
+- Session duration: ${Math.round(sessionStats.duration / 1000).toFixed(1)}s
       `.trim(),
         'Processing Complete'
       );

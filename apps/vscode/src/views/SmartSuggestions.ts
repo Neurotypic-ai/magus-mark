@@ -33,8 +33,8 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
 
@@ -157,15 +157,15 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
     if (frontmatterMatch) {
       // Update existing frontmatter
       const frontmatter = frontmatterMatch[1];
-      const tagsMatch = frontmatter.match(/^tags:\s*(\[.*?\]|\S.*?)$/m);
+      const tagsMatch = frontmatter ? /^tags:\s*(\[.*?\]|\S.*?)$/m.exec(frontmatter) : null;
 
       if (tagsMatch) {
         // Add to existing tags
         let existingTags: string[];
         try {
-          existingTags = JSON.parse(tagsMatch[1]);
+          existingTags = JSON.parse(tagsMatch[1] || '[]');
         } catch {
-          existingTags = tagsMatch[1].split(',').map((t) => t.trim());
+          existingTags = (tagsMatch[1] || '').split(',').map((t) => t.trim());
         }
 
         if (!existingTags.includes(suggestion.content)) {
@@ -192,7 +192,7 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
   }
 
   private async applyFileSuggestion(suggestion: SmartSuggestion): Promise<void> {
-    const filePath = suggestion.metadata?.path as string;
+    const filePath = suggestion.metadata ? (suggestion.metadata['path'] as string) : undefined;
     if (filePath) {
       const uri = vscode.Uri.file(filePath);
       await vscode.window.showTextDocument(uri);
@@ -263,7 +263,7 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
     });
   }
 
-  private getHtmlForWebview(webview: vscode.Webview): string {
+  private getHtmlForWebview(_webview: vscode.Webview): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -491,6 +491,7 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
                 const contentDisplay = isSnippet 
                     ? \`<div class="code-snippet">\${suggestion.content}</div>\`
                     : \`<div class="suggestion-content">\${suggestion.content}</div>\`;
+                const payload = JSON.stringify(suggestion).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 
                 return \`
                     <div class="suggestion">
@@ -503,7 +504,7 @@ export class SmartSuggestionsView implements vscode.WebviewViewProvider {
                         \${contentDisplay}
                         <div class="suggestion-reasoning">\${suggestion.reasoning}</div>
                         <div class="suggestion-actions">
-                            <button class="suggestion-btn" onclick="applySuggestion(\${JSON.stringify(suggestion).replace(/"/g, '&quot;')})">
+                            <button class="suggestion-btn" onclick="applySuggestion(JSON.parse(this.dataset.payload))" data-payload="\${payload}">
                                 Apply
                             </button>
                             <button class="suggestion-btn dismiss-btn" onclick="dismissSuggestion(\${index})">

@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
+import type { UserConfigExport } from 'vitest/config';
+
+const config: UserConfigExport = defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
@@ -9,3 +11,5 @@ export default defineConfig({
     exclude: ['node_modules/**', 'dist/**'],
   },
 });
+
+export default config;

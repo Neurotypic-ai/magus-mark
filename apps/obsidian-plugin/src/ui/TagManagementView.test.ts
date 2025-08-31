@@ -27,7 +27,7 @@ describe('TagManagementView', () => {
   let view: TagManagementView;
   let mockContentContainer: HTMLElement; // Reference to the actual content area
   let mockPlugin: MagusMarkPlugin;
-  let mockApp: any;
+  let mockApp: App;
   let mockLeaf: WorkspaceLeafType;
 
   beforeEach(async () => {
@@ -83,13 +83,13 @@ describe('TagManagementView', () => {
 
     // Assert against the spies on the *actual* content container (view.contentEl)
     // Ensure these are called on the correct element (view.contentEl)
-    expect(vi.mocked(view.contentEl).empty).toHaveBeenCalled();
-    expect(vi.mocked(view.contentEl).createEl).toHaveBeenCalledWith('h2', {
+    expect(vi.mocked(view.contentEl as unknown as MockObsidianElement<'div'>).empty).toHaveBeenCalled();
+    expect(vi.mocked(view.contentEl as unknown as MockObsidianElement<'div'>).createEl).toHaveBeenCalledWith('h2', {
       text: 'Magus Mark Tag Management',
     });
-    expect(vi.mocked(view.contentEl).createDiv).toHaveBeenCalledWith('tag-section');
-    expect(vi.mocked(view.contentEl).createDiv).toHaveBeenCalledWith('actions-section');
-    expect(vi.mocked(view.contentEl).createDiv).toHaveBeenCalledWith('stats-section');
+    expect(vi.mocked(view.contentEl as unknown as MockObsidianElement<'div'>).createDiv).toHaveBeenCalledWith('tag-section');
+    expect(vi.mocked(view.contentEl as unknown as MockObsidianElement<'div'>).createDiv).toHaveBeenCalledWith('actions-section');
+    expect(vi.mocked(view.contentEl as unknown as MockObsidianElement<'div'>).createDiv).toHaveBeenCalledWith('stats-section');
   });
 
   it('should collect tags from the vault', () => {

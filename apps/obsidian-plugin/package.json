@@ -1,30 +1,30 @@
 {
   "author": "Kevin Hallmark <magus-mark@littleblackhat.com>",
   "dependencies": {
-    "@codemirror/language": "^6.11.0",
+    "@codemirror/language": "^6.11.3",
     "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.36.8",
+    "@codemirror/view": "^6.38.1",
     "@magus-mark/core": "workspace:*",
     "builtin-modules": "^5.0.0",
-    "electron": "^36.3.1",
-    "js-tiktoken": "^1.0.20"
+    "electron": "^37.4.0",
+    "js-tiktoken": "^1.0.21"
   },
   "description": "AI-powered tagging system for organizing AI chat history in Obsidian",
   "devDependencies": {
     "@magus-mark/eslint-config": "workspace:*",
     "@magus-mark/typescript-config": "workspace:*",
     "@testing-library/react": "^16.3.0",
-    "@types/node": "^22.15.21",
-    "esbuild": "^0.25.4",
+    "@types/node": "^24.3.0",
+    "esbuild": "^0.25.9",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-register": "^3.6.0",
-    "eslint": "^9.27.0",
+    "eslint": "^9.34.0",
     "jsdom": "^26.1.0",
     "obsidian": "^1.8.7",
     "tslib": "^2.8.1",
-    "tsx": "^4.19.4",
-    "typescript": "5.8.3",
-    "vitest": "^3.1.4"
+    "tsx": "^4.20.5",
+    "typescript": "5.9.2",
+    "vitest": "^3.2.4"
   },
   "keywords": [
     "obsidian",

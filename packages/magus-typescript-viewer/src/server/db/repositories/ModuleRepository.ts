@@ -73,13 +73,17 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
       const results = await this.executeQuery<IModuleRow>(
         'create',
         `INSERT INTO modules (
-          id, package_id, name, source
-        ) VALUES (?, ?, ?, ?) RETURNING *`,
+          id, package_id, name, source, directory, filename, relative_path, is_barrel
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
         [
           dto.id,
           dto.package_id,
           dto.name,
           JSON.stringify(dto.source), // Serialize FileLocation
+          dto.source.directory,
+          dto.source.filename,
+          dto.source.relativePath,
+          Boolean(dto.source.isBarrel ?? false) ? 1 : 0,
         ]
       );
 

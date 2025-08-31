@@ -171,8 +171,18 @@ export const configCommand: CommandModule = {
           const { format, output } = argv as { format: string; output: string };
           try {
             const currentConfig = config.getAll();
-            const configStr =
-              format === 'json' ? JSON.stringify(currentConfig, null, 2) : '# TODO: Implement YAML export';
+            let configStr: string;
+            if (format === 'json') {
+              configStr = JSON.stringify(currentConfig, null, 2);
+            } else {
+              // YAML export using js-yaml
+              const yaml = await import('js-yaml');
+              configStr = yaml.dump(currentConfig, {
+                indent: 2,
+                lineWidth: 120,
+                noRefs: true,
+              });
+            }
 
             const writeResult = await fileUtils.writeFile(output, configStr);
             if (writeResult.isFail()) {

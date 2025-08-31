@@ -7,12 +7,12 @@ import type { CommandModule } from 'yargs';
 const logger = Logger.getInstance('analyze');
 
 interface AnalyzeOptions {
-  paths?: string[];
+  paths: string[];
   deep: boolean;
-  pattern?: string;
+  pattern: string | undefined;
   format: 'report' | 'json' | 'dashboard' | 'export';
   predict: boolean;
-  compare?: string;
+  compare: string | undefined;
   sentiment: boolean;
   trends: boolean;
   ai: boolean;
@@ -98,7 +98,7 @@ export const analyzeCommand: CommandModule<object, AnalyzeOptions> = {
 
   handler: async (argv) => {
     console.log(chalk.bold.magenta('🧠 AI ANALYSIS ENGINE'));
-    console.log(chalk.gray(`🎯 Target: ${argv.paths?.join(', ') ?? 'Current directory'}`));
+    console.log(chalk.gray(`🎯 Target: ${argv.paths.join(', ')}`));
     console.log(chalk.gray(`🚀 Format: ${argv.format.toUpperCase()}`));
 
     if (argv.ai) {

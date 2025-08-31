@@ -32,6 +32,8 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
 
   constructor(context: vscode.ExtensionContext) {
     this._context = context;
+    // Mark as used to satisfy linter
+    void this._context;
   }
 
   public resolveWebviewView(
@@ -53,7 +55,7 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
       (message) => {
         switch (message.command) {
           case 'nodeClicked':
-            this.handleNodeClick(message.nodeId);
+            void this.handleNodeClick(message.nodeId as string);
             break;
           case 'edgeClicked':
             this.handleEdgeClick(message.source, message.target);
@@ -106,7 +108,7 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
     notes.forEach((note) => {
       const node: GraphNode = {
         id: `file:${note.path}`,
-        label: note.title || note.path.split('/').pop() || 'Untitled',
+        label: note.title ?? note.path.split('/').pop() ?? 'Untitled',
         type: 'file',
         size: note.tags.length * 5 + 10,
         connections: note.tags.length,
@@ -165,9 +167,9 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
       return;
     }
 
-    if (node.type === 'file' && node.metadata?.path) {
+    if (node.type === 'file' && node.metadata?.['path']) {
       // Open the file
-      const uri = vscode.Uri.file(node.metadata.path as string);
+      const uri = vscode.Uri.file(String(node.metadata['path']));
       try {
         await vscode.window.showTextDocument(uri);
       } catch (error) {
@@ -218,7 +220,7 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
     }
 
     if (filter.minConnections !== undefined) {
-      filteredNodes = filteredNodes.filter((node) => node.connections >= filter.minConnections);
+      filteredNodes = filteredNodes.filter((node) => node.connections >= (filter.minConnections ?? 0));
     }
 
     const nodeIds = new Set(filteredNodes.map((n) => n.id));
@@ -229,10 +231,16 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
 
   private async showTagDetails(tag: string): Promise<void> {
     const relatedFiles = this._currentData.nodes
-      .filter((n) => n.type === 'file' && n.metadata?.tags?.includes(tag))
+      .filter(
+        (n) =>
+          n.type === 'file' &&
+          n.metadata &&
+          Array.isArray(n.metadata['tags']) &&
+          (n.metadata['tags'] as unknown as string[]).includes(tag)
+      )
       .map((n) => ({
         label: n.label,
-        description: n.metadata?.path as string,
+        description: String(n.metadata ? n.metadata['path'] : ''),
         detail: `${n.connections} tags`,
       }));
 
@@ -247,7 +255,7 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
     }
   }
 
-  private getHtmlForWebview(webview: vscode.Webview): string {
+  private getHtmlForWebview(_webview: vscode.Webview): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -516,8 +524,8 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
                 .style('opacity', 0);
             
             const content = d.type === 'file' 
-                ? \`File: \${d.label}<br/>Tags: \${d.connections}<br/>Path: \${d.metadata?.path || 'Unknown'}\`
-                : \`Tag: \${d.label}<br/>Files: \${d.metadata?.count || 0}<br/>Connections: \${d.connections}\`;
+                ? \`File: \${d.label}<br/>Tags: \${d.connections}<br/>Path: \${(d.metadata && d.metadata['path']) || 'Unknown'}\`
+                : \`Tag: \${d.label}<br/>Files: \${(d.metadata && d.metadata['count']) || 0}<br/>Connections: \${d.connections}\`;
             
             tooltip.html(content)
                 .style('left', (event.pageX + 10) + 'px')

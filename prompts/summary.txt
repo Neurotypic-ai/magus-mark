@@ -3,15 +3,66 @@
 </document>
 
 <instructions>
-Create a concise summary of the document focused on elements that would help with topic classification.
+You are a specialized content summarizer focused on creating classification-optimized summaries that preserve essential tagging signals while maximizing token efficiency.
 
-Your summary should identify:
-1. The main subject domains and topics discussed
-2. Any specific technologies, methodologies, or frameworks mentioned
-3. The general context and purpose of the conversation
-4. The conversation style or modality (theoretical, practical, question-based, etc.)
-5. Any specific life areas it relates to (career, health, learning, etc.)
+Your task is to create a structured summary that captures all elements necessary for accurate topic classification and domain tagging.
 
-Keep your summary under 400 words and focus only on extracting factual information.
-Do not include your own analysis or commentary on the quality or correctness of the content.
+## Summary Framework
+
+Structure your summary to identify:
+
+### 1. Primary Domain and Topic Structure
+- Main subject domain(s) and any secondary areas of focus
+- Specific subfields, specializations, or technical areas
+- Key concepts, theories, or frameworks central to the discussion
+- Relationship between different topics if multiple areas are covered
+
+### 2. Technical and Methodological Elements
+- Specific technologies, tools, platforms, or software mentioned
+- Methodologies, processes, or systematic approaches discussed
+- Standards, protocols, or best practices referenced
+- Technical terminology that signals expertise level and domain
+
+### 3. Contextual and Temporal Markers
+- Time period indicators (current events, historical references, future projections)
+- Life context signals (professional, academic, personal, health-related)
+- Conversation setting and participant roles or expertise levels
+- Geographic, cultural, or institutional context if relevant
+
+### 4. Content Characteristics and Intent
+- Conversation style: theoretical exploration, practical problem-solving, instructional, Q&A, debate
+- Complexity and depth level: beginner, intermediate, advanced, expert
+- Primary purpose: learning, troubleshooting, decision-making, exploration, implementation
+- Audience characteristics and assumed knowledge level
+
+### 5. Problem-Solution Dynamics
+- Key problems, challenges, or questions being addressed
+- Solutions, recommendations, or approaches proposed or discussed
+- Outcomes, conclusions, or resolutions reached
+- Important limitations, caveats, or considerations noted
+
+## Quality Standards
+
+- **Factual Precision**: Report only what is explicitly present in the content
+- **Classification Focus**: Emphasize elements that enable accurate domain and tag assignment
+- **Technical Accuracy**: Preserve specific terminology and technical references exactly
+- **Contextual Completeness**: Include all temporal, situational, and purpose indicators
+- **Proportional Representation**: Reflect the relative emphasis of different topics
+
+## Length and Format
+
+- Target length: Under 400 words
+- Use clear paragraph structure with natural breaks
+- Maintain logical flow from general context to specific details
+- Avoid redundancy while ensuring comprehensive coverage
+
+## Output Requirements
+
+Provide your summary as structured prose without:
+- Personal analysis, opinions, or quality judgments
+- Meta-commentary about the summarization process
+- Speculation beyond explicit content
+- Recommendations or advice not present in the original
+
+Focus exclusively on distilling the factual content needed for precise classification and tagging.
 </instructions> 

@@ -15,7 +15,7 @@ import type { TagSet } from '../models/TagSet';
 // Basic tag validators
 export const yearTagSchema: z.ZodString = z.string().regex(/^\d{4}$/, 'Year must be a 4-digit number');
 
-export const lifeAreaTagSchema: z.ZodEnum<[string, string, string, string, string, string, string, string]> = z.enum([
+const LIFE_AREA_VALUES = [
   'career',
   'relationships',
   'health',
@@ -24,11 +24,10 @@ export const lifeAreaTagSchema: z.ZodEnum<[string, string, string, string, strin
   'personal-growth',
   'finance',
   'hobby',
-]);
+] as const;
+export const lifeAreaTagSchema: z.ZodType<(typeof LIFE_AREA_VALUES)[number]> = z.enum(LIFE_AREA_VALUES);
 
-export const domainTagSchema: z.ZodEnum<
-  [string, string, string, string, string, string, string, string, string, string, string, string]
-> = z.enum([
+const DOMAIN_VALUES = [
   'software-development',
   'philosophy',
   'design',
@@ -41,7 +40,8 @@ export const domainTagSchema: z.ZodEnum<
   'health',
   'education',
   'finance',
-]);
+] as const;
+export const domainTagSchema: z.ZodType<(typeof DOMAIN_VALUES)[number]> = z.enum(DOMAIN_VALUES);
 
 // This is a simplification as we can't directly map the complex SubdomainMap in Zod
 // without excessive repetition, so we use a string with validation logic
@@ -49,9 +49,7 @@ export const subdomainTagSchema: z.ZodString = z.string();
 
 export const contextualTagSchema: z.ZodString = z.string();
 
-export const conversationTypeTagSchema: z.ZodEnum<
-  [string, string, string, string, string, string, string, string, string, string, string, string]
-> = z.enum([
+const CONVERSATION_TYPE_VALUES = [
   'theory',
   'practical',
   'meta',
@@ -64,7 +62,9 @@ export const conversationTypeTagSchema: z.ZodEnum<
   'planning',
   'question',
   'analysis',
-]);
+] as const;
+export const conversationTypeTagSchema: z.ZodType<(typeof CONVERSATION_TYPE_VALUES)[number]> =
+  z.enum(CONVERSATION_TYPE_VALUES);
 
 export const confidenceScoreSchema: z.ZodNumber = z
   .number()
@@ -120,7 +120,8 @@ export const tagSetSchema: z.ZodObject<{
   confidence: tagConfidenceSchema,
 });
 
-export const tagBehaviorSchema: z.ZodEnum<['append', 'replace', 'merge']> = z.enum(['append', 'replace', 'merge']);
+const TAG_BEHAVIOR_VALUES = ['append', 'replace', 'merge'] as const;
+export const tagBehaviorSchema: z.ZodType<(typeof TAG_BEHAVIOR_VALUES)[number]> = z.enum(TAG_BEHAVIOR_VALUES);
 
 // Type inference helpers
 export type YearTagSchema = z.infer<typeof yearTagSchema>;

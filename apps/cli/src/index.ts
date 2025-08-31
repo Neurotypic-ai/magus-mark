@@ -17,6 +17,8 @@ import { configCommand } from './commands/config';
 import { configInteractiveCommand } from './commands/config-interactive';
 // God Tier commands
 import { dashboardCommand } from './commands/dashboard';
+import { healthCommand } from './commands/health';
+import { naturalCommand } from './commands/natural';
 import { statsCommand } from './commands/stats';
 import { tagCommand } from './commands/tag';
 import { taxonomyCommand } from './commands/taxonomy';
@@ -101,6 +103,8 @@ const cli = yargs(hideBin(process.argv))
   .command(dashboardCommand)
   .command(workflowCommand)
   .command(analyzeCommand)
+  .command(naturalCommand)
+  .command(healthCommand)
   .command({
     command: 'plugins',
     describe: '🔌 Manage CLI plugins for ultimate extensibility',
@@ -176,6 +180,7 @@ const cli = yargs(hideBin(process.argv))
     default: 'pretty' as const,
     global: true,
   })
+  .example('$0 ask "tag my files"', '🧠 Natural language interface')
   .example('$0 dashboard', '🔥 Launch the God Tier Matrix dashboard')
   .example('$0 dashboard --theme=cyberpunk', '🌈 Cyberpunk themed dashboard')
   .example('$0 workflow run --batch --parallel=8', '⚡ Massive batch processing workflow')
@@ -243,6 +248,7 @@ ${chalk.bold.red('🔥 MAGUS MARK CLI - GOD TIER EDITION 🔥')} ${chalk.gray('v
 ${chalk.bold.cyan('The most BADASS AI-powered conversation tagging CLI ever created')}
 
 ${chalk.yellow('🚀 God Tier Features:')}
+  ${chalk.white('magus-mark ask "tag my files"')}    🧠 Natural language interface
   ${chalk.white('magus-mark dashboard')}              🔥 Launch Matrix-style real-time dashboard
   ${chalk.white('magus-mark workflow run --batch')}   ⚡ Advanced batch processing workflows
   ${chalk.white('magus-mark analyze --deep --ai')}    🧠 AI-powered deep analysis engine

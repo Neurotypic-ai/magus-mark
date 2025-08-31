@@ -14,9 +14,18 @@
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/dist"],
       "options": {
-        "command": "vsce package",
+        "command": "pnpm run compile",
         "cwd": "apps/vscode"
       }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/*.vsix"],
+      "options": {
+        "command": "vsce package",
+        "cwd": "apps/vscode"
+      },
+      "dependsOn": ["build"]
     },
     "test:integration": {
       "executor": "nx:run-script",

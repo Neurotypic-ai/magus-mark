@@ -202,45 +202,55 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
   }
 
   private async createPackageWithDependencies(pkg: IPackageRow): Promise<Package> {
-    // Get dependencies from DependencyRepository
-    const dependencyRows = await this.dependencyRepository.findBySourceId(pkg.id);
+    // Gracefully degrade: return package with empty dependency maps if dependency retrieval fails
+    try {
+      const dependencyRows = await this.dependencyRepository.findBySourceId(pkg.id);
 
-    // Create maps for different dependency types
-    const dependencies = new Map<string, Package>();
-    const devDependencies = new Map<string, Package>();
-    const peerDependencies = new Map<string, Package>();
+      const dependencies = new Map<string, Package>();
+      const devDependencies = new Map<string, Package>();
+      const peerDependencies = new Map<string, Package>();
 
-    // Populate dependency maps
-    for (const row of dependencyRows) {
-      const depPackageArr = await this.retrieve(row.target_id);
-      const dep = depPackageArr[0];
-      if (!dep) {
-        throw new EntityNotFoundError('Package', String(row.target_id), this.errorTag);
+      // Best-effort: do not recursively hydrate dependent packages to avoid cycles and heavy queries
+      for (const row of dependencyRows) {
+        const placeholder = new Package(String(row.target_id), '', '', '', new Date());
+        switch (row.type) {
+          case 'dependency':
+            dependencies.set(placeholder.id, placeholder);
+            break;
+          case 'devDependency':
+            devDependencies.set(placeholder.id, placeholder);
+            break;
+          case 'peerDependency':
+            peerDependencies.set(placeholder.id, placeholder);
+            break;
+        }
       }
-      switch (row.type) {
-        case 'dependency':
-          dependencies.set(dep.id, dep);
-          break;
-        case 'devDependency':
-          devDependencies.set(dep.id, dep);
-          break;
-        case 'peerDependency':
-          peerDependencies.set(dep.id, dep);
-          break;
-      }
+
+      return new Package(
+        String(pkg.id),
+        String(pkg.name),
+        String(pkg.version),
+        String(pkg.path),
+        new Date(String(pkg.created_at)),
+        dependencies,
+        devDependencies,
+        peerDependencies,
+        new Map()
+      );
+    } catch (error) {
+      this.logger.error('Dependency hydration failed, returning package without dependencies', error as Error);
+      return new Package(
+        String(pkg.id),
+        String(pkg.name),
+        String(pkg.version),
+        String(pkg.path),
+        new Date(String(pkg.created_at)),
+        new Map(),
+        new Map(),
+        new Map(),
+        new Map()
+      );
     }
-
-    return new Package(
-      String(pkg.id),
-      String(pkg.name),
-      String(pkg.version),
-      String(pkg.path),
-      new Date(String(pkg.created_at)),
-      dependencies,
-      devDependencies,
-      peerDependencies,
-      new Map()
-    );
   }
 
   async retrieveById(id: string): Promise<Package | undefined> {

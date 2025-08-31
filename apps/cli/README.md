@@ -38,9 +38,23 @@ magus-mark tag ./path/to/conversations/
 
 ## Commands
 
-### `tag`
+### 🧠 `ask` - Natural Language Interface
 
-Process and tag conversations.
+The most intuitive way to use the CLI - just describe what you want to do!
+
+```bash
+magus-mark ask [command] [options]
+
+# Examples
+magus-mark ask "tag my files with gpt-4"
+magus-mark ask "show me usage stats for this week"
+magus-mark ask --interactive  # Start interactive session
+magus-mark ask "launch the dashboard"
+```
+
+### 🏷️ `tag`
+
+Process and tag conversations with AI.
 
 ```bash
 magus-mark tag [paths..] [options]
@@ -90,7 +104,60 @@ Subcommands:
 - `reset`: Reset configuration to defaults
 - `setup`: Interactive configuration setup (alias: `magus-mark setup`)
 
-### `test`
+### 🏥 `health`
+
+System health monitoring and diagnostics.
+
+```bash
+magus-mark health [check] [options]
+
+# Examples
+magus-mark health                        # Run all health checks
+magus-mark health openai-api             # Check specific component
+magus-mark health --watch --interval=60  # Continuous monitoring
+magus-mark health --format=json          # JSON output
+```
+
+### 🔥 `dashboard`
+
+Launch the Matrix-style real-time God Tier dashboard.
+
+```bash
+magus-mark dashboard [options]
+
+# Examples
+magus-mark dashboard                          # Default Matrix theme
+magus-mark dashboard --theme=cyberpunk       # Cyberpunk theme
+magus-mark dashboard --layout=sidebar        # Sidebar layout
+```
+
+### ⚡ `workflow`
+
+Advanced workflow orchestration for massive processing power.
+
+```bash
+magus-mark workflow <operation> [options]
+
+# Examples
+magus-mark workflow run --batch --parallel=8
+magus-mark workflow create --preset=aggressive
+magus-mark workflow monitor --watch
+```
+
+### 🧠 `analyze`
+
+AI-powered analysis and insights engine.
+
+```bash
+magus-mark analyze [paths..] [options]
+
+# Examples
+magus-mark analyze --deep --ai --sentiment
+magus-mark analyze ./docs --trends --predict
+magus-mark analyze --format=dashboard
+```
+
+### 🧪 `test`
 
 Run tests and benchmarks.
 

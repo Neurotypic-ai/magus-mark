@@ -30,6 +30,9 @@ const config: UserConfigExport = defineConfig({
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
   },
+  worker: {
+    format: 'es',
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,

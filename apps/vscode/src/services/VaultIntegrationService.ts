@@ -575,7 +575,7 @@ export class VaultIntegrationService {
       for (const vault of this.vaults) {
         const notesResult = await this.getNotesFromVault(vault);
         if (notesResult.isOk()) {
-          allNotes.push(...notesResult.value);
+          allNotes.push(...notesResult.getValue());
         }
       }
 
@@ -698,11 +698,11 @@ export class VaultIntegrationService {
   public async getTagRelationships(): Promise<Result<TagRelationship[]>> {
     try {
       const notesResult = await this.getAllNotes();
-      if (notesResult.isErr()) {
-        return Result.fail(notesResult.error);
+      if (notesResult.isFail()) {
+        return Result.fail(notesResult.getError());
       }
 
-      const notes = notesResult.value;
+      const notes = notesResult.getValue();
       const relationships: TagRelationship[] = [];
       const tagPairs = new Map<string, number>();
 

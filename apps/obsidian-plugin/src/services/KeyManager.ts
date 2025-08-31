@@ -17,6 +17,8 @@ import type MagusMarkPlugin from '../main';
  */
 export class KeyManager {
   private plugin: MagusMarkPlugin;
+  // Cache whether Electron safeStorage is available
+  private safeStorageAvailable: boolean | null = null;
 
   constructor(plugin: MagusMarkPlugin) {
     this.plugin = plugin;
@@ -34,7 +36,16 @@ export class KeyManager {
         });
       }
 
-      await this.saveToLocalStorage(apiKey);
+      if (this.plugin.settings.apiKeyStorage === 'system') {
+        const saved = await this.saveToSystemStorage(apiKey);
+        if (!saved) {
+          // Fallback to local storage with a clear notice
+          new Notice('System key storage not available. Falling back to local storage.');
+          await this.saveToLocalStorage(apiKey);
+        }
+      } else {
+        await this.saveToLocalStorage(apiKey);
+      }
 
       new Notice('API key has been saved successfully');
       return Result.ok(true);
@@ -51,6 +62,12 @@ export class KeyManager {
    */
   loadKey(): string | null {
     try {
+      if (this.plugin.settings.apiKeyStorage === 'system') {
+        const sys = this.loadFromSystemStorage();
+        if (sys !== null) return sys;
+        // Fallback read from local if system read fails
+        return this.loadFromLocalStorage();
+      }
       return this.loadFromLocalStorage();
     } catch (error) {
       console.error('Error loading API key:', error);
@@ -64,7 +81,14 @@ export class KeyManager {
    */
   async deleteKey(): Promise<Result<boolean>> {
     try {
-      await this.deleteFromLocalStorage();
+      if (this.plugin.settings.apiKeyStorage === 'system') {
+        const deleted = await this.deleteFromSystemStorage();
+        if (!deleted) {
+          await this.deleteFromLocalStorage();
+        }
+      } else {
+        await this.deleteFromLocalStorage();
+      }
       new Notice('API key has been deleted successfully');
       return Result.ok(true);
     } catch (error) {
@@ -171,6 +195,11 @@ export class KeyManager {
         return null;
       }
 
+      // If key is stored using other schemes, ignore here
+      if (encryptedKey.startsWith('safe:') || encryptedKey.startsWith('wcg:')) {
+        return null;
+      }
+
       return this.decryptKey(encryptedKey);
     } catch (error) {
       throw new FileSystemError(
@@ -191,6 +220,211 @@ export class KeyManager {
         `Failed to delete from local storage: ${error instanceof Error ? error.message : String(error)}`
       );
     }
+  }
+
+  /**
+   * Attempt to save the API key using a system-backed storage mechanism.
+   * Prefers Electron safeStorage, falls back to WebCrypto AES-GCM if available.
+   * Returns true if saved using a system method, false if unavailable.
+   */
+  private async saveToSystemStorage(apiKey: string): Promise<boolean> {
+    // Try Electron safeStorage first
+    try {
+      const mod = await this.tryImportElectron();
+      if (mod?.safeStorage?.isEncryptionAvailable?.()) {
+        const encryptedBuf: Buffer = mod.safeStorage.encryptString(apiKey);
+        this.plugin.settings.apiKey = `safe:${encryptedBuf.toString('base64')}`;
+        await this.plugin.saveSettings();
+        this.safeStorageAvailable = true;
+        return true;
+      }
+    } catch {
+      // ignore and try WebCrypto
+    }
+
+    // Fallback to WebCrypto AES-GCM
+    if (this.hasWebCrypto()) {
+      const { cipherTextB64, ivB64, saltB64 } = await this.encryptWithWebCrypto(apiKey);
+      this.plugin.settings.apiKey = `wcg:v1:${saltB64}:${ivB64}:${cipherTextB64}`;
+      await this.plugin.saveSettings();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Attempt to load the API key from system storage. Returns null if not available.
+   */
+  private loadFromSystemStorage(): string | null {
+    const stored = this.plugin.settings.apiKey;
+    if (!stored) return null;
+
+    // Electron safeStorage format
+    if (stored.startsWith('safe:')) {
+      const b64 = stored.slice('safe:'.length);
+      try {
+        const electron = this.getElectronSync();
+        if (electron?.safeStorage?.isEncryptionAvailable?.()) {
+          const buf = Buffer.from(b64, 'base64');
+          return electron.safeStorage.decryptString(buf);
+        }
+      } catch (e) {
+        console.warn('safeStorage read failed, falling back if possible', e);
+      }
+      return null;
+    }
+
+    // WebCrypto format
+    if (stored.startsWith('wcg:')) {
+      if (!this.hasWebCrypto()) return null;
+      try {
+        return this.decryptWithWebCrypto(stored);
+      } catch (e) {
+        console.warn('WebCrypto decrypt failed', e);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Attempt to delete the API key from system storage. Returns false if not available.
+   */
+  private async deleteFromSystemStorage(): Promise<boolean> {
+    const stored = this.plugin.settings.apiKey;
+    if (!stored) return true;
+
+    if (stored.startsWith('safe:') || stored.startsWith('wcg:')) {
+      try {
+        this.plugin.settings.apiKey = '';
+        await this.plugin.saveSettings();
+        return true;
+      } catch (error) {
+        throw new FileSystemError(
+          `Failed to delete from system storage: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return false;
+  }
+
+  // ---------- Electron helpers ----------
+  private async tryImportElectron(): Promise<{
+    safeStorage?: {
+      isEncryptionAvailable(): boolean;
+      encryptString(v: string): Buffer;
+      decryptString(b: Buffer): string;
+    };
+  } | null> {
+    try {
+      // Dynamic import to avoid bundling/resolution issues
+      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+      const mod: typeof import('electron') = await import('electron');
+      return mod as unknown as {
+        safeStorage?: {
+          isEncryptionAvailable(): boolean;
+          encryptString(v: string): Buffer;
+          decryptString(b: Buffer): string;
+        };
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private getElectronSync(): {
+    safeStorage?: {
+      isEncryptionAvailable(): boolean;
+      encryptString(v: string): Buffer;
+      decryptString(b: Buffer): string;
+    };
+  } | null {
+    try {
+      // In CJS at runtime, require may be available
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mod = require('electron');
+      return mod as {
+        safeStorage?: {
+          isEncryptionAvailable(): boolean;
+          encryptString(v: string): Buffer;
+          decryptString(b: Buffer): string;
+        };
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private hasWebCrypto(): boolean {
+    return typeof globalThis !== 'undefined' && !!(globalThis.crypto && 'subtle' in globalThis.crypto);
+  }
+
+  // ---------- WebCrypto AES-GCM helpers ----------
+  private async encryptWithWebCrypto(
+    plainText: string
+  ): Promise<{ cipherTextB64: string; ivB64: string; saltB64: string }> {
+    const enc = new TextEncoder();
+    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
+    const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    const key = await this.deriveKey(salt);
+    const cipherBuf = await globalThis.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plainText));
+    const cipherTextB64 = Buffer.from(new Uint8Array(cipherBuf)).toString('base64');
+    const ivB64 = Buffer.from(iv).toString('base64');
+    const saltB64 = Buffer.from(salt).toString('base64');
+    return { cipherTextB64, ivB64, saltB64 };
+  }
+
+  private async deriveKey(salt: Uint8Array): Promise<CryptoKey> {
+    const enc = new TextEncoder();
+    // Derive from app id and a static purpose string
+    const base = `magus-mark:${this.plugin.manifest.id}:system-key`;
+    const keyMaterial = await globalThis.crypto.subtle.importKey('raw', enc.encode(base), { name: 'PBKDF2' }, false, [
+      'deriveKey',
+    ]);
+    return globalThis.crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt,
+        iterations: 100_000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  private decryptWithWebCrypto(stored: string): string {
+    // Format: wcg:v1:<saltB64>:<ivB64>:<cipherTextB64>
+    const parts = stored.split(':');
+    if (parts.length !== 5) throw new Error('Invalid WebCrypto format');
+    const saltB64 = parts[2];
+    const ivB64 = parts[3];
+    const cipherB64 = parts[4];
+    const salt = Uint8Array.from(Buffer.from(saltB64, 'base64'));
+    const iv = Uint8Array.from(Buffer.from(ivB64, 'base64'));
+    const cipherBytes = Uint8Array.from(Buffer.from(cipherB64, 'base64'));
+
+    // Use Node's crypto for synchronous AES-GCM decryption (ciphertext|tag format)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const crypto = require('node:crypto') as typeof import('node:crypto');
+    const enc = new TextEncoder();
+    const base = `magus-mark:${this.plugin.manifest.id}:system-key`;
+    const keyBuf = crypto.pbkdf2Sync(Buffer.from(enc.encode(base)), Buffer.from(salt), 100_000, 32, 'sha256');
+
+    const tagLength = 16; // AES-GCM auth tag is 16 bytes
+    if (cipherBytes.length <= tagLength) throw new Error('Invalid cipher length');
+    const data = Buffer.from(cipherBytes.slice(0, cipherBytes.length - tagLength));
+    const tag = Buffer.from(cipherBytes.slice(cipherBytes.length - tagLength));
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuf, Buffer.from(iv));
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+    return decrypted.toString('utf-8');
   }
 
   /**

@@ -3,16 +3,57 @@
 </document>
 
 <instructions>
-The document above is very long. Your task is to extract the most relevant sections that would help with classifying the document's topic and content.
+You are a precision content extractor specialized in identifying classification-critical segments from lengthy documents.
 
-Focus on sections that contain:
-1. Clear indications of the subject matter or domain
-2. Key concepts, technologies, or methodologies discussed
-3. Statements about the purpose or context of the conversation
-4. Important questions or problems being solved
+The document above exceeds optimal processing length. Your task is to extract the most relevant sections that preserve the essential elements needed for accurate topic classification and tagging.
 
-Extract approximately {{word_count}} words ({{max_tokens}} tokens) that best represent the document's content.
-Preserve the original wording of the selected sections.
-Format your response as a continuous text with paragraph breaks where appropriate.
-Do not include your own analysis or commentary.
+## Extraction Priorities
+
+Focus on sections containing:
+
+### 1. Domain and Topic Indicators
+- Subject matter declarations and domain-specific terminology
+- Technology names, frameworks, methodologies, or tools
+- Academic or professional field references
+- Industry-specific concepts or jargon
+
+### 2. Contextual Anchors
+- Temporal references (dates, time periods, "recently", "currently")
+- Life context markers (work, personal, academic, health situations)
+- Conversation purpose statements or objectives
+- Participant roles, expertise levels, or backgrounds
+
+### 3. Content Depth Signals
+- Complexity indicators (beginner, advanced, expert-level discussion)
+- Approach types (theoretical vs. practical applications)
+- Problem statements and solution approaches
+- Key questions being addressed or challenges faced
+
+### 4. Essential Substantive Content
+- Core concepts and their relationships
+- Specific examples, use cases, or implementations
+- Important conclusions, recommendations, or insights
+- Critical caveats, limitations, or considerations
+
+## Extraction Strategy
+
+- **Prioritize Opening Context**: Include conversation setup and topic introduction
+- **Capture Key Transitions**: Extract sections where topics shift or deepen
+- **Preserve Technical Precision**: Maintain exact terminology and specific references
+- **Include Resolution Elements**: Extract conclusions or outcomes where present
+- **Maintain Logical Flow**: Ensure extracted segments create coherent narrative
+
+## Quality Requirements
+
+- Extract approximately {{word_count}} words ({{max_tokens}} tokens)
+- Preserve original wording exactly - no paraphrasing or interpretation
+- Maintain paragraph structure and natural breaks
+- Focus on content density over coverage breadth
+- Eliminate redundant explanations while keeping distinct concepts
+
+## Output Format
+
+Present extracted content as continuous text with appropriate paragraph breaks. Include only the original document content - no meta-commentary, analysis, or explanatory text from you.
+
+The extraction should enable accurate classification while maximizing token efficiency.
 </instructions> 
