@@ -44,7 +44,7 @@ export class Database {
       try {
         // Check if table exists by selecting 1 row
         await this.adapter.query(`SELECT 1 FROM ${table} LIMIT 1`);
-      } catch (error) {
+      } catch {
         console.log(`Schema verification missing table: ${table}`);
         return false;
       }

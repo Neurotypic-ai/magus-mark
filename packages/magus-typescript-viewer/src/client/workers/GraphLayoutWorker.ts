@@ -43,7 +43,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       width: (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth,
       height: (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight,
       layoutOptions: {
-        ...(node.data?.parentId && { 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' }),
+        ...(node.data.parentId && { 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' }),
       },
     }));
 

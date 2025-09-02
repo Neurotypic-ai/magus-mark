@@ -2,10 +2,12 @@ import { vi } from 'vitest';
 
 import type { EventRef, Events as EventsType } from 'obsidian';
 
-export class Events implements Partial<EventsType> {
-  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+type EventCallback = (...args: unknown[]) => void;
 
-  public on = vi.fn((name: string, callback: (...args: any[]) => void): EventRef => {
+export class Events implements Partial<EventsType> {
+  private listeners: Map<string, EventCallback[]> = new Map();
+
+  public on = vi.fn((name: string, callback: EventCallback): EventRef => {
     if (!this.listeners.has(name)) {
       this.listeners.set(name, []);
     }
@@ -17,7 +19,7 @@ export class Events implements Partial<EventsType> {
     } as EventRef;
   });
 
-  public off = vi.fn((name: string, callback: (...args: any[]) => void): void => {
+  public off = vi.fn((name: string, callback: EventCallback): void => {
     const callbacks = this.listeners.get(name);
     if (callbacks) {
       const index = callbacks.indexOf(callback);
@@ -27,11 +29,11 @@ export class Events implements Partial<EventsType> {
     }
   });
 
-  public offref = vi.fn((ref: EventRef): void => {
-    // Mock implementation
+  public offref = vi.fn((_ref: EventRef): void => {
+    // Mock implementation - parameter marked as unused with underscore
   });
 
-  public trigger = vi.fn((name: string, ...args: any[]): void => {
+  public trigger = vi.fn((name: string, ...args: unknown[]): void => {
     const callbacks = this.listeners.get(name);
     if (callbacks) {
       callbacks.forEach((callback) => callback(...args));

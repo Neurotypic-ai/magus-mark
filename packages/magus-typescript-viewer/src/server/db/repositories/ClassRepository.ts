@@ -101,11 +101,11 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
       }
 
       return new Class(
-        String(cls.id),
-        String(cls.package_id),
-        String(cls.module_id),
-        String(cls.name),
-        new Date(String(cls.created_at)),
+        cls.id,
+        cls.package_id,
+        cls.module_id,
+        cls.name,
+        new Date(cls.created_at),
         new Map<string, Method>(),
         new Map<string, Property>(),
         new Map<string, Interface>(),
@@ -155,12 +155,12 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
 
       if (id !== undefined) {
         conditions.push('c.id = ?');
-        params.push(String(id));
+        params.push(id);
       }
 
       if (module_id !== undefined) {
         conditions.push('c.module_id = ?');
-        params.push(String(module_id));
+        params.push(module_id);
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -185,8 +185,8 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
 
             // Use specialized repositories to retrieve methods and properties
             const [methodsMap, propertiesMap] = await Promise.all([
-              this.methodRepository.retrieveByParent(String(cls.id), 'class'),
-              this.propertyRepository.retrieveByParent(String(cls.id), 'class'),
+              this.methodRepository.retrieveByParent(cls.id, 'class'),
+              this.propertyRepository.retrieveByParent(cls.id, 'class'),
             ]);
 
             // Build conditions array for implementations query
@@ -201,7 +201,7 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
 
             this.logger.debug('Executing implementations query:', {
               query: implementationsQuery,
-              params: [String(cls.id)],
+              params: [cls.id],
               classId: cls.id,
             });
 
@@ -209,7 +209,7 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
             const implementations = await this.executeQuery<IClassOrInterfaceRow>(
               'retrieve implementations',
               implementationsQuery,
-              [String(cls.id)]
+              [cls.id]
             );
 
             this.logger.debug(`Found ${String(implementations.length)} implementations for class ${cls.id}`);
@@ -217,12 +217,12 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
             // Convert interfaces to Map with explicit type conversion
             const interfacesMap = new Map<string, Interface>();
             implementations.forEach((iface) => {
-              interfacesMap.set(String(iface.id), {
-                id: String(iface.id),
-                package_id: String(iface.package_id),
-                module_id: String(iface.module_id),
-                name: String(iface.name),
-                created_at: new Date(String(iface.created_at)),
+              interfacesMap.set(iface.id, {
+                id: iface.id,
+                package_id: iface.package_id,
+                module_id: iface.module_id,
+                name: iface.name,
+                created_at: new Date(iface.created_at),
                 methods: new Map(),
                 properties: new Map(),
                 extended_interfaces: new Map(),
@@ -230,15 +230,15 @@ export class ClassRepository extends BaseRepository<Class, IClassCreateDTO, ICla
             });
 
             return new Class(
-              String(cls.id),
-              String(cls.package_id),
-              String(cls.module_id),
-              String(cls.name),
-              new Date(String(cls.created_at)),
+              cls.id,
+              cls.package_id,
+              cls.module_id,
+              cls.name,
+              new Date(cls.created_at),
               methodsMap,
               propertiesMap,
               interfacesMap,
-              cls.extends_id ? String(cls.extends_id) : undefined
+              cls.extends_id ?? undefined
             );
           } catch (error) {
             if (error instanceof RepositoryError) {

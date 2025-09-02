@@ -231,7 +231,7 @@ export class KeyManager {
     // Try Electron safeStorage first
     try {
       const mod = await this.tryImportElectron();
-      if (mod?.safeStorage?.isEncryptionAvailable?.()) {
+      if (mod?.safeStorage?.isEncryptionAvailable()) {
         const encryptedBuf: Buffer = mod.safeStorage.encryptString(apiKey);
         this.plugin.settings.apiKey = `safe:${encryptedBuf.toString('base64')}`;
         await this.plugin.saveSettings();
@@ -265,7 +265,7 @@ export class KeyManager {
       const b64 = stored.slice('safe:'.length);
       try {
         const electron = this.getElectronSync();
-        if (electron?.safeStorage?.isEncryptionAvailable?.()) {
+        if (electron?.safeStorage?.isEncryptionAvailable()) {
           const buf = Buffer.from(b64, 'base64');
           return electron.safeStorage.decryptString(buf);
         }
@@ -321,8 +321,7 @@ export class KeyManager {
   } | null> {
     try {
       // Dynamic import to avoid bundling/resolution issues
-      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-      const mod: typeof import('electron') = await import('electron');
+      const mod = await import('electron');
       return mod as unknown as {
         safeStorage?: {
           isEncryptionAvailable(): boolean;
@@ -345,7 +344,7 @@ export class KeyManager {
     try {
       // In CJS at runtime, require may be available
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mod = require('electron');
+      const mod: unknown = require('electron');
       return mod as {
         safeStorage?: {
           isEncryptionAvailable(): boolean;
@@ -359,7 +358,7 @@ export class KeyManager {
   }
 
   private hasWebCrypto(): boolean {
-    return typeof globalThis !== 'undefined' && !!(globalThis.crypto && 'subtle' in globalThis.crypto);
+    return typeof globalThis !== 'undefined' && Boolean(globalThis.crypto?.subtle);
   }
 
   // ---------- WebCrypto AES-GCM helpers ----------
@@ -410,8 +409,8 @@ export class KeyManager {
     const cipherBytes = Uint8Array.from(Buffer.from(cipherB64, 'base64'));
 
     // Use Node's crypto for synchronous AES-GCM decryption (ciphertext|tag format)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const crypto = require('node:crypto') as typeof import('node:crypto');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
+    const crypto: typeof import('node:crypto') = require('node:crypto');
     const enc = new TextEncoder();
     const base = `magus-mark:${this.plugin.manifest.id}:system-key`;
     const keyBuf = crypto.pbkdf2Sync(Buffer.from(enc.encode(base)), Buffer.from(salt), 100_000, 32, 'sha256');

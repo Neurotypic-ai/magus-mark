@@ -94,10 +94,21 @@ export class TaggingService {
       // Apply the tags based on the selected behavior
       const finalTags = this.applyTagBehavior(tags, document.existingTags);
 
-      return {
+      const result: TaggingResult = {
         success: true,
         tags: finalTags,
       };
+
+      if (response.usage) {
+        result.usage = {
+          inputTokens: response.usage.promptTokens,
+          outputTokens: response.usage.completionTokens,
+          totalTokens: response.usage.totalTokens,
+          estimatedCost: response.usage.estimatedCost,
+        };
+      }
+
+      return result;
     } catch (err) {
       // Handle unexpected errors
       const error = err as Error;

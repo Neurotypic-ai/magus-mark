@@ -331,22 +331,32 @@ ${
 
               const tagSet = result.tags;
 
-              // Track actual usage and cost
-              if (result.usage) {
-                const { inputTokens, outputTokens } = result.usage ?? { inputTokens: 0, outputTokens: 0 };
-                const actualCost = costManager.trackUsage(
-                  options.model ?? 'gpt-4o',
-                  {
-                    input: inputTokens,
-                    output: outputTokens,
-                  },
-                  `process-${path.basename(filePath)}`
-                );
-                logger.debug(`File ${filePath} cost: $${actualCost.toFixed(4)}`);
+              // Track actual usage and cost (propagated from core TaggingService)
+              if (result.usage !== undefined) {
+                const usage = result.usage as { inputTokens: number; outputTokens: number };
+                if (
+                  'inputTokens' in usage &&
+                  'outputTokens' in usage &&
+                  typeof usage.inputTokens === 'number' &&
+                  typeof usage.outputTokens === 'number'
+                ) {
+                  const inputTokens = usage.inputTokens;
+                  const outputTokens = usage.outputTokens;
 
-                // Check if cost manager is paused due to budget limits
-                if (costManager.isPaused()) {
-                  throw new Error('Processing paused due to cost limit');
+                  const actualCost = costManager.trackUsage(
+                    options.model ?? 'gpt-4o',
+                    {
+                      input: inputTokens,
+                      output: outputTokens,
+                    },
+                    `process-${path.basename(filePath)}`
+                  );
+                  logger.debug(`File ${filePath} cost: $${actualCost.toFixed(4)}`);
+
+                  // Check if cost manager is paused due to budget limits
+                  if (costManager.isPaused()) {
+                    throw new Error('Processing paused due to cost limit');
+                  }
                 }
               }
 

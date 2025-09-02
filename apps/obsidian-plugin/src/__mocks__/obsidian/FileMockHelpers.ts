@@ -35,8 +35,8 @@ export function createMockTFiles(fileCount: number, filenamePrefix = 'note'): TF
  */
 
 export function createMockTFile(filename: string, path: string): TFile {
-  const file = new TFile();
-  file.path = [path, filename].join('/');
+  const fullPath = [path, filename].filter(Boolean).join('/');
+  const file = new TFile(fullPath);
   file.basename = filename.replace(/\.md$/, '');
   file.extension = 'md';
   return file;

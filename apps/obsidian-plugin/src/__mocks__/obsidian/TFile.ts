@@ -1,7 +1,7 @@
-import type { TAbstractFile as TAbstractFileType, TFile as TFileType, TFolder as TFolderType } from 'obsidian';
+import type { TAbstractFile as TAbstractFileType, TFile as TFileType, TFolder as TFolderType, Vault } from 'obsidian';
 
 export abstract class TAbstractFile implements Partial<TAbstractFileType> {
-  public vault: any;
+  public vault!: Vault;
   public path: string;
   public name: string;
   public parent: TFolder | null;

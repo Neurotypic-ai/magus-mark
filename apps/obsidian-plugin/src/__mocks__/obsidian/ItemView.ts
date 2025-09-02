@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Component } from './Component';
 
-import type { ItemView as ItemViewType, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
+import type { App, ItemView as ItemViewType, Menu, Scope, ViewStateResult, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
 import type { Mock } from 'vitest';
 
 import type { MockObsidianElement } from './MockObsidianElement';
@@ -15,17 +15,18 @@ export class ItemView extends Component implements ItemViewType {
   override containerEl: MockObsidianElement<'div'>;
   contentEl: MockObsidianElement<'div'>;
   // The mocked app field comes from the component
-  app: any;
+  app: App;
   // The mocked scope field comes from the component
-  scope: any;
+  scope: Scope;
 
   constructor(leaf: WorkspaceLeafType) {
     super();
     this.leaf = leaf;
     this.containerEl = createMockObsidianElement('div');
     this.contentEl = createMockObsidianElement('div');
-    this.app = (leaf as any).app || {};
-    this.scope = this.app.scope || {};
+    // Type assertion for mock purposes - in real implementation leaf.app would be properly typed
+    this.app = (leaf as WorkspaceLeafType & { app: App }).app;
+    this.scope = this.app.scope;
   }
 
   getViewType(): string {
@@ -37,22 +38,22 @@ export class ItemView extends Component implements ItemViewType {
   getIcon(): string {
     return this.icon;
   }
-  getState(): any {
+  getState(): Record<string, unknown> {
     return {};
   }
-  setState(_state: any, _result: any): Promise<void> {
+  setState(_state: unknown, _result: ViewStateResult): Promise<void> {
     return Promise.resolve();
   }
-  getEphemeralState(): any {
+  getEphemeralState(): unknown {
     return {};
   }
-  setEphemeralState(_state: any): void {
+  setEphemeralState(_state: unknown): void {
     // Mock implementation
   }
-  onHeaderMenu(_menu: any): void {
+  onHeaderMenu(_menu: Menu): void {
     // Mock implementation
   }
-  onPaneMenu(_menu: any, _source: string): void {
+  onPaneMenu(_menu: Menu, _source: string): void {
     // Mock implementation - required by ItemView interface
   }
   onResize(): void {
@@ -69,10 +70,10 @@ export class ItemView extends Component implements ItemViewType {
   // Override Component methods to make them mockable if needed
   override load: Mock<() => void> = vi.fn();
   override onload: Mock<() => void> = vi.fn();
-  override register: Mock<(cb: () => any) => void> = vi.fn((cb) => cb());
-  override registerEvent: Mock<(ref: any) => void> = vi.fn();
+  override register: Mock<(cb: () => unknown) => void> = vi.fn((cb) => cb());
+  override registerEvent: Mock<(ref: unknown) => void> = vi.fn();
 
-  addAction(icon: string, title: string, callback: (evt: MouseEvent) => any): HTMLElement {
+  addAction(_icon: string, title: string, callback: (evt: MouseEvent) => unknown): HTMLElement {
     const element = document.createElement('button');
     element.setAttribute('aria-label', title);
     element.onclick = callback;

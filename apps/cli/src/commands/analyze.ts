@@ -39,7 +39,7 @@ interface AnalysisResults {
   };
 }
 
-export const analyzeCommand: CommandModule<object, AnalyzeOptions> = {
+export const analyzeCommand: CommandModule = {
   command: 'analyze [paths..]',
   describe: '🧠 Advanced AI-powered analysis and insights engine',
 
@@ -97,16 +97,17 @@ export const analyzeCommand: CommandModule<object, AnalyzeOptions> = {
   },
 
   handler: async (argv) => {
+    const options = argv as unknown as AnalyzeOptions;
     console.log(chalk.bold.magenta('🧠 AI ANALYSIS ENGINE'));
-    console.log(chalk.gray(`🎯 Target: ${argv.paths.join(', ')}`));
-    console.log(chalk.gray(`🚀 Format: ${argv.format.toUpperCase()}`));
+    console.log(chalk.gray(`🎯 Target: ${options.paths.join(', ')}`));
+    console.log(chalk.gray(`🚀 Format: ${options.format.toUpperCase()}`));
 
-    if (argv.ai) {
+    if (options.ai) {
       console.log(chalk.cyan('🤖 AI-enhanced analysis enabled'));
     }
 
     try {
-      await runAnalysis(argv);
+      await runAnalysis(options);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(`💥 Analysis failed: ${errorMessage}`);

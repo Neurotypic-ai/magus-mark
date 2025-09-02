@@ -50,8 +50,8 @@ describe('TagVisualizationView', () => {
     ];
 
     vi.mocked(mockApp.vault.getMarkdownFiles).mockReturnValue(mockFiles);
-    vi.mocked(mockApp.metadataCache.getFileCache).mockImplementation((file: TFile) => {
-      if (file.path === 'note1.md') {
+    vi.mocked(mockApp.metadataCache.getFileCache).mockImplementation((file?: TFile) => {
+      if (file?.path === 'note1.md') {
         return {
           frontmatter: { tags: ['tag1', 'tag2'] },
           tags: [
@@ -62,7 +62,7 @@ describe('TagVisualizationView', () => {
           ],
         };
       }
-      if (file.path === 'note2.md') {
+      if (file?.path === 'note2.md') {
         return {
           frontmatter: { tags: ['tag2', 'tag3'] },
           tags: [

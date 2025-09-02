@@ -2,10 +2,10 @@ import { vi } from 'vitest';
 
 import { Component } from './Component';
 
-import type { View as ViewType, WorkspaceLeaf } from 'obsidian';
+import type { App, View as ViewType, WorkspaceLeaf } from 'obsidian';
 
 export abstract class View extends Component implements Partial<ViewType> {
-  public app: any;
+  public app!: App;
   public leaf: WorkspaceLeaf;
   public containerEl: HTMLElement;
 
@@ -33,11 +33,11 @@ export abstract class View extends Component implements Partial<ViewType> {
     // Mock implementation
   });
 
-  public getState = vi.fn((): any => {
+  public getState = vi.fn((): Record<string, unknown> => {
     return {};
   });
 
-  public setState = vi.fn(async (state: any): Promise<void> => {
+  public setState = vi.fn(async (_state: Record<string, unknown>): Promise<void> => {
     // Mock implementation
   });
 }

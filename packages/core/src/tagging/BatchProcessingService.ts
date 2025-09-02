@@ -49,8 +49,10 @@ export const DEFAULT_BATCH_OPTIONS: BatchProcessingOptions = {
  */
 interface ExtendedTaggingResult extends TaggingResult {
   usage?: {
+    inputTokens: number;
+    outputTokens: number;
     totalTokens: number;
-    estimatedCost: number;
+    estimatedCost?: number;
   };
 }
 
@@ -130,7 +132,9 @@ export class BatchProcessingService {
               const extendedResult = result as ExtendedTaggingResult;
               if (extendedResult.usage) {
                 totalTokensUsed += extendedResult.usage.totalTokens;
-                estimatedCost += extendedResult.usage.estimatedCost;
+                if (typeof extendedResult.usage.estimatedCost === 'number') {
+                  estimatedCost += extendedResult.usage.estimatedCost;
+                }
               }
             } else {
               // Handle error
