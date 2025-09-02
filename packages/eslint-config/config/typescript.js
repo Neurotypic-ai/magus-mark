@@ -60,6 +60,30 @@ export const tsConfig = {
     'react/jsx-no-leaked-render': ['warn', { validStrategies: ['ternary'] }],
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
     '@typescript-eslint/no-import-type-side-effects': 'error',
+    
+    // Strict type safety rules
+    '@typescript-eslint/no-explicit-any': ['error', { 
+      fixToUnknown: false,
+      ignoreRestArgs: false
+    }],
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-argument': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
+    
+    // Prefer safer operators
+    '@typescript-eslint/prefer-nullish-coalescing': 'error',
+    '@typescript-eslint/no-unnecessary-type-conversion': 'error',
+    '@typescript-eslint/no-unnecessary-condition': 'error',
+    
+    // Unused variables and parameters
+    '@typescript-eslint/no-unused-vars': ['error', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_'
+    }],
+    
     '@typescript-eslint/only-throw-error': [
       'error',
       {

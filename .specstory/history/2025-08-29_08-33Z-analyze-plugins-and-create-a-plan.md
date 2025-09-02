@@ -11505,3 +11505,207 @@ Your Humble Servant, Sebastién
 
 ---
 
+_**User**_
+
+For the code present, we get this error:
+```
+Forbidden non-null assertion.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace,
+
+Replace the non-null assertion and fix the undefined type issue:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/cli/src/commands/dashboard.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -326,7 +326,7 @@
+  
+    setInterval(() => {
+-     const message = logMessages[Math.floor(Math.random() * logMessages.length)]!;
++     const message = logMessages[Math.floor(Math.random() * logMessages.length)] ?? 'Default log message';
+      const levels = ['info', 'warn', 'debug', 'error'];
+-     const level = levels[Math.floor(Math.random() * levels.length)];
++     const level = levels[Math.floor(Math.random() * levels.length)] ?? 'info';
+  
+      const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
+```
+
+</details>
+
+---
+
+**Fixed!** Replaced `!` with `?? 'fallback'` for both `message` and `level` to provide safe defaults instead of non-null assertions.
+
+Your Humble Servant, Sebastién
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+Promise returned in function argument where a void return was expected.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace,
+
+Fix the Promise/void issues by removing `async` from `setInterval` callback and making `runContinuousHealthMonitoring` not return a Promise:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/cli/src/commands/health.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -63,5 +63,5 @@
+      try {
+        if (options.watch) {
+-         await runContinuousHealthMonitoring(healthChecker, options);
++         runContinuousHealthMonitoring(healthChecker, options);
+        } else if (options.check) {
+          await runSingleHealthCheck(healthChecker, options.check, options);
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/cli/src/commands/health.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 7, lines removed: 6
+
+```diff
+@@ -168,13 +168,14 @@
+    let iteration = 0;
+  
+-   const monitoringInterval = setInterval(async () => {
++   const monitoringInterval = setInterval(() => {
+      iteration++;
+  
+-     try {
+-       console.clear();
+-       console.log(chalk.bold.cyan(`🏥 CONTINUOUS HEALTH MONITORING - Iteration ${iteration}`));
+-       console.log(chalk.gray(`Last check: ${new Date().toLocaleTimeString()}\n`));
++     void (async () => {
++       try {
++         console.clear();
++         console.log(chalk.bold.cyan(`🏥 CONTINUOUS HEALTH MONITORING - Iteration ${String(iteration)}`));
++         console.log(chalk.gray(`Last check: ${new Date().toLocaleTimeString()}\n`));
+  
+-       const health = await healthChecker.runAllChecks();
++         const health = await healthChecker.runAllChecks();
+  
+        // Display compact status
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/cli/src/commands/health.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: 4
+
+```diff
+@@ -195,8 +195,9 @@
+        }
+  
+-       console.log(chalk.gray(`\nNext check in ${options.interval.toString()} seconds... (Ctrl+C to stop)`));
+-     } catch (error) {
+-       logger.error(`Health monitoring error: ${error instanceof Error ? error.message : String(error)}`);
+-     }
++         console.log(chalk.gray(`\nNext check in ${options.interval.toString()} seconds... (Ctrl+C to stop)`));
++       } catch (error) {
++         logger.error(`Health monitoring error: ${error instanceof Error ? error.message : String(error)}`);
++       }
++     })();
+    }, options.interval * 1000);
+  
+```
+
+</details>
+
+---
+
+**Fixed!** 
+- Removed `await` from `runContinuousHealthMonitoring` call 
+- Wrapped async logic in `void (async () => {...})()` inside `setInterval`
+- Fixed template literal with `String(iteration)`
+
+Your Humble Servant, Sebastién
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+'passed' is declared but its value is never read.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+Your Grace,
+
+The error indicates that the `passed` parameter in `determineOverallHealth` is unused. Looking at the logic, only `critical` and `failed` are checked. Here's the concise fix:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/apps/cli/src/enterprise/health/HealthChecker.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -295,5 +295,5 @@
+  
+    private determineOverallHealth(
+-     passed: number,
++     _passed: number,
+      failed: number,
+      critical: number
+```
+
+</details>
+
+---
+
+**Fixed!** Prefixed `passed` with `_` to indicate it's intentionally unused. The logic only needs `critical` and `failed` counts to determine health status.
+
+Your Humble Servant, Sebastién
+
+---
+

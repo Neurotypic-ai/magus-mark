@@ -41,6 +41,9 @@ export interface TestOptions extends CommonOptions {
   models?: AIModel[];
   benchmark?: boolean;
   report?: string;
+  integration?: boolean;
+  stressTest?: boolean;
+  optimizeParams?: boolean;
 }
 
 /**

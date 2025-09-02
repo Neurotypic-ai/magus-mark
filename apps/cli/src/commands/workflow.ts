@@ -36,7 +36,7 @@ interface WorkflowOptions {
   pipeline?: string;
 }
 
-export const workflowCommand: CommandModule<object, WorkflowOptions> = {
+export const workflowCommand: CommandModule = {
   command: 'workflow <operation>',
   describe: '⚡ Advanced workflow orchestration for massive badassery',
 
@@ -87,28 +87,29 @@ export const workflowCommand: CommandModule<object, WorkflowOptions> = {
   },
 
   handler: async (argv) => {
-    const { operation } = argv;
+    const options = argv as unknown as WorkflowOptions;
+    const { operation } = options;
 
     console.log(chalk.bold.cyan('⚡ WORKFLOW ORCHESTRATION ENGINE'));
     console.log(chalk.gray(`🎯 Operation: ${operation.toUpperCase()}`));
-    console.log(chalk.gray(`🚀 Preset: ${argv.preset.toUpperCase()}`));
+    console.log(chalk.gray(`🚀 Preset: ${options.preset.toUpperCase()}`));
 
     try {
       switch (operation) {
         case 'run':
-          await runWorkflow(argv);
+          await runWorkflow(options);
           break;
         case 'create':
-          createWorkflow(argv);
+          createWorkflow(options);
           break;
         case 'list':
           listWorkflows();
           break;
         case 'monitor':
-          monitorWorkflows(argv);
+          monitorWorkflows(options);
           break;
         case 'optimize':
-          await optimizeWorkflows(argv);
+          await optimizeWorkflows(options);
           break;
         default:
           logger.error(`💥 Unknown operation: ${safeToString(operation)}`);

@@ -30,7 +30,7 @@ interface MetricCollectorInterface {
   recordLog(level: string, message: string): void;
 }
 
-export const dashboardCommand: CommandModule<Record<string, unknown>, DashboardOptions> = {
+export const dashboardCommand: CommandModule = {
   command: 'dashboard',
   describe: '🔥 Launch the Matrix-style real-time God Tier dashboard',
 
@@ -71,12 +71,13 @@ export const dashboardCommand: CommandModule<Record<string, unknown>, DashboardO
   },
 
   handler: async (argv) => {
+    const options = argv as unknown as DashboardOptions;
     console.log('🚀 Initializing God Tier Dashboard...');
-    console.log(`🎨 Theme: ${argv.theme.toUpperCase()}`);
-    console.log(`📊 Layout: ${argv.layout}`);
+    console.log(`🎨 Theme: ${options.theme.toUpperCase()}`);
+    console.log(`📊 Layout: ${options.layout}`);
 
     try {
-      const config: DashboardConfig = await loadDashboardConfig(argv);
+      const config: DashboardConfig = await loadDashboardConfig(options);
       const metricsEngine = new MetricsEngine();
       const dashboard = new DashboardManager(config);
 
@@ -185,7 +186,7 @@ function setupMetricsCollection(dashboard: DashboardManager, metrics: MetricsEng
   });
 
   metrics.on('cost:updated', (data: MetricData) => {
-    dashboard.updateWidget('cost-tracker', { value: data.value.toFixed(4) });
+    dashboard.updateWidget('cost-tracker', { value: parseFloat(data.value.toFixed(4)) });
   });
 
   metrics.on('tokens:usage', () => {
@@ -324,9 +325,9 @@ function simulateSampleData(metrics: MetricsEngine): void {
   ];
 
   setInterval(() => {
-    const message = logMessages[Math.floor(Math.random() * logMessages.length)];
+    const message = logMessages[Math.floor(Math.random() * logMessages.length)] ?? 'Default log message';
     const levels = ['info', 'warn', 'debug', 'error'];
-    const level = levels[Math.floor(Math.random() * levels.length)];
+    const level = levels[Math.floor(Math.random() * levels.length)] ?? 'info';
 
     const collector = (metrics as unknown as { collectors: Map<string, MetricCollectorInterface> }).collectors.get(
       'system:log'

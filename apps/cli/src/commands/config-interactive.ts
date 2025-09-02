@@ -117,7 +117,7 @@ export const configInteractiveCommand: CommandModule = {
         default: currentApiKey ? '[keep current]' : '',
         transformer: (inputValue) => {
           if (inputValue === '[keep current]' && currentApiKey) {
-            return '****' + String(currentApiKey).slice(-4);
+            return '****' + currentApiKey.slice(-4);
           }
           if (inputValue) {
             return '****' + inputValue.slice(-4);

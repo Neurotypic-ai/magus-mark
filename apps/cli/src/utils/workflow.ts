@@ -126,7 +126,7 @@ export class Workflow<T> extends EventEmitter {
     }
 
     this.logger.info(
-      `Starting workflow with ${String(this.queue.length)} tasks and concurrency ${String(this.options.concurrency)}`
+      `Starting workflow with ${this.queue.length} tasks and concurrency ${this.options.concurrency}`
     );
 
     // Start initial batch of tasks based on concurrency
@@ -347,11 +347,11 @@ export class Workflow<T> extends EventEmitter {
     this.logger.info(
       chalk.blue(`
 Workflow Status:
-- Total: ${String(stats.total)}
-- Processing: ${String(stats.processing)}  
-- Completed: ${String(stats.completed)}
-- Failed: ${String(stats.failed)}
-- Pending: ${String(stats.pending)}
+- Total: ${stats.total}
+- Processing: ${stats.processing}  
+- Completed: ${stats.completed}
+- Failed: ${stats.failed}
+- Pending: ${stats.pending}
     `)
     );
   }

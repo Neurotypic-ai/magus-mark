@@ -423,7 +423,7 @@ export class PluginManager extends EventEmitter {
   async autoLoadPlugins(): Promise<void> {
     const discoveredPlugins = await this.discoverPlugins();
 
-    this.context.logger.info(`Discovered ${discoveredPlugins.length.toString()} plugins`);
+    this.context.logger.info(`Discovered ${discoveredPlugins.length} plugins`);
 
     for (const pluginPath of discoveredPlugins) {
       try {

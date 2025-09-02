@@ -1,4 +1,5 @@
 import contrib from 'blessed-contrib';
+import type blessed from 'blessed';
 
 import type { WidgetConfig } from '../DashboardManager';
 

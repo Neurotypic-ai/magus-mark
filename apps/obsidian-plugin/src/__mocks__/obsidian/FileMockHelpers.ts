@@ -50,9 +50,7 @@ export function createMockTFile(filename: string, path: string): TFile {
  */
 
 export function createMockTFolder(path: string, filecount = 2, filenamePrefix = 'note'): TFolder {
-  const folder = new TFolder();
-  folder.path = path;
-  folder.name = path.split('/').pop() ?? '';
+  const folder = new TFolder(path);
   folder.children = createMockTFiles(filecount, filenamePrefix);
   return folder;
 }
