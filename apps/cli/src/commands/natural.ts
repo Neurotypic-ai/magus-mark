@@ -14,7 +14,7 @@ interface NaturalOptions {
   command?: string;
 }
 
-export const naturalCommand: CommandModule<object, NaturalOptions> = {
+export const naturalCommand: CommandModule = {
   command: 'ask [command]',
   describe: '🧠 Natural language interface - just tell me what you want to do!',
 
@@ -37,16 +37,17 @@ export const naturalCommand: CommandModule<object, NaturalOptions> = {
   },
 
   handler: async (argv) => {
+    const options = argv as unknown as NaturalOptions;
     console.log(chalk.bold.cyan('🧠 NATURAL LANGUAGE INTERFACE'));
     console.log(chalk.gray('Just tell me what you want to do in plain English!'));
 
     const processor = new NaturalLanguageProcessor();
 
     try {
-      if (argv.interactive) {
+      if (options.interactive) {
         await runInteractiveSession(processor);
       } else {
-        const command = argv.command || (await promptForCommand());
+        const command = options.command ?? (await promptForCommand());
         await processSingleCommand(processor, command);
       }
     } catch (error) {
@@ -60,6 +61,7 @@ async function runInteractiveSession(processor: NaturalLanguageProcessor): Promi
   console.log(chalk.green('\n🎯 Interactive Natural Language Session Started'));
   console.log(chalk.gray('Type "exit" or "quit" to end the session\n'));
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     try {
       const userInput = await input({
@@ -131,9 +133,11 @@ async function processSingleCommand(processor: NaturalLanguageProcessor, input: 
   }
 }
 
-async function executeCliAction(action: string, parameters: Record<string, unknown>): Promise<void> {
+function executeCliAction(action: string, parameters: Record<string, unknown>): Promise<void> {
   // This would integrate with the actual CLI commands
   // For now, we'll simulate the execution
+  
+  return Promise.resolve().then(() => {
 
   switch (action) {
     case 'tag':
@@ -169,6 +173,7 @@ async function executeCliAction(action: string, parameters: Record<string, unkno
     default:
       console.log(chalk.yellow(`Unknown action: ${action}`));
   }
+  });
 }
 
 async function promptForCommand(): Promise<string> {

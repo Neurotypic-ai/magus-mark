@@ -11,7 +11,7 @@ export interface LogWidgetData {
 }
 
 export class LogWidget {
-  private widget: blessed.Widgets.LogElement;
+  private widget: blessed.Widgets.BoxElement;
   private config: WidgetConfig;
   private maxLines = 1000;
 
@@ -24,7 +24,7 @@ export class LogWidget {
       fg: 'green',
       selectedFg: 'green',
       bufferLength: this.maxLines,
-    }) as blessed.Widgets.LogElement;
+    }) as blessed.Widgets.BoxElement;
   }
 
   update(data: WidgetUpdateData): void {
@@ -56,7 +56,7 @@ export class LogWidget {
     (this.widget as unknown as { setContent: (content: string) => void }).setContent('');
   }
 
-  getWidget(): blessed.Widgets.LogElement {
+  getWidget(): blessed.Widgets.BoxElement {
     return this.widget;
   }
 }

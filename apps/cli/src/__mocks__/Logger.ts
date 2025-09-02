@@ -9,7 +9,6 @@ interface LoggerMockInstance {
   debug: Mock;
   box: Mock;
   configure: Mock;
-  [key: string]: Mock;
 }
 
 /**
@@ -56,12 +55,12 @@ export function setupLoggerMock(): LoggerMockInstance {
  */
 export function resetLoggerMock(): void {
   // Reset each mock function
-  for (const key of Object.keys(mockLoggerInstance)) {
-    const mockFn = mockLoggerInstance[key];
-    if (mockFn && typeof mockFn.mockReset === 'function') {
-      mockFn.mockReset();
-    }
-  }
+  mockLoggerInstance.info.mockReset();
+  mockLoggerInstance.warn.mockReset();
+  mockLoggerInstance.error.mockReset();
+  mockLoggerInstance.debug.mockReset();
+  mockLoggerInstance.box.mockReset();
+  mockLoggerInstance.configure.mockReset();
 }
 
 /**

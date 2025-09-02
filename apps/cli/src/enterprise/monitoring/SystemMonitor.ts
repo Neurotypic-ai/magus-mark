@@ -51,10 +51,10 @@ export interface MonitoringConfig {
 export class SystemMonitor extends EventEmitter {
   private config: MonitoringConfig;
   private logger: Logger;
-  private intervalId?: NodeJS.Timeout;
+  private intervalId?: NodeJS.Timeout | undefined;
   private isRunning = false;
   private lastCpuUsage?: NodeJS.CpuUsage;
-  private lastNetworkStats?: { bytesIn: number; bytesOut: number };
+  private lastNetworkStats?: { bytesIn: number; bytesOut: number; timestamp: number };
 
   constructor(config: MonitoringConfig) {
     super();
@@ -72,7 +72,7 @@ export class SystemMonitor extends EventEmitter {
     this.isRunning = true;
 
     this.intervalId = setInterval(() => {
-      void this.collectMetrics();
+      this.collectMetrics();
     }, this.config.interval);
 
     this.emit('monitoring:started');
@@ -94,12 +94,12 @@ export class SystemMonitor extends EventEmitter {
     this.emit('monitoring:stopped');
   }
 
-  async collectMetrics(): Promise<SystemMetrics> {
+  collectMetrics(): SystemMetrics {
     const metrics: SystemMetrics = {
-      cpu: await this.getCpuMetrics(),
+      cpu: this.getCpuMetrics(),
       memory: this.getMemoryMetrics(),
-      disk: await this.getDiskMetrics(),
-      network: await this.getNetworkMetrics(),
+      disk: this.getDiskMetrics(),
+      network: this.getNetworkMetrics(),
       process: this.getProcessMetrics(),
     };
 
@@ -109,7 +109,7 @@ export class SystemMonitor extends EventEmitter {
     return metrics;
   }
 
-  private async getCpuMetrics(): Promise<SystemMetrics['cpu']> {
+  private getCpuMetrics(): SystemMetrics['cpu'] {
     const cores = os.cpus().length;
     const loadAverage = os.loadavg();
 
@@ -139,7 +139,7 @@ export class SystemMonitor extends EventEmitter {
     };
   }
 
-  private async getDiskMetrics(): Promise<SystemMetrics['disk']> {
+  private getDiskMetrics(): SystemMetrics['disk'] {
     // Simplified disk metrics - in production would use statvfs or similar
     const total = 1000 * 1024 * 1024 * 1024; // 1TB placeholder
     const used = total * 0.6; // 60% used placeholder
@@ -154,18 +154,30 @@ export class SystemMonitor extends EventEmitter {
     };
   }
 
-  private async getNetworkMetrics(): Promise<SystemMetrics['network']> {
+  private getNetworkMetrics(): SystemMetrics['network'] {
     // Simplified network metrics - would integrate with system tools in production
+    const now = Date.now();
     const current = {
       bytesIn: Math.random() * 1000000,
       bytesOut: Math.random() * 500000,
+      timestamp: now,
     };
 
+    // Calculate rates if we have previous data
+    let actualBytesIn = current.bytesIn;
+    let actualBytesOut = current.bytesOut;
+
+    if (this.lastNetworkStats) {
+      const timeDelta = (now - this.lastNetworkStats.timestamp) / 1000; // seconds
+      actualBytesIn = Math.max(0, (current.bytesIn - this.lastNetworkStats.bytesIn) / timeDelta);
+      actualBytesOut = Math.max(0, (current.bytesOut - this.lastNetworkStats.bytesOut) / timeDelta);
+    }
+
     const metrics = {
-      bytesIn: current.bytesIn,
-      bytesOut: current.bytesOut,
-      packetsIn: Math.floor(current.bytesIn / 1500), // Approximate packets
-      packetsOut: Math.floor(current.bytesOut / 1500),
+      bytesIn: actualBytesIn,
+      bytesOut: actualBytesOut,
+      packetsIn: Math.floor(actualBytesIn / 1500), // Approximate packets
+      packetsOut: Math.floor(actualBytesOut / 1500),
     };
 
     this.lastNetworkStats = current;

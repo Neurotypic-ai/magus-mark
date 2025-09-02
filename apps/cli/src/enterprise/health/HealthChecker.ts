@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import * as os from 'os';
 
 import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
 import { Logger } from '@magus-mark/core/utils/Logger';
@@ -67,7 +68,7 @@ export class HealthChecker extends EventEmitter {
 
           return {
             healthy: true,
-            message: `API accessible, ${models.length} models available`,
+            message: `API accessible, ${models.length.toString()} models available`,
             duration: Date.now() - startTime,
             metadata: { modelCount: models.length },
           };
@@ -178,7 +179,7 @@ export class HealthChecker extends EventEmitter {
 
         const healthy = heapUsagePercent < 90 && systemUsagePercent < 95;
 
-        return {
+        return Promise.resolve({
           healthy,
           message: healthy ? 'Memory usage is normal' : 'High memory usage detected',
           duration: Date.now() - startTime,
@@ -188,7 +189,7 @@ export class HealthChecker extends EventEmitter {
             heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
             heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
           },
-        };
+        });
       },
     });
   }
@@ -284,14 +285,16 @@ export class HealthChecker extends EventEmitter {
       },
     };
 
-    this.logger.info(`Health check completed in ${Date.now() - startTime}ms. Status: ${overall.toUpperCase()}`);
+    this.logger.info(
+      `Health check completed in ${(Date.now() - startTime).toString()}ms. Status: ${overall.toUpperCase()}`
+    );
     this.emit('health:updated', systemHealth);
 
     return systemHealth;
   }
 
   private determineOverallHealth(
-    passed: number,
+    _passed: number,
     failed: number,
     critical: number
   ): 'healthy' | 'degraded' | 'unhealthy' {

@@ -1,10 +1,22 @@
 import { EventEmitter } from 'events';
 
-export interface MetricData {
+export interface BaseMetricData {
   timestamp: number;
   value: number;
+}
+
+export interface LogMetricData extends BaseMetricData {
+  tags?: {
+    level?: string;
+    message?: string;
+  } & Record<string, string>;
+}
+
+export interface GenericMetricData extends BaseMetricData {
   tags?: Record<string, string>;
 }
+
+export type MetricData = LogMetricData | GenericMetricData;
 
 export interface TimeRange {
   start: Date;
@@ -185,7 +197,7 @@ export abstract class MetricCollector extends EventEmitter {
     return {
       timestamp: Date.now(),
       value,
-      tags,
+      tags: tags ?? {},
     };
   }
 }

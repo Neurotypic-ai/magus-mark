@@ -5,7 +5,7 @@ import { TFolder } from './TFile';
 import { Vault } from './Vault';
 import { Workspace } from './Workspace';
 
-import type { App as AppType, TAbstractFile, TFile, DataWriteOptions } from 'obsidian';
+import type { App as AppType } from 'obsidian';
 
 export class App implements Partial<AppType> {
   public vault: Vault = new Vault();

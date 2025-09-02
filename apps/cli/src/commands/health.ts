@@ -16,7 +16,7 @@ interface HealthOptions {
   fix: boolean;
 }
 
-export const healthCommand: CommandModule<object, HealthOptions> = {
+export const healthCommand: CommandModule = {
   command: 'health [check]',
   describe: '🏥 System health monitoring and diagnostics',
 
@@ -54,18 +54,19 @@ export const healthCommand: CommandModule<object, HealthOptions> = {
   },
 
   handler: async (argv) => {
+    const options = argv as unknown as HealthOptions;
     console.log(chalk.bold.green('🏥 SYSTEM HEALTH DIAGNOSTICS'));
     console.log(chalk.gray('Checking system health and connectivity...'));
 
     const healthChecker = new HealthChecker();
 
     try {
-      if (argv.watch) {
-        await runContinuousHealthMonitoring(healthChecker, argv);
-      } else if (argv.check) {
-        await runSingleHealthCheck(healthChecker, argv.check, argv);
+      if (options.watch) {
+        runContinuousHealthMonitoring(healthChecker, options);
+      } else if (options.check) {
+        await runSingleHealthCheck(healthChecker, options.check, options);
       } else {
-        await runAllHealthChecks(healthChecker, argv);
+        await runAllHealthChecks(healthChecker, options);
       }
     } catch (error) {
       logger.error(`Health check failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -91,22 +92,22 @@ async function runAllHealthChecks(healthChecker: HealthChecker, options: HealthO
 
   // Summary
   console.log(chalk.bold('📋 Summary:'));
-  console.log(`   Total Checks: ${health.summary.total}`);
-  console.log(`   ${chalk.green('✅ Passed:')} ${health.summary.passed}`);
-  console.log(`   ${chalk.red('❌ Failed:')} ${health.summary.failed}`);
-  console.log(`   ${chalk.yellow('⚠️  Critical:')} ${health.summary.critical}`);
+  console.log(`   Total Checks: ${health.summary.total.toString()}`);
+  console.log(`   ${chalk.green('✅ Passed:')} ${health.summary.passed.toString()}`);
+  console.log(`   ${chalk.red('❌ Failed:')} ${health.summary.failed.toString()}`);
+  console.log(`   ${chalk.yellow('⚠️  Critical:')} ${health.summary.critical.toString()}`);
   console.log();
 
   // Individual check results
   console.log(chalk.bold('🔍 Individual Check Results:'));
   for (const [name, result] of Object.entries(health.checks)) {
     const icon = result.healthy ? chalk.green('✅') : chalk.red('❌');
-    const duration = `${result.duration}ms`;
+    const duration = `${result.duration.toString()}ms`;
 
     console.log(`   ${icon} ${name.padEnd(20)} ${result.message} ${chalk.gray(`(${duration})`)}`);
 
     if (options.format === 'detailed' && result.metadata) {
-      console.log(chalk.gray(`      Metadata: ${JSON.stringify(result.metadata)}`));
+      console.log(chalk.gray(`      Metadata: ${JSON.stringify(result.metadata, null, 2)}`));
     }
   }
 
@@ -122,7 +123,7 @@ async function runAllHealthChecks(healthChecker: HealthChecker, options: HealthO
 
     if (options.fix) {
       console.log(chalk.cyan('\n🔧 Attempting automatic fixes...'));
-      await attemptAutoFix(health);
+      attemptAutoFix(health);
     }
   }
 
@@ -148,7 +149,7 @@ async function runSingleHealthCheck(
     const status = result.healthy ? 'HEALTHY' : 'UNHEALTHY';
 
     console.log(`${icon} ${chalk.bold(status)}: ${result.message}`);
-    console.log(chalk.gray(`Duration: ${result.duration}ms`));
+    console.log(chalk.gray(`Duration: ${result.duration.toString()}ms`));
 
     if (result.metadata) {
       console.log(chalk.gray(`Metadata: ${JSON.stringify(result.metadata, null, 2)}`));
@@ -160,40 +161,44 @@ async function runSingleHealthCheck(
   }
 }
 
-async function runContinuousHealthMonitoring(healthChecker: HealthChecker, options: HealthOptions): Promise<void> {
-  console.log(chalk.cyan(`\n👁️  Starting continuous health monitoring (interval: ${options.interval}s)`));
+function runContinuousHealthMonitoring(healthChecker: HealthChecker, options: HealthOptions): void {
+  console.log(chalk.cyan(`\n👁️  Starting continuous health monitoring (interval: ${options.interval.toString()}s)`));
   console.log(chalk.gray('Press Ctrl+C to stop monitoring\n'));
 
   let iteration = 0;
 
-  const monitoringInterval = setInterval(async () => {
+  const monitoringInterval = setInterval(() => {
     iteration++;
 
-    try {
-      console.clear();
-      console.log(chalk.bold.cyan(`🏥 CONTINUOUS HEALTH MONITORING - Iteration ${iteration}`));
-      console.log(chalk.gray(`Last check: ${new Date().toLocaleTimeString()}\n`));
+    void (async () => {
+      try {
+        console.clear();
+        console.log(chalk.bold.cyan(`🏥 CONTINUOUS HEALTH MONITORING - Iteration ${String(iteration)}`));
+        console.log(chalk.gray(`Last check: ${new Date().toLocaleTimeString()}\n`));
 
-      const health = await healthChecker.runAllChecks();
+        const health = await healthChecker.runAllChecks();
 
-      // Display compact status
-      const statusIcon = getStatusIcon(health.overall);
-      console.log(chalk.bold(`Status: ${statusIcon} ${health.overall.toUpperCase()}`));
-      console.log(`Checks: ${chalk.green(health.summary.passed)}/${health.summary.total} passing`);
+        // Display compact status
+        const statusIcon = getStatusIcon(health.overall);
+        console.log(chalk.bold(`Status: ${statusIcon} ${health.overall.toUpperCase()}`));
+        console.log(
+          `Checks: ${chalk.green(health.summary.passed.toString())}/${health.summary.total.toString()} passing`
+        );
 
-      if (health.summary.failed > 0) {
-        console.log(chalk.red(`\n❌ Failed Checks:`));
-        for (const [name, result] of Object.entries(health.checks)) {
-          if (!result.healthy) {
-            console.log(`   • ${name}: ${result.message}`);
+        if (health.summary.failed > 0) {
+          console.log(chalk.red(`\n❌ Failed Checks:`));
+          for (const [name, result] of Object.entries(health.checks)) {
+            if (!result.healthy) {
+              console.log(`   • ${name}: ${result.message}`);
+            }
           }
         }
-      }
 
-      console.log(chalk.gray(`\nNext check in ${options.interval} seconds... (Ctrl+C to stop)`));
-    } catch (error) {
-      logger.error(`Health monitoring error: ${error instanceof Error ? error.message : String(error)}`);
-    }
+        console.log(chalk.gray(`\nNext check in ${options.interval.toString()} seconds... (Ctrl+C to stop)`));
+      } catch (error) {
+        logger.error(`Health monitoring error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    })();
   }, options.interval * 1000);
 
   // Handle graceful shutdown
@@ -217,10 +222,8 @@ function getStatusIcon(status: string): string {
   }
 }
 
-async function attemptAutoFix(health: {
-  checks: Record<string, { healthy: boolean; message: string }>;
-}): Promise<void> {
-  for (const [name, result] of Object.entries(health.checks)) {
+function attemptAutoFix(health: { checks: Record<string, { healthy: boolean; message: string }> }): void {
+  for (const [name, result] of Object.entries(health.checks as Record<string, { healthy: boolean; message: string }>)) {
     if (!result.healthy) {
       console.log(chalk.cyan(`🔧 Attempting to fix: ${name}`));
 

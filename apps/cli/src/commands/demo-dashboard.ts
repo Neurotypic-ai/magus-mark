@@ -5,7 +5,7 @@ interface DemoOptions {
   duration: number;
 }
 
-export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
+export const demoDashboardCommand: CommandModule = {
   command: 'demo',
   describe: '🔥 Launch the ULTIMATE God Tier Dashboard Demo (standalone)',
 
@@ -27,6 +27,7 @@ export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
   },
 
   handler: async (argv) => {
+    const options = argv as unknown as DemoOptions;
     console.clear();
     console.log('\n');
 
@@ -42,7 +43,7 @@ export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
     🔥🔥🔥 GOD TIER CLI DASHBOARD DEMO 🔥🔥🔥
     `);
 
-    const themeColors = {
+    const themeColors: Record<DemoOptions['theme'], string> = {
       matrix: '\x1b[32m', // Green
       cyberpunk: '\x1b[35m', // Magenta
       minimal: '\x1b[37m', // White
@@ -50,10 +51,10 @@ export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
     };
 
     const reset = '\x1b[0m';
-    const color = themeColors[argv.theme];
+    const color = themeColors[options.theme];
 
-    console.log(`${color}🎨 Theme: ${argv.theme.toUpperCase()}${reset}`);
-    console.log(`${color}⏱️  Duration: ${String(argv.duration)} seconds${reset}`);
+    console.log(`${color}🎨 Theme: ${options.theme.toUpperCase()}${reset}`);
+    console.log(`${color}⏱️  Duration: ${String(options.duration)} seconds${reset}`);
     console.log(`${color}🚀 Initializing the most BADASS CLI dashboard ever created...${reset}\n`);
 
     // Simulate dashboard startup
@@ -83,9 +84,9 @@ export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
 
       // Clear screen and redraw
       console.clear();
-      drawDashboard(argv.theme, elapsed, argv.duration);
+      drawDashboard(options.theme, elapsed, options.duration);
 
-      if (elapsed >= argv.duration) {
+      if (elapsed >= options.duration) {
         clearInterval(interval);
         console.log(`\n${color}🎯 Demo completed! The dashboard is ready for production use.${reset}`);
         console.log(`${color}💎 Maximum badassery achieved! Your CLI is now GOD TIER.${reset}\n`);
@@ -102,8 +103,8 @@ export const demoDashboardCommand: CommandModule<object, DemoOptions> = {
   },
 };
 
-function drawDashboard(theme: string, elapsed: number, duration: number): void {
-  const themeColors = {
+function drawDashboard(theme: DemoOptions['theme'], elapsed: number, duration: number): void {
+  const themeColors: Record<DemoOptions['theme'], string> = {
     matrix: '\x1b[32m',
     cyberpunk: '\x1b[35m',
     minimal: '\x1b[37m',

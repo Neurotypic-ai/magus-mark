@@ -259,7 +259,7 @@ export class DashboardManager extends EventEmitter {
     const themes = ['matrix', 'cyberpunk', 'minimal', 'hacker'] as const;
     const currentIndex = themes.indexOf(this.config.theme);
     const nextIndex = (currentIndex + 1) % themes.length;
-    this.config.theme = themes[nextIndex];
+    this.config.theme = themes[nextIndex] ?? 'matrix';
     this.applyTheme(this.config.theme);
     this.screen.render();
     this.emit('theme:changed', this.config.theme);

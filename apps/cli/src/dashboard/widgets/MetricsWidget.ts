@@ -11,7 +11,7 @@ export interface MetricsWidgetData {
 }
 
 export class MetricsWidget {
-  private widget: blessed.Widgets.LcdElement;
+  private widget: blessed.Widgets.BoxElement;
   private config: WidgetConfig;
 
   constructor(config: WidgetConfig, grid: contrib.grid) {
@@ -27,7 +27,7 @@ export class MetricsWidget {
       display: 32000,
       elementSpacing: 4,
       elementPadding: 2,
-    }) as blessed.Widgets.LcdElement;
+    }) as blessed.Widgets.BoxElement;
   }
 
   update(data: WidgetUpdateData): void {
@@ -48,7 +48,7 @@ export class MetricsWidget {
     return value;
   }
 
-  getWidget(): blessed.Widgets.LcdElement {
+  getWidget(): blessed.Widgets.BoxElement {
     return this.widget;
   }
 }

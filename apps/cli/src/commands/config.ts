@@ -41,9 +41,9 @@ export const configCommand: CommandModule = {
             }, currentConfig);
 
             if (value !== undefined) {
-              logger.info(`${String(key)}: ${JSON.stringify(value)}`);
+              logger.info(`${key}: ${JSON.stringify(value)}`);
             } else {
-              logger.warn(`Configuration key '${String(key)}' not found`);
+              logger.warn(`Configuration key '${key}' not found`);
             }
           } else {
             // Show all configuration values
@@ -88,7 +88,7 @@ export const configCommand: CommandModule = {
               const apiKey = config.get('apiKey');
 
               if (apiKey) {
-                logger.info(`Validating model '${String(parsedValue)}'...`);
+                logger.info(`Validating model '${parsedValue}'...`);
                 const validation = await modelManager.validateModel(parsedValue, apiKey, {
                   verifyWithApi: true,
                   throwOnInvalid: false,
@@ -97,7 +97,7 @@ export const configCommand: CommandModule = {
 
                 if (!validation.valid) {
                   logger.warn(
-                    `Model '${String(parsedValue)}' may not be available: ${validation.errorMessage ?? 'Unknown error'}`
+                    `Model '${parsedValue}' may not be available: ${validation.errorMessage ?? 'Unknown error'}`
                   );
                   // Use @inquirer/prompts confirm
                   const proceed = await confirm({
@@ -110,7 +110,7 @@ export const configCommand: CommandModule = {
                     return;
                   }
                 } else {
-                  logger.success(`Model '${String(parsedValue)}' is valid and available.`);
+                  logger.success(`Model '${parsedValue}' is valid and available.`);
                 }
               } else {
                 logger.warn('No API key set, skipping model validation.');
@@ -120,7 +120,7 @@ export const configCommand: CommandModule = {
             // Set the value
             await config.set(key as keyof typeof config.getAll, parsedValue as never);
 
-            logger.info(`Set ${String(key)} = ${JSON.stringify(parsedValue)}`);
+            logger.info(`Set ${key} = ${JSON.stringify(parsedValue)}`);
           } catch (error) {
             logger.error(`Failed to set configuration: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -139,13 +139,13 @@ export const configCommand: CommandModule = {
           const { file } = argv as { file: string };
           try {
             if (!(await fileUtils.fileExists(file))) {
-              logger.error(`File not found: ${String(file)}`);
+              logger.error(`File not found: ${file}`);
               return;
             }
 
             await config.reload();
 
-            logger.info(`Configuration imported from ${String(file)}`);
+            logger.info(`Configuration imported from ${file}`);
           } catch (error) {
             logger.error(`Failed to import configuration: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -188,7 +188,7 @@ export const configCommand: CommandModule = {
             if (writeResult.isFail()) {
               throw writeResult.getError();
             }
-            logger.info(`Configuration exported to ${String(output)}`);
+            logger.info(`Configuration exported to ${output}`);
           } catch (error) {
             logger.error(`Failed to export configuration: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -225,7 +225,7 @@ export const configCommand: CommandModule = {
             return;
           }
 
-          logger.info(`Validating model: ${String(modelId)}`);
+          logger.info(`Validating model: ${modelId}`);
 
           try {
             const validation = await modelManager.validateModel(modelId, apiKey, {
@@ -236,9 +236,9 @@ export const configCommand: CommandModule = {
 
             if (validation.valid) {
               if (validation.usedFallback) {
-                logger.warn(`Model '${String(modelId)}' is not available. Using fallback: ${validation.modelId}`);
+                logger.warn(`Model '${modelId}' is not available. Using fallback: ${validation.modelId}`);
               } else {
-                logger.success(`Model '${String(modelId)}' is valid and available.`);
+                logger.success(`Model '${modelId}' is valid and available.`);
               }
             } else {
               logger.error(`Model validation failed: ${validation.errorMessage ?? 'Unknown error'}`);
