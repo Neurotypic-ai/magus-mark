@@ -1,5 +1,6 @@
+import * as fs from 'node:fs/promises';
+
 import chalk from 'chalk';
-import * as fs from 'fs-extra';
 
 import { Logger } from '@magus-mark/core/utils/Logger';
 import { formatCurrency, formatDuration } from '@magus-mark/core/utils/string';
@@ -260,7 +261,16 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
 
   try {
     // Check if test set exists
-    if (!(await fs.pathExists(options.testSet))) {
+    if (
+      !(await (async () => {
+        try {
+          await fs.access(options.testSet);
+          return true;
+        } catch {
+          return false;
+        }
+      })())
+    ) {
       logger.error(`Test set not found: ${options.testSet}`);
       return;
     }
@@ -272,7 +282,16 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
     // For now, we'll create mock test cases
     const testCases = [];
 
-    if ((await fs.stat(options.testSet)).isDirectory()) {
+    if (
+      await (async () => {
+        try {
+          const stats = await fs.stat(options.testSet);
+          return stats.isDirectory();
+        } catch {
+          return false;
+        }
+      })()
+    ) {
       // Mock directory of test cases
       for (let i = 1; i <= 5; i++) {
         testCases.push({

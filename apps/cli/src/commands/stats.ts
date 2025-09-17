@@ -1,7 +1,7 @@
+import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 import chalk from 'chalk';
-import * as fs from 'fs-extra';
 
 import { FileUtils } from '@magus-mark/core/utils/FileUtils';
 import { Logger } from '@magus-mark/core/utils/Logger';
@@ -180,8 +180,8 @@ Cost:
         // Write data to file
         const outputData = type === 'usage' ? data.usage : type === 'cost' ? data.cost : data;
 
-        await fs.ensureDir(path.dirname(output));
-        await fs.writeJSON(output, outputData, { spaces: 2 });
+        await fs.mkdir(path.dirname(output), { recursive: true });
+        await fs.writeFile(output, JSON.stringify(outputData, null, 2), 'utf-8');
         logger.info(`Results saved to ${output}`);
       }
     } catch (error) {
@@ -391,8 +391,8 @@ ${domainsText}
 
   if (output) {
     // Write stats to file
-    await fs.ensureDir(path.dirname(output));
-    await fs.writeJSON(output, finalStats, { spaces: 2 });
+    await fs.mkdir(path.dirname(output), { recursive: true });
+    await fs.writeFile(output, JSON.stringify(finalStats, null, 2), 'utf-8');
     logger.info(`Results saved to ${output}`);
   }
 }

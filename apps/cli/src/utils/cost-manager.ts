@@ -1,6 +1,6 @@
+import * as fsSync from 'node:fs';
+import * as fs from 'node:fs/promises';
 import * as path from 'path';
-
-import * as fs from 'fs-extra';
 
 import { CostLimitError } from '@magus-mark/core/errors/CostLimitError';
 import { Logger } from '@magus-mark/core/utils/Logger';
@@ -227,8 +227,8 @@ class CostManager {
   public saveUsageData(): void {
     try {
       const dir = path.dirname(this.dataFile);
-      fs.ensureDirSync(dir);
-      fs.writeJSONSync(this.dataFile, this.usageData);
+      fsSync.mkdirSync(dir, { recursive: true });
+      fsSync.writeFileSync(this.dataFile, JSON.stringify(this.usageData, null, 2), 'utf-8');
       logger.debug(`Usage data saved to ${this.dataFile}`);
     } catch (error) {
       logger.warn(`Failed to save usage data: ${error instanceof Error ? error.message : String(error)}`);
@@ -240,8 +240,18 @@ class CostManager {
    */
   private async loadUsageDataAsync(): Promise<void> {
     try {
-      if (await fs.pathExists(this.dataFile)) {
-        const data = (await fs.readJSON(this.dataFile)) as unknown;
+      if (
+        await (async () => {
+          try {
+            await fs.access(this.dataFile);
+            return true;
+          } catch {
+            return false;
+          }
+        })()
+      ) {
+        const content = await fs.readFile(this.dataFile, 'utf-8');
+        const data = JSON.parse(content) as unknown;
         // Validate that the loaded data is an array
         if (Array.isArray(data)) {
           this.usageData = data as UsageRecord[];

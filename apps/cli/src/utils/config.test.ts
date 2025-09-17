@@ -31,8 +31,6 @@ vi.mock('fs-extra', () => {
     readFile: vi.fn(),
     writeFile: vi.fn(),
     ensureDir: vi.fn(),
-    readJson: vi.fn().mockResolvedValue({}),
-    writeJson: vi.fn().mockResolvedValue(undefined), // Ensure writeJson is mocked and returns a promise
   };
 });
 
@@ -63,7 +61,7 @@ describe('Config Utility', () => {
     vi.clearAllMocks();
 
     // Prevent config.reload() from loading a "file"
-    // The module-level mock for fs.pathExists and fs.readJson should handle this.
+    // The module-level mock for fs.pathExists and fs.readFile should handle this.
     // No need to mock them again here unless a specific test needs a different behavior.
 
     // Store and clear OPENAI_API_KEY for consistent tests

@@ -55,7 +55,7 @@ vi.mock('../utils/cost-manager', () => ({
 
 vi.mock('fs-extra', () => ({
   ensureDir: vi.fn().mockResolvedValue(undefined),
-  writeJSON: vi.fn().mockResolvedValue(undefined),
+  writeFile: vi.fn().mockResolvedValue(undefined),
   readdir: vi.fn().mockResolvedValue([]),
   readFile: vi.fn().mockResolvedValue(''),
 }));

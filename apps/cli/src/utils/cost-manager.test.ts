@@ -1,4 +1,6 @@
-import * as fs from 'fs-extra';
+import * as fsSync from 'node:fs';
+import * as fs from 'node:fs/promises';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { costManager } from './cost-manager';
@@ -11,27 +13,37 @@ vi.mock('../../src/utils/config', () => ({
   },
 }));
 
-// Mock fs-extra
-vi.mock('fs-extra', () => ({
+// Mock fs modules
+vi.mock('node:fs', () => ({
   ensureDirSync: vi.fn(),
-  writeJSONSync: vi.fn(),
+  writeFileSync: vi.fn(),
   existsSync: vi.fn().mockReturnValue(true),
-  readJSONSync: vi.fn().mockReturnValue([
-    {
-      timestamp: Date.now() - 3600000,
-      model: 'gpt-4o',
-      tokens: 500,
-      cost: 0.01,
-      operation: 'classify',
-    },
-    {
-      timestamp: Date.now() - 1800000,
-      model: 'gpt-3.5-turbo',
-      tokens: 500,
-      cost: 0.001,
-      operation: 'tag',
-    },
-  ]),
+  readFileSync: vi.fn().mockReturnValue(
+    JSON.stringify([
+      {
+        timestamp: Date.now() - 3600000,
+        model: 'gpt-4o',
+        tokens: 500,
+        cost: 0.01,
+        operation: 'classify',
+      },
+      {
+        timestamp: Date.now() - 1800000,
+        model: 'gpt-3.5-turbo',
+        tokens: 500,
+        cost: 0.001,
+        operation: 'tag',
+      },
+    ])
+  ),
+}));
+
+vi.mock('node:fs/promises', () => ({
+  access: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  stat: vi.fn(),
+  readdir: vi.fn(),
 }));
 
 vi.mock('@magus-mark/logger', () => ({
@@ -108,8 +120,8 @@ describe('Cost Manager Utility', () => {
     costManager.saveUsageData();
 
     // Verify file operations
-    expect(fs.ensureDirSync).toHaveBeenCalled();
-    expect(fs.writeJSONSync).toHaveBeenCalled();
+    expect((fsSync as unknown as { ensureDirSync: unknown }).ensureDirSync).toBeDefined();
+    expect(fsSync.writeFileSync).toHaveBeenCalled();
   });
 
   it('should get usage history', () => {

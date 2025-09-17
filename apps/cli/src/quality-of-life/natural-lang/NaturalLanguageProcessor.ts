@@ -1,8 +1,17 @@
 import { Logger } from '@magus-mark/core/utils/Logger';
 
+export interface EntityValues {
+  path?: string;
+  model?: string;
+  key?: string;
+  value?: string;
+  period?: string;
+  type?: string;
+}
+
 export interface NLCommand {
   intent: string;
-  entities: Record<string, string | number | boolean>;
+  entities: EntityValues;
   confidence: number;
   rawInput: string;
 }
@@ -34,7 +43,7 @@ export class NaturalLanguageProcessor {
     this.patterns.set('list_files', /list|show|find files?/i);
   }
 
-  async processCommand(input: string): Promise<NLCommand> {
+  processCommand(input: string): NLCommand {
     const normalizedInput = input.trim().toLowerCase();
 
     this.logger.debug(`Processing natural language input: ${input}`);
@@ -63,23 +72,23 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  async executeCommand(command: NLCommand): Promise<NLResponse> {
+  executeCommand(command: NLCommand): NLResponse {
     this.logger.info(`Executing command: ${command.intent}`);
 
     try {
       switch (command.intent) {
         case 'tag_files':
-          return await this.handleTagFiles(command);
+          return this.handleTagFiles(command);
         case 'show_stats':
-          return await this.handleShowStats(command);
+          return this.handleShowStats(command);
         case 'configure':
-          return await this.handleConfigure(command);
+          return this.handleConfigure(command);
         case 'dashboard':
-          return await this.handleDashboard(command);
+          return this.handleDashboard(command);
         case 'test_models':
-          return await this.handleTestModels(command);
+          return this.handleTestModels(command);
         case 'help':
-          return await this.handleHelp(command);
+          return this.handleHelp(command);
         default:
           return {
             success: false,
@@ -98,8 +107,8 @@ export class NaturalLanguageProcessor {
     intent: string,
     match: RegExpExecArray,
     input: string
-  ): Record<string, string | number | boolean> {
-    const entities: Record<string, string | number | boolean> = {};
+  ): EntityValues {
+    const entities: EntityValues = {};
 
     switch (intent) {
       case 'tag_files':
@@ -116,7 +125,7 @@ export class NaturalLanguageProcessor {
           const configPart = match[1].trim();
           // Extract key-value pairs
           const kvMatch = /(\w+)\s+(?:to\s+)?(.+)/i.exec(configPart);
-          if (kvMatch) {
+          if (kvMatch?.[1] && kvMatch[2]) {
             entities.key = kvMatch[1];
             entities.value = kvMatch[2];
           }
@@ -135,7 +144,7 @@ export class NaturalLanguageProcessor {
     return entities;
   }
 
-  private calculateConfidence(intent: string, match: RegExpExecArray): number {
+  private calculateConfidence(_intent: string, match: RegExpExecArray): number {
     // Base confidence on pattern match quality
     let confidence = 0.7;
 
@@ -152,9 +161,9 @@ export class NaturalLanguageProcessor {
     return Math.min(confidence, 1.0);
   }
 
-  private async handleTagFiles(command: NLCommand): Promise<NLResponse> {
-    const path = (command.entities.path as string) || '.';
-    const model = (command.entities.model as string) || 'gpt-4o';
+  private handleTagFiles(command: NLCommand): NLResponse {
+    const path = command.entities.path || '.';
+    const model = command.entities.model || 'gpt-4o';
 
     return {
       success: true,
@@ -164,9 +173,9 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleShowStats(command: NLCommand): Promise<NLResponse> {
-    const period = (command.entities.period as string) || 'all';
-    const type = (command.entities.type as string) || 'all';
+  private handleShowStats(command: NLCommand): NLResponse {
+    const period = command.entities.period || 'all';
+    const type = command.entities.type || 'all';
 
     return {
       success: true,
@@ -176,9 +185,9 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleConfigure(command: NLCommand): Promise<NLResponse> {
-    const key = command.entities.key as string;
-    const value = command.entities.value as string;
+  private handleConfigure(command: NLCommand): NLResponse {
+    const key = command.entities.key;
+    const value = command.entities.value;
 
     if (key && value) {
       return {
@@ -197,7 +206,7 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleDashboard(command: NLCommand): Promise<NLResponse> {
+  private handleDashboard(_command: NLCommand): NLResponse {
     return {
       success: true,
       message: 'Launching the God Tier dashboard experience!',
@@ -206,7 +215,7 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleTestModels(command: NLCommand): Promise<NLResponse> {
+  private handleTestModels(_command: NLCommand): NLResponse {
     return {
       success: true,
       message: "I'll run model benchmarks to find the best performance",
@@ -215,7 +224,7 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleHelp(command: NLCommand): Promise<NLResponse> {
+  private handleHelp(_command: NLCommand): NLResponse {
     const helpMessage = `
 🔥 Magus Mark CLI - Natural Language Interface
 

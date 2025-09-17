@@ -1,10 +1,10 @@
 /**
  * Configuration utilities for CLI
  */
+import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import * as fs from 'fs-extra';
 import { z } from 'zod';
 
 // Import deepMerge utility
@@ -57,7 +57,13 @@ function getConfigPath(): string {
  */
 export async function loadConfig(configPath: string = getDefaultConfigPath()): Promise<Config> {
   try {
-    const fileExists = await fs.pathExists(configPath);
+    let fileExists = false;
+    try {
+      await fs.access(configPath);
+      fileExists = true;
+    } catch {
+      fileExists = false;
+    }
     if (fileExists) {
       const dataStr = await fs.readFile(configPath, 'utf-8');
       const data = JSON.parse(dataStr) as Partial<Config>;
@@ -76,7 +82,7 @@ export async function loadConfig(configPath: string = getDefaultConfigPath()): P
  */
 export async function saveConfig(config: Config, configPath: string = getDefaultConfigPath()): Promise<void> {
   try {
-    await fs.ensureDir(path.dirname(configPath));
+    await fs.mkdir(path.dirname(configPath), { recursive: true });
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
   } catch (error) {
     throw new Error(`Failed to save config: ${(error as Error).message}`);
@@ -180,7 +186,6 @@ class ConfigImpl implements ConfigStorage {
    * Delete a configuration key
    */
   public async delete(key: keyof Config): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [key]: _, ...rest } = this.data;
     this.data = rest as Config;
     await this.save();
@@ -206,8 +211,8 @@ class ConfigImpl implements ConfigStorage {
    */
   public async save(): Promise<void> {
     try {
-      await fs.ensureDir(path.dirname(this.configPath));
-      await fs.writeJson(this.configPath, this.data, { spaces: 2 });
+      await fs.mkdir(path.dirname(this.configPath), { recursive: true });
+      await fs.writeFile(this.configPath, JSON.stringify(this.data, null, 2), 'utf-8');
     } catch (error) {
       console.error(`Failed to save config: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -218,9 +223,16 @@ class ConfigImpl implements ConfigStorage {
    */
   public async reload(): Promise<void> {
     try {
-      const fileExists = await fs.pathExists(this.configPath);
+      let fileExists = false;
+      try {
+        await fs.access(this.configPath);
+        fileExists = true;
+      } catch {
+        fileExists = false;
+      }
       if (fileExists) {
-        const fileData = (await fs.readJson(this.configPath)) as Partial<Config>;
+        const content = await fs.readFile(this.configPath, 'utf-8');
+        const fileData = JSON.parse(content) as Partial<Config>;
         // Cast both objects to satisfy deepMerge's type constraints
         this.data = deepMerge(DEFAULT_CONFIG as Record<string, unknown>, fileData as Record<string, unknown>) as Config;
       } else {

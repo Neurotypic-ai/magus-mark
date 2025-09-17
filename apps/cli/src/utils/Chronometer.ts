@@ -1,6 +1,5 @@
+import * as fs from 'node:fs/promises';
 import path from 'path';
-
-import * as fs from 'fs-extra';
 
 import { AppError } from '@magus-mark/core/errors/AppError';
 import { Result } from '@magus-mark/core/errors/Result';
@@ -210,8 +209,8 @@ class Chronometer {
         const fullPath = path.isAbsolute(reportPath) ? reportPath : path.resolve(process.cwd(), reportPath);
 
         try {
-          await fs.ensureDir(path.dirname(fullPath));
-          await fs.writeJson(fullPath, report, { spaces: 2 });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.writeFile(fullPath, JSON.stringify(report, null, 2), 'utf-8');
         } catch (error) {
           console.error(`Failed to save report: ${String(error)}`);
         }

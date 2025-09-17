@@ -8,7 +8,7 @@ await build({
   sourcemap: true,
   format: 'esm',
   platform: 'node',
-  target: 'node18',
+  target: 'node22',
   outfile: 'dist/cli.js',
   external: [
     // Node.js built-ins
@@ -33,7 +33,6 @@ await build({
     'yoctocolors-cjs',
     '@inquirer/prompts',
     'cli-progress',
-    'fs-extra',
     'js-yaml',
     'zod',
     'boxen',
@@ -53,7 +52,7 @@ await build({
   sourcemap: true,
   format: 'esm',
   platform: 'node',
-  target: 'node18',
+  target: 'node22',
   outfile: 'dist/demo-cli.js',
   external: [
     // Node.js built-ins

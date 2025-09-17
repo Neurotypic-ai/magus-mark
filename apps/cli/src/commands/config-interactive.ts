@@ -1,9 +1,9 @@
 import * as console from 'node:console';
+import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
 import chalk from 'chalk';
-import * as fs from 'fs-extra';
 
 import { ModelManager } from '@magus-mark/core/openai/ModelManager';
 
@@ -183,9 +183,10 @@ export const configInteractiveCommand: CommandModule = {
             // Safely check if path exists
             let exists = false;
             try {
-              exists = await fs.pathExists(inputValue);
+              await fs.access(inputValue);
+              exists = true;
             } catch {
-              return 'Error checking path existence';
+              exists = false;
             }
 
             if (!exists) {
@@ -273,14 +274,14 @@ export const configInteractiveCommand: CommandModule = {
 
           // Safely ensure directory exists
           try {
-            await fs.ensureDir(exportDir);
+            await fs.mkdir(exportDir, { recursive: true });
           } catch (error) {
             throw new Error(`Failed to create directory: ${error instanceof Error ? error.message : String(error)}`);
           }
 
           // Safely write config file
           try {
-            await fs.writeJson(exportPath, configData, { spaces: 2 });
+            await fs.writeFile(exportPath, JSON.stringify(configData, null, 2), 'utf-8');
             console.log(`Configuration exported to ${exportPath}`);
           } catch (error) {
             throw new Error(`Failed to write config file: ${error instanceof Error ? error.message : String(error)}`);

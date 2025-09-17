@@ -1,9 +1,9 @@
 #!/usr/bin/env node
+import { access, chmod, mkdir, writeFile } from 'node:fs/promises';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 import chalk from 'chalk';
-import fs from 'fs-extra';
 
 const execAsync = promisify(exec);
 
@@ -12,8 +12,8 @@ async function build() {
 
   try {
     // Ensure directories exist
-    await fs.ensureDir('./dist');
-    await fs.ensureDir('./bin');
+    await mkdir('./dist', { recursive: true });
+    await mkdir('./bin', { recursive: true });
 
     // Check if bin script exists, if not create it
     const binFile = './bin/magus-mark.js';
@@ -25,10 +25,12 @@ import('../dist/cli.js').catch(err => {
 });
 `;
 
-    if (!(await fs.pathExists(binFile))) {
+    try {
+      await access(binFile);
+    } catch {
       console.log(chalk.yellow('Creating bin script...'));
-      await fs.writeFile(binFile, binContent);
-      await fs.chmod(binFile, '755'); // Make executable
+      await writeFile(binFile, binContent);
+      await chmod(binFile, '755'); // Make executable
     }
 
     // Run esbuild

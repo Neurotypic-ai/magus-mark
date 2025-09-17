@@ -9,6 +9,7 @@ interface LoggerMockInstance {
   debug: Mock;
   box: Mock;
   configure: Mock;
+  formatCost?: Mock;
 }
 
 /**

@@ -1,9 +1,9 @@
+import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 import chalk from 'chalk';
 import * as cliProgress from 'cli-progress';
-import * as fsExtra from 'fs-extra';
 
 import { OpenAIClient } from '@magus-mark/core/openai/OpenAIClient';
 import { TaggingService } from '@magus-mark/core/openai/TaggingService';
@@ -175,7 +175,7 @@ export const tagCommand: CommandModule = {
       const allFiles: string[] = [];
       for (const inputPath of paths) {
         try {
-          if (fsExtra.existsSync(inputPath)) {
+          if (fsSync.existsSync(inputPath)) {
             const stat = await fs.stat(inputPath);
             if (stat.isFile() && inputPath.endsWith('.md')) {
               allFiles.push(inputPath);

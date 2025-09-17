@@ -138,15 +138,25 @@ export abstract class PluginBase {
   }
 }
 
-// Type guard for PluginBase
-function isPluginBase(value: unknown): value is typeof PluginBase {
+// Interface for prototype checking
+interface PluginPrototype {
+  init: (context: CLIContext) => Promise<void>;
+  getCommands: () => CommandDefinition[];
+  getProcessors: () => ProcessorDefinition[];
+  cleanup: () => Promise<void>;
+}
+
+// Type guard for PluginBase constructor
+function isPluginBaseConstructor(value: unknown): value is new() => PluginBase {
+  if (typeof value !== 'function') return false;
+  const proto = (value as { prototype?: PluginPrototype }).prototype;
+  if (!proto) return false;
+  
   return (
-    typeof value === 'function' &&
-    value.prototype &&
-    typeof value.prototype.init === 'function' &&
-    typeof value.prototype.getCommands === 'function' &&
-    typeof value.prototype.getProcessors === 'function' &&
-    typeof value.prototype.cleanup === 'function'
+    typeof proto.init === 'function' &&
+    typeof proto.getCommands === 'function' &&
+    typeof proto.getProcessors === 'function' &&
+    typeof proto.cleanup === 'function'
   );
 }
 
@@ -185,10 +195,10 @@ export class PluginManager extends EventEmitter {
       this.context.logger.info(`Installing plugin from: ${pluginPath}`);
 
       const plugin = await this.loadPlugin(pluginPath);
-      await this.validatePlugin(plugin);
+      this.validatePlugin(plugin);
 
       // Check dependencies
-      await this.checkDependencies();
+      this.checkDependencies();
 
       // Initialize the plugin
       await plugin.init(this.context);
@@ -226,11 +236,11 @@ export class PluginManager extends EventEmitter {
       // Try to find the plugin class in various export patterns
       const PluginClass = this.extractPluginClass(module);
 
-      if (!PluginClass || !isPluginBase(PluginClass)) {
+      if (!PluginClass || !isPluginBaseConstructor(PluginClass)) {
         throw new Error(`Invalid plugin: ${pluginPath} - must extend PluginBase`);
       }
 
-      return new PluginClass() as PluginBase;
+      return new PluginClass();
     } catch (error) {
       const errorMessage = safeToString(error);
       throw new Error(`Failed to load plugin from ${pluginPath}: ${errorMessage}`);
@@ -239,13 +249,16 @@ export class PluginManager extends EventEmitter {
 
   private extractPluginClass(module: Record<string, unknown>): unknown {
     // Try common export patterns
-    if (module.default) return module.default;
-    if (module.Plugin) return module.Plugin;
+    if (module['default']) return module['default'];
+    if (module['Plugin']) return module['Plugin'];
 
     // Find first export that looks like a class
     const keys = Object.keys(module);
     if (keys.length > 0) {
-      return module[keys[0]];
+      const firstKey = keys[0];
+      if (firstKey) {
+        return module[firstKey];
+      }
     }
 
     return null;
@@ -260,27 +273,33 @@ export class PluginManager extends EventEmitter {
     });
   }
 
-  private async validatePlugin(plugin: PluginBase): Promise<void> {
+  private validatePlugin(plugin: PluginBase): void {
     // Validate plugin structure and permissions
     const commands = plugin.getCommands();
     const processors = plugin.getProcessors();
 
-    // Validate commands
-    for (const command of commands) {
-      if (!command.name || !command.handler) {
-        throw new Error('Invalid command definition: missing name or handler');
+    // Validate commands structure
+    commands.forEach(command => {
+      if (typeof command.name !== 'string' || command.name.trim() === '') {
+        throw new Error('Invalid command definition: name must be a non-empty string');
       }
-    }
+      if (typeof command.handler !== 'function') {
+        throw new Error('Invalid command definition: handler must be a function');
+      }
+    });
 
-    // Validate processors
-    for (const processor of processors) {
-      if (!processor.name || !processor.processor) {
-        throw new Error('Invalid processor definition: missing name or processor function');
+    // Validate processors structure
+    processors.forEach(processor => {
+      if (typeof processor.name !== 'string' || processor.name.trim() === '') {
+        throw new Error('Invalid processor definition: name must be a non-empty string');
       }
-    }
+      if (typeof processor.processor !== 'function') {
+        throw new Error('Invalid processor definition: processor must be a function');
+      }
+    });
 
     // Security validation
-    await this.validateSecurity(plugin);
+    this.validateSecurity(plugin);
   }
 
   private validateSecurity(plugin: PluginBase): void {
@@ -290,7 +309,7 @@ export class PluginManager extends EventEmitter {
     // 3. Signature verification (if implemented)
 
     // For now, basic validation
-    const pluginCode = plugin.toString();
+    const pluginCode = plugin.constructor.toString();
 
     // Check for potentially dangerous operations
     const dangerousPatterns = [
@@ -308,7 +327,7 @@ export class PluginManager extends EventEmitter {
     }
   }
 
-  private async checkDependencies(): Promise<void> {
+  private checkDependencies(): void {
     // Check if plugin dependencies are satisfied
     // This is a simplified implementation
 
@@ -423,7 +442,7 @@ export class PluginManager extends EventEmitter {
   async autoLoadPlugins(): Promise<void> {
     const discoveredPlugins = await this.discoverPlugins();
 
-    this.context.logger.info(`Discovered ${discoveredPlugins.length} plugins`);
+    this.context.logger.info(`Discovered ${String(discoveredPlugins.length)} plugins`);
 
     for (const pluginPath of discoveredPlugins) {
       try {
@@ -469,7 +488,7 @@ export class PluginManager extends EventEmitter {
 
   cleanup(): void {
     this.plugins.forEach((instance, name) => {
-      void instance.plugin.cleanup().catch((error) => {
+      void instance.plugin.cleanup().catch((error: unknown) => {
         const errorMessage = safeToString(error);
         this.context.logger.error(`Error cleaning up plugin ${name}: ${errorMessage}`);
       });
