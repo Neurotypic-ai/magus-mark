@@ -48,7 +48,6 @@ Magus Mark ecosystem. It's designed to be platform-agnostic and can be used by a
 - **OpenAI SDK** - Official OpenAI API client
 - **Zod** - Schema validation and type inference
 - **js-tiktoken** - Token counting for cost estimation
-- **fs-extra** - Enhanced file system operations
 - **Chalk** - Console output styling
 - **Ora** - Loading spinners
 - **Boxen** - Styled message boxes

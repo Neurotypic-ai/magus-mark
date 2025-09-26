@@ -77,9 +77,9 @@ vi.mock('@magus-mark/core', () => ({
   OpenAIClient: mockOpenAIClient,
 }));
 
-// Mock fs-extra
-vi.mock('fs-extra', () => ({
-  pathExists: vi.fn().mockResolvedValue(true),
+// Mock node fs interfaces used by the command
+vi.mock('node:fs/promises', () => ({
+  access: vi.fn().mockResolvedValue(undefined),
   stat: vi.fn().mockResolvedValue({
     isDirectory: () => false,
   }),

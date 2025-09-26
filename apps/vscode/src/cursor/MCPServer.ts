@@ -1,3 +1,5 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import * as http from 'http';
 
 import * as vscode from 'vscode';
@@ -403,7 +405,6 @@ Provide a JSON array of suggested tags, with each tag having a name and descript
 
         try {
           // Try to read the file
-          const fs = await import('fs/promises');
           const content = await fs.readFile(params.path, 'utf-8');
 
           // Parse frontmatter tags if present

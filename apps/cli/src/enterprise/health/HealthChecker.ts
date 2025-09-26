@@ -1,3 +1,5 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { EventEmitter } from 'events';
 import * as os from 'os';
 
@@ -129,10 +131,6 @@ export class HealthChecker extends EventEmitter {
       check: async () => {
         const startTime = Date.now();
         try {
-          const fs = await import('fs/promises');
-          const path = await import('path');
-          const os = await import('os');
-
           const testDir = path.join(os.tmpdir(), 'magus-mark-health-check');
           const testFile = path.join(testDir, 'test.txt');
 

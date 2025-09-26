@@ -40,7 +40,7 @@ await build({
     'dotenv',
   ],
   banner: {
-    js: '#!/usr/bin/env node\n',
+    js: '#!/usr/bin/env node\nimport { createRequire as __createRequire } from "node:module";\nconst require = __createRequire(import.meta.url);\n',
   },
 });
 
@@ -72,6 +72,6 @@ await build({
     'yargs',
   ],
   banner: {
-    js: '#!/usr/bin/env node\n',
+    js: '#!/usr/bin/env node\nimport { createRequire as __createRequire } from "node:module";\nconst require = __createRequire(import.meta.url);\n',
   },
 });

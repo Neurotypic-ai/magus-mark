@@ -1,3 +1,6 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
 import * as vscode from 'vscode';
 
 import { Result } from '@magus-mark/core/errors/Result';
@@ -177,9 +180,6 @@ export class VaultBrowserProvider implements vscode.TreeDataProvider<VaultTreeIt
 
   private async loadRecentFiles(vault: VaultConfig): Promise<Result<VaultTreeItem[]>> {
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
-
       const fileItems: VaultTreeItem[] = [];
       const syncStatus = this.vaultService?.getSyncStatus() ?? new Map();
 

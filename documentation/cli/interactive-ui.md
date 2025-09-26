@@ -1,6 +1,8 @@
 # Interactive UI Features
 
-The Obsidian Magic CLI implements a rich interactive user interface for an engaging and intuitive command-line experience. The system provides real-time feedback, sophisticated progress visualization, and comprehensive cost monitoring during processing.
+The Obsidian Magic CLI implements a rich interactive user interface for an engaging and intuitive command-line
+experience. The system provides real-time feedback, sophisticated progress visualization, and comprehensive cost
+monitoring during processing.
 
 ## Terminal UI Components
 
@@ -14,7 +16,7 @@ The CLI leverages several high-quality libraries to create an interactive termin
 - **cli-progress**: Customizable progress bars with real-time updates
 - **boxen**: Information boxes for statistics, summaries, and cost breakdowns
 - **figures**: Unicode symbols for better visual indicators and status display
-- **fs-extra**: Enhanced file system operations with better error handling
+- Native Node.js fs APIs: File system operations via `node:fs` and `node:fs/promises`
 
 ## Interactive Workflows
 

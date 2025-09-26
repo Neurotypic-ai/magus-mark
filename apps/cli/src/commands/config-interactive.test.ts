@@ -71,9 +71,7 @@ vi.mock('@magus-mark/core/openai/OpenAIClient', () => ({
   })),
 }));
 
-vi.mock('fs-extra', () => ({
-  pathExists: vi.fn(),
-}));
+// No direct filesystem dependency in handler; no fs mocks required
 
 vi.mock('@magus-mark/core/utils/Logger', () => ({
   Logger: {

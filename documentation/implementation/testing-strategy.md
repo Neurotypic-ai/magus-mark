@@ -199,9 +199,9 @@ test.describe('Note Creation', () => {
 We use Vitest's mocking capabilities to mock modules:
 
 ```typescript
-// Mock fs-extra module
-vi.mock('fs-extra', () => ({
-  ensureDir: vi.fn(),
+// Mock Node fs modules
+vi.mock('node:fs/promises', () => ({
+  mkdir: vi.fn(),
   readFile: vi.fn(),
   writeFile: vi.fn(),
   access: vi.fn(),

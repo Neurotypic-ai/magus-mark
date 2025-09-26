@@ -1,3 +1,5 @@
+import * as fs from 'node:fs/promises';
+
 import { DashboardManager } from '../dashboard/DashboardManager.js';
 import { MetricsEngine } from '../dashboard/MetricsEngine.js';
 
@@ -111,7 +113,6 @@ async function loadDashboardConfig(argv: DashboardOptions): Promise<DashboardCon
   // Load from file if specified, otherwise use badass defaults
   if (argv.config) {
     try {
-      const fs = await import('fs/promises');
       const configData = await fs.readFile(argv.config, 'utf-8');
       return JSON.parse(configData) as DashboardConfig;
     } catch {

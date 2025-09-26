@@ -1,17 +1,17 @@
 {
   "dependencies": {
     "boxen": "^8.0.1",
-    "chalk": "^5.6.0",
+    "chalk": "^5.6.2",
     "js-tiktoken": "^1.0.21",
-    "openai": "^5.19.1",
-    "ora": "^8.2.0",
-    "zod": "^4.1.5"
+    "openai": "^5.23.0",
+    "ora": "^9.0.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@magus-mark/eslint-config": "workspace:*",
     "@magus-mark/typescript-config": "workspace:*",
     "@types/js-yaml": "^4.0.9",
-    "eslint": "^9.34.0",
+    "eslint": "^9.36.0",
     "typescript": "5.9.2",
     "vitest": "^3.2.4"
   },

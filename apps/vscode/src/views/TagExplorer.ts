@@ -1,3 +1,6 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
 import * as vscode from 'vscode';
 
 import { Result } from '@magus-mark/core/errors/Result';
@@ -145,8 +148,6 @@ export class TagExplorerProvider implements vscode.TreeDataProvider<TagTreeItem>
 
   private async scanVaultForTags(vaultPath: string): Promise<Result<TagTreeItem[]>> {
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
       const tags = new Map<string, number>();
 
       // Recursively scan for markdown files
@@ -190,7 +191,6 @@ export class TagExplorerProvider implements vscode.TreeDataProvider<TagTreeItem>
 
   private async extractTagsFromFile(filePath: string, tagsMap: Map<string, number>): Promise<void> {
     try {
-      const fs = await import('fs/promises');
       const content = await fs.readFile(filePath, 'utf-8');
 
       // Extract tags from frontmatter

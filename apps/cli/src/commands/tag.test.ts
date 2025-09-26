@@ -27,12 +27,10 @@ vi.mock('../../src/utils/config', () => ({
   },
 }));
 
-vi.mock('fs-extra', () => ({
-  default: {
-    existsSync: vi.fn().mockReturnValue(true),
-    readFileSync: vi.fn().mockReturnValue('# Test Content\n\nThis is a test markdown file.'),
-    writeFileSync: vi.fn(),
-  },
+vi.mock('node:fs', () => ({
+  existsSync: vi.fn().mockReturnValue(true),
+  readFileSync: vi.fn().mockReturnValue('# Test Content\n\nThis is a test markdown file.'),
+  writeFileSync: vi.fn(),
 }));
 
 vi.mock('@magus-mark/core', () => ({

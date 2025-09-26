@@ -1,3 +1,5 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { EventEmitter } from 'events';
 import { extname } from 'path';
 
@@ -76,9 +78,6 @@ export class ContentDiscovery extends EventEmitter {
     }
 
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
-
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
@@ -143,7 +142,6 @@ export class ContentDiscovery extends EventEmitter {
 
   private async getContentPreview(filePath: string, maxLength = 200): Promise<string> {
     try {
-      const fs = await import('fs/promises');
       const content = await fs.readFile(filePath, 'utf-8');
       return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
     } catch {

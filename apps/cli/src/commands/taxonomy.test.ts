@@ -7,10 +7,7 @@ import { taxonomyCommand } from './taxonomy';
 
 import type { Argv } from 'yargs';
 
-// Mock modules (before imports)
-vi.mock('fs-extra', () => ({
-  outputFile: vi.fn().mockResolvedValue(undefined),
-}));
+// No filesystem mocks needed for taxonomy tests
 
 vi.mock('@magus-mark/core/utils/Logger', () => ({
   Logger: {
