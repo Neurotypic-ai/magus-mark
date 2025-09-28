@@ -1,11 +1,39 @@
-import { initializeCore } from '@magus-mark/core';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
+import { TaxonomyManager } from '@magus-mark/core/tagging/TaxonomyManager';
 import { Logger } from '@magus-mark/core/utils/Logger';
 import chalk from 'chalk';
 
-import type { CommandModule } from 'yargs';
+import { loadTaxonomy, saveTaxonomy } from '../utils/config';
 
-// Initialize logger
+import type { CommandModule } from 'yargs';
+import type { Taxonomy } from '@magus-mark/core/models/Taxonomy';
+
 const logger = Logger.getInstance('taxonomy');
+
+/**
+ * Get taxonomy file path from CLI args or default
+ */
+function getTaxonomyPath(argv: { taxonomy?: string }): string {
+  return argv.taxonomy ?? path.join(os.homedir(), '.config', 'magus-mark', 'taxonomy.json');
+}
+
+/**
+ * Load taxonomy manager from file
+ */
+async function loadTaxonomyManager(taxonomyPath: string): Promise<TaxonomyManager> {
+  const taxonomyData = await loadTaxonomy(taxonomyPath);
+  return new TaxonomyManager(taxonomyData as Partial<Taxonomy> | undefined);
+}
+
+/**
+ * Save taxonomy manager to file
+ */
+async function saveTaxonomyManager(taxonomyManager: TaxonomyManager, taxonomyPath: string): Promise<void> {
+  const taxonomyData = taxonomyManager.exportTaxonomy();
+  await saveTaxonomy(taxonomyData, taxonomyPath);
+}
 
 export const taxonomyCommand: CommandModule = {
   command: 'taxonomy',
@@ -15,12 +43,13 @@ export const taxonomyCommand: CommandModule = {
       .command({
         command: 'list',
         describe: 'List all taxonomies',
-        handler: () => {
+        handler: async (argv) => {
           try {
-            const coreServices = initializeCore({});
-            const { taxonomyManager } = coreServices;
+            const taxonomyPath = getTaxonomyPath(argv as { taxonomy?: string });
+            const taxonomyManager = await loadTaxonomyManager(taxonomyPath);
             const taxonomy = taxonomyManager.getTaxonomy();
 
+            console.log(chalk.green(`\nTaxonomy from: ${taxonomyPath}`));
             console.log(chalk.green('\nAvailable domains:'));
             taxonomy.domains.forEach((domain: string) => {
               console.log(`- ${domain}`);
@@ -67,11 +96,11 @@ export const taxonomyCommand: CommandModule = {
               describe: 'Domain description',
             });
         },
-        handler: (argv) => {
+        handler: async (argv) => {
           try {
-            const coreServices = initializeCore({});
-            const { taxonomyManager } = coreServices;
-            const { domain } = argv as { domain: string };
+            const { domain } = argv as { domain: string; taxonomy?: string };
+            const taxonomyPath = getTaxonomyPath(argv as { taxonomy?: string });
+            const taxonomyManager = await loadTaxonomyManager(taxonomyPath);
 
             if (taxonomyManager.hasDomain(domain)) {
               logger.warn(`Domain '${domain}' already exists`);
@@ -79,7 +108,8 @@ export const taxonomyCommand: CommandModule = {
             }
 
             taxonomyManager.addDomain(domain);
-            logger.success(`Added domain '${domain}'`);
+            await saveTaxonomyManager(taxonomyManager, taxonomyPath);
+            logger.success(`Added domain '${domain}' and saved to ${taxonomyPath}`);
           } catch (error) {
             logger.error(`Failed to add domain: ${error instanceof Error ? error.message : String(error)}`);
             process.exit(1);
@@ -102,11 +132,11 @@ export const taxonomyCommand: CommandModule = {
               demandOption: true,
             });
         },
-        handler: (argv) => {
+        handler: async (argv) => {
           try {
-            const coreServices = initializeCore({});
-            const { taxonomyManager } = coreServices;
-            const { domain, subdomain } = argv as { domain: string; subdomain: string };
+            const { domain, subdomain } = argv as { domain: string; subdomain: string; taxonomy?: string };
+            const taxonomyPath = getTaxonomyPath(argv as { taxonomy?: string });
+            const taxonomyManager = await loadTaxonomyManager(taxonomyPath);
 
             if (!taxonomyManager.hasDomain(domain)) {
               logger.error(`Domain '${domain}' does not exist`);
@@ -119,7 +149,8 @@ export const taxonomyCommand: CommandModule = {
             }
 
             taxonomyManager.addSubdomain(domain, subdomain);
-            logger.success(`Added subdomain '${subdomain}' to domain '${domain}'`);
+            await saveTaxonomyManager(taxonomyManager, taxonomyPath);
+            logger.success(`Added subdomain '${subdomain}' to domain '${domain}' and saved to ${taxonomyPath}`);
           } catch (error) {
             logger.error(`Failed to add subdomain: ${error instanceof Error ? error.message : String(error)}`);
             process.exit(1);
@@ -136,14 +167,15 @@ export const taxonomyCommand: CommandModule = {
             demandOption: true,
           });
         },
-        handler: (argv) => {
+        handler: async (argv) => {
           try {
-            const coreServices = initializeCore({});
-            const { taxonomyManager } = coreServices;
-            const { tag } = argv as { tag: string };
+            const { tag } = argv as { tag: string; taxonomy?: string };
+            const taxonomyPath = getTaxonomyPath(argv as { taxonomy?: string });
+            const taxonomyManager = await loadTaxonomyManager(taxonomyPath);
 
             taxonomyManager.addContextualTag(tag);
-            logger.success(`Added contextual tag '${tag}'`);
+            await saveTaxonomyManager(taxonomyManager, taxonomyPath);
+            logger.success(`Added contextual tag '${tag}' and saved to ${taxonomyPath}`);
           } catch (error) {
             logger.error(`Failed to add contextual tag: ${error instanceof Error ? error.message : String(error)}`);
             process.exit(1);
@@ -152,6 +184,22 @@ export const taxonomyCommand: CommandModule = {
       });
   },
   handler: () => {
-    console.log('Taxonomy command');
-  }, // Default handler for the taxonomy command
+    console.log(chalk.bold.cyan('🏷️  Magus Mark Taxonomy Manager'));
+    console.log();
+    console.log('Manage your conversation taxonomy with these commands:');
+    console.log();
+    console.log(chalk.yellow('Available Commands:'));
+    console.log('  list                           📋 List all taxonomy categories');
+    console.log('  add-domain <domain>            ➕ Add a new domain');
+    console.log('  add-subdomain <domain> <sub>   🔗 Add subdomain to domain');
+    console.log('  add-tag <tag>                  🏷️  Add contextual tag');
+    console.log();
+    console.log(chalk.yellow('Examples:'));
+    console.log('  magus-mark taxonomy list');
+    console.log('  magus-mark taxonomy add-domain "machine-learning"');
+    console.log('  magus-mark taxonomy add-subdomain "ai" "transformers"');
+    console.log('  magus-mark taxonomy add-tag "experimental"');
+    console.log();
+    console.log(chalk.gray('Use --taxonomy <file> to specify a custom taxonomy file'));
+  },
 };

@@ -180,6 +180,11 @@ const cli = yargs(hideBin(process.argv))
     type: 'string',
     global: true,
   })
+  .option('taxonomy', {
+    describe: 'Path to taxonomy file',
+    type: 'string',
+    global: true,
+  })
   .option('output-format', {
     describe: 'Output format',
     choices: ['pretty', 'json', 'silent'] as const,

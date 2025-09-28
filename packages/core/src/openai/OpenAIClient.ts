@@ -1,13 +1,13 @@
 /**
  * OpenAI integration module
  */
-import { Tiktoken } from 'js-tiktoken/lite';
-import cl100k_base from 'js-tiktoken/ranks/cl100k_base';
 import OpenAI from 'openai';
 
 import { APIError } from '../errors/APIError';
 import { normalizeError } from '../errors/utils';
 import { ErrorCodes } from '../types/ErrorCodes';
+
+import type { Tiktoken } from 'js-tiktoken/lite';
 
 import type { AIModel } from '../models/AIModel';
 
@@ -115,6 +115,7 @@ export class OpenAIClient {
   private config: OpenAIConfig;
   private client: OpenAI | null = null;
   private encodingCache: Record<string, Tiktoken> = {};
+  private encodingLoadPromise: Promise<void> | null = null;
   private pricingConfig: PricingConfig = { ...DEFAULT_PRICING };
 
   constructor(config: Partial<OpenAIConfig> = {}) {
@@ -713,6 +714,27 @@ export class OpenAIClient {
   }
 
   /**
+   * Lazily load tiktoken encoding to avoid importing JSON modules at startup
+   */
+  private async ensureEncodingLoaded(): Promise<void> {
+    if (this.encodingCache['cl100k_base']) return;
+    if (!this.encodingLoadPromise) {
+      this.encodingLoadPromise = (async () => {
+        try {
+          const tiktokenModule = (await import('js-tiktoken/lite')) as { Tiktoken: new (ranks: unknown) => Tiktoken };
+          const ranksModule = (await import('js-tiktoken/ranks/cl100k_base')) as { default: unknown };
+          const TiktokenClass = tiktokenModule.Tiktoken;
+          const ranks = ranksModule.default;
+          this.encodingCache['cl100k_base'] = new TiktokenClass(ranks);
+        } catch {
+          // Silently ignore; callers will fall back to approximate counts
+        }
+      })();
+    }
+    return this.encodingLoadPromise;
+  }
+
+  /**
    * Calculate token usage for a request
    */
   calculateTokenUsage(
@@ -755,10 +777,15 @@ export class OpenAIClient {
    */
   estimateTokenCount(text: string): number {
     try {
-      // Use tiktoken/lite for accurate token counting
-      // For now, always use cl100k_base (covers GPT-3.5/4)
-      this.encodingCache['cl100k_base'] ??= new Tiktoken(cl100k_base);
-      return this.encodingCache['cl100k_base'].encode(text).length;
+      // Fast path if encoding is already loaded
+      const encoding = this.encodingCache['cl100k_base'];
+      if (encoding) {
+        return encoding.encode(text).length;
+      }
+
+      // Kick off lazy load in the background, return approximation for now
+      void this.ensureEncodingLoaded();
+      return Math.ceil(text.length / 4);
     } catch (_) {
       void _; // Mark as intentionally unused
       // Fallback to approximate count if tiktoken fails

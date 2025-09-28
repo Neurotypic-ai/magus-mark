@@ -1,6 +1,8 @@
 import * as console from 'node:console';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { confirm, input, number, select } from '@inquirer/prompts';
 import chalk from 'chalk';
@@ -70,6 +72,37 @@ async function getModelChoices(apiKey?: string): Promise<{ value: AIModel; name:
  */
 function getPriceDescription(model: ModelPricing): string {
   return `$${(model.inputPrice / 1000).toFixed(2)}/$${(model.outputPrice / 1000).toFixed(2)} per 1K tokens`;
+}
+
+/**
+ * Copy default taxonomy file to user config directory
+ */
+async function setupDefaultTaxonomy(): Promise<void> {
+  const taxonomyPath = path.join(os.homedir(), '.config', 'magus-mark', 'taxonomy.json');
+  
+  // Check if taxonomy file already exists
+  try {
+    await fs.access(taxonomyPath);
+    console.log(chalk.gray('Taxonomy file already exists, skipping copy.'));
+    return;
+  } catch {
+    // File doesn't exist, proceed with copy
+  }
+
+  try {
+    // Get path to the default taxonomy file in the package
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+    const defaultTaxonomyPath = path.join(currentDir, '../../assets/default-taxonomy.json');
+    
+    // Ensure the config directory exists
+    await fs.mkdir(path.dirname(taxonomyPath), { recursive: true });
+    
+    // Copy the default taxonomy file
+    await fs.copyFile(defaultTaxonomyPath, taxonomyPath);
+    console.log(chalk.green(`Default taxonomy copied to ${taxonomyPath}`));
+  } catch (error) {
+    console.warn(chalk.yellow(`Warning: Could not copy default taxonomy: ${error instanceof Error ? error.message : String(error)}`));
+  }
 }
 
 /**
@@ -264,6 +297,9 @@ export const configInteractiveCommand: CommandModule = {
         console.log(`Profile '${profileName}' saved.`);
       }
 
+      // Copy default taxonomy file if it doesn't exist
+      await setupDefaultTaxonomy();
+      
       console.log('Configuration updated successfully!');
 
       // Export configuration if requested

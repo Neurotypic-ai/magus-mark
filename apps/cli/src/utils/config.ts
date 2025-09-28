@@ -46,6 +46,13 @@ function getDefaultConfigPath(): string {
 }
 
 /**
+ * Get default taxonomy path
+ */
+function getDefaultTaxonomyPath(): string {
+  return path.join(os.homedir(), '.config', 'magus-mark', 'taxonomy.json');
+}
+
+/**
  * Get configuration path
  */
 function getConfigPath(): string {
@@ -86,6 +93,41 @@ export async function saveConfig(config: Config, configPath: string = getDefault
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
   } catch (error) {
     throw new Error(`Failed to save config: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Load taxonomy from file
+ */
+export async function loadTaxonomy(taxonomyPath: string = getDefaultTaxonomyPath()): Promise<Record<string, unknown> | null> {
+  try {
+    let fileExists = false;
+    try {
+      await fs.access(taxonomyPath);
+      fileExists = true;
+    } catch {
+      fileExists = false;
+    }
+    if (fileExists) {
+      const dataStr = await fs.readFile(taxonomyPath, 'utf-8');
+      return JSON.parse(dataStr) as Record<string, unknown>;
+    }
+    return null;
+  } catch (error) {
+    console.warn(`Error loading taxonomy: ${(error as Error).message}`);
+    return null;
+  }
+}
+
+/**
+ * Save taxonomy to file
+ */
+export async function saveTaxonomy(taxonomy: Record<string, unknown>, taxonomyPath: string = getDefaultTaxonomyPath()): Promise<void> {
+  try {
+    await fs.mkdir(path.dirname(taxonomyPath), { recursive: true });
+    await fs.writeFile(taxonomyPath, JSON.stringify(taxonomy, null, 2), 'utf-8');
+  } catch (error) {
+    throw new Error(`Failed to save taxonomy: ${(error as Error).message}`);
   }
 }
 

@@ -44,11 +44,9 @@ interface MockTaxonomyManager {
   hasSubdomain: (domain: string, subdomain: string) => boolean;
   addSubdomain: (domain: string, subdomain: string) => void;
   addContextualTag: (tag: string) => void;
+  exportTaxonomy: () => Record<string, unknown>;
 }
 
-interface MockCoreReturn {
-  taxonomyManager: MockTaxonomyManager;
-}
 
 // Create a mock taxonomy manager for testing
 const mockTaxonomyManager: MockTaxonomyManager = {
@@ -62,20 +60,33 @@ const mockTaxonomyManager: MockTaxonomyManager = {
     if (domain === 'technology') return ['ai', 'webdev'];
     return [];
   }),
-  hasDomain: vi.fn().mockReturnValue(true),
+  hasDomain: vi.fn().mockReturnValue(false), // Changed to false so add-domain works
   addDomain: vi.fn(),
   hasSubdomain: vi.fn().mockReturnValue(false),
   addSubdomain: vi.fn(),
   addContextualTag: vi.fn(),
+  exportTaxonomy: vi.fn().mockReturnValue({
+    domains: ['technology', 'science'],
+    contextualTags: ['important', 'urgent'],
+    lifeAreas: ['work', 'personal'],
+    conversationTypes: ['question', 'discussion'],
+  }),
 };
 
-vi.mock('@magus-mark/core', () => ({
-  initializeCore: vi.fn().mockImplementation(
-    () =>
-      ({
-        taxonomyManager: mockTaxonomyManager,
-      }) as MockCoreReturn
+vi.mock('@magus-mark/core/tagging/TaxonomyManager', () => ({
+  TaxonomyManager: vi.fn().mockImplementation(
+    () => mockTaxonomyManager
   ),
+}));
+
+vi.mock('../utils/config', () => ({
+  loadTaxonomy: vi.fn().mockResolvedValue({
+    domains: ['technology', 'science'],
+    contextualTags: ['important', 'urgent'],
+    lifeAreas: ['work', 'personal'],
+    conversationTypes: ['question', 'discussion'],
+  }),
+  saveTaxonomy: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Interface for command handlers
