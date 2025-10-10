@@ -81,8 +81,8 @@ class CostManager {
     this.dataFile = path.join(dataDir, 'usage-data.json');
 
     // Load existing data asynchronously
-    void this.loadUsageDataAsync().catch((error) => {
-      logger.warn(`Failed to load usage data: ${error instanceof Error ? error.message : String(error)}`);
+    void this.loadUsageDataAsync().catch((_error: unknown) => {
+      logger.warn(`Failed to load usage data: ${_error instanceof Error ? _error.message : String(_error)}`);
     });
   }
 
@@ -360,8 +360,9 @@ class CostManager {
   }
 }
 
-// Initialize singleton instance
-CostManager.instance = new CostManager();
+// Initialize singleton instance using type assertion to bypass private constructor
+(CostManager as unknown as { instance: CostManager }).instance =
+  new (CostManager as unknown as new () => CostManager)();
 
 // Export singleton instance
 export const costManager: CostManager = CostManager.getInstance();

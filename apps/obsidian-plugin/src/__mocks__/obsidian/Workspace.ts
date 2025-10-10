@@ -134,4 +134,7 @@ export class Workspace extends Events implements WorkspaceType {
     dimensions?: { x: number; y: number; width: number; height: number }
   ) => WorkspaceWindowType = vi.fn(() => ({}) as WorkspaceWindowType);
   openParentLeaf: (leaf: WorkspaceLeaf) => WorkspaceLeaf | null = vi.fn(() => null);
+
+  // Add missing method required by newer Obsidian API
+  handleLinkContextMenu: () => boolean = vi.fn(() => false);
 }

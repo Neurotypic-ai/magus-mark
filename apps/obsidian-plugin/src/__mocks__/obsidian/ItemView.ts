@@ -3,12 +3,19 @@ import { vi } from 'vitest';
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
 import { Component } from './Component';
 
-import type { App, ItemView as ItemViewType, Menu, Scope, ViewStateResult, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
+import type {
+  App,
+  ItemView as ItemViewType,
+  Menu,
+  Scope,
+  ViewStateResult,
+  WorkspaceLeaf as WorkspaceLeafType,
+} from 'obsidian';
 import type { Mock } from 'vitest';
 
 import type { MockObsidianElement } from './MockObsidianElement';
 
-export class ItemView extends Component implements ItemViewType {
+export class ItemView extends Component implements Partial<ItemViewType> {
   navigation = true;
   icon = 'mock-icon';
   leaf: WorkspaceLeafType;
@@ -44,7 +51,7 @@ export class ItemView extends Component implements ItemViewType {
   setState(_state: unknown, _result: ViewStateResult): Promise<void> {
     return Promise.resolve();
   }
-  getEphemeralState(): unknown {
+  getEphemeralState(): Record<string, unknown> {
     return {};
   }
   setEphemeralState(_state: unknown): void {

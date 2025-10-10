@@ -24,8 +24,8 @@ export function createTestPlugin(
   overrides?: Partial<MagusMarkPlugin>
 ): MagusMarkPlugin {
   // Use enhanced mock system
-  const testApp = app || createMockApp();
-  const testManifest = manifest || TEST_MANIFEST;
+  const testApp = app ?? createMockApp();
+  const testManifest = manifest ?? TEST_MANIFEST;
 
   // Create plugin instance using the enhanced Plugin mock
   const plugin = new MagusMarkPlugin(testApp, testManifest);
@@ -44,8 +44,26 @@ export function createTestPlugin(
   ];
 
   spyMethods.forEach((method) => {
-    if (typeof plugin[method] === 'function') {
-      vi.spyOn(plugin, method as keyof MagusMarkPlugin);
+    // Type guard to ensure we're accessing a valid method
+    const pluginAny = plugin as unknown as Record<string, unknown>;
+    if (typeof pluginAny[method] === 'function') {
+      // Filter to only spy on methods that are valid Plugin methods
+      const validSpyMethods = [
+        'onload',
+        'onunload',
+        'loadData',
+        'saveData',
+        'addCommand',
+        'registerView',
+        'addSettingTab',
+        'addRibbonIcon',
+        'addStatusBarItem',
+      ] as const;
+      type ValidMethod = (typeof validSpyMethods)[number];
+
+      if (validSpyMethods.includes(method as ValidMethod)) {
+        vi.spyOn(plugin, method as ValidMethod);
+      }
     }
   });
 

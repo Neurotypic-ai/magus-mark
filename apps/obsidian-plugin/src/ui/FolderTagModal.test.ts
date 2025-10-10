@@ -4,14 +4,14 @@ import { createMockObsidianElement } from '../testing/createMockObsidianElement'
 import { createTestPlugin, resetPluginMocks } from '../testing/createTestPlugin';
 import { FolderTagModal } from './FolderTagModal';
 
-import type { TAbstractFile, TFolder } from 'obsidian';
+import type { ButtonComponent, TAbstractFile, TFile, TFolder } from 'obsidian';
 
 import type MagusMarkPlugin from '../main';
 
 describe('FolderTagModal', () => {
   let modal: FolderTagModal;
   let testPlugin: MagusMarkPlugin;
-  let onSubmitCallback: any;
+  let onSubmitCallback: (folder: TFolder, includeSubfolders: boolean) => void;
   let mockFilesAndFolders: TAbstractFile[];
 
   beforeEach(async () => {
@@ -50,10 +50,11 @@ describe('FolderTagModal', () => {
     testPlugin = createTestPlugin(testApp);
 
     // Mock vault methods
-    vi.spyOn(testApp.vault, 'getAllLoadedFiles').mockReturnValue(mockFilesAndFolders);
-    vi.spyOn(testApp.vault, 'getAbstractFileByPath').mockImplementation(
-      (path: string) => mockFilesAndFolders.find((f) => f.path === path) || null
-    );
+    vi.spyOn(testApp.vault, 'getAllLoadedFiles').mockReturnValue(mockFilesAndFolders as unknown as TFile[]);
+    vi.spyOn(testApp.vault, 'getAbstractFileByPath').mockImplementation((path: string) => {
+      const found = mockFilesAndFolders.find((f) => f.path === path);
+      return found ? (found as TFile | TFolder) : null;
+    });
 
     modal = new FolderTagModal(testPlugin, onSubmitCallback);
 
@@ -239,7 +240,7 @@ describe('FolderTagModal', () => {
 
       // Execute the button configuration function
       if (buttonConfigFn) {
-        buttonConfigFn(mockCancelButton);
+        buttonConfigFn(mockCancelButton as unknown as ButtonComponent);
 
         // Trigger the click callback manually
         mockCancelButton.triggerClick();

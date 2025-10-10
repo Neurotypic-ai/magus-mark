@@ -17,8 +17,6 @@ import type MagusMarkPlugin from '../main';
  */
 export class KeyManager {
   private plugin: MagusMarkPlugin;
-  // Cache whether Electron safeStorage is available
-  private safeStorageAvailable: boolean | null = null;
 
   constructor(plugin: MagusMarkPlugin) {
     this.plugin = plugin;
@@ -235,7 +233,6 @@ export class KeyManager {
         const encryptedBuf: Buffer = mod.safeStorage.encryptString(apiKey);
         this.plugin.settings.apiKey = `safe:${encryptedBuf.toString('base64')}`;
         await this.plugin.saveSettings();
-        this.safeStorageAvailable = true;
         return true;
       }
     } catch {
@@ -358,7 +355,9 @@ export class KeyManager {
   }
 
   private hasWebCrypto(): boolean {
-    return typeof globalThis !== 'undefined' && Boolean(globalThis.crypto?.subtle);
+    return (
+      typeof globalThis !== 'undefined' && typeof globalThis.crypto !== 'undefined' && Boolean(globalThis.crypto.subtle)
+    );
   }
 
   // ---------- WebCrypto AES-GCM helpers ----------
@@ -380,13 +379,18 @@ export class KeyManager {
     const enc = new TextEncoder();
     // Derive from app id and a static purpose string
     const base = `magus-mark:${this.plugin.manifest.id}:system-key`;
-    const keyMaterial = await globalThis.crypto.subtle.importKey('raw', enc.encode(base), { name: 'PBKDF2' }, false, [
+    const baseData = enc.encode(base);
+
+    // Convert to proper ArrayBuffer type
+    const saltBuffer = new Uint8Array(salt).buffer;
+
+    const keyMaterial = await globalThis.crypto.subtle.importKey('raw', baseData.buffer, { name: 'PBKDF2' }, false, [
       'deriveKey',
     ]);
     return globalThis.crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
-        salt,
+        salt: saltBuffer,
         iterations: 100_000,
         hash: 'SHA-256',
       },
@@ -404,13 +408,18 @@ export class KeyManager {
     const saltB64 = parts[2];
     const ivB64 = parts[3];
     const cipherB64 = parts[4];
+
+    if (!saltB64 || !ivB64 || !cipherB64) {
+      throw new Error('Missing encryption components');
+    }
+
     const salt = Uint8Array.from(Buffer.from(saltB64, 'base64'));
     const iv = Uint8Array.from(Buffer.from(ivB64, 'base64'));
     const cipherBytes = Uint8Array.from(Buffer.from(cipherB64, 'base64'));
 
     // Use Node's crypto for synchronous AES-GCM decryption (ciphertext|tag format)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
-    const crypto: typeof import('node:crypto') = require('node:crypto');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports
+    const crypto = require('node:crypto') as typeof import('node:crypto');
     const enc = new TextEncoder();
     const base = `magus-mark:${this.plugin.manifest.id}:system-key`;
     const keyBuf = crypto.pbkdf2Sync(Buffer.from(enc.encode(base)), Buffer.from(salt), 100_000, 32, 'sha256');

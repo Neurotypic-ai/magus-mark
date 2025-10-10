@@ -23,7 +23,7 @@ export interface CacheEntry<T> {
   timestamp: number;
   accessCount: number;
   lastAccessed: number;
-  semanticHash?: string;
+  semanticHash: string | undefined;
   contentHash: string;
   size: number;
 }
@@ -40,7 +40,7 @@ export class SmartCache<T> extends EventEmitter {
     this.startCleanupTimer();
   }
 
-  async set(key: string, value: T, metadata?: CacheMetadata): Promise<void> {
+  set(key: string, value: T, metadata?: CacheMetadata): void {
     const contentHash = this.generateContentHash(value);
     const semanticHash = this.generateSemanticHash(value, metadata);
 
@@ -62,7 +62,7 @@ export class SmartCache<T> extends EventEmitter {
       timestamp: Date.now(),
       accessCount: 0,
       lastAccessed: Date.now(),
-      semanticHash,
+      semanticHash: semanticHash ?? undefined,
       contentHash,
       size,
     };
@@ -81,13 +81,13 @@ export class SmartCache<T> extends EventEmitter {
 
     // Enforce size limits
     while (this.shouldEvict()) {
-      await this.evict();
+      this.evict();
     }
 
     this.emit('cache:set', key, entry);
   }
 
-  async get(key: string): Promise<T | undefined> {
+  get(key: string): T | undefined {
     const entry = this.cache.get(key);
 
     if (!entry) {
@@ -195,7 +195,7 @@ export class SmartCache<T> extends EventEmitter {
     return this.config.maxSize * 1024 * 1024; // Convert MB to bytes
   }
 
-  private async evict(): Promise<void> {
+  private evict(): void {
     switch (this.config.strategy) {
       case 'lru':
         this.evictLRU();
@@ -427,9 +427,9 @@ export class SmartCache<T> extends EventEmitter {
     return 1 - differences / maxLength;
   }
 
-  preload(keys: string[]): Promise<(T | undefined)[]> {
+  preload(keys: string[]): (T | undefined)[] {
     // Preload cache with predicted keys
-    return Promise.all(keys.map((key) => this.get(key)));
+    return keys.map((key) => this.get(key));
   }
 
   export(): CacheExport<T> {

@@ -19,11 +19,9 @@ export interface GraphWidgetData {
 
 export class GraphWidget {
   private widget: blessed.Widgets.LineElement;
-  private config: WidgetConfig;
   private maxDataPoints = 50;
 
   constructor(config: WidgetConfig, grid: contrib.grid) {
-    this.config = config;
     const { x, y, width, height } = config.position;
 
     this.widget = grid.set(y, x, height, width, contrib.line, {
@@ -56,7 +54,7 @@ export class GraphWidget {
     }));
   }
 
-  addDataPoint(seriesTitle: string, x: number, y: number): void {
+  addDataPoint(_seriesTitle: string, _x: number, _y: number): void {
     // This would add a single data point to an existing series
     // Implementation depends on how the underlying widget handles data updates
   }

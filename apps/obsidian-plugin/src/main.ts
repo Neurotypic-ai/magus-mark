@@ -42,8 +42,6 @@ export default class MagusMarkPlugin extends Plugin {
   taggingService!: TaggingService;
   documentTagService!: DocumentTagService;
   keyManager!: KeyManager;
-  private statusBarHandler?: StatusBarHandler;
-  private noticeHandler?: NoticeHandler;
 
   override async onload(): Promise<void> {
     console.log('[Magus Mark] Loading plugin...');
@@ -93,7 +91,8 @@ export default class MagusMarkPlugin extends Plugin {
       this.statusBarElement.addClass('magus-mark-status');
 
       // Wire status updates
-      this.statusBarHandler = new StatusBarHandler(
+      // Create handler to wire up observables (stored temporarily for lifetime management)
+      const statusBarHandler = new StatusBarHandler(
         {
           setText: (text: string) => {
             if (!this.statusBarElement) return;
@@ -106,12 +105,17 @@ export default class MagusMarkPlugin extends Plugin {
         },
         this.taggingService.status
       );
+      // Handler starts listening on construction and will clean itself up when service is destroyed
+      void statusBarHandler;
 
       console.log('[DEBUG] onload step 10: Status bar added');
     }
 
     // Wire notice handler
-    this.noticeHandler = new NoticeHandler((msg) => new Notice(msg), this.taggingService.notice);
+    // Create handler to wire up observables (stored temporarily for lifetime management)
+    const noticeHandler = new NoticeHandler((msg) => new Notice(msg), this.taggingService.notice);
+    // Handler starts listening on construction and will clean itself up when service is destroyed
+    void noticeHandler;
 
     this.addCommands();
     console.log('[DEBUG] onload step 11: Commands added');
@@ -131,7 +135,7 @@ export default class MagusMarkPlugin extends Plugin {
       for (const tagEl of Array.from(tagElements)) {
         if (!(tagEl instanceof HTMLElement)) continue;
 
-        const tagNameWithHash = tagEl.textContent?.trim();
+        const tagNameWithHash = tagEl.textContent ? tagEl.textContent.trim() : null;
         if (!tagNameWithHash?.startsWith('#')) continue;
 
         const tagName = tagNameWithHash.substring(1);
@@ -166,7 +170,7 @@ export default class MagusMarkPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     const data = (await this.loadData()) as Partial<MagusMarkSettings> | undefined;
-    this.settings = { ...DEFAULT_SETTINGS, ...(data || {}) };
+    this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
   }
 
   async saveSettings(): Promise<void> {

@@ -26,8 +26,15 @@ export class App implements Partial<AppType> {
     generateMarkdownLink: vi.fn().mockReturnValue('[[test]]'),
     processFrontMatter: vi.fn().mockResolvedValue(undefined),
     getAvailablePathForAttachment: vi.fn().mockReturnValue('test-path'),
+    promptForDeletion: vi.fn().mockResolvedValue(true),
   };
+  public lastEvent: null = null;
+  public loadLocalStorage = vi.fn();
+  public saveLocalStorage = vi.fn();
+  public renderContext = { component: null, hoverPopover: null };
+  public isDarkMode = vi.fn().mockReturnValue(false);
 
+  // Handle missing methods in Workspace
   constructor() {
     // Initialize app components
   }

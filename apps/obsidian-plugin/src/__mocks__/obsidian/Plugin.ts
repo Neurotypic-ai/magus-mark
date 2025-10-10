@@ -145,4 +145,9 @@ export class Plugin extends Component implements PluginType {
   override registerInterval(_id: number): number {
     return _id; // Mock implementation, typically you'd store and clear it
   }
+
+  registerBasesView(_viewType: string, _viewCreator: unknown): boolean {
+    /* no-op for mock */
+    return true;
+  }
 }

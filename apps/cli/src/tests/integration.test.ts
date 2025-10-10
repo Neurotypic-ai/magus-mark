@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import * as path from 'path';
 import { promisify } from 'util';
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const execAsync = promisify(exec);
 
@@ -20,7 +20,7 @@ describe('CLI Integration Tests', () => {
     // Ensure CLI is built
     try {
       await execAsync('pnpm run build', { cwd: path.join(__dirname, '../..') });
-    } catch (error) {
+    } catch (_error) {
       console.warn('Build failed, CLI may not be available for integration tests');
     }
   });
@@ -108,7 +108,7 @@ describe('CLI Integration Tests', () => {
       // Should output some form of statistics
       expect(stdout).toBeTruthy();
     } catch (error) {
-      const execError = error as { stdout: string; stderr: string };
+      const execError = error as { stdout: string; stderr: string; code?: number };
       // Stats might fail without usage data, but should handle gracefully
       expect(execError.code).not.toBe(undefined);
     }

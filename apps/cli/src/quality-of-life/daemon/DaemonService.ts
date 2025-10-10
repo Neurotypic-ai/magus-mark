@@ -1,5 +1,6 @@
+import { watch as fsWatch } from 'node:fs';
+import * as fs from 'node:fs/promises';
 import { EventEmitter } from 'events';
-import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import { Logger } from '@magus-mark/core/utils/Logger';
@@ -26,7 +27,7 @@ export class DaemonService extends EventEmitter {
   private config: DaemonConfig;
   private logger: Logger;
   private status: DaemonStatus;
-  private watchers: fs.FSWatcher[] = [];
+  private watchers: ReturnType<typeof fsWatch>[] = [];
   private processInterval?: NodeJS.Timeout;
 
   constructor(config: DaemonConfig) {
@@ -52,7 +53,7 @@ export class DaemonService extends EventEmitter {
       await this.writePidFile();
 
       // Set up file watchers
-      await this.setupWatchers();
+      this.setupWatchers();
 
       // Start processing interval
       this.startProcessingInterval();
@@ -61,7 +62,7 @@ export class DaemonService extends EventEmitter {
       this.status.pid = process.pid;
       this.status.startTime = new Date();
 
-      this.logger.info(`Daemon ${this.config.name} started with PID ${process.pid}`);
+      this.logger.info(`Daemon ${this.config.name} started with PID ${process.pid.toString()}`);
       this.emit('daemon:started');
 
       // Set up graceful shutdown
@@ -94,7 +95,7 @@ export class DaemonService extends EventEmitter {
     await this.removePidFile();
 
     this.status.running = false;
-    this.status.pid = undefined;
+    delete this.status.pid;
 
     this.logger.info(`Daemon ${this.config.name} stopped`);
     this.emit('daemon:stopped');
@@ -151,14 +152,19 @@ export class DaemonService extends EventEmitter {
     }
   }
 
-  private async setupWatchers(): Promise<void> {
+  private setupWatchers(): void {
     for (const directory of this.config.watchDirectories) {
       try {
-        const watcher = fs.watch(directory, { recursive: true }, (eventType, filename) => {
-          if (filename) {
-            this.handleFileChange(eventType, path.join(directory, filename));
+        const watcher = fsWatch(
+          directory,
+          { recursive: true },
+          (eventType: string, filename: string | Buffer | null) => {
+            if (filename) {
+              const fileStr = typeof filename === 'string' ? filename : filename.toString();
+              this.handleFileChange(eventType, path.join(directory, fileStr));
+            }
           }
-        });
+        );
 
         this.watchers.push(watcher);
         this.logger.debug(`Watching directory: ${directory}`);
@@ -188,17 +194,16 @@ export class DaemonService extends EventEmitter {
   }
 
   private setupShutdownHandlers(): void {
-    const shutdown = async () => {
+    const shutdown = () => {
       this.logger.info('Received shutdown signal');
-      await this.stop();
-      process.exit(0);
+      void this.stop().then(() => process.exit(0));
     };
 
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
-    process.on('SIGHUP', async () => {
+    process.on('SIGHUP', () => {
       if (this.config.autoRestart) {
-        await this.restart();
+        void this.restart();
       }
     });
   }

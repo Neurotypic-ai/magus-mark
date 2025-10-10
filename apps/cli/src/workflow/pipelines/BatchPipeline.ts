@@ -70,7 +70,7 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
     this.stats.successful = 0;
     this.stats.failed = 0;
 
-    this.logger.info(`Starting pipeline ${this.config.name} with ${inputs.length} inputs`);
+    this.logger.info(`Starting pipeline ${this.config.name} with ${inputs.length.toString()} inputs`);
     this.emit('pipeline:started', inputs.length);
 
     const results: TOutput[] = [];
@@ -94,7 +94,7 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
         } catch (error) {
           this.stats.failed++;
           this.logger.error(
-            `Failed to process input ${index}: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to process input ${index.toString()}: ${error instanceof Error ? error.message : String(error)}`
           );
           this.emit('pipeline:item:error', input, error);
 
@@ -110,7 +110,8 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
       });
 
       const chunkResults = await Promise.all(chunkPromises);
-      results.push(...chunkResults.filter((result): result is TOutput => result !== null));
+      const filtered = chunkResults.filter((result) => result !== null);
+      results.push(...(filtered as TOutput[]));
     }
 
     // Calculate final stats
@@ -119,7 +120,7 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
 
     this.isRunning = false;
     this.logger.info(
-      `Pipeline ${this.config.name} completed. ${this.stats.successful}/${this.stats.processed} successful`
+      `Pipeline ${this.config.name} completed. ${this.stats.successful.toString()}/${this.stats.processed.toString()} successful`
     );
     this.emit('pipeline:completed', results, this.stats);
 
@@ -130,7 +131,9 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
     let currentData: unknown = input;
 
     for (const [stageIndex, stage] of this.stages.entries()) {
-      this.logger.debug(`Processing input ${index} through stage ${stageIndex + 1}: ${stage.name}`);
+      this.logger.debug(
+        `Processing input ${index.toString()} through stage ${(stageIndex + 1).toString()}: ${stage.name}`
+      );
 
       let retryCount = 0;
       const maxRetries = stage.retryCount ?? 3;
@@ -152,7 +155,7 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
           currentData = await Promise.race([stagePromise, timeoutPromise]);
 
           const stageTime = Date.now() - stageStartTime;
-          this.logger.debug(`Stage ${stage.name} completed in ${stageTime}ms`);
+          this.logger.debug(`Stage ${stage.name} completed in ${stageTime.toString()}ms`);
           this.emit('pipeline:stage:completed', stage.name, currentData, stageTime);
 
           break; // Success, exit retry loop
@@ -161,7 +164,7 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
           this.stats.retries++;
 
           this.logger.warn(
-            `Stage ${stage.name} failed (attempt ${retryCount}/${maxRetries + 1}): ${error instanceof Error ? error.message : String(error)}`
+            `Stage ${stage.name} failed (attempt ${retryCount.toString()}/${(maxRetries + 1).toString()}): ${error instanceof Error ? error.message : String(error)}`
           );
 
           if (retryCount > maxRetries) {

@@ -145,7 +145,7 @@ export const testCommand: CommandModule = {
 
       // Route to appropriate test function
       if (integration) {
-        await runIntegrationTestsCommand(models, options);
+        runIntegrationTestsCommand(models, options);
       } else if (stressTest) {
         await runStressTestsCommand(models, options);
       } else if (optimizeParams) {
@@ -156,7 +156,7 @@ export const testCommand: CommandModule = {
         await runTestSetCommand(models, options);
       } else {
         // Run basic tests if no specific action specified
-        await runBasicTestsCommand(models);
+        void runBasicTestsCommand(models);
       }
     } catch (error) {
       logger.error(`Test command failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -209,7 +209,7 @@ Benchmark Results:
 ${report.models
   .map(
     (model) => `
-${chalk.bold(String(model.model))}
+${chalk.bold(model.model)}
 - Accuracy: ${(model.accuracy * 100).toFixed(2)}%
 - Precision: ${(model.precision * 100).toFixed(2)}%
 - Recall: ${(model.recall * 100).toFixed(2)}%
@@ -217,16 +217,16 @@ ${chalk.bold(String(model.model))}
 - Tokens: ${model.tokensUsed.total.toLocaleString()} (${model.tokensUsed.input.toLocaleString()} in / ${model.tokensUsed.output.toLocaleString()} out)
 - Cost: ${formatCurrency(model.costIncurred.total)}
 - Avg latency: ${formatDuration(model.latency.average)}
-- Samples: ${String(model.samples)} (${String(model.failedSamples)} failed)
+- Samples: ${model.samples.toString()} (${model.failedSamples.toString()} failed)
 `
   )
   .join('\n')}
 
 Summary:
-- Best overall: ${chalk.bold(String(report.summary.bestOverall))}
-- Best accuracy: ${chalk.bold(String(report.summary.bestAccuracy))}
-- Best cost efficiency: ${chalk.bold(String(report.summary.bestCostEfficiency))}
-- Best latency: ${chalk.bold(String(report.summary.bestLatency))}
+- Best overall: ${chalk.bold(report.summary.bestOverall)}
+- Best accuracy: ${chalk.bold(report.summary.bestAccuracy)}
+- Best cost efficiency: ${chalk.bold(report.summary.bestCostEfficiency)}
+- Best latency: ${chalk.bold(report.summary.bestLatency)}
   `.trim(),
       'Benchmark Results'
     );
@@ -261,17 +261,18 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
 
   try {
     // Check if test set exists
+    const testSetPath = options.testSet;
     if (
       !(await (async () => {
         try {
-          await fs.access(options.testSet);
+          await fs.access(testSetPath);
           return true;
         } catch {
           return false;
         }
       })())
     ) {
-      logger.error(`Test set not found: ${options.testSet}`);
+      logger.error(`Test set not found: ${testSetPath}`);
       return;
     }
 
@@ -285,7 +286,7 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
     if (
       await (async () => {
         try {
-          const stats = await fs.stat(options.testSet);
+          const stats = await fs.stat(testSetPath);
           return stats.isDirectory();
         } catch {
           return false;
@@ -333,8 +334,8 @@ async function runTestSetCommand(models: AIModel[], options: TestOptions): Promi
       // Display results
       logger.box(
         `
-Model: ${chalk.bold(String(model))}
-Tests: ${String(results.total)} (${String(results.passed)} passed, ${String(results.failed)} failed)
+Model: ${chalk.bold(model)}
+Tests: ${results.total.toString()} (${results.passed.toString()} passed, ${results.failed.toString()} failed)
 Accuracy: ${(results.accuracy * 100).toFixed(2)}%
 Precision: ${(results.precision * 100).toFixed(2)}%
 Recall: ${(results.recall * 100).toFixed(2)}%
@@ -399,9 +400,9 @@ Accuracy: ${(results.accuracy * 100).toFixed(2)}%
 /**
  * Run integration tests
  */
-async function runIntegrationTestsCommand(models: AIModel[], options: TestOptions): Promise<void> {
+function runIntegrationTestsCommand(_models: AIModel[], _options: TestOptions): void {
   logger.info(chalk.bold('Running integration tests'));
-  logger.info(`Models: ${models.join(', ')}`);
+  logger.info(`Models: ${_models.join(', ')}`);
 
   const spinner = logger.spinner('Running integration tests...');
 
@@ -437,7 +438,7 @@ async function runIntegrationTestsCommand(models: AIModel[], options: TestOption
     for (const [suite, result] of Object.entries(results)) {
       logger.info(`\n${chalk.bold(suite)}:`);
       logger.info(
-        `  Tests: ${result.total} | Passed: ${chalk.green(result.passed)} | Failed: ${chalk.red(result.failed)}`
+        `  Tests: ${result.total.toString()} | Passed: ${chalk.green(result.passed.toString())} | Failed: ${chalk.red(result.failed.toString())}`
       );
 
       totalTests += result.total;
@@ -450,9 +451,9 @@ async function runIntegrationTestsCommand(models: AIModel[], options: TestOption
       `
 Integration Test Summary:
 
-Total Tests: ${totalTests}
-Passed: ${chalk.green(totalPassed)}
-Failed: ${chalk.red(totalFailed)}
+Total Tests: ${totalTests.toString()}
+Passed: ${chalk.green(totalPassed.toString())}
+Failed: ${chalk.red(totalFailed.toString())}
 Success Rate: ${((totalPassed / totalTests) * 100).toFixed(1)}%
       `.trim(),
       'Integration Test Results'
@@ -478,10 +479,10 @@ async function runStressTestsCommand(models: AIModel[], options: TestOptions): P
   logger.info(chalk.bold('Running stress tests'));
   logger.info(`Models: ${models.join(', ')}`);
 
-  const volume = (options as unknown as { volume?: number }).volume || 100;
-  const concurrency = (options as unknown as { concurrency?: number }).concurrency || 10;
+  const volume = (options as unknown as { volume?: number }).volume ?? 100;
+  const concurrency = (options as unknown as { concurrency?: number }).concurrency ?? 10;
 
-  logger.info(`Volume: ${volume} operations | Concurrency: ${concurrency}`);
+  logger.info(`Volume: ${volume.toString()} operations | Concurrency: ${concurrency.toString()}`);
 
   const spinner = logger.spinner('Running stress tests...');
 
@@ -508,10 +509,10 @@ async function runStressTestsCommand(models: AIModel[], options: TestOptions): P
       `
 Stress Test Results:
 
-Volume: ${results.totalOperations} operations
-Concurrency: ${concurrency}
-Successful: ${chalk.green(results.successful)}
-Failed: ${chalk.red(results.failed)}
+Volume: ${results.totalOperations.toString()} operations
+Concurrency: ${concurrency.toString()}
+Successful: ${chalk.green(results.successful.toString())}
+Failed: ${chalk.red(results.failed.toString())}
 Error Rate: ${(results.errorRate * 100).toFixed(2)}%
 
 Performance:
@@ -542,7 +543,7 @@ async function runParameterOptimizationCommand(models: AIModel[], options: TestO
   logger.info(chalk.bold('Running parameter optimization'));
   logger.info(`Models: ${models.join(', ')}`);
 
-  const parameters = (options as unknown as { parameters?: string }).parameters || 'confidence,concurrency';
+  const parameters = (options as unknown as { parameters?: string }).parameters ?? 'confidence,concurrency';
   const paramList = parameters.split(',').map((p) => p.trim());
 
   logger.info(`Optimizing parameters: ${paramList.join(', ')}`);
@@ -603,7 +604,7 @@ async function runParameterOptimizationCommand(models: AIModel[], options: TestO
 
       result.tested.forEach((test) => {
         const isOptimal = test.value === result.optimal;
-        const valueStr = isOptimal ? chalk.green(`${test.value} ←`) : String(test.value);
+        const valueStr = isOptimal ? chalk.green(`${String(test.value)} ←`) : String(test.value);
         logger.info(`  ${valueStr}: score ${test.score.toFixed(3)}`);
       });
     }
@@ -613,7 +614,7 @@ async function runParameterOptimizationCommand(models: AIModel[], options: TestO
 Parameter Optimization Summary:
 
 ${Object.entries(optimizationResults)
-  .map(([param, result]) => `${param}: ${result.optimal}`)
+  .map(([param, result]) => `${param}: ${String(result.optimal)}`)
   .join('\n')}
 
 Recommendation: Update your configuration with these optimized values for better performance.
