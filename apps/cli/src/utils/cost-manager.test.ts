@@ -1,5 +1,4 @@
 import * as fsSync from 'node:fs';
-import * as fs from 'node:fs/promises';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,35 +12,41 @@ vi.mock('../../src/utils/config', () => ({
   },
 }));
 
-// Mock fs modules
-vi.mock('node:fs', () => ({
-  ensureDirSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  existsSync: vi.fn().mockReturnValue(true),
-  readFileSync: vi.fn().mockReturnValue(
-    JSON.stringify([
-      {
-        timestamp: Date.now() - 3600000,
-        model: 'gpt-4o',
-        tokens: 500,
-        cost: 0.01,
-        operation: 'classify',
-      },
-      {
-        timestamp: Date.now() - 1800000,
-        model: 'gpt-3.5-turbo',
-        tokens: 500,
-        cost: 0.001,
-        operation: 'tag',
-      },
-    ])
-  ),
-}));
+// Mock fs modules - need to mock the full namespace since cost-manager uses 'import * as fsSync'
+vi.mock('node:fs', () => {
+  const mockFsModule = {
+    mkdirSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    existsSync: vi.fn().mockReturnValue(false), // Return false so no initial data is loaded
+    readFileSync: vi.fn().mockReturnValue(
+      JSON.stringify([
+        {
+          timestamp: Date.now() - 3600000,
+          model: 'gpt-4o',
+          tokens: 500,
+          cost: 0.01,
+          operation: 'classify',
+        },
+        {
+          timestamp: Date.now() - 1800000,
+          model: 'gpt-3.5-turbo',
+          tokens: 500,
+          cost: 0.001,
+          operation: 'tag',
+        },
+      ])
+    ),
+  };
+  return {
+    default: mockFsModule,
+    ...mockFsModule,
+  };
+});
 
 vi.mock('node:fs/promises', () => ({
-  access: vi.fn(),
-  readFile: vi.fn(),
-  writeFile: vi.fn(),
+  access: vi.fn().mockRejectedValue(new Error('File not found')), // Reject so no async data is loaded
+  readFile: vi.fn().mockResolvedValue('[]'),
+  writeFile: vi.fn().mockResolvedValue(undefined),
   stat: vi.fn(),
   readdir: vi.fn(),
 }));
@@ -57,6 +62,8 @@ vi.mock('@magus-mark/logger', () => ({
 describe('Cost Manager Utility', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the usage data for each test to ensure clean state
+    costManager.resetUsageData();
   });
 
   it('should track token usage correctly', () => {
@@ -119,29 +126,25 @@ describe('Cost Manager Utility', () => {
     // Save usage data
     costManager.saveUsageData();
 
-    // Verify file operations
-    expect((fsSync as unknown as { ensureDirSync: unknown }).ensureDirSync).toBeDefined();
-    expect(fsSync.writeFileSync).toHaveBeenCalled();
+    // Verify file operations - use vi.mocked to access the mocked functions
+    expect(vi.mocked(fsSync.mkdirSync)).toHaveBeenCalled();
+    expect(vi.mocked(fsSync.writeFileSync)).toHaveBeenCalled();
   });
 
   it('should get usage history', () => {
+    // Track usage to populate history
+    costManager.trackUsage('gpt-4o', { input: 100, output: 50 }, 'classify');
+    costManager.trackUsage('gpt-3.5-turbo', { input: 200, output: 100 }, 'tag');
+
     // Get usage history for all time
     const history = costManager.getUsageHistory();
 
-    // Verify data
+    // Verify data includes our tracked usage
     expect(history.length).toBeGreaterThanOrEqual(2);
 
-    if (history.length >= 2) {
-      const first = history[0];
-      const second = history[1];
-
-      if (first && second) {
-        // Check that we have both models in the history (order may vary)
-        const models = [first.model, second.model];
-        expect(models).toContain('gpt-4o');
-        expect(models).toContain('gpt-3.5-turbo');
-      }
-    }
+    const models = history.map((h) => h.model);
+    expect(models).toContain('gpt-4o');
+    expect(models).toContain('gpt-3.5-turbo');
   });
 
   it('should estimate cost based on model and token count', () => {

@@ -2,7 +2,8 @@ import { vi } from 'vitest';
 
 import type { Notice as NoticeType } from 'obsidian';
 
-export class Notice implements Partial<NoticeType> {
+// Internal class for Notice instances
+class NoticeInternal implements Partial<NoticeType> {
   public message: string;
   public timeout?: number;
 
@@ -19,3 +20,8 @@ export class Notice implements Partial<NoticeType> {
     // Mock implementation
   });
 }
+
+// Export a spy function that creates Notice instances
+export const Notice = vi.fn((message: string, timeout?: number) => {
+  return new NoticeInternal(message, timeout);
+});

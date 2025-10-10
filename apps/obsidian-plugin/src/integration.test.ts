@@ -11,6 +11,13 @@ import { TaggingService } from './services/TaggingService';
 
 import type { PluginManifest, TFile, TFolder } from 'obsidian';
 
+// Helper for Base64 encoding matching KeyManager's encryptKey
+const encryptKey = (apiKey: string): string => {
+  const salt = 'magus-mark';
+  const input = salt + apiKey;
+  return Buffer.from(input).toString('base64');
+};
+
 // Create a proper test manifest
 const TEST_MANIFEST: PluginManifest = {
   id: 'test-magus-mark',
@@ -265,7 +272,7 @@ describe('Integration Tests', () => {
 
     it('should load and apply settings properly', async () => {
       const mockSettings = {
-        apiKey: 'saved-api-key',
+        apiKey: encryptKey('saved-api-key'),
         apiKeyStorage: 'local',
         defaultTagBehavior: 'replace',
         enableAutoSync: true,
