@@ -3,7 +3,7 @@
  * This offloads CPU-intensive operations from the main thread
  */
 
-import type { Edge } from '@xyflow/react';
+import type { Edge } from '@vue-flow/core';
 
 import type { DependencyNode } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
@@ -43,7 +43,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       width: (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth,
       height: (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight,
       layoutOptions: {
-        ...(node.data.parentId && { 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' }),
+        ...(node.data?.parentId && { 'elk.hierarchyHandling': 'INCLUDE_CHILDREN' }),
       },
     }));
 

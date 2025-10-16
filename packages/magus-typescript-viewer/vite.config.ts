@@ -1,6 +1,6 @@
 import path from 'path';
 
-import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
@@ -8,7 +8,7 @@ import type { UserConfigExport } from 'vite';
 
 const config: UserConfigExport = defineConfig({
   plugins: [
-    react(),
+    vue(),
     nodePolyfills({
       // include: ['path', 'fs', 'util', 'process', 'buffer', 'stream', 'crypto'],
       globals: {
@@ -39,30 +39,19 @@ const config: UserConfigExport = defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'mui-vendor': ['@mui/material', '@mui/icons-material'],
-          'flow-vendor': ['@xyflow/react', '@xyflow/system'],
+          'vue-vendor': ['vue', 'pinia'],
+          'flow-vendor': ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
         },
       },
     },
   },
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      '@xyflow/react',
-      '@xyflow/system',
-      '@mui/material',
-      '@mui/icons-material',
-      '@emotion/react',
-      '@emotion/styled',
-    ],
+    include: ['vue', 'pinia', '@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
   },
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['vue'],
     alias: {
-      react: path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      vue: path.resolve(__dirname, 'node_modules/vue'),
     },
   },
   define: {

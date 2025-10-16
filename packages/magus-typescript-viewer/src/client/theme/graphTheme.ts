@@ -1,6 +1,8 @@
-import type { CSSProperties } from 'react';
-
 import type { DependencyEdgeKind, DependencyKind } from '../components/DependencyGraph/types';
+
+interface CSSProperties {
+  [key: string]: string | number | undefined;
+}
 
 // Graph-specific type definitions
 export interface GraphTheme {
@@ -186,124 +188,6 @@ export function getEdgeStyle(type: DependencyEdgeKind): CSSProperties {
       return baseStyle;
   }
 }
-
-// Node Details Styles
-export const nodeDetailsStyles = {
-  container: {
-    bgcolor: 'background.paper',
-    p: 2,
-    borderRadius: 1,
-    boxShadow: 1,
-    color: 'text.primary',
-  },
-  title: {
-    m: 0,
-    mb: 1,
-    fontSize: '1.2rem',
-    fontWeight: 500,
-  },
-  typeLabel: {
-    m: 0,
-    mb: 1,
-    color: 'text.secondary',
-    fontSize: '0.875rem',
-  },
-  itemContainer: {
-    fontSize: '0.875rem',
-    mb: 0.5,
-  },
-  sectionContainer: {
-    fontSize: '0.875rem',
-    mt: 1,
-  },
-};
-
-// Graph Search Styles
-export const graphSearchStyles = {
-  container: {
-    display: 'flex',
-    gap: 1,
-    mb: 2,
-  },
-  input: {
-    p: 1,
-    borderRadius: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-    bgcolor: 'background.paper',
-    color: 'text.primary',
-    fontSize: '0.875rem',
-    '&:focus': {
-      outline: 'none',
-      borderColor: 'primary.main',
-    },
-  },
-  button: {
-    px: 2,
-    py: 1,
-    borderRadius: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-    bgcolor: 'background.paper',
-    color: 'text.primary',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    '&:hover': {
-      bgcolor: 'action.hover',
-    },
-  },
-};
-
-// Graph Controls Styles
-export const graphControlsStyles = {
-  button: {
-    p: 1,
-    bgcolor: 'background.paper',
-    color: 'text.primary',
-    border: '1px solid',
-    borderColor: 'divider',
-    borderRadius: 1,
-    cursor: 'pointer',
-    minWidth: 32,
-    '&:hover': {
-      bgcolor: 'action.hover',
-    },
-  },
-  filterPanel: {
-    p: 2,
-    borderRadius: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-    bgcolor: 'background.paper',
-  },
-  filterTitle: {
-    m: 0,
-    mb: 1,
-    color: 'text.primary',
-    fontSize: '1rem',
-  },
-  filterContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 0.5,
-  },
-  filterLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    color: 'text.primary',
-    fontSize: '0.875rem',
-  },
-  controlsContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  buttonGroup: {
-    display: 'flex',
-    gap: 1,
-  },
-};
 
 // Edge Color Helper
 export function getEdgeColor(type: DependencyEdgeKind): string {

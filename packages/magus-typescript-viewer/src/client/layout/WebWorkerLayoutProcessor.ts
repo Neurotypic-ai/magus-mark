@@ -5,7 +5,7 @@
 
 import { defaultLayoutConfig } from '../components/DependencyGraph/layout/config';
 
-import type { Edge } from '@xyflow/react';
+import type { Edge } from '@vue-flow/core';
 
 import type { DependencyNode } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
