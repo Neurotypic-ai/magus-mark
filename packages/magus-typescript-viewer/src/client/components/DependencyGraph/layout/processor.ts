@@ -1,5 +1,4 @@
 import dagre from '@dagrejs/dagre';
-import { getNodeDimensions } from '@xyflow/system';
 
 import { createLogger } from '../../../../shared/utils/logger';
 import { defaultLayoutConfig, mergeConfig } from './config';
@@ -7,6 +6,23 @@ import { LayoutError } from './errors';
 
 import type { DependencyGraph, DependencyNode } from '../types';
 import type { LayoutConfig } from './config';
+
+// Helper function to get node dimensions (replaces @xyflow/system's getNodeDimensions)
+function getNodeDimensions(node: DependencyNode): { width: number; height: number } {
+  // Check for measured dimensions first (may not exist in type but can be set at runtime)
+  const measured = (node as { measured?: { width?: number; height?: number } }).measured;
+  if (measured) {
+    return {
+      width: measured.width ?? (typeof node.width === 'number' ? node.width : 150),
+      height: measured.height ?? (typeof node.height === 'number' ? node.height : 50),
+    };
+  }
+  // Fall back to width/height properties
+  return {
+    width: typeof node.width === 'number' ? node.width : 150,
+    height: typeof node.height === 'number' ? node.height : 50,
+  };
+}
 
 const logger = createLogger('LayoutProcessor');
 
@@ -22,7 +38,7 @@ export class LayoutProcessor {
     groupNode: DependencyNode,
     childNodes: DependencyNode[]
   ): { width: number; height: number; x: number; y: number } {
-    const children = childNodes.filter((child) => child.data.parentId === groupNode.id);
+    const children = childNodes.filter((child) => child.data?.parentId === groupNode.id);
 
     if (!children.length) {
       return {
@@ -39,8 +55,9 @@ export class LayoutProcessor {
     let maxY = -Infinity;
 
     children.forEach((child) => {
-      const nodeWidth = child.measured?.width ?? this.config.theme?.nodes.minDimensions.width ?? 150;
-      const nodeHeight = child.measured?.height ?? this.config.theme?.nodes.minDimensions.height ?? 50;
+      const measured = (child as { measured?: { width?: number; height?: number } }).measured;
+      const nodeWidth = measured?.width ?? this.config.theme?.nodes.minDimensions.width ?? 150;
+      const nodeHeight = measured?.height ?? this.config.theme?.nodes.minDimensions.height ?? 50;
 
       minX = Math.min(minX, child.position.x);
       minY = Math.min(minY, child.position.y);
@@ -93,7 +110,7 @@ export class LayoutProcessor {
         const dimensions = getNodeDimensions(node);
         g.setNode(node.id, {
           ...dimensions,
-          ...(node.data.parentId ? { parent: node.data.parentId } : {}),
+          ...(node.data?.parentId ? { parent: node.data.parentId } : {}),
         });
       });
 
@@ -129,7 +146,7 @@ export class LayoutProcessor {
         }
 
         // For package nodes (no parentId), make them prominent
-        if (!node.data.parentId) {
+        if (!node.data?.parentId) {
           return {
             ...node,
             position: {
@@ -179,7 +196,7 @@ export class LayoutProcessor {
         id: node.id,
         type: node.type,
         data: {
-          parentId: node.data.parentId,
+          parentId: node.data?.parentId,
         },
       })),
       edges: graph.edges.map((edge) => ({
