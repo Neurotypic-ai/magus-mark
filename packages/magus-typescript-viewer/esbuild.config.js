@@ -26,13 +26,17 @@ const common = {
     'fsevents',
   ],
   logLevel: 'info',
-  loader: {
-    '.sql': 'text',
-  },
 };
 
 async function build() {
   await fs.promises.mkdir(path.join(__dirname, 'dist', 'bin'), { recursive: true });
+  await fs.promises.mkdir(path.join(__dirname, 'dist', 'server', 'db', 'schema'), { recursive: true });
+
+  // Copy schema.sql to dist folder
+  await fs.promises.copyFile(
+    path.join(__dirname, 'src/server/db/schema/schema.sql'),
+    path.join(__dirname, 'dist/server/db/schema/schema.sql')
+  );
 
   // CLI bin - bundle as CJS for best compatibility with shebang
   await esbuild.build({

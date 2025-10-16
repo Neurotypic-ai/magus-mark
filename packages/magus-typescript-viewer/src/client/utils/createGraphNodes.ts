@@ -5,7 +5,10 @@ import { getNodeStyle } from '../theme/graphTheme';
 import type { DependencyKind, DependencyNode, DependencyPackageGraph } from '../components/DependencyGraph/types';
 
 /**
- * Creates empty items that match the expected interface for getMembersAsProperties
+ * Creates graph nodes from dependency package graph data.
+ * Generates nodes for packages, modules, classes, and interfaces with proper hierarchy.
+ * @param data The dependency package graph data from the API
+ * @returns Array of dependency nodes ready for ReactFlow rendering
  */
 // function createCompatibleTypeInput(item: ClassStructure | InterfaceStructure) {
 //   return {

@@ -42,7 +42,10 @@ import type {
 
 const assemblerLogger = createLogger('GraphDataAssembler');
 
-// Cache for memoizing the graph data
+/**
+ * Singleton cache for graph data with time-based expiration.
+ * Prevents redundant API calls for the same graph data.
+ */
 class GraphDataCache {
   private static instance: GraphDataCache | null = null;
   private cache = new Map<string, { data: DependencyPackageGraph; timestamp: number }>();
@@ -79,10 +82,18 @@ class GraphDataCache {
   }
 }
 
+/**
+ * Assembles graph visualization data from API endpoints.
+ * Handles data fetching, transformation, and caching for optimal performance.
+ */
 export class GraphDataAssembler {
   private readonly baseUrl: string;
   private readonly cache: GraphDataCache;
 
+  /**
+   * Creates a new GraphDataAssembler instance.
+   * @param baseUrl Base URL for the API server (default: http://localhost:4001)
+   */
   constructor(baseUrl = 'http://localhost:4001') {
     this.baseUrl = baseUrl;
     this.cache = GraphDataCache.getInstance();

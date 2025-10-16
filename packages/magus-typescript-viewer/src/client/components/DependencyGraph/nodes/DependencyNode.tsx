@@ -132,14 +132,6 @@ const DependencyNode: NamedExoticComponent<DependencyProps> = memo(function Depe
   const nodeType = type;
   const isSelected = !!selected;
 
-  // Safe debug logging with type checks
-  console.info('DependencyNode data:', {
-    id,
-    type: nodeType,
-    properties: nodeData.properties ?? [],
-    methods: nodeData.methods ?? [],
-  });
-
   // Handler for node resizing
   const updateNodeDimensions = useCallback(
     (_: unknown, { width, height }: { width: number; height: number }) => {

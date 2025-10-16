@@ -1,6 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
+import { createLogger } from '../../shared/utils/logger';
+
 import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/types';
+
+const contextLogger = createLogger('GraphContext');
 
 /**
  * Graph state context interface
@@ -53,8 +57,12 @@ export const GraphProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   const [selectedNode, setSelectedNode] = useState<DependencyNode | null>(null);
   const [cacheKey, setCacheKey] = useState<string | null>(null);
 
-  // Load cached data from localStorage on initial render
+  // Load cached data from localStorage on initial mount
+  const [initialCacheLoaded, setInitialCacheLoaded] = useState(false);
+
   useEffect(() => {
+    if (initialCacheLoaded) return;
+
     try {
       const cachedNodesJson = localStorage.getItem(NODES_CACHE_KEY);
       const cachedEdgesJson = localStorage.getItem(EDGES_CACHE_KEY);
@@ -68,10 +76,12 @@ export const GraphProvider: React.FC<React.PropsWithChildren> = ({ children }) =
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      console.info('Failed to load cached graph data:', error);
+      contextLogger.debug('Failed to load cached graph data:', error);
       // Continue with empty state if cache load fails
+    } finally {
+      setInitialCacheLoaded(true);
     }
-  }, []);
+  }, [initialCacheLoaded]);
 
   // Update cache when nodes or edges change and we have a cache key
   useEffect(() => {
@@ -87,7 +97,7 @@ export const GraphProvider: React.FC<React.PropsWithChildren> = ({ children }) =
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      console.info('Failed to cache graph data:', error);
+      contextLogger.debug('Failed to cache graph data:', error);
     }
   }, [nodes, edges, cacheKey]);
 
@@ -102,7 +112,7 @@ export const GraphProvider: React.FC<React.PropsWithChildren> = ({ children }) =
       setCacheKey(null);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      console.info('Failed to clear graph cache:', error);
+      contextLogger.error('Failed to clear graph cache:', error);
     }
   }, []);
 

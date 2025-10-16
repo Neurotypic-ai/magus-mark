@@ -109,10 +109,7 @@ export async function createDemoDatabase(): Promise<Database> {
 
     return db;
   } catch (error) {
-    console.error('Error seeding demo database:', error);
-    if (error instanceof Error) {
-      throw new Error(`Error seeding demo database: ${error.message}`);
-    }
-    throw new Error('Error seeding demo database');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Error seeding demo database: ${errorMessage}`);
   }
 }

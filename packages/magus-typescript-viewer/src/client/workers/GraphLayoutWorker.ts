@@ -93,11 +93,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       payload: { nodes: newNodes, edges: validEdges },
     });
   } catch (error) {
-    console.error('ELK layout error:', error);
-    // Fallback: return nodes unchanged
+    // Log error and fallback: return nodes unchanged
     self.postMessage({
-      type: 'layout-complete',
-      payload: { nodes, edges },
+      type: 'layout-error',
+      payload: { error: error instanceof Error ? error.message : String(error) },
     });
   }
 };

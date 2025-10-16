@@ -1,6 +1,12 @@
 {
   "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
   "compilerOptions": {
-    "types": ["node", "vite/client"]
-  }
+    "types": ["node", "vite/client"],
+    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "build", "**/node_modules/**"]
 }

@@ -1,7 +1,9 @@
 import { v5 as uuidv5 } from 'uuid';
 
 /**
- * UUID v5 namespaces for each entity type in the typescript viewer project
+ * UUID v5 namespaces for each entity type in the typescript viewer project.
+ * These namespaces ensure that UUIDs are deterministic and unique per entity type.
+ * Changing these values will break UUID consistency across analyses.
  */
 const NAMESPACES = {
   class: '4e6f2fef-86d8-4313-92ae-11fc409b68b4',

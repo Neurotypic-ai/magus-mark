@@ -29,7 +29,6 @@ program
     const spinner = ora('Analyzing TypeScript project...').start();
 
     try {
-      console.log('options.output', options.output);
       // Initialize database and repositories
       const adapter = new DuckDBAdapter(options.output, { allowWrite: true });
       await adapter.init(); // Initialize the adapter first

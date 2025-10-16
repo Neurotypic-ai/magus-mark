@@ -1,111 +1,185 @@
-# Project Dependency Graph Visualization Tool
+# TypeScript Viewer - Dependency Graph Visualization Tool
 
 ## Overview
 
-This is a TypeScript-based tool that parses a codebase (focused on TypeScript/JavaScript) to build and visualize a
-dependency graph. It tracks dependencies, symbols, and structural changes over time using a UUID-based linking system.
-The tool uses DuckDB for persistent storage, and React Flow for interactive visualizations. **The layout of the graph is
-powered by ELKJS to provide a clear, hierarchical view of package, module, and code entity relationships.** Additional
-features include automated AST transformations with jscodeshift, a command-line interface built with commander, and
-styling provided by Tailwind CSS and Material-UI.
+TypeScript Viewer is a comprehensive tool for analyzing and visualizing TypeScript/JavaScript codebases. It parses
+source code using AST analysis, stores the structural information in DuckDB, and provides an interactive React-based
+visualization of the dependency graph.
 
-## Installation
+**Key Features**:
+
+- 🔍 **Deep AST Analysis**: Extracts classes, interfaces, methods, properties, and relationships
+- 💾 **Persistent Storage**: DuckDB with UUID-based entity linking
+- 🎨 **Interactive Visualization**: React Flow with ELK.js hierarchical layout
+- ⚡ **Performance**: Web Workers for non-blocking layout, caching at multiple layers
+- 🧪 **Deterministic**: UUID v5 for stable entity IDs across re-analysis
+
+## Quick Start
 
 ### Prerequisites
 
-- Node.js (>=14.x)
-- pnpm (recommended for monorepo management)
+- Node.js >= 18
+- pnpm >= 8.0
 
-### Steps
+### Installation
 
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/yourusername/your-repo.git
-   cd your-repo
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   pnpm install
-   ```
-
-3. Build the project:
-
-   ```bash
-   pnpm run build
-   ```
-
-## Configuration
-
-- **TypeScript:** Configured with strict settings. Refer to `tsconfig.json` for details.
-- **Vite:** Used for a lightning-fast development server with native ESM support. Configuration is in `vite.config.ts`.
-- **Tailwind CSS:** Used for main app styling. Customize settings in `tailwind.config.js`.
-- **DuckDB:** Integrated via Node.js API for data persistence. Schema definitions and CRUD operations are in
-  `src/db/duckdb.ts`.
-- **Memgraph:** Used for graph operations via CSV export and LOAD CSV. Configuration is in `src/db/memgraph.ts`.
-
-## Usage Examples
-
-### Analyzing a TypeScript Project
-
-To analyze a project:
+This package is part of the magus-mark monorepo. From the repository root:
 
 ```bash
-pnpm run analyze -- --project /path/to/your/project
+# Install dependencies
+pnpm install
+
+# Build the TypeScript viewer
+pnpm --filter magus-typescript-viewer build
 ```
 
-### Generating Visualization
+## Architecture
 
-To generate a dependency graph visualization:
+The application consists of several layers:
+
+- **Parser Layer** (`src/server/parsers/`): AST parsing with jscodeshift
+- **Data Layer** (`src/server/db/`): DuckDB storage with repository pattern
+- **API Layer** (`src/server.ts`): REST API for data access
+- **Visualization Layer** (`src/client/`): React + ReactFlow + ELK.js
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture documentation.
+
+## Usage
+
+### Analyze a TypeScript Project
+
+Parse a TypeScript project and store its structure in a database:
 
 ```bash
-pnpm run visualize -- --project /path/to/your/project
+cd packages/magus-typescript-viewer
+pnpm run analyze /path/to/your/typescript/project
 ```
 
-### Starting the Visualization Server
+This creates a `typescript-viewer.duckdb` file with all analyzed data.
 
-Launch the server to view the interactive graph:
+### Visualize the Dependency Graph
+
+Start both the API server and the visualization UI:
 
 ```bash
-pnpm run start
+pnpm run dev
 ```
 
-Then, open your browser and navigate to: [http://localhost:3000](http://localhost:3000)
+Then open [http://localhost:4000](http://localhost:4000) in your browser.
 
-## Common Workflows
+**Development Mode**:
 
-1. **Development & Testing:**
+- API server runs on port 4001
+- Vite dev server runs on port 4000
+- Hot module replacement enabled
+- Automatic reconnection on server restart
 
-   - Use Vite for hot module replacement during development.
-   - Run unit and integration tests with Jest:
+**Production Mode**:
 
-     ```bash
-     pnpm run test
-     ```
+```bash
+# Build first
+pnpm run build
 
-2. **Refactoring:**
+# Then serve
+pnpm run serve
+```
 
-   - Utilize jscodeshift for codemods to ensure consistent import/export patterns.
+## Features
 
-3. **Database Management:**
+### Interactive Graph Visualization
 
-   - DuckDB stores the dependency graph persistently with native UUID support.
-   - Export data to CSV if you need to migrate to Memgraph for in-memory graph processing.
+- **Hierarchical Layout**: ELK.js layered algorithm for clear structure
+- **Node Types**: Packages, modules, classes, interfaces
+- **Relationship Types**: Dependencies, imports, inheritance, implementations
+- **Search & Filter**: Find nodes and filter by relationship type
+- **Keyboard Navigation**: Arrow keys to traverse connected nodes
+- **Zoom & Pan**: Smooth navigation with mouse/trackpad
+- **Details Panel**: View methods, properties, and relationships
 
-4. **CLI Operations:**
-   - Access various commands (analyze, visualize, export) via the CLI powered by commander, as defined in
-     `src/cli/index.ts`.
+### Analysis Capabilities
 
-## Additional Information
+- **Class Analysis**: Methods, properties, inheritance, implementations
+- **Interface Analysis**: Method signatures, property types, extensions
+- **Import Tracking**: Cross-module and cross-package dependencies
+- **Deterministic IDs**: UUID v5 for stable entity identification
+- **Incremental Updates**: Re-analyze only changed files (planned)
 
-- For more details on the implementation, refer to the API documentation in `context/types.md` and the system overview
-  in `context/overview.md`.
-- The project follows a monorepo structure managed by pnpm, and further documentation is available in the individual
-  files.
+### Performance Optimizations
 
----
+- **Web Workers**: Non-blocking graph layout calculations
+- **Multi-layer Caching**: API responses, layout results, LocalStorage
+- **Code Splitting**: Separate vendor chunks for React, MUI, ReactFlow
+- **Lazy Loading**: On-demand component loading
 
-_This project is maintained with a focus on precision, efficiency, and modularity. For further customization and
-troubleshooting, please consult the respective documentation links provided in the project plan._
+## Technology Stack
+
+### Backend
+
+- **DuckDB**: Embedded analytical database
+- **jscodeshift**: TypeScript/JavaScript AST parsing
+- **Commander**: CLI framework
+- **Node.js HTTP**: Native HTTP server
+
+### Frontend
+
+- **React 19**: UI framework
+- **ReactFlow**: Graph visualization library
+- **Material-UI**: Component library
+- **ELK.js**: Graph layout algorithm
+- **Vite**: Build tool and dev server
+
+### Development
+
+- **TypeScript 5.9**: Type safety
+- **Vitest**: Testing framework
+- **ESLint**: Code linting
+- **Prettier**: Code formatting
+
+## Database Schema
+
+The schema uses UUID-based entities with the following structure:
+
+```
+packages (id, name, version, path)
+  ├── dependencies (source_id, target_id, type)
+  ├── modules (id, package_id, name, source, ...)
+      ├── classes (id, module_id, name, extends_id)
+      │   ├── methods (id, parent_id, parent_type, ...)
+      │   ├── properties (id, parent_id, parent_type, ...)
+      │   └── class_implements (class_id, interface_id)
+      ├── interfaces (id, module_id, name)
+          ├── methods (id, parent_id, parent_type, ...)
+          ├── properties (id, parent_id, parent_type, ...)
+          └── interface_extends (interface_id, extended_id)
+```
+
+## Testing
+
+Run tests with Vitest:
+
+```bash
+# Run all tests
+pnpm test
+
+# Watch mode
+pnpm test -- --watch
+
+# Coverage
+pnpm test -- --coverage
+```
+
+## Contributing
+
+This package follows the magus-mark project conventions:
+
+- TypeScript with strict mode
+- Repository pattern for data access
+- Logger for all output (except CLI user messages)
+- Vitest for testing
+- Co-located test files
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical documentation.
+
+## License
+
+ISC

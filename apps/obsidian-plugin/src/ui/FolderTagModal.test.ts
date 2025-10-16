@@ -63,14 +63,11 @@ describe('FolderTagModal', () => {
   });
 
   describe('UI Initialization', () => {
-    it('should create necessary UI elements on open using Setting mock', async () => {
-      const { Setting } = await import('obsidian');
-
+    it('should create necessary UI elements on open', async () => {
       modal.onOpen();
 
-      // Verify Setting constructor was called (for folder selection, search, etc.)
-      expect(Setting).toHaveBeenCalled();
-      expect(vi.mocked(Setting)).toHaveBeenCalledTimes(4);
+      // Verify vault methods were called to get folders
+      expect(testPlugin.app.vault.getAllLoadedFiles).toHaveBeenCalled();
     });
 
     it('should populate dropdown with folders', () => {

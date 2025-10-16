@@ -4,9 +4,11 @@ import { getEdgeStyle } from '../theme/graphTheme';
 import type { DependencyEdgeKind, DependencyPackageGraph, GraphEdge } from '../components/DependencyGraph/types';
 
 /**
- * Creates graph edges from the provided dependency package graph data
- * @param data The dependency package graph data
- * @returns Array of edges for the dependency graph
+ * Creates graph edges from dependency package graph data.
+ * Generates edges for dependencies, imports, inheritance, and implementations.
+ * Each edge includes appropriate styling based on relationship type.
+ * @param data The dependency package graph data from the API
+ * @returns Array of styled edges ready for ReactFlow rendering
  */
 export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   // Create edges from package dependencies

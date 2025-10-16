@@ -1,13 +1,32 @@
 import type { Module } from '../../shared/types/Module';
 import type { Package } from '../../shared/types/Package';
 
+/**
+ * HTTP client for the TypeScript Viewer API.
+ * Provides type-safe methods for fetching packages and modules.
+ */
 export class ApiClient {
+  /**
+   * Creates a new ApiClient instance.
+   * @param baseUrl Base URL for the API server
+   */
   constructor(private baseUrl: string) {}
 
+  /**
+   * Fetches all packages from the API.
+   * @returns Promise resolving to an array of packages
+   * @throws Error if the HTTP request fails or response is invalid
+   */
   async getPackages(): Promise<Package[]> {
     return this.get<Package>('/packages');
   }
 
+  /**
+   * Fetches all modules for a specific package.
+   * @param packageId The UUID of the package
+   * @returns Promise resolving to an array of modules
+   * @throws Error if the HTTP request fails or response is invalid
+   */
   async getModules(packageId: string): Promise<Module[]> {
     return this.get<Module>('/modules', { packageId });
   }

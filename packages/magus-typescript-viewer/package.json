@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.5",
-    "@duckdb/node-api": "1.4.1-r.1",
+    "@duckdb/node-api": "1.4.1-r.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
@@ -33,12 +33,12 @@
   "devDependencies": {
     "@types/dagre": "^0.7.53",
     "@types/jscodeshift": "^17.3.0",
-    "@types/node": "^24.7.1",
+    "@types/node": "^24.8.0",
     "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.1",
+    "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.0.4",
     "nodemon": "^3.1.10",
-    "vite": "^7.1.9",
+    "vite": "^7.1.10",
     "vite-bundle-analyzer": "^1.2.3",
     "vite-plugin-node-polyfills": "^0.24.0"
   },

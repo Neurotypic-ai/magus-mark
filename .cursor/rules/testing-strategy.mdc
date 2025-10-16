@@ -6,7 +6,8 @@ alwaysApply: false
 
 # Testing Strategy
 
-The project implements a comprehensive testing strategy primarily using Vitest, with Mocha for VS Code extension integration tests:
+The project implements a comprehensive testing strategy primarily using Vitest, with Mocha for VS Code extension
+integration tests:
 
 ## Test Organization
 
@@ -73,12 +74,9 @@ Most packages use Vitest with a workspace configuration:
 
 ```javascript
 // vitest.workspace.js
-import { defineWorkspace } from 'vitest/config'
+import { defineWorkspace } from 'vitest/config';
 
-export default defineWorkspace([
-  "./packages/*/vitest.config.ts",
-  "./apps/*/vitest.config.ts",
-])
+export default defineWorkspace(['./packages/*/vitest.config.ts', './apps/*/vitest.config.ts']);
 ```
 
 Each package and app has its own `vitest.config.ts` extending centralized base configuration:
@@ -86,15 +84,19 @@ Each package and app has its own `vitest.config.ts` extending centralized base c
 ```typescript
 // apps/cli/vitest.config.ts
 import { defineConfig, mergeConfig } from 'vitest/config';
+
 import baseConfig from '../../config/vitest/base';
 
-export default mergeConfig(baseConfig, defineConfig({
-  test: {
-    // Package-specific overrides
-    environment: 'node',
-    include: ['**/*.{test,spec}.{ts,tsx}']
-  }
-}));
+export default mergeConfig(
+  baseConfig,
+  defineConfig({
+    test: {
+      // Package-specific overrides
+      environment: 'node',
+      include: ['**/*.{test,spec}.{ts,tsx}'],
+    },
+  })
+);
 ```
 
 ### Mocha (VS Code Integration Tests)
@@ -107,11 +109,12 @@ module.exports = {
   require: 'tsx',
   spec: ['src/**/*.test.ts'],
   timeout: 60000,
-  ui: 'bdd'
+  ui: 'bdd',
 };
 ```
 
-This configuration is used for VS Code integration tests. A migration is in progress to move VS Code unit tests from Vitest to Mocha for consistency.
+This configuration is used for VS Code integration tests. A migration is in progress to move VS Code unit tests from
+Vitest to Mocha for consistency.
 
 ## Unit Tests
 
@@ -152,7 +155,7 @@ vi.mock('fs-extra', () => ({
   access: vi.fn(),
   readdir: vi.fn(),
   stat: vi.fn(),
-  unlink: vi.fn()
+  unlink: vi.fn(),
 }));
 
 // Mock a custom module
@@ -162,8 +165,8 @@ vi.mock('../logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    configure: vi.fn()
-  }
+    configure: vi.fn(),
+  },
 }));
 ```
 
@@ -172,12 +175,11 @@ vi.mock('../logger', () => ({
 For VS Code tests using Mocha, we use Sinon for mocking:
 
 ```typescript
-import * as sinon from 'sinon';
 import * as fs from 'fs-extra';
+import * as sinon from 'sinon';
 
 // Create stubs
-const readFileStub = sinon.stub(fs, 'readFile')
-  .resolves('file contents');
+const readFileStub = sinon.stub(fs, 'readFile').resolves('file contents');
 
 // Reset stubs after test
 afterEach(() => {
@@ -208,12 +210,12 @@ This approach encourages reuse and consistency in mocking.
 We use dependency injection and the shared testing package for consistent mocks:
 
 ```typescript
-import { createMockTagSet, createMockOpenAIConfig } from '@obsidian-magic/testing';
+import { createMockOpenAIConfig, createMockTagSet } from '@obsidian-magic/testing';
 
 // Create consistent mock data
 const mockTagSet = createMockTagSet({
   year: '2024',
-  conversation_type: 'theoretical'
+  conversation_type: 'theoretical',
 });
 
 // Create service with mocked dependencies
@@ -293,4 +295,4 @@ To run tests:
 - Single package: `nx test <package-name>` (e.g., `nx test core`)
 - VS Code tests: `nx test vscode` (runs both Mocha integration tests and current Vitest unit tests)
 - Watch mode: `nx test <package-name> --watch`
-- Coverage: `nx test <package-name> --coverage` 
+- Coverage: `nx test <package-name> --coverage`

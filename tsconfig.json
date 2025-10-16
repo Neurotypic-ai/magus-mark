@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/cli"
+    },
+    {
+      "path": "./apps/obsidian-plugin"
+    },
+    {
+      "path": "./apps/vscode"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/magus-typescript-viewer"
+    },
+    {
+      "path": "./documentation"
+    }
+  ]
+}

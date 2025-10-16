@@ -1,6 +1,7 @@
 /**
- * WebWorkerLayoutProcessor - A wrapper for the graph layout web worker
- * Handles communication with the web worker for offloading CPU-intensive layout calculations
+ * WebWorkerLayoutProcessor - Manages web worker for graph layout calculations.
+ * Offloads CPU-intensive ELK.js layout processing to a web worker to prevent UI blocking.
+ * Automatically falls back to synchronous processing if web workers are unsupported.
  */
 
 import { defaultLayoutConfig } from '../components/DependencyGraph/layout/config';
@@ -72,8 +73,8 @@ export class WebWorkerLayoutProcessor {
   private initWorker(): void {
     try {
       this.worker = new Worker(new URL('../workers/GraphLayoutWorker.ts', import.meta.url), { type: 'module' });
-    } catch (error) {
-      console.error('Failed to initialize layout worker:', error);
+    } catch (_error) {
+      // Worker initialization failed, will fall back to synchronous processing
       this.workerSupported = false;
     }
   }
@@ -113,10 +114,9 @@ export class WebWorkerLayoutProcessor {
       };
 
       // Set up error handler
-      const onError = (error: ErrorEvent) => {
+      const onError = (_error: ErrorEvent) => {
         this.worker?.removeEventListener('error', onError);
-        console.error('Layout worker error:', error);
-        // Fall back to synchronous processing
+        // Fall back to synchronous processing on worker error
         this.fallbackProcessLayout(nodes, edges).then(resolve).catch(reject);
       };
 

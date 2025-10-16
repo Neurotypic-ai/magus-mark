@@ -35,9 +35,20 @@ interface LockfileEntry {
   resolved: string;
 }
 
+/**
+ * Parser for analyzing entire TypeScript packages.
+ * Traverses directory structure, parses all TypeScript files,
+ * and extracts package-level dependencies.
+ */
 export class PackageParser {
   private readonly logger = createLogger('PackageParser');
 
+  /**
+   * Creates a new PackageParser instance.
+   * @param packagePath Absolute path to the package directory
+   * @param packageName Name of the package
+   * @param packageVersion Version of the package
+   */
   constructor(
     private readonly packagePath: string,
     private readonly packageName: string,

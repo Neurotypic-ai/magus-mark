@@ -37,7 +37,7 @@ export class ConsoleLogger implements Logger {
   }
 
   private formatMessage(message: string): string {
-    return `[${this.prefix ?? 'Logger'}] ${String(message)}`;
+    return `[${this.prefix ?? 'Logger'}] ${message}`;
   }
 
   private getCallerLocation(): string {
@@ -47,7 +47,7 @@ export class ConsoleLogger implements Logger {
       const stack = (e as Error).stack;
       if (!stack) return '';
       const lines = stack.split('\n');
-      return String(lines[3] ?? '');
+      return lines[3] ?? '';
     }
   }
 

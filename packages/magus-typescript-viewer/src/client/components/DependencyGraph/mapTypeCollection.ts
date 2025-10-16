@@ -4,13 +4,6 @@ import type { TypeCollection } from '../../../shared/types/TypeCollection';
  * Generic function to map over a TypeCollection regardless of its underlying type
  */
 export function mapTypeCollection<T, R>(collection: TypeCollection<T>, mapper: (item: T) => R): R[] {
-  console.log('mapTypeCollection input:', {
-    isMap: collection instanceof Map,
-    isArray: Array.isArray(collection),
-    isObject: typeof collection === 'object',
-    collection,
-  });
-
   let result: R[];
   if (collection instanceof Map) {
     result = Array.from(collection.values()).map(mapper);
@@ -20,7 +13,6 @@ export function mapTypeCollection<T, R>(collection: TypeCollection<T>, mapper: (
     result = Object.values(collection).map(mapper);
   }
 
-  console.log('mapTypeCollection output:', result);
   return result;
 }
 

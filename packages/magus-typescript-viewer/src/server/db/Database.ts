@@ -1,14 +1,26 @@
 import * as fs from 'fs/promises';
 import { join } from 'path';
 
+import { createLogger } from '../../shared/utils/logger';
 import { loadSchema } from './schema/schema-loader';
 
 import type { IDatabaseAdapter } from './adapter/IDatabaseAdapter';
 
+const dbLogger = createLogger('Database');
+
+/**
+ * Database management class that handles schema initialization and operations.
+ * Wraps an IDatabaseAdapter and provides high-level database operations.
+ */
 export class Database {
   private adapter: IDatabaseAdapter;
   private dbPath: string;
 
+  /**
+   * Creates a new Database instance.
+   * @param adapter The database adapter to use for operations
+   * @param dbPath Path to the database file, or ':memory:' for in-memory database
+   */
   constructor(adapter: IDatabaseAdapter, dbPath = ':memory:') {
     this.adapter = adapter;
     this.dbPath = dbPath;
@@ -45,7 +57,7 @@ export class Database {
         // Check if table exists by selecting 1 row
         await this.adapter.query(`SELECT 1 FROM ${table} LIMIT 1`);
       } catch {
-        console.log(`Schema verification missing table: ${table}`);
+        dbLogger.debug(`Schema verification missing table: ${table}`);
         return false;
       }
     }
@@ -54,22 +66,22 @@ export class Database {
   }
 
   public async initializeDatabase(reset = false): Promise<void> {
-    console.log('this.dbPath', this.dbPath);
+    dbLogger.debug('Database path:', this.dbPath);
     if (this.dbPath === ':memory:') {
-      console.log('initializing in-memory database');
+      dbLogger.debug('Initializing in-memory database');
       await this.adapter.init();
       await this.executeSchema(loadSchema());
       return;
     }
 
-    console.log('initializing file-based database');
+    dbLogger.debug('Initializing file-based database');
     const path = join(process.cwd(), this.dbPath);
-    console.log('Absolute path being checked:', path);
+    dbLogger.debug('Absolute path being checked:', path);
 
     let exists = false;
     try {
       const stats = await fs.stat(path);
-      console.log('File stats:', {
+      dbLogger.debug('File stats:', {
         size: stats.size,
         isFile: stats.isFile(),
         created: stats.birthtime,
@@ -77,12 +89,12 @@ export class Database {
       });
       exists = true;
     } catch (error) {
-      console.log('Error checking file:', error);
+      dbLogger.debug('Error checking file:', error);
       exists = false;
     }
 
-    console.log('exists:', exists);
-    console.log('reset', reset);
+    dbLogger.debug('File exists:', exists);
+    dbLogger.debug('Reset flag:', reset);
 
     // Initialize the adapter (this will create a new database)
     await this.adapter.init();
@@ -96,7 +108,7 @@ export class Database {
     // If the file doesn't exist, or if reset is true, or if schema verification fails,
     // we need to execute the schema
     if (!exists || reset || !(await this.verifySchema())) {
-      console.log('Loading and executing schema...');
+      dbLogger.info('Loading and executing schema...');
       await this.executeSchema(loadSchema());
     }
   }

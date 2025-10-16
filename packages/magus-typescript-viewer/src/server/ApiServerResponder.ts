@@ -10,6 +10,10 @@ import { PackageRepository } from './db/repositories/PackageRepository';
 
 import type { Package } from '../shared/types/Package';
 
+/**
+ * API server responder that handles HTTP requests and database queries.
+ * Manages database initialization and provides enriched entity data.
+ */
 export class ApiServerResponder {
   private readonly database: Database;
   private readonly dbAdapter: DuckDBAdapter;
@@ -20,6 +24,9 @@ export class ApiServerResponder {
   private readonly moduleRepository: ModuleRepository;
   private readonly packageRepository: PackageRepository;
 
+  /**
+   * Creates a new ApiServerResponder with configured database and repositories.
+   */
   constructor() {
     this.dbAdapter = new DuckDBAdapter('typescript-viewer.duckdb', { allowWrite: true });
     this.database = new Database(this.dbAdapter, 'typescript-viewer.duckdb');
@@ -32,6 +39,10 @@ export class ApiServerResponder {
     this.packageRepository = new PackageRepository(this.dbAdapter);
   }
 
+  /**
+   * Initializes the database and seeds demo data if empty.
+   * @throws RepositoryError if initialization fails
+   */
   async initialize(): Promise<void> {
     try {
       await this.database.initializeDatabase(false);
@@ -86,6 +97,10 @@ export class ApiServerResponder {
     }
   }
 
+  /**
+   * Retrieves all packages from the database.
+   * @returns Promise resolving to an array of packages, or empty array on error
+   */
   async getPackages(): Promise<Package[]> {
     try {
       return await this.packageRepository.retrieve();
@@ -95,6 +110,12 @@ export class ApiServerResponder {
     }
   }
 
+  /**
+   * Retrieves all modules for a specific package with enriched class and interface data.
+   * Each module includes its classes and interfaces with their methods and properties.
+   * @param packageId The UUID of the package
+   * @returns Promise resolving to enriched modules, or empty array on error
+   */
   async getModules(packageId: string): Promise<Module[]> {
     try {
       const modules = await this.moduleRepository.retrieveAll(packageId);

@@ -1,10 +1,20 @@
-import { promises as fs } from 'fs';
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DaemonService } from './DaemonService';
 
 import type { DaemonConfig } from './DaemonService';
+
+// Use vi.hoisted to create mocks that can be referenced in vi.mock factories
+const { watchMock, writeFileMock, unlinkMock, mkdirMock, accessMock, readFileMock } = vi.hoisted(() => {
+  return {
+    watchMock: vi.fn(() => ({ close: vi.fn() })),
+    writeFileMock: vi.fn().mockResolvedValue(undefined),
+    unlinkMock: vi.fn().mockResolvedValue(undefined),
+    mkdirMock: vi.fn().mockResolvedValue(undefined),
+    accessMock: vi.fn().mockResolvedValue(undefined),
+    readFileMock: vi.fn().mockResolvedValue(String(process.pid)),
+  };
+});
 
 vi.mock('@magus-mark/core/utils/Logger', () => ({
   Logger: {
@@ -17,18 +27,31 @@ vi.mock('@magus-mark/core/utils/Logger', () => ({
   },
 }));
 
-vi.mock('fs', () => ({
-  promises: {
-    writeFile: vi.fn(),
-    unlink: vi.fn(),
-    mkdir: vi.fn(),
-    watch: vi.fn(() => ({ close: vi.fn() })),
-  },
-}));
+// Mock node:fs with both default and named exports for namespace imports
+vi.mock('node:fs', () => {
+  const mockFsModule = {
+    watch: watchMock,
+  };
+  return {
+    default: mockFsModule,
+    ...mockFsModule,
+  };
+});
 
-const writeFileMock = vi.mocked(fs.writeFile);
-const unlinkMock = vi.mocked(fs.unlink);
-const watchMock = vi.mocked(fs.watch);
+// Mock node:fs/promises with both default and named exports for namespace imports
+vi.mock('node:fs/promises', () => {
+  const mockFsPromisesModule = {
+    writeFile: writeFileMock,
+    unlink: unlinkMock,
+    mkdir: mkdirMock,
+    access: accessMock,
+    readFile: readFileMock,
+  };
+  return {
+    default: mockFsPromisesModule,
+    ...mockFsPromisesModule,
+  };
+});
 
 describe('DaemonService', () => {
   beforeEach(() => {

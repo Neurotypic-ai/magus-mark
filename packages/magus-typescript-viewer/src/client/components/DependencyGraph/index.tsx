@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 
 import { Background, ReactFlow, applyEdgeChanges, applyNodeChanges, useReactFlow } from '@xyflow/react';
 
@@ -15,7 +15,7 @@ import NodeDetails from './components/NodeDetails';
 import { mapTypeCollection } from './mapTypeCollection';
 import { nodeTypes } from './nodes/nodes';
 
-import type { Edge, EdgeChange, Node, NodeChange, OnEdgesChange, OnNodesChange } from '@xyflow/react';
+import type { EdgeChange, Node, NodeChange, OnEdgesChange, OnNodesChange } from '@xyflow/react';
 import type { CSSProperties, JSX } from 'react';
 
 import type { Method } from '../../../shared/types/Method';
@@ -85,37 +85,20 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
 
   const { fitView } = useReactFlow();
 
-  // Keep a reference to the layout processor for cleanup
-  const layoutProcessorRef = useRef<WebWorkerLayoutProcessor | null>(null);
-
   // Create WebWorkerLayoutProcessor with memoization
   const layoutProcessor = useMemo(() => {
-    // Clean up previous instance if it exists
-    if (layoutProcessorRef.current) {
-      layoutProcessorRef.current.dispose();
-    }
-
-    // Create a new instance
-    const processor = new WebWorkerLayoutProcessor({
+    return new WebWorkerLayoutProcessor({
       theme: graphTheme,
       animationDuration: 300,
     });
-
-    // Store the reference
-    layoutProcessorRef.current = processor;
-
-    return processor;
   }, []);
 
   // Clean up the worker when component unmounts
   useEffect(() => {
     return () => {
-      if (layoutProcessorRef.current) {
-        layoutProcessorRef.current.dispose();
-        layoutProcessorRef.current = null;
-      }
+      layoutProcessor.dispose();
     };
-  }, []);
+  }, [layoutProcessor]);
 
   // Process graph layout using web worker
   const processGraphLayout = useCallback(
@@ -127,13 +110,9 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
         // Process layout using the web worker
         const result = await layoutProcessor.processLayout(graphData);
 
-        // Force the correct types for nodes and edges
-        const typedNodes = result.nodes as unknown as DependencyNode[];
-        const typedEdges = result.edges as unknown as GraphEdge[];
-
         // Update nodes with animation
         setNodes(
-          typedNodes.map((node) => ({
+          result.nodes.map((node) => ({
             ...node,
             // Add transition style for smooth animation
             style: {
@@ -143,7 +122,7 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
           }))
         );
 
-        setEdges(typedEdges);
+        setEdges(result.edges);
 
         // Fit view after layout
         await fitView({ duration: 300 });
@@ -167,7 +146,7 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
 
       // Create nodes and edges using extracted utilities
       const graphNodes = createGraphNodes(data);
-      const graphEdges = createGraphEdges(data) as unknown as GraphEdge[];
+      const graphEdges = createGraphEdges(data);
 
       // Process initial layout
       await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
@@ -179,9 +158,10 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
     void initializeGraph();
   }, [data, processGraphLayout]);
 
-  // Node click handler - use unknown then cast to fix type issues
+  // Node click handler with proper typing
   const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: unknown): void => {
+    (_event: React.MouseEvent, node: Node): void => {
+      // Nodes are typed as DependencyNode in our graph, so this cast is safe
       setSelectedNode(node as DependencyNode);
     },
     [setSelectedNode]
@@ -199,6 +179,14 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
     },
     [setEdges]
   );
+
+  // Reset layout handler
+  const handleResetLayout = useCallback(() => {
+    // Re-process the layout with current data
+    const graphNodes = createGraphNodes(data);
+    const graphEdges = createGraphEdges(data);
+    void processGraphLayout({ nodes: graphNodes, edges: graphEdges });
+  }, [data, processGraphLayout]);
 
   // Search result handler
   const handleSearchResult = useCallback(
@@ -249,20 +237,17 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
   );
 
   // Node change handler
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => {
-        const updatedNodes = applyNodeChanges(changes, nds) as unknown as DependencyNode[];
-        return updatedNodes;
-      });
+  const onNodesChange: OnNodesChange<DependencyNode> = useCallback(
+    (changes: NodeChange<DependencyNode>[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
     },
     [setNodes]
   );
 
   // Edge change handler
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      setEdges((eds) => applyEdgeChanges(changes, eds) as unknown as GraphEdge[]);
+  const onEdgesChange: OnEdgesChange<GraphEdge> = useCallback(
+    (changes: EdgeChange<GraphEdge>[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds));
     },
     [setEdges]
   );
@@ -299,7 +284,7 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
             if (nextNode) {
               setSelectedNode(nextNode);
               void fitView({
-                nodes: [nextNode as unknown as Node],
+                nodes: [nextNode],
                 duration: 300,
                 padding: 0.5,
               });
@@ -335,9 +320,9 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
         aria-label="Press arrow keys to navigate between connected nodes"
       >
         {/* The actual graph */}
-        <ReactFlow
-          nodes={nodes as unknown as Node[]}
-          edges={edges as unknown as Edge[]}
+        <ReactFlow<DependencyNode, GraphEdge>
+          nodes={nodes}
+          edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
@@ -348,12 +333,11 @@ export function DependencyGraph({ data }: DependencyGraphProps): JSX.Element {
           defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         >
           <Background />
-          <GraphControls onRelationshipFilterChange={handleRelationshipFilterChange} />
-          <GraphSearch
-            onSearchResult={handleSearchResult as unknown as (result: SearchResult) => void}
-            nodes={nodes}
-            edges={edges}
+          <GraphControls
+            onRelationshipFilterChange={handleRelationshipFilterChange}
+            onResetLayout={handleResetLayout}
           />
+          <GraphSearch onSearchResult={handleSearchResult} nodes={nodes} edges={edges} />
           {selectedNode ? <NodeDetails node={selectedNode} /> : null}
         </ReactFlow>
       </button>

@@ -45,6 +45,11 @@ import type { ParseResult } from './ParseResult';
 
 const require = createRequire(import.meta.url);
 
+/**
+ * Parser for individual TypeScript/JavaScript modules.
+ * Uses jscodeshift to extract classes, interfaces, methods, properties,
+ * imports, and exports from source files.
+ */
 export class ModuleParser {
   private j: JSCodeshift;
   private root: Collection | undefined;
@@ -53,6 +58,11 @@ export class ModuleParser {
   private reExports = new Set<string>();
   private readonly logger;
 
+  /**
+   * Creates a new ModuleParser instance.
+   * @param filePath Absolute path to the TypeScript/JavaScript file
+   * @param packageId UUID of the parent package
+   */
   constructor(
     private readonly filePath: string,
     private readonly packageId: string
@@ -105,22 +115,13 @@ export class ModuleParser {
       this.parseClasses(moduleId, result);
       this.parseInterfaces(moduleId, result);
 
-      // // Add collected imports and exports to result
-      // result.imports = Array.from(this.imports.keys()).map((importPath) => ({
-      //   path: importPath,
-      //   symbols: Array.from(this.imports.get(importPath) ?? []),
-      // }));
-      // result.exports = Array.from(this.exports).map((exportName) => ({
-      //   name: exportName,
-      //   isBarrel: this.isBarrelFile(),
-      // }));
+      // Add collected imports and exports to result
+      result.imports = Array.from(this.imports.values());
+      // Note: exports are handled separately at the statement level
 
       return result;
     } catch (error) {
-      console.warn(
-        `Warning: Failed to process ${relativePath}:`,
-        error instanceof Error ? error.message : String(error)
-      );
+      this.logger.error(`Failed to process ${relativePath}:`, error instanceof Error ? error.message : String(error));
 
       return {
         modules: [await this.createModuleDTO(moduleId, relativePath)],
@@ -274,7 +275,7 @@ export class ModuleParser {
   }
 
   private createClassDTO(classId: string, moduleId: string, node: ClassDeclaration): IClassCreateDTO {
-    if (!node.id || node.id.type !== 'Identifier') {
+    if (!node.id?.name || node.id.type !== 'Identifier') {
       throw new Error('Invalid class declaration: missing identifier');
     }
 

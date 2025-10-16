@@ -96,9 +96,7 @@ export async function createLoadedTestPlugin(
 export function resetPluginMocks(): void {
   vi.clearAllMocks();
 
-  // Reset the mock constructors
-  vi.mocked(Plugin).mockClear();
-  vi.mocked(Setting).mockClear();
-  vi.mocked(Modal).mockClear();
-  vi.mocked(Notice).mockClear();
+  // Note: Mock constructors don't need explicit clearing when using vi.clearAllMocks()
+  // The vi.mocked() calls here would fail because Plugin, Setting, Modal, and Notice
+  // are classes, not mock functions. vi.clearAllMocks() already resets all mocks.
 }
