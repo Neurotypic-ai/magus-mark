@@ -1,3 +1,5 @@
+import type { Component } from 'vue';
+
 import DependencyNode from './DependencyNode.vue';
 
 import type { DependencyKind } from '../types';
@@ -9,4 +11,6 @@ import type { DependencyKind } from '../types';
 const nodeTypeKeys: DependencyKind[] = ['package', 'module', 'class', 'interface', 'enum', 'type', 'function', 'group'];
 
 // Create the nodeTypes object with properly typed keys and components
-export const nodeTypes = Object.fromEntries(nodeTypeKeys.map((key) => [key, DependencyNode]));
+export const nodeTypes: Record<string, Component> = Object.fromEntries(
+  nodeTypeKeys.map((key) => [key, DependencyNode])
+);
