@@ -1,7 +1,7 @@
-import type { Ref } from 'vue';
-
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+
+import type { Ref } from 'vue';
 
 import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/types';
 
@@ -44,9 +44,7 @@ export const useGraphStore = defineStore('graph', (): GraphStore => {
         nodes.value = cachedNodes;
         edges.value = cachedEdges;
       }
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.info('Failed to load cached graph data:', error);
+    } catch {
       // Continue with empty state if cache load fails
     }
   };
@@ -65,9 +63,8 @@ export const useGraphStore = defineStore('graph', (): GraphStore => {
         if (newEdges.length > 0) {
           localStorage.setItem(EDGES_CACHE_KEY, JSON.stringify(newEdges));
         }
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        console.info('Failed to cache graph data:', error);
+      } catch {
+        // Silently fail if cache storage fails
       }
     },
     { deep: true }
@@ -98,9 +95,8 @@ export const useGraphStore = defineStore('graph', (): GraphStore => {
       edges.value = [];
       selectedNode.value = null;
       cacheKey.value = null;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.info('Failed to clear graph cache:', error);
+    } catch {
+      // Silently fail if cache clearing fails
     }
   };
 

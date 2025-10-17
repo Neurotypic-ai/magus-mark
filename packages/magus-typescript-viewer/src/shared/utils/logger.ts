@@ -5,6 +5,7 @@ export interface Logger {
   info: (message: string, ...args: unknown[]) => void;
   debug: (message: string, ...args: unknown[]) => void;
   error: (message: string, error?: unknown) => void;
+  warn: (message: string, ...args: unknown[]) => void;
 }
 
 export class ConsoleLogger implements Logger {
@@ -37,45 +38,46 @@ export class ConsoleLogger implements Logger {
   }
 
   private formatMessage(message: string): string {
-    return `[${this.prefix ?? 'Logger'}] ${String(message)}`;
-  }
-
-  private getCallerLocation(): string {
-    try {
-      throw new Error();
-    } catch (e) {
-      const stack = (e as Error).stack;
-      if (!stack) return '';
-      const lines = stack.split('\n');
-      return String(lines[3] ?? '');
-    }
+    const timestamp = new Date().toISOString().substring(11, 19); // HH:MM:SS
+    return `${timestamp} [${this.prefix ?? 'Logger'}] ${message}`;
   }
 
   info(message: string, ...args: unknown[]): void {
-    const location = this.getCallerLocation();
     this.queueLog(() => {
-      console.log(this.formatMessage(message) + ' ' + location, ...args);
+      if (args.length > 0) {
+        console.log(this.formatMessage(message), ...args);
+      } else {
+        console.log(this.formatMessage(message));
+      }
     });
   }
 
   debug(message: string, ...args: unknown[]): void {
     if (DEBUG) {
-      const location = this.getCallerLocation();
       this.queueLog(() => {
-        console.debug(this.formatMessage(`[DEBUG] ${message}`) + ' ' + location, ...args);
+        if (args.length > 0) {
+          console.debug(this.formatMessage(`[DEBUG] ${message}`), ...args);
+        } else {
+          console.debug(this.formatMessage(`[DEBUG] ${message}`));
+        }
       });
     }
   }
 
   error(message: string, error?: unknown): void {
-    const callerLocation = this.getCallerLocation();
     this.queueLog(() => {
-      const errorLocation = error instanceof Error ? error.stack?.split('\n')[1]?.trim() : '';
-      console.error(
-        this.formatMessage(message) + ' ' + callerLocation,
-        error instanceof Error ? error.message : error,
-        errorLocation ? `\n    at ${errorLocation}` : ''
-      );
+      const errorMsg = error instanceof Error ? error.message : JSON.stringify(error ?? '');
+      console.error(this.formatMessage(`❌ ${message}`), errorMsg);
+    });
+  }
+
+  warn(message: string, ...args: unknown[]): void {
+    this.queueLog(() => {
+      if (args.length > 0) {
+        console.warn(this.formatMessage(`⚠️  ${message}`), ...args);
+      } else {
+        console.warn(this.formatMessage(`⚠️  ${message}`));
+      }
     });
   }
 }

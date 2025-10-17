@@ -106,36 +106,50 @@ export class PackageRepository extends BaseRepository<Package, IPackageCreateDTO
       }
 
       // Create dependencies using DependencyRepository
+      // Only create dependency records for packages that exist in our database
+      // Skip external npm packages that we haven't analyzed
       if (dto.dependencies) {
         for (const dependencyId of dto.dependencies.values()) {
           if (dependencyId !== dto.id) {
-            await this.dependencyRepository.create({
-              source_id: dto.id,
-              target_id: dependencyId,
-              type: 'dependency',
-            });
+            try {
+              await this.dependencyRepository.create({
+                source_id: dto.id,
+                target_id: dependencyId,
+                type: 'dependency',
+              });
+            } catch {
+              // Silently skip dependencies that don't exist in the database (external packages)
+            }
           }
         }
       }
       if (dto.devDependencies) {
         for (const dependencyId of dto.devDependencies.values()) {
           if (dependencyId !== dto.id) {
-            await this.dependencyRepository.create({
-              source_id: dto.id,
-              target_id: dependencyId,
-              type: 'devDependency',
-            });
+            try {
+              await this.dependencyRepository.create({
+                source_id: dto.id,
+                target_id: dependencyId,
+                type: 'devDependency',
+              });
+            } catch {
+              // Silently skip dependencies that don't exist in the database (external packages)
+            }
           }
         }
       }
       if (dto.peerDependencies) {
         for (const dependencyId of dto.peerDependencies.values()) {
           if (dependencyId !== dto.id) {
-            await this.dependencyRepository.create({
-              source_id: dto.id,
-              target_id: dependencyId,
-              type: 'peerDependency',
-            });
+            try {
+              await this.dependencyRepository.create({
+                source_id: dto.id,
+                target_id: dependencyId,
+                type: 'peerDependency',
+              });
+            } catch {
+              // Silently skip dependencies that don't exist in the database (external packages)
+            }
           }
         }
       }

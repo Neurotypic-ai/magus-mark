@@ -16,7 +16,8 @@ export type DependencyEdgeKind =
   | 'export'
   | 'inheritance'
   | 'implements'
-  | 'extends';
+  | 'extends'
+  | 'contains';
 
 /**
  * Node method format for display

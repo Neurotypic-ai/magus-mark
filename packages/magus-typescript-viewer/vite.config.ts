@@ -1,4 +1,4 @@
-import path from 'path';
+import { fileURLToPath } from 'url';
 
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
@@ -10,7 +10,6 @@ const config: UserConfigExport = defineConfig({
   plugins: [
     vue(),
     nodePolyfills({
-      // include: ['path', 'fs', 'util', 'process', 'buffer', 'stream', 'crypto'],
       globals: {
         process: true,
         Buffer: true,
@@ -51,13 +50,13 @@ const config: UserConfigExport = defineConfig({
   resolve: {
     dedupe: ['vue'],
     alias: {
-      vue: path.resolve(__dirname, 'node_modules/vue'),
+      vue: fileURLToPath(new URL('./node_modules/vue', import.meta.url)),
     },
   },
   define: {
     'process.env': {},
     global: {},
-    'process.version': JSON.stringify('v22.13.1'),
+    'process.version': JSON.stringify('v24.10.0'),
   },
 });
 

@@ -50,13 +50,13 @@
       "typescript": "5.9.3"
     },
     "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
       "@vscode/vsce-sign",
       "electron",
       "esbuild",
       "keytar",
       "nx",
-      "puppeteer",
-      "unrs-resolver"
+      "puppeteer"
     ]
   },
   "private": true,

@@ -1,6 +1,7 @@
 import { access, readFile } from 'fs/promises';
-import { createRequire } from 'module';
 import { dirname, join, relative } from 'path';
+
+import jscodeshift from 'jscodeshift';
 
 import { Import, ImportSpecifier } from '../../shared/types/Import';
 import { createLogger } from '../../shared/utils/logger';
@@ -43,8 +44,6 @@ import type { IParameterCreateDTO } from '../db/repositories/ParameterRepository
 import type { IPropertyCreateDTO } from '../db/repositories/PropertyRepository';
 import type { ParseResult } from './ParseResult';
 
-const require = createRequire(import.meta.url);
-
 export class ModuleParser {
   private j: JSCodeshift;
   private root: Collection | undefined;
@@ -57,8 +56,7 @@ export class ModuleParser {
     private readonly filePath: string,
     private readonly packageId: string
   ) {
-    const j: JSCodeshift = require('jscodeshift') as JSCodeshift;
-    this.j = j.withParser('tsx');
+    this.j = jscodeshift.withParser('tsx');
     this.root = undefined; // Will be initialized in parse()
     this.logger = createLogger('ModuleParser');
   }
@@ -274,7 +272,7 @@ export class ModuleParser {
   }
 
   private createClassDTO(classId: string, moduleId: string, node: ClassDeclaration): IClassCreateDTO {
-    if (!node.id || node.id.type !== 'Identifier') {
+    if (node.id?.type !== 'Identifier') {
       throw new Error('Invalid class declaration: missing identifier');
     }
 

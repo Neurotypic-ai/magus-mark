@@ -243,10 +243,13 @@ export class PackageParser {
     if (!deps) return depsMap;
 
     for (const [name, version] of Object.entries(deps)) {
-      // Store in dependencies map
-      depsMap.set(name, version);
-
+      // Generate UUID for the dependency package
       const resolution = pkgLock[name]?.version ?? version;
+      const dependencyId = generatePackageUUID(name, resolution);
+
+      // Store in dependencies map with UUID as value
+      depsMap.set(name, dependencyId);
+
       const resolved = pkgLock[name]?.resolved ?? '';
 
       // Create package import

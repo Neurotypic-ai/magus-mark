@@ -1,3 +1,5 @@
+import { MarkerType } from '@vue-flow/core';
+
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getEdgeStyle } from '../theme/graphTheme';
 
@@ -22,8 +24,15 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${dep.id}-dependency`,
           source: pkg.id,
           target: dep.id,
-          type: 'dependency' as DependencyEdgeKind,
+          data: {
+            type: 'dependency' as DependencyEdgeKind,
+          },
           style: getEdgeStyle('dependency'),
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+          },
         });
       });
     }
@@ -37,8 +46,15 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${dep.id}-devDependency`,
           source: pkg.id,
           target: dep.id,
-          type: 'devDependency' as DependencyEdgeKind,
+          data: {
+            type: 'devDependency' as DependencyEdgeKind,
+          },
           style: getEdgeStyle('devDependency'),
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+          },
         });
       });
     }
@@ -52,8 +68,15 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${dep.id}-peerDependency`,
           source: pkg.id,
           target: dep.id,
-          type: 'peerDependency' as DependencyEdgeKind,
+          data: {
+            type: 'peerDependency' as DependencyEdgeKind,
+          },
           style: getEdgeStyle('peerDependency'),
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+          },
         });
       });
     }
@@ -61,6 +84,26 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
     // Handle module dependencies
     if (pkg.modules) {
       mapTypeCollection(pkg.modules, (module) => {
+        // Add parent-child edge from package to module
+        edges.push({
+          id: `${pkg.id}-${module.id}-contains`,
+          source: pkg.id,
+          target: module.id,
+          data: {
+            type: 'contains' as DependencyEdgeKind,
+          },
+          style: {
+            ...getEdgeStyle('dependency'),
+            strokeDasharray: '5,5',
+            opacity: 0.5,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 15,
+            height: 15,
+          },
+        });
+
         // Add module imports
         if (module.imports) {
           mapTypeCollection(module.imports, (imp) => {
@@ -70,8 +113,15 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
               id: `${module.id}-${imp.uuid}-import`,
               source: module.id,
               target: imp.uuid,
-              type: 'import' as DependencyEdgeKind,
+              data: {
+                type: 'import' as DependencyEdgeKind,
+              },
               style: getEdgeStyle('import'),
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 20,
+                height: 20,
+              },
             });
           });
         }
@@ -79,14 +129,41 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
         // Add class inheritance and implementation edges
         if (module.classes) {
           mapTypeCollection(module.classes, (cls) => {
+            // Add parent-child edge from module to class
+            edges.push({
+              id: `${module.id}-${cls.id}-contains`,
+              source: module.id,
+              target: cls.id,
+              data: {
+                type: 'contains' as DependencyEdgeKind,
+              },
+              style: {
+                ...getEdgeStyle('dependency'),
+                strokeDasharray: '5,5',
+                opacity: 0.4,
+              },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 12,
+                height: 12,
+              },
+            });
+
             // Handle class inheritance
             if (cls.extends_id) {
               edges.push({
                 id: `${cls.id}-${cls.extends_id}-inheritance`,
                 source: cls.id,
                 target: cls.extends_id,
-                type: 'inheritance' as DependencyEdgeKind,
+                data: {
+                  type: 'inheritance' as DependencyEdgeKind,
+                },
                 style: getEdgeStyle('inheritance'),
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  width: 20,
+                  height: 20,
+                },
               });
             }
 
@@ -99,8 +176,15 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
                   id: `${cls.id}-${iface.id}-implements`,
                   source: cls.id,
                   target: iface.id,
-                  type: 'implements' as DependencyEdgeKind,
+                  data: {
+                    type: 'implements' as DependencyEdgeKind,
+                  },
                   style: getEdgeStyle('implements'),
+                  markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    width: 20,
+                    height: 20,
+                  },
                 });
               });
             }
@@ -110,6 +194,26 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
         // Add interface inheritance edges
         if (module.interfaces) {
           mapTypeCollection(module.interfaces, (iface) => {
+            // Add parent-child edge from module to interface
+            edges.push({
+              id: `${module.id}-${iface.id}-contains`,
+              source: module.id,
+              target: iface.id,
+              data: {
+                type: 'contains' as DependencyEdgeKind,
+              },
+              style: {
+                ...getEdgeStyle('dependency'),
+                strokeDasharray: '5,5',
+                opacity: 0.4,
+              },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 12,
+                height: 12,
+              },
+            });
+
             if (iface.extended_interfaces) {
               mapTypeCollection(iface.extended_interfaces, (extended) => {
                 if (!extended.id) return;
@@ -118,8 +222,15 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
                   id: `${iface.id}-${extended.id}-inheritance`,
                   source: iface.id,
                   target: extended.id,
-                  type: 'inheritance' as DependencyEdgeKind,
+                  data: {
+                    type: 'inheritance' as DependencyEdgeKind,
+                  },
                   style: getEdgeStyle('inheritance'),
+                  markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    width: 20,
+                    height: 20,
+                  },
                 });
               });
             }

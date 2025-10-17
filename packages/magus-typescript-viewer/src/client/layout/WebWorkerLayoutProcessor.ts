@@ -12,7 +12,7 @@ import type { GraphTheme } from '../theme/graphTheme';
 
 // Layout configuration type
 export interface LayoutConfig {
-  rankdir: 'TB' | 'BT' | 'LR' | 'RL';
+  direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
   nodesep: number;
   edgesep: number;
   ranksep: number;
@@ -52,9 +52,34 @@ export class WebWorkerLayoutProcessor {
   private workerSupported: boolean;
 
   constructor(config?: Partial<LayoutConfig>) {
-    this.config = {
+    // Map the default config to the worker's expected format
+    const mergedConfig = {
       ...defaultLayoutConfig,
       ...config,
+    };
+
+    // Map TB/BT/LR/RL to ELK's DOWN/UP/RIGHT/LEFT
+    const mapDirection = (dir: string): 'DOWN' | 'UP' | 'RIGHT' | 'LEFT' => {
+      switch (dir) {
+        case 'TB':
+          return 'DOWN';
+        case 'BT':
+          return 'UP';
+        case 'RL':
+          return 'LEFT';
+        case 'LR':
+        default:
+          return 'RIGHT';
+      }
+    };
+
+    this.config = {
+      direction: mapDirection(mergedConfig.direction ?? 'LR'),
+      nodesep: mergedConfig.nodeSpacing ?? 100,
+      ranksep: mergedConfig.rankSpacing ?? 150,
+      edgesep: mergedConfig.edgeSpacing ?? 50,
+      theme: mergedConfig.theme ?? defaultLayoutConfig.theme,
+      animationDuration: mergedConfig.animationDuration,
     } as LayoutConfig;
 
     // Check if web workers are supported
@@ -145,19 +170,54 @@ export class WebWorkerLayoutProcessor {
    * @returns A promise that resolves with the processed layout
    */
   private fallbackProcessLayout(nodes: DependencyNode[], edges: Edge[]): Promise<LayoutResult> {
-    // Simple fallback layout algorithm - just spread nodes in a grid
-    const columns = Math.ceil(Math.sqrt(nodes.length));
-    const spacing = 200;
+    // Simple fallback layout algorithm - hierarchical grid layout
+    const packages = nodes.filter((n) => n.type === 'package');
+    const modules = nodes.filter((n) => n.type === 'module');
+    const others = nodes.filter((n) => n.type !== 'package' && n.type !== 'module');
 
-    nodes.forEach((node, index) => {
-      const row = Math.floor(index / columns);
-      const col = index % columns;
+    let currentY = 50;
+    let currentX = 50;
+    const horizontalSpacing = 250;
+    const verticalSpacing = 200;
+    const maxPerRow = 4;
 
-      node.position = {
-        x: col * spacing,
-        y: row * spacing,
-      };
+    // Layout packages
+    packages.forEach((node, index) => {
+      if (index > 0 && index % maxPerRow === 0) {
+        currentY += verticalSpacing;
+        currentX = 50;
+      }
+      node.position = { x: currentX, y: currentY };
+      currentX += horizontalSpacing;
     });
+
+    // Layout modules
+    if (modules.length > 0) {
+      currentY += verticalSpacing;
+      currentX = 50;
+      modules.forEach((node, index) => {
+        if (index > 0 && index % maxPerRow === 0) {
+          currentY += verticalSpacing;
+          currentX = 50;
+        }
+        node.position = { x: currentX, y: currentY };
+        currentX += horizontalSpacing;
+      });
+    }
+
+    // Layout other nodes
+    if (others.length > 0) {
+      currentY += verticalSpacing;
+      currentX = 50;
+      others.forEach((node, index) => {
+        if (index > 0 && index % maxPerRow === 0) {
+          currentY += verticalSpacing;
+          currentX = 50;
+        }
+        node.position = { x: currentX, y: currentY };
+        currentX += horizontalSpacing;
+      });
+    }
 
     return Promise.resolve({ nodes, edges });
   }

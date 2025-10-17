@@ -4,7 +4,6 @@ import { defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue';
 import { createLogger } from '../shared/utils/logger';
 import { GraphDataAssembler } from './assemblers/GraphDataAssembler';
 import ErrorBoundary from './components/ErrorBoundary.vue';
-import { graphTheme } from './theme/graphTheme';
 
 import type { DependencyPackageGraph } from './components/DependencyGraph/types';
 
@@ -75,27 +74,28 @@ onUnmounted(() => {
   <!-- Loading State -->
   <div
     v-if="isLoading"
-    class="flex justify-center items-center h-screen text-white"
-    :style="{ backgroundColor: graphTheme.nodes.colors.background.default }"
+    class="flex justify-center items-center h-screen bg-background-default text-text-primary"
     role="status"
     aria-live="polite"
   >
-    <p>Loading dependency graph...</p>
+    <div class="flex flex-col items-center gap-4">
+      <div class="w-12 h-12 border-4 border-border-default border-t-primary-main rounded-full animate-spin"></div>
+      <p class="text-lg">Loading dependency graph...</p>
+    </div>
   </div>
 
   <!-- Error State -->
   <div
     v-else-if="error"
-    class="flex flex-col justify-center items-center h-screen p-8 text-red-500"
-    :style="{ backgroundColor: graphTheme.nodes.colors.background.default }"
+    class="flex flex-col justify-center items-center h-screen bg-background-default p-8"
     role="alert"
     aria-live="assertive"
   >
-    <h1 class="text-2xl font-bold mb-4">Error Loading Graph</h1>
-    <p class="mb-4">{{ error }}</p>
+    <h1 class="text-2xl font-bold mb-4 text-text-primary">Error Loading Graph</h1>
+    <p class="mb-6 text-text-secondary">{{ error }}</p>
     <button
       @click="retryLoad"
-      class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors cursor-pointer"
+      class="px-6 py-3 bg-white/10 text-text-primary rounded-lg hover:bg-white/20 transition-fast cursor-pointer border border-border-default font-semibold"
     >
       Retry
     </button>
@@ -109,12 +109,14 @@ onUnmounted(() => {
       </template>
       <template #fallback>
         <div
-          class="flex justify-center items-center h-screen text-white"
-          :style="{ backgroundColor: graphTheme.nodes.colors.background.default }"
+          class="flex justify-center items-center h-screen bg-background-default text-text-primary"
           role="status"
           aria-live="polite"
         >
-          <p>Loading dependency graph...</p>
+          <div class="flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-border-default border-t-primary-main rounded-full animate-spin"></div>
+            <p class="text-lg">Loading dependency graph...</p>
+          </div>
         </div>
       </template>
     </Suspense>

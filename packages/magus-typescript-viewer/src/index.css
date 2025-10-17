@@ -1,6 +1,32 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  /* Color palette for dark theme graph visualization */
+  --color-background-default: #0a0e27;
+  --color-background-paper: #1a1f3a;
+  --color-background-node: #1a1a1a;
+  --color-background-node-package: #2d2d2d;
+
+  --color-text-primary: rgba(255, 255, 255, 0.87);
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-text-muted: rgba(255, 255, 255, 0.38);
+
+  --color-border-default: #404040;
+  --color-border-hover: #606060;
+  --color-border-focus: #90caf9;
+
+  --color-primary-main: #90caf9;
+  --color-primary-light: #e3f2fd;
+  --color-primary-dark: #42a5f5;
+
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+
+  --color-visibility-public: #22c55e;
+  --color-visibility-protected: #eab308;
+  --color-visibility-private: #ef4444;
+}
 
 :root {
   font-family:
@@ -18,65 +44,14 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: var(--text-primary);
-  background-color: var(--background-default);
+  color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-background-default);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* Theme Variables */
-  /* Colors */
-  --background-default: var(--theme-colors-background-default, #242424);
-  --background-paper: var(--theme-colors-background-paper, #1e1e1e);
-  --text-primary: var(--theme-colors-text-default, rgba(255, 255, 255, 0.87));
-  --text-secondary: var(--theme-colors-text-muted, rgba(255, 255, 255, 0.6));
-
-  /* Sizes */
-  --spacing-unit: var(--theme-spacing-unit, 4px);
-  --border-width: var(--theme-border-width-default, 1px);
-  --border-width-selected: var(--theme-border-width-selected, 2px);
-  --border-radius-small: var(--theme-border-radius-small, 4px);
-  --border-radius-large: var(--theme-border-radius-large, 8px);
-
-  /* Node Sizes */
-  --node-padding: var(--theme-sizes-node-group-padding, 30px);
-  --node-min-width: var(--theme-sizes-node-module-width, 140px);
-  --node-min-height: var(--theme-sizes-node-module-height, 35px);
-
-  /* Handle */
-  --handle-size: var(--theme-sizes-edge-marker-size, 6px);
-  --handle-border-width: var(--border-width);
-  --handle-border-color: var(--theme-colors-border-default, rgba(0, 0, 0, 0.3));
-  --handle-background: var(--theme-colors-edge-default, rgba(255, 255, 255, 0.5));
-  --handle-hover-color: var(--theme-colors-primary-main, #90caf9);
-
-  /* Edge */
-  --edge-color: var(--theme-colors-edge-default, rgba(255, 255, 255, 0.3));
-  --edge-hover-color: var(--handle-hover-color);
-  --edge-width: var(--theme-sizes-edge-width-default, 1.5px);
-  --edge-hover-width: var(--theme-sizes-edge-width-inheritance, 2px);
-  --edge-text-size: var(--theme-typography-font-size-small, 10px);
-  --edge-text-color: var(--text-secondary);
-
-  /* Controls */
-  --controls-background: var(--background-paper);
-  --controls-border-radius: var(--border-radius-large);
-  --controls-border-width: var(--border-width);
-  --controls-border-color: var(--theme-colors-border-default, rgba(255, 255, 255, 0.1));
-  --controls-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --controls-text-color: var(--text-secondary);
-  --controls-padding: calc(var(--spacing-unit) * 1.5);
-  --controls-hover-background: rgba(255, 255, 255, 0.1);
-
-  /* Scrollbar */
-  --scrollbar-size: calc(var(--node-padding) / 4);
-  --scrollbar-track: var(--background-paper);
-  --scrollbar-thumb: #6b6b6b;
-  --scrollbar-thumb-hover: #959595;
-  --scrollbar-border: var(--border-width);
 }
 
 * {
@@ -97,16 +72,18 @@ body {
   height: 100%;
 }
 
-/* VueFlow handles */
+/* VueFlow customization */
 .vue-flow__handle {
-  width: var(--handle-size) !important;
-  height: var(--handle-size) !important;
-  background-color: var(--handle-background) !important;
-  border: var(--handle-border-width) solid var(--handle-border-color) !important;
+  width: 8px !important;
+  height: 8px !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.15s ease-out !important;
 }
 
 .vue-flow__handle:hover {
-  background-color: var(--handle-hover-color) !important;
+  background-color: var(--color-primary-main) !important;
+  transform: scale(1.2);
 }
 
 .vue-flow__edge {
@@ -114,46 +91,61 @@ body {
 }
 
 .vue-flow__edge-path {
-  stroke: var(--edge-color) !important;
-  stroke-width: var(--edge-width) !important;
+  stroke: rgba(255, 255, 255, 0.3) !important;
+  stroke-width: 1.5px !important;
   cursor: pointer;
+  transition: all 0.15s ease-out !important;
 }
 
 .vue-flow__edge:hover .vue-flow__edge-path {
-  stroke: var(--edge-hover-color) !important;
-  stroke-width: var(--edge-hover-width) !important;
+  stroke: var(--color-primary-main) !important;
+  stroke-width: 2.5px !important;
 }
 
 .vue-flow__edge-text {
-  font-size: var(--edge-text-size) !important;
-  fill: var(--edge-text-color) !important;
-  transform: translateY(-2px);
+  font-size: 10px !important;
+  fill: var(--color-text-secondary) !important;
 }
 
 .vue-flow__edge.selected .vue-flow__edge-path {
-  stroke: var(--edge-hover-color) !important;
-  stroke-width: var(--edge-hover-width) !important;
+  stroke: var(--color-primary-main) !important;
+  stroke-width: 2.5px !important;
 }
 
 .vue-flow__controls {
-  background: var(--controls-background) !important;
-  border-radius: var(--controls-border-radius) !important;
-  box-shadow: var(--controls-shadow) !important;
-  border: var(--controls-border-width) solid var(--controls-border-color) !important;
+  background: var(--color-background-paper) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid var(--color-border-default) !important;
 }
 
 .vue-flow__controls button {
   background: transparent !important;
   border: none !important;
-  border-bottom: var(--controls-border-width) solid var(--controls-border-color) !important;
-  color: var(--controls-text-color) !important;
-  padding: var(--controls-padding) !important;
+  border-bottom: 1px solid var(--color-border-default) !important;
+  color: var(--color-text-secondary) !important;
+  padding: 8px !important;
+  transition: all 0.15s ease-out !important;
 }
 
 .vue-flow__controls button:hover {
-  background: var(--controls-hover-background) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.vue-flow__controls button:last-child {
+  border-bottom: none !important;
 }
 
 .vue-flow__panel {
   background-color: transparent !important;
+}
+
+/* Improve node dragging performance */
+.vue-flow__node {
+  transition: none !important;
+}
+
+.vue-flow__node.dragging {
+  cursor: grabbing !important;
 }

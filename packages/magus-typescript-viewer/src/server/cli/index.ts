@@ -1,4 +1,5 @@
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -15,6 +16,9 @@ import { PackageRepository } from '../db/repositories/PackageRepository';
 import { ParameterRepository } from '../db/repositories/ParameterRepository';
 import { PropertyRepository } from '../db/repositories/PropertyRepository';
 import { PackageParser } from '../parsers/PackageParser';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const program = new Command();
 

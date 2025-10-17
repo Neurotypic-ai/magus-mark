@@ -26,15 +26,13 @@ class PerformanceMetrics {
     if (this.renderTimes.length > 10) {
       this.renderTimes.shift();
     }
-    console.info('Graph render time:', time.toFixed(2), 'ms');
   }
 
-  public trackInteraction(type: string, time: number): void {
+  public trackInteraction(_type: string, time: number): void {
     this.interactionTimes.push(time);
     if (this.interactionTimes.length > 20) {
       this.interactionTimes.shift();
     }
-    console.info(`Graph ${type} interaction time:`, time.toFixed(2), 'ms');
   }
 
   public getAverageRenderTime(): number {

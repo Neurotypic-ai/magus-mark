@@ -49,7 +49,6 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
             properties: [{ name: 'path', type: module.source.relativePath || '', visibility: 'public' }],
           },
           style: getNodeStyle('module'),
-          extent: 'parent',
         });
 
         // Add class nodes
@@ -66,7 +65,6 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
                 methods: cls.methods ?? [],
               },
               style: getNodeStyle('class'),
-              extent: 'parent',
             });
           });
         }
@@ -85,7 +83,6 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
                 methods: iface.methods ?? [],
               },
               style: getNodeStyle('interface'),
-              extent: 'parent',
             });
           });
         }

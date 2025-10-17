@@ -1,7 +1,7 @@
-// Bundle the schema at build-time via esbuild text loader
-// esbuild config must set loader for '.sql' to 'text'
-import schemaSql from './schema.sql';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 export function loadSchema(): string {
-  return schemaSql as string;
+  const schemaFileUrl = new URL('./schema.sql', import.meta.url);
+  return readFileSync(fileURLToPath(schemaFileUrl), 'utf-8');
 }

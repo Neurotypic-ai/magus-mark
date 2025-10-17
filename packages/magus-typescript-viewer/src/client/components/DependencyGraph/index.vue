@@ -1,12 +1,11 @@
 <script setup lang="ts">
+import { Background } from '@vue-flow/background';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { computed, onUnmounted, watch } from 'vue';
 
-import { VueFlow, useVueFlow } from '@vue-flow/core';
-import { Background } from '@vue-flow/background';
-
 import { createLogger } from '../../../shared/utils/logger';
-import { useGraphStore } from '../../stores/graphStore';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
+import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
 import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
@@ -46,6 +45,13 @@ const { fitView } = useVueFlow();
 // Keep a reference to the layout processor for cleanup
 let layoutProcessor: WebWorkerLayoutProcessor | null = null;
 
+// Layout configuration state
+const layoutConfig = {
+  direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT',
+  nodeSpacing: 100,
+  rankSpacing: 150,
+};
+
 // Create WebWorkerLayoutProcessor
 const initializeLayoutProcessor = () => {
   // Clean up previous instance if it exists
@@ -55,8 +61,11 @@ const initializeLayoutProcessor = () => {
 
   // Create a new instance
   layoutProcessor = new WebWorkerLayoutProcessor({
+    direction: layoutConfig.direction,
+    nodeSpacing: layoutConfig.nodeSpacing,
+    rankSpacing: layoutConfig.rankSpacing,
     theme: graphTheme,
-    animationDuration: 300,
+    animationDuration: 150,
   });
 };
 
@@ -83,22 +92,12 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     const typedNodes = result.nodes as unknown as DependencyNode[];
     const typedEdges = result.edges as unknown as GraphEdge[];
 
-    // Update nodes with animation
-    graphStore['setNodes'](
-      typedNodes.map((node) => ({
-        ...node,
-        // Add transition style for smooth animation
-        style: {
-          ...node.style,
-          transition: `all 300ms ease-in-out`,
-        },
-      }))
-    );
-
+    // Update nodes without transition for better dragging performance
+    graphStore['setNodes'](typedNodes);
     graphStore['setEdges'](typedEdges);
 
-    // Fit view after layout
-    await fitView({ duration: 300 });
+    // Fit view after layout with faster animation
+    await fitView({ duration: 150, padding: 0.1 });
 
     // End performance measurement
     performance.mark('layout-end');
@@ -141,9 +140,30 @@ const handleRelationshipFilterChange = (types: string[]) => {
   graphStore['setEdges'](
     edges.value.map((edge: GraphEdge) => ({
       ...edge,
-      hidden: !types.includes(edge.type ?? 'default'),
+      hidden: !types.includes(edge.data?.type ?? 'default'),
     }))
   );
+};
+
+// Layout change handler
+const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
+  if (config.direction) {
+    layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
+  }
+  if (config.nodeSpacing !== undefined) {
+    layoutConfig.nodeSpacing = config.nodeSpacing;
+  }
+  if (config.rankSpacing !== undefined) {
+    layoutConfig.rankSpacing = config.rankSpacing;
+  }
+
+  // Recreate layout processor with new config
+  initializeLayoutProcessor();
+
+  // Re-run layout
+  const graphNodes = createGraphNodes(props.data);
+  const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+  await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
 };
 
 // Search result handler
@@ -166,7 +186,7 @@ const handleSearchResult = (result: SearchResult) => {
       ...edge,
       selected: result.edges.some((searchEdge) => searchEdge.id === edge.id),
       style: {
-        ...getEdgeStyle(toDependencyEdgeKind(edge.type)),
+        ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
         opacity: result.edges.length === 0 ? 1 : result.edges.some((searchEdge) => searchEdge.id === edge.id) ? 1 : 0.2,
       },
     }))
@@ -218,7 +238,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
           graphStore['setSelectedNode'](nextNode);
           void fitView({
             nodes: [nextNode.id],
-            duration: 300,
+            duration: 150,
             padding: 0.5,
           });
         }
@@ -236,7 +256,8 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
     type === 'export' ||
     type === 'inheritance' ||
     type === 'implements' ||
-    type === 'extends'
+    type === 'extends' ||
+    type === 'contains'
   ) {
     return type;
   }
@@ -245,11 +266,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 </script>
 
 <template>
-  <div
-    class="h-full w-full"
-    role="application"
-    aria-label="TypeScript dependency graph visualization"
-  >
+  <div class="h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
     <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
     <button
       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
@@ -265,15 +282,19 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :min-zoom="0.1"
         :max-zoom="2"
         :default-viewport="{ x: 0, y: 0, zoom: 0.5 }"
+        :snap-to-grid="true"
+        :snap-grid="[15, 15]"
+        :pan-on-scroll="true"
+        :zoom-on-scroll="true"
+        :zoom-on-double-click="false"
         @node-click="onNodeClick"
       >
         <Background />
-        <GraphControls @relationship-filter-change="handleRelationshipFilterChange" />
-        <GraphSearch
-          @search-result="handleSearchResult"
-          :nodes="nodes"
-          :edges="edges"
+        <GraphControls
+          @relationship-filter-change="handleRelationshipFilterChange"
+          @layout-change="handleLayoutChange"
         />
+        <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />
       </VueFlow>
     </button>

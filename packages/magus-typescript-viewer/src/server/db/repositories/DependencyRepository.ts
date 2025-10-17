@@ -63,7 +63,11 @@ export class DependencyRepository extends BaseRepository<
         created_at: new Date(now),
       };
     } catch (error) {
-      this.logger.error('Failed to create dependency', error);
+      // Don't log foreign key constraint errors - they're expected for external packages
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (!errorMsg.includes('foreign key constraint')) {
+        this.logger.error('Failed to create dependency', error);
+      }
       throw new RepositoryError('Failed to create dependency', 'create', this.errorTag, error as Error);
     }
   }

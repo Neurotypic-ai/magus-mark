@@ -132,7 +132,31 @@ export class ModuleRepository extends BaseRepository<Module, IModuleCreateDTO, I
   }
 
   private createModuleFromRow(mod: IModuleRow): Module {
-    const source: FileLocation = JSON.parse(mod.source) as FileLocation;
+    // Handle source field which may be null, undefined, or a JSON string
+    let source: FileLocation;
+    if (mod.source && typeof mod.source === 'string' && mod.source !== 'undefined' && mod.source !== 'null') {
+      try {
+        source = JSON.parse(mod.source) as FileLocation;
+      } catch (error) {
+        // If JSON parsing fails, create a minimal FileLocation from other fields
+        this.logger.warn(`Failed to parse source JSON for module ${mod.id}, creating fallback`, error);
+        source = {
+          directory: String(mod['directory'] ?? ''),
+          name: String(mod.name),
+          filename: String(mod['filename'] ?? ''),
+          relativePath: String(mod['relative_path'] ?? ''),
+        };
+      }
+    } else {
+      // Create fallback FileLocation from denormalized fields
+      source = {
+        directory: String(mod['directory'] ?? ''),
+        name: String(mod.name),
+        filename: String(mod['filename'] ?? ''),
+        relativePath: String(mod['relative_path'] ?? ''),
+      };
+    }
+
     return new Module(
       String(mod.id),
       String(mod.package_id),

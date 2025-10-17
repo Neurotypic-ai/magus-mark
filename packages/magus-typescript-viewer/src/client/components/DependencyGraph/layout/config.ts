@@ -23,17 +23,17 @@ export interface LayoutConfig {
 }
 
 export const defaultLayoutConfig: LayoutConfig = {
-  direction: 'TB',
-  nodeSpacing: 50,
-  rankSpacing: 100,
-  edgeSpacing: 30,
+  direction: 'LR', // Left-to-right works better for hierarchical dependency graphs
+  nodeSpacing: 100,
+  rankSpacing: 150,
+  edgeSpacing: 50,
   margins: {
-    top: 20,
-    right: 20,
-    bottom: 20,
-    left: 20,
+    top: 80,
+    right: 80,
+    bottom: 80,
+    left: 80,
   },
-  animationDuration: 300,
+  animationDuration: 150,
   theme: graphTheme,
 };
 

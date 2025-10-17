@@ -234,13 +234,14 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
 
       this.logger.debug(`Found ${String(methods.length)} methods for ${parentType} ${parentId}`);
 
+      // Early return if no methods found - avoid executing parameter query with empty array
       if (methods.length === 0) {
         this.logger.debug(`No methods found for ${parentType} ${parentId}`);
         return new Map<string, Method>();
       }
 
-      // Get all method IDs for parameter query
-      const methodIds = methods.map((m) => String(m.id));
+      // Get all method IDs for parameter query - explicitly typed as DuckDBValue[]
+      const methodIds: string[] = methods.map((m) => String(m.id));
       const placeholders = methodIds.map(() => '?').join(',');
 
       // Fetch parameters for all methods in a single query
@@ -248,7 +249,7 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
         'retrieve parameters',
         `SELECT p.* FROM parameters p 
          WHERE p.method_id IN (${placeholders})`,
-        methodIds
+        methodIds as DuckDBValue[]
       );
 
       this.logger.debug(`Found ${String(parameters.length)} parameters for ${String(methodIds.length)} methods`);
