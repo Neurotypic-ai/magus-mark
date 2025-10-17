@@ -1,8 +1,6 @@
 import type { DependencyEdgeKind, DependencyKind } from '../components/DependencyGraph/types';
 
-interface CSSProperties {
-  [key: string]: string | number | undefined;
-}
+type CSSProperties = Record<string, string | number | undefined>;
 
 // Graph-specific type definitions
 export interface GraphTheme {
@@ -128,12 +126,46 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
         ...baseStyle,
         backgroundColor: defaultTheme.nodes.colors.background.package,
         borderRadius: defaultTheme.nodes.borderRadius * 2,
+        minWidth: '200px',
+        padding: '20px',
+      };
+    case 'module':
+      return {
+        ...baseStyle,
+        minWidth: '180px',
+        padding: '16px',
+      };
+    case 'class':
+    case 'interface':
+      return {
+        ...baseStyle,
+        minWidth: '200px',
+        padding: '12px',
       };
     case 'group':
       return {
         ...baseStyle,
-        backgroundColor: defaultTheme.nodes.colors.background.package,
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
         borderStyle: 'dashed',
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+        minWidth: '180px',
+        padding: '8px',
+      };
+    case 'property':
+      return {
+        ...baseStyle,
+        backgroundColor: 'rgba(100, 149, 237, 0.15)',
+        borderColor: 'rgba(100, 149, 237, 0.4)',
+        minWidth: '180px',
+        padding: '6px 10px',
+      };
+    case 'method':
+      return {
+        ...baseStyle,
+        backgroundColor: 'rgba(186, 85, 211, 0.15)',
+        borderColor: 'rgba(186, 85, 211, 0.4)',
+        minWidth: '180px',
+        padding: '6px 10px',
       };
     default:
       return baseStyle;

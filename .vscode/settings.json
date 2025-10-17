@@ -78,11 +78,10 @@
   "typescript.preferences.importModuleSpecifier": "shortest",
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.preferTypeOnlyAutoImports": true,
-  "typescript.surveys.enabled": false,
   "typescript.tsc.autoDetect": "off",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.tsserver.maxTsServerMemory": 8096,
   "typescript.tsserver.watchOptions": {
     "excludeDirectories": [
       "**/node_modules/**/*",
@@ -92,9 +91,7 @@
       "**/coverage/**/*",
       "**/documentation/**/*",
       "**/public/build/**/*"
-    ],
-    "watchDirectory": "useFsEvents",
-    "watchFile": "useFsEvents"
+    ]
   },
   "typescript.workspaceSymbols.excludeLibrarySymbols": false,
   "typescript.workspaceSymbols.scope": "allOpenProjects",
@@ -151,5 +148,8 @@
   },
   "explorerExclude.backup": {},
   "dotenv.enableAutocloaking": false,
-  "nxConsole.generateAiAgentRules": true
+  "nxConsole.generateAiAgentRules": true,
+  "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": false,
+  "typescript.tsserver.web.typeAcquisition.enabled": false,
+  "typescript.tsserver.useSyntaxServer": "always"
 }

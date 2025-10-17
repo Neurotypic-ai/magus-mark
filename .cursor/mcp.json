@@ -1,43 +1,16 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
-    },
-    "git": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "git"]
-    },
-    "github": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "github"]
-    },
-    "memory": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "memory"]
-    },
-    "sequential-thinking": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "sequential-thinking"]
-    },
-    "markdownify": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "markdownify"]
-    },
-    "minima": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "minima"]
-    },
-    "obsidian": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "obsidian"]
-    },
-    "knowledgebase": {
-      "command": "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/magus-mcp",
-      "args": ["start", "knowledgebase"]
-    },
     "nx-mcp": {
       "url": "http://localhost:9484/sse"
+    },
+    "motherduck": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-motherduck",
+        "--db-path",
+        "/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/typescript-viewer.duckdb",
+        "--read-only"
+      ]
     }
   }
 }

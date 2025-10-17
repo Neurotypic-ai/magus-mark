@@ -84,26 +84,6 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
     // Handle module dependencies
     if (pkg.modules) {
       mapTypeCollection(pkg.modules, (module) => {
-        // Add parent-child edge from package to module
-        edges.push({
-          id: `${pkg.id}-${module.id}-contains`,
-          source: pkg.id,
-          target: module.id,
-          data: {
-            type: 'contains' as DependencyEdgeKind,
-          },
-          style: {
-            ...getEdgeStyle('dependency'),
-            strokeDasharray: '5,5',
-            opacity: 0.5,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 15,
-            height: 15,
-          },
-        });
-
         // Add module imports
         if (module.imports) {
           mapTypeCollection(module.imports, (imp) => {
@@ -129,26 +109,6 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
         // Add class inheritance and implementation edges
         if (module.classes) {
           mapTypeCollection(module.classes, (cls) => {
-            // Add parent-child edge from module to class
-            edges.push({
-              id: `${module.id}-${cls.id}-contains`,
-              source: module.id,
-              target: cls.id,
-              data: {
-                type: 'contains' as DependencyEdgeKind,
-              },
-              style: {
-                ...getEdgeStyle('dependency'),
-                strokeDasharray: '5,5',
-                opacity: 0.4,
-              },
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 12,
-                height: 12,
-              },
-            });
-
             // Handle class inheritance
             if (cls.extends_id) {
               edges.push({
@@ -194,26 +154,6 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
         // Add interface inheritance edges
         if (module.interfaces) {
           mapTypeCollection(module.interfaces, (iface) => {
-            // Add parent-child edge from module to interface
-            edges.push({
-              id: `${module.id}-${iface.id}-contains`,
-              source: module.id,
-              target: iface.id,
-              data: {
-                type: 'contains' as DependencyEdgeKind,
-              },
-              style: {
-                ...getEdgeStyle('dependency'),
-                strokeDasharray: '5,5',
-                opacity: 0.4,
-              },
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 12,
-                height: 12,
-              },
-            });
-
             if (iface.extended_interfaces) {
               mapTypeCollection(iface.extended_interfaces, (extended) => {
                 if (!extended.id) return;

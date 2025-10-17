@@ -50,8 +50,13 @@ function sendError(res: http.ServerResponse, statusCode: number, message: string
 // Initialize logger
 const logger = createLogger('Server');
 
-// Initialize database and repositories
-const apiServerResponder = new ApiServerResponder();
+// Initialize database and repositories in read-only mode
+const apiServerResponder = new ApiServerResponder({
+  dbPath: 'typescript-viewer.duckdb',
+  readOnly: true,
+});
+
+logger.info('Server initialized with read-only database access');
 
 // Ensure database exists without wiping existing data
 void apiServerResponder.initialize().catch((error: unknown) => {

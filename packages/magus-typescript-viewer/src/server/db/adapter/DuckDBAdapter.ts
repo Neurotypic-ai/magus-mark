@@ -78,13 +78,18 @@ function convertToRow(duckDBRow: unknown, columnNames: string[]): DatabaseRow {
 
 export class DuckDBAdapter implements IDatabaseAdapter {
   private db!: DuckDBInstance;
-  private connection!: DuckDBConnection;
+  private connectionPool: DuckDBConnection[] = [];
+  private currentConnectionIndex = 0;
   private isInitialized = false;
+  private readonly poolSize: number;
 
   constructor(
     private readonly dbPath: string,
-    private readonly config?: { allowWrite?: boolean; threads?: number }
-  ) {}
+    private readonly config?: { allowWrite?: boolean; threads?: number; poolSize?: number }
+  ) {
+    // Default to 4 connections for concurrent query handling
+    this.poolSize = config?.poolSize ?? 4;
+  }
 
   async init(): Promise<void> {
     if (this.isInitialized) {
@@ -99,8 +104,26 @@ export class DuckDBAdapter implements IDatabaseAdapter {
       threads: this.config?.threads ? this.config.threads.toString() : '8', // Increased default threads
     });
 
-    this.connection = await this.db.connect();
+    // Create connection pool for concurrent query handling
+    for (let i = 0; i < this.poolSize; i++) {
+      const connection = await this.db.connect();
+      this.connectionPool.push(connection);
+    }
+
     this.isInitialized = true;
+  }
+
+  /**
+   * Get next connection from pool in round-robin fashion
+   */
+  private getConnection(): DuckDBConnection {
+    const connection = this.connectionPool[this.currentConnectionIndex];
+    if (!connection) {
+      throw new Error('No connections available in pool');
+    }
+    // Round-robin to next connection
+    this.currentConnectionIndex = (this.currentConnectionIndex + 1) % this.poolSize;
+    return connection;
   }
 
   getDbPath(): string {
@@ -113,7 +136,10 @@ export class DuckDBAdapter implements IDatabaseAdapter {
     }
 
     try {
-      const result = await this.connection.runAndReadAll(sql, params as DuckDBValue[]);
+      // Get connection from pool for this query
+      const connection = this.getConnection();
+      const result = await connection.runAndReadAll(sql, params as DuckDBValue[]);
+
       if (typeof result.columnNames !== 'function' || typeof result.getRows !== 'function') {
         throw new Error('Invalid result from DuckDB query');
       }
@@ -142,13 +168,19 @@ export class DuckDBAdapter implements IDatabaseAdapter {
       throw new Error('Database not initialized. Call init() first.');
     }
 
-    await this.connection.run('BEGIN TRANSACTION');
+    // Use first connection for transactions to maintain consistency
+    const connection = this.connectionPool[0];
+    if (!connection) {
+      throw new Error('No connection available for transaction');
+    }
+
+    await connection.run('BEGIN TRANSACTION');
     try {
       const result = await callback();
-      await this.connection.run('COMMIT');
+      await connection.run('COMMIT');
       return result;
     } catch (error) {
-      await this.connection.run('ROLLBACK');
+      await connection.run('ROLLBACK');
       throw error instanceof Error ? error : new Error(String(error));
     }
   }

@@ -22,6 +22,62 @@ export class Database {
   }
 
   /**
+   * Returns a set of column names for a given table using DuckDB PRAGMA.
+   */
+  private async getTableColumns(table: string): Promise<Set<string>> {
+    const rows = await this.adapter.query<{ id: string; name: string }>(`PRAGMA table_info('${table}')`);
+    const names = rows.map((r) => r.name).filter((n) => n.length > 0);
+    return new Set(names);
+  }
+
+  /**
+   * Ensures that the given columns exist on the table; if missing, add them.
+   * Definition should include the full column definition (e.g., "parent_type TEXT DEFAULT 'class'").
+   */
+  private async ensureColumns(table: string, columns: { name: string; definition: string }[]): Promise<void> {
+    const existing = await this.getTableColumns(table);
+    for (const col of columns) {
+      if (!existing.has(col.name)) {
+        await this.adapter.query(`ALTER TABLE ${table} ADD COLUMN ${col.definition}`);
+      }
+    }
+  }
+
+  /**
+   * Performs lightweight, idempotent migrations to add columns introduced in newer schemas
+   * to existing databases without requiring a full reset.
+   */
+  private async migrateSchemaIfNeeded(): Promise<void> {
+    // Methods table: ensure columns used by queries exist
+    await this.ensureColumns('methods', [
+      { name: 'parent_type', definition: "parent_type TEXT DEFAULT 'class'" },
+      { name: 'is_abstract', definition: 'is_abstract BOOLEAN DEFAULT FALSE' },
+      { name: 'created_at', definition: 'created_at TIMESTAMP DEFAULT current_timestamp' },
+    ]);
+
+    // Properties table
+    await this.ensureColumns('properties', [
+      { name: 'parent_type', definition: "parent_type TEXT DEFAULT 'class'" },
+      { name: 'created_at', definition: 'created_at TIMESTAMP DEFAULT current_timestamp' },
+    ]);
+
+    // Interfaces table
+    await this.ensureColumns('interfaces', [
+      { name: 'created_at', definition: 'created_at TIMESTAMP DEFAULT current_timestamp' },
+    ]);
+
+    // Classes table
+    await this.ensureColumns('classes', [
+      { name: 'created_at', definition: 'created_at TIMESTAMP DEFAULT current_timestamp' },
+    ]);
+
+    // Parameters table
+    await this.ensureColumns('parameters', [
+      { name: 'created_at', definition: 'created_at TIMESTAMP DEFAULT current_timestamp' },
+    ]);
+  }
+
+  /**
    * Verifies that the database schema exists by checking for the presence of required tables
    */
   private async verifySchema(): Promise<boolean> {
@@ -50,6 +106,14 @@ export class Database {
       }
     }
 
+    // Additional column-level verification for critical columns used by queries
+    const methodsColumns = await this.getTableColumns('methods');
+    const propertiesColumns = await this.getTableColumns('properties');
+
+    if (!methodsColumns.has('parent_type') || !propertiesColumns.has('parent_type')) {
+      return false;
+    }
+
     return true;
   }
 
@@ -59,6 +123,7 @@ export class Database {
       console.log('initializing in-memory database');
       await this.adapter.init();
       await this.executeSchema(loadSchema());
+      await this.migrateSchemaIfNeeded();
       return;
     }
 
@@ -98,6 +163,10 @@ export class Database {
     if (!exists || reset || !(await this.verifySchema())) {
       console.log('Loading and executing schema...');
       await this.executeSchema(loadSchema());
+      await this.migrateSchemaIfNeeded();
+    } else {
+      // For existing databases with tables present, attempt lightweight migrations
+      await this.migrateSchemaIfNeeded();
     }
   }
 

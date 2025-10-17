@@ -31,7 +31,11 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
       label: pkg.name,
       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
     },
-    style: getNodeStyle('package'),
+    style: {
+      ...getNodeStyle('package'),
+      width: 'auto',
+      height: 'auto',
+    },
   }));
 
   // Create module nodes
@@ -43,12 +47,19 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
           id: module.id,
           type: 'module' as DependencyKind,
           position: { x: 0, y: 0 },
+          parentNode: pkg.id,
+          extent: 'parent' as const,
+          expandParent: true,
           data: {
             parentId: pkg.id,
             label: module.name,
             properties: [{ name: 'path', type: module.source.relativePath || '', visibility: 'public' }],
           },
-          style: getNodeStyle('module'),
+          style: {
+            ...getNodeStyle('module'),
+            width: 'auto',
+            height: 'auto',
+          },
         });
 
         // Add class nodes
@@ -58,13 +69,20 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               id: cls.id,
               type: 'class' as DependencyKind,
               position: { x: 0, y: 0 },
+              parentNode: module.id,
+              extent: 'parent' as const,
+              expandParent: true,
               data: {
                 parentId: module.id,
                 label: cls.name,
                 properties: cls.properties ?? [],
                 methods: cls.methods ?? [],
               },
-              style: getNodeStyle('class'),
+              style: {
+                ...getNodeStyle('class'),
+                width: 'auto',
+                height: 'auto',
+              },
             });
           });
         }
@@ -76,13 +94,20 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               id: iface.id,
               type: 'interface' as DependencyKind,
               position: { x: 0, y: 0 },
+              parentNode: module.id,
+              extent: 'parent' as const,
+              expandParent: true,
               data: {
                 parentId: module.id,
                 label: iface.name,
                 properties: iface.properties ?? [],
                 methods: iface.methods ?? [],
               },
-              style: getNodeStyle('interface'),
+              style: {
+                ...getNodeStyle('interface'),
+                width: 'auto',
+                height: 'auto',
+              },
             });
           });
         }

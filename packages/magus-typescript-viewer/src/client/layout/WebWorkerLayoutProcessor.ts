@@ -10,7 +10,7 @@ import type { Edge } from '@vue-flow/core';
 import type { DependencyNode } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
 
-// Layout configuration type
+// Internal layout configuration type used by the worker
 export interface LayoutConfig {
   direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
   nodesep: number;
@@ -44,6 +44,18 @@ interface WorkerResponse {
 }
 
 /**
+ * Configuration for initializing the WebWorkerLayoutProcessor
+ */
+export interface WebWorkerLayoutConfig {
+  direction?: 'TB' | 'LR' | 'BT' | 'RL';
+  nodeSpacing?: number;
+  rankSpacing?: number;
+  edgeSpacing?: number;
+  theme?: GraphTheme;
+  animationDuration?: number;
+}
+
+/**
  * A class that manages the web worker for processing graph layouts
  */
 export class WebWorkerLayoutProcessor {
@@ -51,7 +63,7 @@ export class WebWorkerLayoutProcessor {
   private config: LayoutConfig;
   private workerSupported: boolean;
 
-  constructor(config?: Partial<LayoutConfig>) {
+  constructor(config?: WebWorkerLayoutConfig) {
     // Map the default config to the worker's expected format
     const mergedConfig = {
       ...defaultLayoutConfig,

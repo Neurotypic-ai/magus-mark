@@ -21,6 +21,7 @@ rather than duplicating core package logic.
 | **[CLI Integration](./cli-integration.md)**           | 🆕 New      | Revolutionary CLI-first architecture guide             |
 | **[Cursor Integration](./cursor-integration.md)**     | ✅ Enhanced | Cursor-specific features with CLI enhancement          |
 | **[MCP Server](./mcp-server.md)**                     | ✅ Enhanced | Advanced MCP tools powered by CLI                      |
+| **[MotherDuck MCP](./motherduck-mcp.md)**             | 🆕 New      | DuckDB/MotherDuck MCP server for SQL queries           |
 | **[Vault Integration](./vault-integration.md)**       | ✅ Complete | Obsidian vault synchronization                         |
 | **[Developer Experience](./developer-experience.md)** | ✅ Complete | Development workflow and tools                         |
 | **[Troubleshooting](./troubleshooting.md)**           | ✅ Complete | Common issues and solutions                            |
@@ -31,7 +32,7 @@ rather than duplicating core package logic.
 
 ### Traditional Approach vs. CLI Integration
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      TRADITIONAL APPROACH                      │
 │                     (Code Duplication)                         │

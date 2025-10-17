@@ -3,7 +3,17 @@ import type { Edge, Node } from '@vue-flow/core';
 /**
  * Dependency kinds (node types)
  */
-export type DependencyKind = 'package' | 'module' | 'class' | 'interface' | 'enum' | 'type' | 'function' | 'group';
+export type DependencyKind =
+  | 'package'
+  | 'module'
+  | 'class'
+  | 'interface'
+  | 'enum'
+  | 'type'
+  | 'function'
+  | 'group'
+  | 'property'
+  | 'method';
 
 /**
  * Edge types for dependency relationships

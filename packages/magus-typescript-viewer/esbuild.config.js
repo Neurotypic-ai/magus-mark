@@ -59,6 +59,10 @@ async function build() {
   const schemaDst = path.join(__dirname, 'dist', 'schema.sql');
   await fs.promises.copyFile(schemaSrc, schemaDst);
 
+  // Also copy schema.sql to dist/bin for CLI
+  const schemaBinDst = path.join(__dirname, 'dist', 'bin', 'schema.sql');
+  await fs.promises.copyFile(schemaSrc, schemaBinDst);
+
   // Make CLI executable
   await fs.promises.chmod(path.join(__dirname, 'dist/bin/typescript-viewer.js'), 0o755);
 }

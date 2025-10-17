@@ -45,23 +45,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     const defaultWidth = 200;
     const defaultHeight = 120;
 
-    // Build a hierarchical structure for ELK
-    // Separate nodes into packages, modules, and other nodes
-    const packageNodes = nodes.filter((n) => !n.data?.parentId);
-    const childNodes = nodes.filter((n) => n.data?.parentId);
-
-    // Create a map for quick parent lookup
-    const childrenByParent = new Map<string, DependencyNode[]>();
-    childNodes.forEach((child) => {
-      const parentId = child.data?.parentId;
-      if (parentId) {
-        if (!childrenByParent.has(parentId)) {
-          childrenByParent.set(parentId, []);
-        }
-        childrenByParent.get(parentId)?.push(child);
-      }
-    });
-
     // Define ELK node type
     interface ElkNode {
       id: string;
@@ -73,9 +56,21 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       layoutOptions?: Record<string, string>;
     }
 
-    // Recursively build ELK node structure
-    const buildElkNode = (node: DependencyNode): ElkNode => {
-      const children = childrenByParent.get(node.id) ?? [];
+    // Map VueFlow directions to ELK's expected values
+    const directionMap: Record<string, string> = {
+      RIGHT: 'RIGHT',
+      LEFT: 'LEFT',
+      DOWN: 'DOWN',
+      UP: 'UP',
+    };
+    const elkDirection = directionMap[config.direction] ?? 'RIGHT';
+
+    // Build hierarchical structure for ELK
+    const nodeMap = new Map<string, ElkNode>();
+    const rootNodes: ElkNode[] = [];
+
+    // First pass: create all nodes
+    nodes.forEach((node) => {
       const nodeWidth = (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth;
       const nodeHeight = (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight;
 
@@ -83,29 +78,47 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         id: node.id,
         width: nodeWidth,
         height: nodeHeight,
+        children: [],
       };
+      nodeMap.set(node.id, elkNode);
+    });
 
-      // Include children if this node has any
-      if (children.length > 0) {
-        elkNode.children = children.map((child) => buildElkNode(child));
+    // Add layout options to nodes that will have children
+    nodeMap.forEach((elkNode) => {
+      // Check if this node will have children
+      const hasChildren = nodes.some((n) => (n as unknown as { parentNode?: string }).parentNode === elkNode.id);
+      if (hasChildren) {
         elkNode.layoutOptions = {
-          'elk.padding': '[top=40,left=20,bottom=20,right=20]',
+          'elk.algorithm': 'layered',
+          'elk.direction': elkDirection,
+          'elk.padding': '[top=30,left=30,bottom=30,right=30]',
+          'elk.spacing.nodeNode': '20',
+          'elk.layered.spacing.nodeNodeBetweenLayers': '30',
         };
       }
+    });
 
-      return elkNode;
-    };
+    // Second pass: build hierarchy based on parentNode
+    nodes.forEach((node) => {
+      const elkNode = nodeMap.get(node.id);
+      if (!elkNode) return;
 
-    // Build root-level nodes (packages)
-    const elkNodes = packageNodes.map((node) => buildElkNode(node));
+      const parentNodeId = (node as unknown as { parentNode?: string }).parentNode;
+      if (parentNodeId) {
+        const parent = nodeMap.get(parentNodeId);
+        if (parent) {
+          parent.children = parent.children ?? [];
+          parent.children.push(elkNode);
+        }
+      } else {
+        rootNodes.push(elkNode);
+      }
+    });
 
-    // Filter edges to only include valid connections and exclude containment edges
-    // Containment edges (parent-child in hierarchy) should not constrain the layout
+    // Filter edges to only include valid connections
+    // Containment is now handled by hierarchy, not edges
     const validEdges = edges.filter((edge) => {
-      const hasValidNodes = nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target);
-      const edgeData = edge.data as { type?: string } | undefined;
-      const isNotContainment = edgeData?.type !== 'contains';
-      return hasValidNodes && isNotContainment;
+      return nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target);
     });
 
     // Define ELK edge type - ELK uses sources/targets arrays
@@ -130,12 +143,13 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       edges: ElkEdge[];
     }
 
-    // Create the ELK graph
+    // Create the ELK graph with hierarchical structure
     const elkGraph: ElkGraph = {
       id: 'root',
       layoutOptions: {
         'elk.algorithm': 'layered',
-        'elk.direction': config.direction,
+        'elk.direction': elkDirection,
+        'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
         'elk.spacing.nodeNode': String(config.nodesep),
         'elk.layered.spacing.nodeNodeBetweenLayers': String(config.ranksep),
         'elk.layered.spacing.edgeNodeBetweenLayers': String(config.edgesep),
@@ -147,38 +161,38 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         'elk.layered.cycleBreaking.strategy': 'GREEDY',
         'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
         'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-        'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-        'elk.padding': '[top=40,left=40,bottom=40,right=40]',
+        'elk.padding': '[top=50,left=50,bottom=50,right=50]',
+        // Padding for nested nodes (children within parents)
+        'elk.spacing.componentComponent': '30',
+        'elk.spacing.portPort': '10',
       },
-      children: elkNodes,
+      children: rootNodes,
       edges: elkEdges,
     };
 
     const layoutedGraph = await elk.layout(elkGraph);
 
-    // Flatten the hierarchical result back to a flat array with absolute positions
-    const flattenNodes = (elkNode: ElkNode, parentX = 0, parentY = 0): { id: string; x: number; y: number }[] => {
-      const nodeX = (elkNode.x ?? 0) + parentX;
-      const nodeY = (elkNode.y ?? 0) + parentY;
-      const result = [{ id: elkNode.id, x: nodeX, y: nodeY }];
-
-      if (elkNode.children && elkNode.children.length > 0) {
-        elkNode.children.forEach((child) => {
-          result.push(...flattenNodes(child, nodeX, nodeY));
-        });
-      }
-
-      return result;
-    };
-
-    // Flatten all nodes from the hierarchy
+    // Extract positions from the hierarchical layout recursively
+    // For VueFlow, nested nodes need RELATIVE positions to their parent, not absolute
     const positionMap = new Map<string, { x: number; y: number }>();
-    if (layoutedGraph.children) {
-      layoutedGraph.children.forEach((child) => {
-        flattenNodes(child as ElkNode).forEach((item) => {
-          positionMap.set(item.id, { x: item.x, y: item.y });
-        });
+
+    function extractPositions(nodes: ElkNode[], isRoot = true): void {
+      nodes.forEach((node) => {
+        // For root nodes, use absolute positions
+        // For nested nodes, use relative positions (as calculated by ELK within the parent)
+        const x = node.x ?? 0;
+        const y = node.y ?? 0;
+        positionMap.set(node.id, { x, y });
+
+        // Recursively process children with their relative positions
+        if (node.children && node.children.length > 0) {
+          extractPositions(node.children, false);
+        }
       });
+    }
+
+    if (layoutedGraph.children) {
+      extractPositions(layoutedGraph.children, true);
     }
 
     // Apply positions to nodes

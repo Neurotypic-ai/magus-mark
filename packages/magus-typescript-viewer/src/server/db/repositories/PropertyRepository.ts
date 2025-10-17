@@ -241,7 +241,7 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
         `SELECT p.* FROM properties p 
          WHERE p.parent_id = ? 
          AND p.parent_type = ?`,
-        [String(parentId), String(parentType)]
+        [parentId, parentType]
       );
 
       this.logger.debug(`Found ${String(properties.length)} properties for ${parentType} ${parentId}`);

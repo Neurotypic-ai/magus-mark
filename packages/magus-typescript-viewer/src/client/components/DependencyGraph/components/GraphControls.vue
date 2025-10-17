@@ -112,9 +112,7 @@ const handleSpacingChange = () => {
         <h4 class="text-sm font-semibold text-text-primary mb-2">Spacing</h4>
         <div class="flex flex-col gap-3">
           <div>
-            <label class="text-xs text-text-secondary block mb-1">
-              Node Spacing: {{ nodeSpacing }}
-            </label>
+            <label class="text-xs text-text-secondary block mb-1"> Node Spacing: {{ nodeSpacing }} </label>
             <input
               v-model.number="nodeSpacing"
               type="range"
@@ -126,9 +124,7 @@ const handleSpacingChange = () => {
             />
           </div>
           <div>
-            <label class="text-xs text-text-secondary block mb-1">
-              Rank Spacing: {{ rankSpacing }}
-            </label>
+            <label class="text-xs text-text-secondary block mb-1"> Rank Spacing: {{ rankSpacing }} </label>
             <input
               v-model.number="rankSpacing"
               type="range"

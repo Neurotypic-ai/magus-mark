@@ -50,6 +50,7 @@ const layoutConfig = {
   direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT',
   nodeSpacing: 100,
   rankSpacing: 150,
+  edgeSpacing: 50,
 };
 
 // Create WebWorkerLayoutProcessor
@@ -60,10 +61,12 @@ const initializeLayoutProcessor = () => {
   }
 
   // Create a new instance
+  // Note: WebWorkerLayoutProcessor internally converts TB/LR/etc to DOWN/RIGHT/etc
   layoutProcessor = new WebWorkerLayoutProcessor({
     direction: layoutConfig.direction,
     nodeSpacing: layoutConfig.nodeSpacing,
     rankSpacing: layoutConfig.rankSpacing,
+    edgeSpacing: layoutConfig.edgeSpacing,
     theme: graphTheme,
     animationDuration: 150,
   });

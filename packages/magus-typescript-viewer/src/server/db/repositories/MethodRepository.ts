@@ -143,7 +143,7 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
       if (error instanceof RepositoryError) {
         throw error;
       }
-      throw new RepositoryError('Failed to update method', 'update', String(this.errorTag), error as Error);
+      throw new RepositoryError('Failed to update method', 'update', this.errorTag, error as Error);
     }
   }
 
@@ -155,12 +155,12 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
 
       if (id !== undefined) {
         conditions.push('m.id = ?');
-        params.push(String(id));
+        params.push(id);
       }
 
       if (module_id !== undefined) {
         conditions.push('m.module_id = ?');
-        params.push(String(module_id));
+        params.push(module_id);
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -180,17 +180,17 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
       return results.map(
         (method) =>
           new Method(
-            String(method.id),
-            String(method.package_id),
-            String(method.module_id),
-            String(method.parent_id),
-            String(method.name),
-            new Date(String(method.created_at)),
+            method.id,
+            method.package_id,
+            method.module_id,
+            method.parent_id,
+            method.name,
+            new Date(method.created_at),
             new Map<string, Parameter>(),
-            String(method.return_type),
-            Boolean(method.is_static),
-            Boolean(method.is_async),
-            String(method.visibility) as VisibilityType
+            method.return_type,
+            method.is_static,
+            method.is_async,
+            method.visibility as VisibilityType
           )
       );
     } catch (error) {
@@ -229,10 +229,10 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
         `SELECT m.* FROM methods m 
          WHERE m.parent_id = ? 
          AND m.parent_type = ?`,
-        [String(parentId), String(parentType)]
+        [parentId, parentType]
       );
 
-      this.logger.debug(`Found ${String(methods.length)} methods for ${parentType} ${parentId}`);
+      this.logger.debug(`Found ${methods.length.toString()} methods for ${parentType} ${parentId}`);
 
       // Early return if no methods found - avoid executing parameter query with empty array
       if (methods.length === 0) {
@@ -241,7 +241,7 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
       }
 
       // Get all method IDs for parameter query - explicitly typed as DuckDBValue[]
-      const methodIds: string[] = methods.map((m) => String(m.id));
+      const methodIds: string[] = methods.map((m) => m.id);
       const placeholders = methodIds.map(() => '?').join(',');
 
       // Fetch parameters for all methods in a single query
@@ -252,7 +252,7 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
         methodIds as DuckDBValue[]
       );
 
-      this.logger.debug(`Found ${String(parameters.length)} parameters for ${String(methodIds.length)} methods`);
+      this.logger.debug(`Found ${parameters.length.toString()} parameters for ${methodIds.length.toString()} methods`);
 
       // Build method map with parameters
       const methodMap = new Map<string, Method>();
@@ -261,40 +261,40 @@ export class MethodRepository extends BaseRepository<Method, IMethodCreateDTO, I
 
         // Add parameters to the method
         parameters
-          .filter((p) => String(p.method_id) === String(method.id))
+          .filter((p) => p.method_id === method.id)
           .forEach((p) => {
             methodParameters.set(
-              String(p.id),
+              p.id,
               new Parameter(
-                String(p.id),
-                String(p.package_id),
-                String(p.module_id),
-                String(p.method_id),
-                String(p.name),
-                new Date(String(p.created_at)),
-                String(p.type),
+                p.id,
+                p.package_id,
+                p.module_id,
+                p.method_id,
+                p.name,
+                new Date(p.created_at),
+                p.type,
                 Boolean(p.is_optional),
                 Boolean(p.is_rest),
-                p.default_value ? String(p.default_value) : undefined
+                p.default_value ?? undefined
               )
             );
           });
 
-        // Create method with its parameters
+        // Create method with its parameters (tolerate missing created_at in legacy DBs)
         methodMap.set(
-          String(method.id),
+          method.id,
           new Method(
-            String(method.id),
-            String(method.package_id),
-            String(method.module_id),
-            String(method.parent_id),
-            String(method.name),
-            new Date(String(method.created_at)),
+            method.id,
+            method.package_id,
+            method.module_id,
+            method.parent_id,
+            method.name,
+            new Date((method as unknown as { created_at?: string }).created_at ?? new Date().toISOString()),
             methodParameters,
-            String(method.return_type),
-            Boolean(method.is_static),
-            Boolean(method.is_async),
-            String(method.visibility) as VisibilityType
+            method.return_type,
+            method.is_static,
+            method.is_async,
+            method.visibility as VisibilityType
           )
         );
       }

@@ -12,7 +12,18 @@ import type { DependencyKind } from '../types';
  * Components are marked as raw to prevent Vue from making them reactive,
  * which avoids unnecessary performance overhead
  */
-const nodeTypeKeys: DependencyKind[] = ['package', 'module', 'class', 'interface', 'enum', 'type', 'function', 'group'];
+const nodeTypeKeys: DependencyKind[] = [
+  'package',
+  'module',
+  'class',
+  'interface',
+  'enum',
+  'type',
+  'function',
+  'group',
+  'property',
+  'method',
+];
 
 // Create the nodeTypes object with properly typed keys and components
 // markRaw prevents Vue from making component definitions reactive

@@ -30,15 +30,36 @@ const containerClasses = computed(() => {
     'shadow-lg',
   ];
 
-  const sizeClasses = nodeType.value === 'package' ? ['text-sm', 'p-3'] : ['text-xs', 'p-2'];
+  let sizeClasses: string[];
+  let bgClass: string;
+  let zIndexClass: string;
 
-  const bgClass = nodeType.value === 'package' ? 'bg-background-node-package' : 'bg-background-node';
+  switch (nodeType.value) {
+    case 'package':
+      sizeClasses = ['text-sm', 'p-3'];
+      bgClass = 'bg-background-node-package';
+      zIndexClass = 'z-[5]';
+      break;
+    case 'module':
+      sizeClasses = ['text-xs', 'p-2'];
+      bgClass = 'bg-background-node';
+      zIndexClass = 'z-[4]';
+      break;
+    case 'class':
+    case 'interface':
+      sizeClasses = ['text-xs', 'p-2'];
+      bgClass = 'bg-background-node';
+      zIndexClass = 'z-[3]';
+      break;
+    default:
+      sizeClasses = ['text-xs', 'p-2'];
+      bgClass = 'bg-background-node';
+      zIndexClass = 'z-[1]';
+  }
 
   const borderClass = isSelected.value
     ? 'border-border-focus shadow-[0_0_12px_rgba(144,202,249,0.4)]'
     : 'border-border-default hover:border-border-hover';
-
-  const zIndexClass = nodeType.value === 'package' ? 'z-[5]' : 'z-[1]';
 
   return [...baseClasses, ...sizeClasses, bgClass, borderClass, zIndexClass].join(' ');
 });
@@ -64,7 +85,7 @@ const containerClasses = computed(() => {
     </div>
 
     <!-- Node Content -->
-    <div class="flex flex-col gap-1 max-h-[120px] overflow-y-auto">
+    <div class="flex flex-col gap-1">
       <!-- Properties Section -->
       <div
         v-if="nodeData.properties && nodeData.properties.length > 0"
