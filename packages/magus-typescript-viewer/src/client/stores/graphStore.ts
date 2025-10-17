@@ -1,3 +1,5 @@
+import type { Ref } from 'vue';
+
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 
@@ -7,10 +9,22 @@ import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/ty
 const NODES_CACHE_KEY = 'typescript-viewer-nodes';
 const EDGES_CACHE_KEY = 'typescript-viewer-edges';
 
+interface GraphStore {
+  nodes: Ref<DependencyNode[]>;
+  edges: Ref<GraphEdge[]>;
+  selectedNode: Ref<DependencyNode | null>;
+  cacheKey: Ref<string | null>;
+  setNodes: (newNodes: DependencyNode[]) => void;
+  setEdges: (newEdges: GraphEdge[]) => void;
+  setSelectedNode: (node: DependencyNode | null) => void;
+  setCacheKey: (key: string | null) => void;
+  clearCache: () => void;
+}
+
 /**
  * Pinia store for graph state management
  */
-export const useGraphStore = defineStore('graph', () => {
+export const useGraphStore = defineStore('graph', (): GraphStore => {
   // State
   const nodes = ref<DependencyNode[]>([]);
   const edges = ref<GraphEdge[]>([]);
@@ -76,7 +90,7 @@ export const useGraphStore = defineStore('graph', () => {
     cacheKey.value = key;
   };
 
-  const clearCache = () => {
+  const clearCache = (): void => {
     try {
       localStorage.removeItem(NODES_CACHE_KEY);
       localStorage.removeItem(EDGES_CACHE_KEY);
