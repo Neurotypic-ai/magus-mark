@@ -140,7 +140,18 @@ const initializeGraph = async () => {
   graphLogger.info(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
   if (graphEdges.length > 0) {
     graphLogger.info('Sample edges:', graphEdges.slice(0, 3));
-    graphLogger.info('Edge types:', [...new Set(graphEdges.map((e) => e.data?.type))]);
+    graphLogger.info('First edge FULL object:', JSON.stringify(graphEdges[0], null, 2));
+    const edgeTypes = [...new Set(graphEdges.map((e) => e.data?.type))];
+    graphLogger.info('Edge types:', edgeTypes);
+
+    // Count edges by type
+    const edgeTypeCounts: Record<string, number> = {};
+    graphEdges.forEach((e) => {
+      const type = e.data?.type ?? 'unknown';
+      edgeTypeCounts[type] = (edgeTypeCounts[type] ?? 0) + 1;
+    });
+    graphLogger.info('Edge counts by type:', edgeTypeCounts);
+
     graphLogger.info(
       'All edges have hidden=false:',
       graphEdges.every((e) => e.hidden === false)
@@ -325,6 +336,12 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :pan-on-scroll="true"
         :zoom-on-scroll="true"
         :zoom-on-double-click="false"
+        :elevate-edges-on-select="true"
+        :default-edge-options="{
+          style: { stroke: '#61dafb', strokeWidth: 3 },
+          markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+          zIndex: 1000,
+        }"
         @node-click="onNodeClick"
       >
         <Background />
