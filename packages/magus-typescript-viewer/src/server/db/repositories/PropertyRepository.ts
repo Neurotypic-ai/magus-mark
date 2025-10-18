@@ -199,10 +199,10 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
       }
 
       if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
+        query = query + ' WHERE ' + conditions.join(' AND ');
       }
 
-      const results = await this.executeQuery<IPropertyRow>('retrieve', query, params);
+      const results = await this.executeQuery<IPropertyRow>('retrieve properties', query, params);
       return results.map(
         (prop) =>
           new Property(
@@ -238,9 +238,7 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
       // Fetch properties with proper parameter handling
       const properties = await this.executeQuery<IPropertyRow>(
         'retrieve properties',
-        `SELECT p.* FROM properties p 
-         WHERE p.parent_id = ? 
-         AND p.parent_type = ?`,
+        'SELECT * FROM properties WHERE parent_id = ? AND parent_type = ?',
         [parentId, parentType]
       );
 

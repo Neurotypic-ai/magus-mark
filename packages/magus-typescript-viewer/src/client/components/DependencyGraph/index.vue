@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background';
-import { VueFlow, useVueFlow } from '@vue-flow/core';
+import { Panel, VueFlow, useVueFlow } from '@vue-flow/core';
 import { computed, onUnmounted, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
@@ -183,83 +183,72 @@ const initializeGraph = async () => {
 // Watch for data changes
 watch(() => props.data, initializeGraph, { immediate: true });
 
-// Node click handler with edge highlighting
-const onNodeClick = ({ node }: { node: unknown }): void => {
+// Node click handler with focused layout
+const onNodeClick = async ({ node }: { node: unknown }): Promise<void> => {
   const selectedNode = node as DependencyNode;
   graphStore['setSelectedNode'](selectedNode);
 
   // Find all connected node IDs
   const connectedNodeIds = new Set<string>([selectedNode.id]);
+  const connectedEdges: GraphEdge[] = [];
+
   edges.value.forEach((edge: GraphEdge) => {
     if (edge.source === selectedNode.id) {
       connectedNodeIds.add(edge.target);
+      connectedEdges.push(edge);
     } else if (edge.target === selectedNode.id) {
       connectedNodeIds.add(edge.source);
+      connectedEdges.push(edge);
     }
   });
 
-  // Highlight connected nodes
-  const highlightedNodes = nodes.value.map((n: DependencyNode) => {
-    const isConnected = connectedNodeIds.has(n.id);
-    return {
+  graphLogger.info(`Selected node: ${selectedNode.data.label}, Connected nodes: ${connectedNodeIds.size - 1}`);
+
+  // Create focused subgraph with selected node and its connections
+  const focusedNodes = nodes.value
+    .filter((n: DependencyNode) => connectedNodeIds.has(n.id))
+    .map((n: DependencyNode) => ({
       ...n,
       style: {
         ...n.style,
-        opacity: isConnected ? 1 : 0.3, // Dim unconnected nodes
-        borderWidth: n.id === selectedNode.id ? '3px' : isConnected ? '2px' : '1px',
-        borderColor: n.id === selectedNode.id ? '#00ffff' : isConnected ? '#61dafb' : (n.style?.borderColor as string),
+        borderWidth: n.id === selectedNode.id ? '3px' : '2px',
+        borderColor: n.id === selectedNode.id ? '#00ffff' : '#61dafb',
       },
-    };
-  });
+    }));
 
-  graphStore['setNodes'](highlightedNodes);
-
-  // Highlight edges connected to the selected node
-  const highlightedEdges = edges.value.map((edge: GraphEdge) => {
-    const isConnected = edge.source === selectedNode.id || edge.target === selectedNode.id;
-
-    return {
-      ...edge,
-      style: {
-        ...edge.style,
-        stroke: isConnected ? '#00ffff' : edge.style?.stroke, // Bright cyan for connected
-        strokeWidth: isConnected ? 4 : 1, // Thicker when connected
-        opacity: isConnected ? 1 : 0.2, // Dim unconnected edges
-      },
-      animated: isConnected, // Animate connected edges
-    };
-  });
-
-  graphStore['setEdges'](highlightedEdges);
-};
-
-// Pane click handler to deselect and reset highlighting
-const onPaneClick = (): void => {
-  graphStore['setSelectedNode'](null);
-
-  // Reset all nodes to normal styling
-  const resetNodes = nodes.value.map((n: DependencyNode) => ({
-    ...n,
-    style: {
-      ...getNodeStyle(n.type as DependencyKind),
-      opacity: 1,
-    },
-  }));
-
-  graphStore['setNodes'](resetNodes);
-
-  // Reset all edges to normal styling
-  const resetEdges = edges.value.map((edge: GraphEdge) => ({
+  const focusedEdges = connectedEdges.map((edge: GraphEdge) => ({
     ...edge,
     style: {
       ...edge.style,
-      strokeWidth: 3,
+      stroke: '#00ffff',
+      strokeWidth: 4,
       opacity: 1,
     },
-    animated: false,
+    animated: true,
   }));
 
-  graphStore['setEdges'](resetEdges);
+  // Trigger re-layout with focused subgraph
+  await processGraphLayout({
+    nodes: focusedNodes,
+    edges: focusedEdges,
+  });
+
+  // Fit view to the focused subgraph
+  await fitView({
+    duration: 300,
+    padding: 0.3,
+    nodes: Array.from(connectedNodeIds),
+  });
+};
+
+// Pane click handler to deselect and restore full graph
+const onPaneClick = async (): Promise<void> => {
+  graphStore['setSelectedNode'](null);
+
+  graphLogger.info('Restoring full graph view');
+
+  // Restore full graph by re-initializing
+  await initializeGraph();
 };
 
 // Filter handler for relationship types
@@ -430,6 +419,17 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         />
         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />
+
+        <!-- Back to Full Graph button -->
+        <Panel v-if="selectedNode" position="bottom-left">
+          <button
+            @click="onPaneClick"
+            class="px-4 py-2 bg-primary-main text-white rounded-md hover:bg-primary-dark transition-colors shadow-lg border border-primary-light"
+            aria-label="Return to full graph view"
+          >
+            ← Back to Full Graph
+          </button>
+        </Panel>
       </VueFlow>
     </button>
   </div>
