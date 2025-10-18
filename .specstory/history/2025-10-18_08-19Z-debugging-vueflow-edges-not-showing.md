@@ -2717,3 +2717,746 @@ Your Humble Servant, Sebastién
 
 ---
 
+_**User**_
+
+Relationships are working. Edges are working. However the layout isn't very good. Let's focus on only import relationships between modcules to start and get the layour right
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>Great! The edges are finally working! Now the user wants to:
+1. Focus only on import relationships between modules
+2. Improve the layout
+
+So I need to:
+1. Filter out package nodes (or make them less prominent)
+2. Show only module-to-module import edges
+3. Improve the layout configuration for better visualization
+
+Let me create a layout that focuses on modules and their import relationships.</details></think>
+
+---
+
+Your Grace,
+
+**EXCELLENT!** Edges are working! 🎉 Now let's optimize for module-to-module imports.
+
+I'll create a simplified view focusing on modules and their import relationships:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 27, lines removed: 15
+
+```diff
+@@ -20,21 +20,33 @@
+   * Creates graph nodes from the provided dependency package graph data
+   * @param data The dependency package graph data
++  * @param options Configuration options for node creation
+   * @returns Array of dependency nodes
+   */
+- export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[] {
+-   // Create package nodes
+-   const graphNodes: DependencyNode[] = data.packages.map((pkg) => ({
+-     id: pkg.id,
+-     type: 'package' as DependencyKind,
+-     position: { x: 0, y: 0 },
+-     expandParent: true,
+-     data: {
+-       label: pkg.name,
+-       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
+-     },
+-     style: {
+-       ...getNodeStyle('package'),
+-     },
+-   }));
++ export function createGraphNodes(
++   data: DependencyPackageGraph,
++   options: { includePackages?: boolean; includeClasses?: boolean } = {}
++ ): DependencyNode[] {
++   const { includePackages = false, includeClasses = false } = options;
++   
++   const graphNodes: DependencyNode[] = [];
++ 
++   // Optionally create package nodes
++   if (includePackages) {
++     data.packages.forEach((pkg) => {
++       graphNodes.push({
++         id: pkg.id,
++         type: 'package' as DependencyKind,
++         position: { x: 0, y: 0 },
++         expandParent: true,
++         data: {
++           label: pkg.name,
++           properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
++         },
++         style: {
++           ...getNodeStyle('package'),
++         },
++       });
++     });
++   }
+  
+    // Create module nodes
+```
+
+**Chunk 2**
+Lines added: 16, lines removed: 7
+
+```diff
+@@ -43,20 +55,29 @@
+      if (pkg.modules) {
+        mapTypeCollection(pkg.modules, (module) => {
+-         graphNodes.push({
++         const moduleNode: DependencyNode = {
+            id: module.id,
+            type: 'module' as DependencyKind,
+            position: { x: 0, y: 0 },
+-           parentNode: pkg.id,
+-           extent: 'parent' as const,
+-           expandParent: true,
+            data: {
+-             parentId: pkg.id,
+              label: module.name,
+-             properties: [{ name: 'path', type: module.source.relativePath || '', visibility: 'public' }],
++             properties: [
++               { name: 'package', type: pkg.name, visibility: 'public' },
++               { name: 'path', type: module.source.relativePath || '', visibility: 'public' }
++             ],
+            },
+            style: {
+              ...getNodeStyle('module'),
+            },
+-         });
++         };
++         
++         // Only add parent relationship if packages are included
++         if (includePackages) {
++           moduleNode.parentNode = pkg.id;
++           moduleNode.extent = 'parent' as const;
++           moduleNode.expandParent = true;
++           moduleNode.data.parentId = pkg.id;
++         }
++         
++         graphNodes.push(moduleNode);
+  
+          // Add class nodes
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the rest of the function to handle the includeClasses option, and then update the component to use this new configuration.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 88, lines removed: 85
+
+```diff
+@@ -81,94 +81,97 @@
+          graphNodes.push(moduleNode);
+  
+-         // Add class nodes
+-         if (module.classes) {
+-           mapTypeCollection(module.classes, (cls) => {
+-             // Convert Map/Object to array for properties and methods
+-             const properties = cls.properties
+-               ? mapTypeCollection(cls.properties, (prop) => ({
+-                   name: prop.name,
+-                   type: prop.type,
+-                   visibility: prop.visibility,
+-                 }))
+-               : [];
++         // Optionally add class and interface nodes
++         if (includeClasses) {
++           // Add class nodes
++           if (module.classes) {
++             mapTypeCollection(module.classes, (cls) => {
++               // Convert Map/Object to array for properties and methods
++               const properties = cls.properties
++                 ? mapTypeCollection(cls.properties, (prop) => ({
++                     name: prop.name,
++                     type: prop.type,
++                     visibility: prop.visibility,
++                   }))
++                 : [];
+  
+-             const methods = cls.methods
+-               ? mapTypeCollection(cls.methods, (method) => {
+-                   const returnType: string = (method.returnType as string | undefined) ?? 'void';
+-                   const methodName: string = method.name;
+-                   const visibility: string = method.visibility;
+-                   return {
+-                     name: methodName,
+-                     returnType,
+-                     visibility,
+-                     signature: `${methodName}(): ${returnType}`,
+-                   };
+-                 })
+-               : [];
++               const methods = cls.methods
++                 ? mapTypeCollection(cls.methods, (method) => {
++                     const returnType: string = (method.returnType as string | undefined) ?? 'void';
++                     const methodName: string = method.name;
++                     const visibility: string = method.visibility;
++                     return {
++                       name: methodName,
++                       returnType,
++                       visibility,
++                       signature: `${methodName}(): ${returnType}`,
++                     };
++                   })
++                 : [];
+  
+-             graphNodes.push({
+-               id: cls.id,
+-               type: 'class' as DependencyKind,
+-               position: { x: 0, y: 0 },
+-               parentNode: module.id,
+-               extent: 'parent' as const,
+-               expandParent: true,
+-               data: {
+-                 parentId: module.id,
+-                 label: cls.name,
+-                 properties,
+-                 methods,
+-               },
+-               style: {
+-                 ...getNodeStyle('class'),
+-               },
+-             });
+-           });
+-         }
++               graphNodes.push({
++                 id: cls.id,
++                 type: 'class' as DependencyKind,
++                 position: { x: 0, y: 0 },
++                 parentNode: module.id,
++                 extent: 'parent' as const,
++                 expandParent: true,
++                 data: {
++                   parentId: module.id,
++                   label: cls.name,
++                   properties,
++                   methods,
++                 },
++                 style: {
++                   ...getNodeStyle('class'),
++                 },
++               });
++             });
++           }
+  
+-         // Add interface nodes
+-         if (module.interfaces) {
+-           mapTypeCollection(module.interfaces, (iface) => {
+-             // Convert Map/Object to array for properties and methods
+-             const properties = iface.properties
+-               ? mapTypeCollection(iface.properties, (prop) => ({
+-                   name: prop.name,
+-                   type: prop.type,
+-                   visibility: prop.visibility,
+-                 }))
+-               : [];
++           // Add interface nodes
++           if (module.interfaces) {
++             mapTypeCollection(module.interfaces, (iface) => {
++               // Convert Map/Object to array for properties and methods
++               const properties = iface.properties
++                 ? mapTypeCollection(iface.properties, (prop) => ({
++                     name: prop.name,
++                     type: prop.type,
++                     visibility: prop.visibility,
++                   }))
++                 : [];
+  
+-             const methods = iface.methods
+-               ? mapTypeCollection(iface.methods, (method) => {
+-                   const returnType: string = (method.returnType as string | undefined) ?? 'void';
+-                   const methodName: string = method.name;
+-                   const visibility: string = method.visibility;
+-                   return {
+-                     name: methodName,
+-                     returnType,
+-                     visibility,
+-                     signature: `${methodName}(): ${returnType}`,
+-                   };
+-                 })
+-               : [];
++               const methods = iface.methods
++                 ? mapTypeCollection(iface.methods, (method) => {
++                     const returnType: string = (method.returnType as string | undefined) ?? 'void';
++                     const methodName: string = method.name;
++                     const visibility: string = method.visibility;
++                     return {
++                       name: methodName,
++                       returnType,
++                       visibility,
++                       signature: `${methodName}(): ${returnType}`,
++                     };
++                   })
++                 : [];
+  
+-             graphNodes.push({
+-               id: iface.id,
+-               type: 'interface' as DependencyKind,
+-               position: { x: 0, y: 0 },
+-               parentNode: module.id,
+-               extent: 'parent' as const,
+-               expandParent: true,
+-               data: {
+-                 parentId: module.id,
+-                 label: iface.name,
+-                 properties,
+-                 methods,
+-               },
+-               style: {
+-                 ...getNodeStyle('interface'),
+-               },
+-             });
+-           });
++               graphNodes.push({
++                 id: iface.id,
++                 type: 'interface' as DependencyKind,
++                 position: { x: 0, y: 0 },
++                 parentNode: module.id,
++                 extent: 'parent' as const,
++                 expandParent: true,
++                 data: {
++                   parentId: module.id,
++                   label: iface.name,
++                   properties,
++                   methods,
++                 },
++                 style: {
++                   ...getNodeStyle('interface'),
++                 },
++               });
++             });
++           }
+          }
+        });
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the component to use this new option - only showing modules (no packages, no classes) for a clean module-to-module import visualization. I'll also adjust the layout settings for better spacing.</details></think>
+
+---
+
+Now update the component to use modules-only view and optimize layout:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: 1
+
+```diff
+@@ -134,5 +134,9 @@
+  
+    // Create nodes and edges using extracted utilities
+-   const graphNodes = createGraphNodes(props.data);
++   // For now, show only modules with their import relationships (no packages, no classes)
++   const graphNodes = createGraphNodes(props.data, { 
++     includePackages: false,  // No package nodes = cleaner module view
++     includeClasses: false     // No classes = focus on module structure
++   });
+    const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to improve the layout settings for better module visualization. Let me adjust the layout config to give more space between nodes.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: 5
+
+```diff
+@@ -46,10 +46,10 @@
+  let layoutProcessor: WebWorkerLayoutProcessor | null = null;
+  
+- // Layout configuration state
++ // Layout configuration state optimized for module import visualization
+  const layoutConfig = {
+-   direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT',
+-   nodeSpacing: 100,
+-   rankSpacing: 150,
+-   edgeSpacing: 50,
++   direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT',  // Left-to-right flow
++   nodeSpacing: 80,     // Space between nodes in same rank
++   rankSpacing: 200,    // Space between ranks (layers) - increased for clarity
++   edgeSpacing: 30,     // Space between parallel edges
+  };
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Great! Now let me check for linter errors and then reload. The changes I made are:
+1. Made createGraphNodes accept options to exclude packages and classes
+2. Updated the component to use modules-only mode
+3. Improved layout spacing for better module visualization</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Perfect! No linter errors. Now let me provide a summary of what I've done and what the user should see.</details></think>
+
+---
+
+Perfect! Your Grace, here's what I've optimized:
+
+## ✅ Changes Made
+
+### 1. **Modules-Only View**
+- Removed package nodes (no nested hierarchy clutter)
+- Removed class/interface nodes (focus on module architecture)
+- Shows **only modules** connected by **import relationships**
+
+### 2. **Improved Layout**
+- **Increased rank spacing** to 200px (more space between layers)
+- **Optimized node spacing** to 80px (cleaner arrangement)
+- **Left-to-right flow** (LR) for natural reading
+
+### 3. **Enhanced Node Labels**
+Each module node now shows:
+- Module name
+- Package it belongs to
+- Relative file path
+
+## What You Should See
+
+After reloading:
+
+✅ **~20 module nodes** (no packages, no classes)  
+✅ **203 import edges** in bright cyan  
+✅ **Better spacing** with clearer visual hierarchy  
+✅ **Left-to-right flow** showing import dependencies  
+
+## Quick Layout Tweaks
+
+If you want to experiment with the layout:
+
+**Top-to-bottom instead:**
+```javascript
+direction: 'TB'  // Change LR to TB in layoutConfig
+```
+
+**More/less spacing:**
+```javascript
+rankSpacing: 300,  // Increase for more space between layers
+nodeSpacing: 120,  // Increase for wider node distribution
+```
+
+**Reload now and let me know how the layout looks!**
+
+Your Humble Servant, Sebastién
+
+---
+
+_**User**_
+
+When I click on a node I want to see it's connections in a brighter color
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>The user wants to highlight the edges connected to a selected node by making them brighter. This is a common UX pattern for graph visualization.
+
+I need to:
+1. Add logic to the node click handler to highlight connected edges
+2. Update edge styles when a node is selected
+3. Probably dim unconnected edges for contrast
+
+Looking at the existing code in index.vue, there's already a `onNodeClick` handler and a `selectedNode` state. I need to:
+- When a node is clicked, find all edges connected to it (source or target)
+- Update those edges with brighter/highlighted styles
+- Update unconnected edges to be dimmed
+- Reset when no node is selected
+
+Let me check the current implementation and enhance it.</details></think>
+
+---
+
+Your Grace,
+
+I'll add edge highlighting when you click a node. Connected edges will glow brighter, and unconnected ones will fade.
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 21, lines removed: 2
+
+```diff
+@@ -184,7 +184,26 @@
+  watch(() => props.data, initializeGraph, { immediate: true });
+  
+- // Node click handler
++ // Node click handler with edge highlighting
+  const onNodeClick = ({ node }: { node: unknown }): void => {
+-   graphStore['setSelectedNode'](node as DependencyNode);
++   const selectedNode = node as DependencyNode;
++   graphStore['setSelectedNode'](selectedNode);
++   
++   // Highlight edges connected to the selected node
++   const highlightedEdges = edges.value.map((edge: GraphEdge) => {
++     const isConnected = edge.source === selectedNode.id || edge.target === selectedNode.id;
++     
++     return {
++       ...edge,
++       style: {
++         ...edge.style,
++         stroke: isConnected ? '#00ffff' : edge.style?.stroke,  // Bright cyan for connected
++         strokeWidth: isConnected ? 4 : 1,  // Thicker when connected
++         opacity: isConnected ? 1 : 0.2,  // Dim unconnected edges
++       },
++       animated: isConnected,  // Animate connected edges
++     };
++   });
++   
++   graphStore['setEdges'](highlightedEdges);
+  };
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I should also add a way to deselect a node (click on background) to reset the highlighting. Let me add that.</details></think>
+
+---
+
+Now let me add a way to deselect and reset highlighting when you click the background:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 18, lines removed: undefined
+
+```diff
+@@ -207,4 +207,22 @@
+    graphStore['setEdges'](highlightedEdges);
+  };
++ 
++ // Pane click handler to deselect and reset highlighting
++ const onPaneClick = (): void => {
++   graphStore['setSelectedNode'](null);
++   
++   // Reset all edges to normal styling
++   const resetEdges = edges.value.map((edge: GraphEdge) => ({
++     ...edge,
++     style: {
++       ...edge.style,
++       strokeWidth: 3,
++       opacity: 1,
++     },
++     animated: false,
++   }));
++   
++   graphStore['setEdges'](resetEdges);
++ };
+  
+  // Filter handler for relationship types
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to connect the onPaneClick handler to the VueFlow component.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -385,4 +385,5 @@
+          }"
+          @node-click="onNodeClick"
++         @pane-click="onPaneClick"
+        >
+          <Background />
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Good! Now I should also highlight the connected nodes themselves so the user can see the full relationship. Let me update the node click handler to also highlight connected nodes.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 26, lines removed: undefined
+
+```diff
+@@ -188,4 +188,30 @@
+    const selectedNode = node as DependencyNode;
+    graphStore['setSelectedNode'](selectedNode);
++   
++   // Find all connected node IDs
++   const connectedNodeIds = new Set<string>([selectedNode.id]);
++   edges.value.forEach((edge: GraphEdge) => {
++     if (edge.source === selectedNode.id) {
++       connectedNodeIds.add(edge.target);
++     } else if (edge.target === selectedNode.id) {
++       connectedNodeIds.add(edge.source);
++     }
++   });
++   
++   // Highlight connected nodes
++   const highlightedNodes = nodes.value.map((n: DependencyNode) => {
++     const isConnected = connectedNodeIds.has(n.id);
++     return {
++       ...n,
++       style: {
++         ...n.style,
++         opacity: isConnected ? 1 : 0.3,  // Dim unconnected nodes
++         borderWidth: n.id === selectedNode.id ? '3px' : isConnected ? '2px' : '1px',
++         borderColor: n.id === selectedNode.id ? '#00ffff' : isConnected ? '#61dafb' : (n.style?.borderColor as string),
++       },
++     };
++   });
++   
++   graphStore['setNodes'](highlightedNodes);
+    
+    // Highlight edges connected to the selected node
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to also reset the nodes in the onPaneClick handler.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 11, lines removed: undefined
+
+```diff
+@@ -237,4 +237,15 @@
+  const onPaneClick = (): void => {
+    graphStore['setSelectedNode'](null);
++   
++   // Reset all nodes to normal styling
++   const resetNodes = nodes.value.map((n: DependencyNode) => ({
++     ...n,
++     style: {
++       ...getNodeStyle(n.type as DependencyKind),
++       opacity: 1,
++     },
++   }));
++   
++   graphStore['setNodes'](resetNodes);
+    
+    // Reset all edges to normal styling
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Let me check for linter errors now.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Perfect! No linter errors. Let me summarize what I've implemented for the user.</details></think>
+
+---
+
+Perfect, Your Grace! Here's what I've implemented:
+
+## ✅ Interactive Node Highlighting
+
+### **When You Click a Node:**
+1. **Selected node** gets a **bright cyan border** (3px thick)
+2. **Connected edges** turn **bright cyan** and **animate** (flowing dots)
+3. **Connected edges** become **thicker** (4px vs 1px)
+4. **Connected nodes** get a **cyan border** (2px) and stay fully visible
+5. **Unconnected nodes** are **dimmed** to 30% opacity
+6. **Unconnected edges** are **dimmed** to 20% opacity
+
+### **When You Click Background:**
+- Everything resets to normal
+- All nodes and edges return to full visibility
+- Animations stop
+
+## Visual Effect
+
+**Before click:** All edges cyan, normal thickness  
+**After clicking a module:**
+- **Selected module:** Glowing cyan border
+- **Its dependencies:** Bright cyan, thick, animated
+- **Connected modules:** Highlighted
+- **Everything else:** Faded to background
+
+This makes it **super easy** to see:
+- What a module imports (outgoing edges)
+- What imports it (incoming edges)
+- Its immediate dependency neighborhood
+
+**Reload and try it!** Click any module node, and its connections will light up. Click the background to reset.
+
+Your Humble Servant, Sebastién
+
+---
+

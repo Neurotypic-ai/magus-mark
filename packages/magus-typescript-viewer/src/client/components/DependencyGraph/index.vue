@@ -45,12 +45,12 @@ const { fitView } = useVueFlow();
 // Keep a reference to the layout processor for cleanup
 let layoutProcessor: WebWorkerLayoutProcessor | null = null;
 
-// Layout configuration state
+// Layout configuration state optimized for module import visualization
 const layoutConfig = {
-  direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT',
-  nodeSpacing: 100,
-  rankSpacing: 150,
-  edgeSpacing: 50,
+  direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT', // Left-to-right flow
+  nodeSpacing: 80, // Space between nodes in same rank
+  rankSpacing: 200, // Space between ranks (layers) - increased for clarity
+  edgeSpacing: 30, // Space between parallel edges
 };
 
 // Create WebWorkerLayoutProcessor
@@ -133,7 +133,11 @@ const initializeGraph = async () => {
   initializeLayoutProcessor();
 
   // Create nodes and edges using extracted utilities
-  const graphNodes = createGraphNodes(props.data);
+  // For now, show only modules with their import relationships (no packages, no classes)
+  const graphNodes = createGraphNodes(props.data, {
+    includePackages: false, // No package nodes = cleaner module view
+    includeClasses: false, // No classes = focus on module structure
+  });
   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
   // Debug: Log edge creation
@@ -179,9 +183,83 @@ const initializeGraph = async () => {
 // Watch for data changes
 watch(() => props.data, initializeGraph, { immediate: true });
 
-// Node click handler
+// Node click handler with edge highlighting
 const onNodeClick = ({ node }: { node: unknown }): void => {
-  graphStore['setSelectedNode'](node as DependencyNode);
+  const selectedNode = node as DependencyNode;
+  graphStore['setSelectedNode'](selectedNode);
+
+  // Find all connected node IDs
+  const connectedNodeIds = new Set<string>([selectedNode.id]);
+  edges.value.forEach((edge: GraphEdge) => {
+    if (edge.source === selectedNode.id) {
+      connectedNodeIds.add(edge.target);
+    } else if (edge.target === selectedNode.id) {
+      connectedNodeIds.add(edge.source);
+    }
+  });
+
+  // Highlight connected nodes
+  const highlightedNodes = nodes.value.map((n: DependencyNode) => {
+    const isConnected = connectedNodeIds.has(n.id);
+    return {
+      ...n,
+      style: {
+        ...n.style,
+        opacity: isConnected ? 1 : 0.3, // Dim unconnected nodes
+        borderWidth: n.id === selectedNode.id ? '3px' : isConnected ? '2px' : '1px',
+        borderColor: n.id === selectedNode.id ? '#00ffff' : isConnected ? '#61dafb' : (n.style?.borderColor as string),
+      },
+    };
+  });
+
+  graphStore['setNodes'](highlightedNodes);
+
+  // Highlight edges connected to the selected node
+  const highlightedEdges = edges.value.map((edge: GraphEdge) => {
+    const isConnected = edge.source === selectedNode.id || edge.target === selectedNode.id;
+
+    return {
+      ...edge,
+      style: {
+        ...edge.style,
+        stroke: isConnected ? '#00ffff' : edge.style?.stroke, // Bright cyan for connected
+        strokeWidth: isConnected ? 4 : 1, // Thicker when connected
+        opacity: isConnected ? 1 : 0.2, // Dim unconnected edges
+      },
+      animated: isConnected, // Animate connected edges
+    };
+  });
+
+  graphStore['setEdges'](highlightedEdges);
+};
+
+// Pane click handler to deselect and reset highlighting
+const onPaneClick = (): void => {
+  graphStore['setSelectedNode'](null);
+
+  // Reset all nodes to normal styling
+  const resetNodes = nodes.value.map((n: DependencyNode) => ({
+    ...n,
+    style: {
+      ...getNodeStyle(n.type as DependencyKind),
+      opacity: 1,
+    },
+  }));
+
+  graphStore['setNodes'](resetNodes);
+
+  // Reset all edges to normal styling
+  const resetEdges = edges.value.map((edge: GraphEdge) => ({
+    ...edge,
+    style: {
+      ...edge.style,
+      strokeWidth: 3,
+      opacity: 1,
+    },
+    animated: false,
+  }));
+
+  graphStore['setEdges'](resetEdges);
 };
 
 // Filter handler for relationship types
@@ -343,6 +421,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
           zIndex: 1000,
         }"
         @node-click="onNodeClick"
+        @pane-click="onPaneClick"
       >
         <Background />
         <GraphControls
