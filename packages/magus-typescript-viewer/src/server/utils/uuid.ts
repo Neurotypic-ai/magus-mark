@@ -12,6 +12,7 @@ const NAMESPACES = {
   parameter: 'fa4c32fe-43fd-4fb5-a994-9f2d68e72803',
   module: 'a4205160-cef7-471d-a459-24b993d8c0d8',
   enum: '1d6acd05-a181-41bf-be83-b0be97efe3c9',
+  function: 'd9f8e2b3-7c4a-4d1e-9f6a-5c3b8d2a1e4f',
   export: '33c9c31d-ccfa-47b8-8966-0bb08c51fc45',
   import: 'b9a7d20b-45ff-47a4-8eab-42cf921be416',
   typeAlias: '27473cf4-2ac7-477c-a903-01693f9bcf67',
@@ -72,3 +73,6 @@ export const generateTypeAliasUUID = (moduleId: string, name: string): string =>
 
 export const generateModuleDefinitionUUID = (moduleId: string, name: string): string =>
   generateUUID('moduleDefinition', `${moduleId}.${name}`);
+
+export const generateFunctionUUID = (packageId: string, moduleId: string, name: string): string =>
+  generateUUID('function', `${packageId}.${moduleId}.${name}`);

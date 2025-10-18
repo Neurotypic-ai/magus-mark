@@ -2,56 +2,84 @@ import type { DependencyEdgeKind, DependencyKind } from '../components/Dependenc
 
 type CSSProperties = Record<string, string | number | undefined>;
 
-// Graph-specific type definitions
+// Node-related type definitions
+export interface NodePadding {
+  content: number;
+  header: number;
+}
+
+export interface NodeBackgroundColors {
+  default: string;
+  package: string;
+}
+
+export interface NodeColors {
+  background: NodeBackgroundColors;
+  border: string;
+}
+
+export interface NodeDimensions {
+  width: number;
+  height: number;
+}
+
+export interface NodeTheme {
+  padding: NodePadding;
+  colors: NodeColors;
+  borderRadius: number;
+  minDimensions: NodeDimensions;
+}
+
+// Edge-related type definitions
+export interface EdgeWidthSizes {
+  default: number;
+  selected: number;
+  inheritance: number;
+}
+
+export interface EdgeLabelSizes {
+  fontSize: string;
+}
+
+export interface EdgeSizes {
+  width: EdgeWidthSizes;
+  label: EdgeLabelSizes;
+}
+
+export interface EdgeColors {
+  import: string;
+  export: string;
+  inheritance: string;
+  implements: string;
+  dependency: string;
+  devDependency: string;
+  peerDependency: string;
+  contains: string;
+  default: string;
+}
+
+export interface EdgeTheme {
+  sizes: EdgeSizes;
+  colors: EdgeColors;
+}
+
+// Layout-related type definitions
+export interface LayoutSpacing {
+  horizontal: number;
+  vertical: number;
+  edge: number;
+  margin: number;
+}
+
+export interface LayoutTheme {
+  spacing: LayoutSpacing;
+}
+
+// Main theme interface
 export interface GraphTheme {
-  nodes: {
-    padding: {
-      content: number;
-      header: number;
-    };
-    colors: {
-      background: {
-        default: string;
-        package: string;
-      };
-      border: string;
-    };
-    borderRadius: number;
-    minDimensions: {
-      width: number;
-      height: number;
-    };
-  };
-  edges: {
-    sizes: {
-      width: {
-        default: number;
-        selected: number;
-        inheritance: number;
-      };
-      label: {
-        fontSize: string;
-      };
-    };
-    colors: {
-      import: string;
-      export: string;
-      inheritance: string;
-      implements: string;
-      dependency: string;
-      devDependency: string;
-      peerDependency: string;
-      default: string;
-    };
-  };
-  layout: {
-    spacing: {
-      horizontal: number;
-      vertical: number;
-      edge: number;
-      margin: number;
-    };
-  };
+  nodes: NodeTheme;
+  edges: EdgeTheme;
+  layout: LayoutTheme;
 }
 
 // Theme configuration
@@ -93,6 +121,7 @@ export const graphTheme: GraphTheme = {
       dependency: '#f44336',
       devDependency: '#795548',
       peerDependency: '#009688',
+      contains: '#9c27b0',
       default: '#404040',
     },
   },
@@ -215,6 +244,12 @@ export function getEdgeStyle(type: DependencyEdgeKind): CSSProperties {
       return {
         ...baseStyle,
         stroke: defaultTheme.edges.colors.peerDependency,
+      };
+    case 'contains':
+      return {
+        ...baseStyle,
+        stroke: defaultTheme.edges.colors.contains,
+        strokeWidth: 1.5,
       };
     default:
       return baseStyle;

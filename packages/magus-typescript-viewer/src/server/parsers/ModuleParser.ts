@@ -3,10 +3,13 @@ import { dirname, join, relative } from 'path';
 
 import jscodeshift from 'jscodeshift';
 
+import { Export } from '../../shared/types/Export';
 import { Import, ImportSpecifier } from '../../shared/types/Import';
 import { createLogger } from '../../shared/utils/logger';
 import {
   generateClassUUID,
+  generateExportUUID,
+  generateFunctionUUID,
   generateImportUUID,
   generateInterfaceUUID,
   generateMethodUUID,
@@ -34,9 +37,9 @@ import type {
   TSTypeParameter,
 } from 'jscodeshift';
 
-import type { Export } from '../../shared/types/Export';
 import type { FileLocation } from '../../shared/types/FileLocation';
 import type { IClassCreateDTO } from '../db/repositories/ClassRepository';
+import type { IFunctionCreateDTO } from '../db/repositories/FunctionRepository';
 import type { IInterfaceCreateDTO } from '../db/repositories/InterfaceRepository';
 import type { IMethodCreateDTO } from '../db/repositories/MethodRepository';
 import type { IModuleCreateDTO } from '../db/repositories/ModuleRepository';
@@ -47,6 +50,7 @@ import type { ParseResult } from './ParseResult';
 export class ModuleParser {
   private j: JSCodeshift;
   private root: Collection | undefined;
+  private moduleId!: string;
   private imports = new Map<string, Import>();
   private exports = new Set<string>();
   private reExports = new Set<string>();
@@ -75,7 +79,7 @@ export class ModuleParser {
   }
 
   async parse(): Promise<ParseResult> {
-    const moduleId = generateModuleUUID(this.packageId, this.filePath);
+    this.moduleId = generateModuleUUID(this.packageId, this.filePath);
     const relativePath = relative(process.cwd(), this.filePath);
 
     try {
@@ -89,9 +93,10 @@ export class ModuleParser {
 
       const result = {
         package: undefined,
-        modules: [await this.createModuleDTO(moduleId, relativePath)],
+        modules: [await this.createModuleDTO(this.moduleId, relativePath)],
         classes: [] as IClassCreateDTO[],
         interfaces: [] as IInterfaceCreateDTO[],
+        functions: [] as IFunctionCreateDTO[],
         methods: [] as IMethodCreateDTO[],
         properties: [] as IPropertyCreateDTO[],
         parameters: [] as IParameterCreateDTO[],
@@ -100,18 +105,15 @@ export class ModuleParser {
       };
 
       this.parseImportsAndExports();
-      this.parseClasses(moduleId, result);
-      this.parseInterfaces(moduleId, result);
+      this.parseClasses(this.moduleId, result);
+      this.parseInterfaces(this.moduleId, result);
+      this.parseFunctions(this.moduleId, result);
 
-      // // Add collected imports and exports to result
-      // result.imports = Array.from(this.imports.keys()).map((importPath) => ({
-      //   path: importPath,
-      //   symbols: Array.from(this.imports.get(importPath) ?? []),
-      // }));
-      // result.exports = Array.from(this.exports).map((exportName) => ({
-      //   name: exportName,
-      //   isBarrel: this.isBarrelFile(),
-      // }));
+      // Add collected imports and exports to result
+      result.imports = Array.from(this.imports.values());
+      result.exports = Array.from(this.exports).map(
+        (exportName) => new Export(generateExportUUID(this.moduleId, exportName), this.moduleId, exportName, false)
+      );
 
       return result;
     } catch (error) {
@@ -121,8 +123,9 @@ export class ModuleParser {
       );
 
       return {
-        modules: [await this.createModuleDTO(moduleId, relativePath)],
+        modules: [await this.createModuleDTO(this.moduleId, relativePath)],
         classes: [],
+        functions: [],
         interfaces: [],
         methods: [],
         properties: [],
@@ -152,9 +155,9 @@ export class ModuleParser {
         }
       });
 
-      // Create the Import instance
+      // Create the Import instance with module-specific UUID
       if (importSpecifiers.size > 0) {
-        const uuid = generateImportUUID(importPath, Array.from(importSpecifiers.keys()).join(','));
+        const uuid = generateImportUUID(this.moduleId, importPath);
         const imp = new Import(uuid, importPath, importPath, importPath, importSpecifiers);
         this.imports.set(importPath, imp);
       }
@@ -363,21 +366,33 @@ export class ModuleParser {
           .find(this.j.ClassProperty)
           .filter((path: ASTPath<ClassProperty>): boolean => {
             const value = path.value.value;
-            return Boolean(
+            const hasArrowFunction = Boolean(
               value && typeof value === 'object' && 'type' in value && value.type === 'ArrowFunctionExpression'
             );
+
+            // Also check for function type annotations
+            const hasFunctionType = this.isFunctionTypeProperty(path.value);
+
+            return hasArrowFunction || hasFunctionType;
           });
 
         // Combine both collections
         methodNodes = this.j([...classMethods.paths(), ...propertyMethods.paths()]);
       } else {
-        // Interface methods
-        methodNodes = collection.find(this.j.TSMethodSignature);
+        // Interface methods - include both method signatures and function-typed properties
+        const interfaceMethods = collection.find(this.j.TSMethodSignature);
+
+        const functionTypedProps = collection.find(this.j.TSPropertySignature).filter((path): boolean => {
+          return this.isFunctionTypeProperty(path.value);
+        });
+
+        // Combine both collections
+        methodNodes = this.j([...interfaceMethods.paths(), ...functionTypedProps.paths()]);
       }
 
       methodNodes.forEach((path) => {
         try {
-          const node = path.value as MethodDefinition | TSMethodSignature;
+          const node = path.value as MethodDefinition | TSMethodSignature | ClassProperty | TSPropertySignature;
           const methodName = this.getMethodName(node);
 
           if (!methodName) {
@@ -401,6 +416,7 @@ export class ModuleParser {
           const isAsync =
             parentType === 'class' &&
             'value' in node &&
+            node.value !== null &&
             node.value.type === 'FunctionExpression' &&
             node.value.async === true;
 
@@ -474,6 +490,14 @@ export class ModuleParser {
           return;
         }
 
+        // Check if this property has a function type annotation
+        const isFunctionType = this.isFunctionTypeProperty(propertyNode);
+        if (isFunctionType) {
+          // Skip function-typed properties - they should be handled as methods
+          this.logger.debug(`Skipping function-typed property: ${propertyName}`);
+          return;
+        }
+
         const propertyType = this.getTypeFromAnnotation(propertyNode.typeAnnotation as TSTypeAnnotation);
         // Generate a unique property ID using package, module, parent, property info, and position
         const propertyId = generatePropertyUUID(
@@ -504,7 +528,33 @@ export class ModuleParser {
     return properties;
   }
 
-  private getMethodName(node: MethodDefinition | TSMethodSignature): string | undefined {
+  /**
+   * Check if a property has a function type annotation
+   */
+  private isFunctionTypeProperty(node: ClassProperty | TSPropertySignature): boolean {
+    try {
+      if (node.typeAnnotation?.type !== 'TSTypeAnnotation') {
+        return false;
+      }
+
+      const typeAnnotation = node.typeAnnotation.typeAnnotation;
+
+      // Check for function type annotation
+      return (
+        typeAnnotation.type === 'TSFunctionType' ||
+        typeAnnotation.type === 'TSConstructorType' ||
+        // Also check for arrow function values
+        ('value' in node && node.value?.type === 'ArrowFunctionExpression')
+      );
+    } catch (error) {
+      this.logger.error('Error checking function type:', { error });
+      return false;
+    }
+  }
+
+  private getMethodName(
+    node: MethodDefinition | TSMethodSignature | ClassProperty | TSPropertySignature
+  ): string | undefined {
     try {
       return node.key.type === 'Identifier' ? node.key.name : undefined;
     } catch (error) {
@@ -528,7 +578,7 @@ export class ModuleParser {
   }
 
   private parseParameters(
-    node: MethodDefinition | TSMethodSignature,
+    node: MethodDefinition | TSMethodSignature | ClassProperty | TSPropertySignature,
     methodId: string,
     moduleId: string
   ): IParameterCreateDTO[] {
@@ -567,17 +617,30 @@ export class ModuleParser {
     return parameters;
   }
 
-  private getParametersList(node: MethodDefinition | TSMethodSignature): ASTNode[] {
-    if ('value' in node) {
-      return node.value.params;
+  private getParametersList(
+    node: MethodDefinition | TSMethodSignature | ClassProperty | TSPropertySignature
+  ): ASTNode[] {
+    if ('value' in node && node.value) {
+      // For ClassProperty with arrow function or MethodDefinition
+      if ('params' in node.value) {
+        return node.value.params;
+      }
     }
     if ('parameters' in node) {
+      // For TSMethodSignature
       return node.parameters;
+    }
+    // For function-typed properties, try to extract params from type annotation
+    if ('typeAnnotation' in node && node.typeAnnotation?.type === 'TSTypeAnnotation') {
+      const typeAnnotation = node.typeAnnotation.typeAnnotation;
+      if ('parameters' in typeAnnotation && Array.isArray(typeAnnotation.parameters)) {
+        return typeAnnotation.parameters;
+      }
     }
     return [];
   }
 
-  private getReturnType(node: MethodDefinition | TSMethodSignature): string {
+  private getReturnType(node: MethodDefinition | TSMethodSignature | ClassProperty | TSPropertySignature): string {
     try {
       const returnTypeNode = this.getReturnTypeNode(node);
       return this.getTypeFromAnnotation(returnTypeNode) || 'void';
@@ -588,11 +651,17 @@ export class ModuleParser {
     }
   }
 
-  private getReturnTypeNode(node: MethodDefinition | TSMethodSignature): TSTypeAnnotation | undefined {
-    if ('value' in node && node.value.returnType) {
-      return node.value.returnType as TSTypeAnnotation;
+  private getReturnTypeNode(
+    node: MethodDefinition | TSMethodSignature | ClassProperty | TSPropertySignature
+  ): TSTypeAnnotation | undefined {
+    if ('value' in node && node.value) {
+      // For MethodDefinition and ClassProperty with arrow functions
+      if ('returnType' in node.value && node.value.returnType) {
+        return node.value.returnType as TSTypeAnnotation;
+      }
     }
     if ('typeAnnotation' in node && node.typeAnnotation) {
+      // For TSMethodSignature and TSPropertySignature with function types
       return node.typeAnnotation as TSTypeAnnotation;
     }
     return undefined;
@@ -614,5 +683,61 @@ export class ModuleParser {
       this.logger.error('Error getting type from annotation:', { error: String(error) });
       return 'any';
     }
+  }
+
+  /**
+   * Parse module-level function declarations
+   */
+  private parseFunctions(moduleId: string, result: ParseResult): void {
+    if (!this.root) return;
+
+    // Find all function declarations at module level
+    this.root.find(this.j.FunctionDeclaration).forEach((path) => {
+      try {
+        const node = path.node;
+        if (!node.id) return;
+
+        const idName = this.getIdentifierName(node.id);
+        if (!idName) return;
+
+        const functionName = idName;
+        const functionId = generateFunctionUUID(this.packageId, moduleId, functionName);
+
+        // Check if function is exported
+        const isExported = this.exports.has(functionName);
+
+        // Get return type
+        const returnType = this.getReturnTypeFromNode(node);
+
+        const functionDTO: IFunctionCreateDTO = {
+          id: functionId,
+          package_id: this.packageId,
+          module_id: moduleId,
+          name: functionName,
+          return_type: returnType,
+          is_async: node.async ?? false,
+          is_exported: isExported,
+        };
+
+        result.functions.push(functionDTO);
+      } catch (error) {
+        this.logger.error('Error parsing function:', error);
+      }
+    });
+  }
+
+  /**
+   * Get return type from a function node
+   */
+  private getReturnTypeFromNode(node: ASTNode): string {
+    try {
+      if ('returnType' in node && node.returnType) {
+        const returnType = node.returnType as TSTypeAnnotation;
+        return this.getTypeFromAnnotation(returnType);
+      }
+    } catch (error) {
+      this.logger.error('Error getting return type:', error);
+    }
+    return 'void';
   }
 }

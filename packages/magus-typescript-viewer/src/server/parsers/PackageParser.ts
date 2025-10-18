@@ -14,6 +14,7 @@ import type { NormalizedPackageJson } from 'read-pkg';
 
 import type { Import } from '../../shared/types/Import';
 import type { IClassCreateDTO } from '../db/repositories/ClassRepository';
+import type { IFunctionCreateDTO } from '../db/repositories/FunctionRepository';
 import type { IInterfaceCreateDTO } from '../db/repositories/InterfaceRepository';
 import type { IMethodCreateDTO } from '../db/repositories/MethodRepository';
 import type { IModuleCreateDTO } from '../db/repositories/ModuleRepository';
@@ -128,22 +129,35 @@ export class PackageParser {
     const modules: IModuleCreateDTO[] = [];
     const classes: IClassCreateDTO[] = [];
     const interfaces: IInterfaceCreateDTO[] = [];
+    const functions: IFunctionCreateDTO[] = [];
     const methods: IMethodCreateDTO[] = [];
     const properties: IPropertyCreateDTO[] = [];
     const parameters: IParameterCreateDTO[] = [];
 
     // Find and parse all TypeScript files
     const files = await this.traverseDirectory(this.packagePath);
+    const moduleImports: Import[] = [];
+    const moduleExports: Export[] = [];
+    const importsWithModules: { import: Import; moduleId: string }[] = [];
+
     for (const file of files) {
       const moduleParser = new ModuleParser(file, packageId);
       const result = await moduleParser.parse();
 
+      const moduleId = result.modules[0]?.id ?? '';
+
       modules.push(...result.modules);
       classes.push(...result.classes);
       interfaces.push(...result.interfaces);
+      functions.push(...result.functions);
       methods.push(...result.methods);
       result.properties.forEach((property) => properties.push(property));
       result.parameters.forEach((parameter) => parameters.push(parameter));
+      result.imports.forEach((imp) => {
+        moduleImports.push(imp);
+        importsWithModules.push({ import: imp, moduleId });
+      });
+      result.exports.forEach((exp) => moduleExports.push(exp));
     }
 
     return {
@@ -151,11 +165,13 @@ export class PackageParser {
       modules,
       classes,
       interfaces,
+      functions,
       methods,
       properties,
       parameters,
-      imports: Array.from(imports.values()),
-      exports: Array.from(exports.values()),
+      imports: [...Array.from(imports.values()), ...moduleImports],
+      exports: [...Array.from(exports.values()), ...moduleExports],
+      importsWithModules,
     };
   }
 

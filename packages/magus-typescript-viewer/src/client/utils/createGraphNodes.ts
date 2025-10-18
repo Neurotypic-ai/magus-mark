@@ -27,14 +27,13 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
     id: pkg.id,
     type: 'package' as DependencyKind,
     position: { x: 0, y: 0 },
+    expandParent: true,
     data: {
       label: pkg.name,
       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
     },
     style: {
       ...getNodeStyle('package'),
-      width: 'auto',
-      height: 'auto',
     },
   }));
 
@@ -57,14 +56,35 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
           },
           style: {
             ...getNodeStyle('module'),
-            width: 'auto',
-            height: 'auto',
           },
         });
 
         // Add class nodes
         if (module.classes) {
           mapTypeCollection(module.classes, (cls) => {
+            // Convert Map/Object to array for properties and methods
+            const properties = cls.properties
+              ? mapTypeCollection(cls.properties, (prop) => ({
+                  name: prop.name,
+                  type: prop.type,
+                  visibility: prop.visibility,
+                }))
+              : [];
+
+            const methods = cls.methods
+              ? mapTypeCollection(cls.methods, (method) => {
+                  const returnType: string = (method.returnType as string | undefined) ?? 'void';
+                  const methodName: string = method.name;
+                  const visibility: string = method.visibility;
+                  return {
+                    name: methodName,
+                    returnType,
+                    visibility,
+                    signature: `${methodName}(): ${returnType}`,
+                  };
+                })
+              : [];
+
             graphNodes.push({
               id: cls.id,
               type: 'class' as DependencyKind,
@@ -75,13 +95,11 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               data: {
                 parentId: module.id,
                 label: cls.name,
-                properties: cls.properties ?? [],
-                methods: cls.methods ?? [],
+                properties,
+                methods,
               },
               style: {
                 ...getNodeStyle('class'),
-                width: 'auto',
-                height: 'auto',
               },
             });
           });
@@ -90,6 +108,29 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
         // Add interface nodes
         if (module.interfaces) {
           mapTypeCollection(module.interfaces, (iface) => {
+            // Convert Map/Object to array for properties and methods
+            const properties = iface.properties
+              ? mapTypeCollection(iface.properties, (prop) => ({
+                  name: prop.name,
+                  type: prop.type,
+                  visibility: prop.visibility,
+                }))
+              : [];
+
+            const methods = iface.methods
+              ? mapTypeCollection(iface.methods, (method) => {
+                  const returnType: string = (method.returnType as string | undefined) ?? 'void';
+                  const methodName: string = method.name;
+                  const visibility: string = method.visibility;
+                  return {
+                    name: methodName,
+                    returnType,
+                    visibility,
+                    signature: `${methodName}(): ${returnType}`,
+                  };
+                })
+              : [];
+
             graphNodes.push({
               id: iface.id,
               type: 'interface' as DependencyKind,
@@ -100,13 +141,11 @@ export function createGraphNodes(data: DependencyPackageGraph): DependencyNode[]
               data: {
                 parentId: module.id,
                 label: iface.name,
-                properties: iface.properties ?? [],
-                methods: iface.methods ?? [],
+                properties,
+                methods,
               },
               style: {
                 ...getNodeStyle('interface'),
-                width: 'auto',
-                height: 'auto',
               },
             });
           });

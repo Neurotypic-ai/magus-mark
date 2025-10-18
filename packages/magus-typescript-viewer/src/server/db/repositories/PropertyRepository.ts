@@ -206,13 +206,13 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
       return results.map(
         (prop) =>
           new Property(
-            String(prop.id),
-            String(prop.package_id),
-            String(prop.module_id),
-            String(prop.parent_id),
-            String(prop.name),
+            prop.id,
+            prop.package_id,
+            prop.module_id,
+            prop.parent_id,
+            prop.name,
             new Date(prop.created_at),
-            String(prop.type),
+            prop.type,
             prop.is_static,
             prop.is_readonly,
             prop.visibility as VisibilityType
@@ -244,24 +244,24 @@ export class PropertyRepository extends BaseRepository<Property, IPropertyCreate
         [parentId, parentType]
       );
 
-      this.logger.debug(`Found ${String(properties.length)} properties for ${parentType} ${parentId}`);
+      this.logger.debug(`Found ${properties.length.toString()} properties for ${parentType} ${parentId}`);
 
       // Convert properties to Map with proper type handling
       const propertiesMap = new Map<string, Property>();
       properties.forEach((prop) => {
         propertiesMap.set(
-          String(prop.id),
+          prop.id,
           new Property(
-            String(prop.id),
-            String(prop.package_id),
-            String(prop.module_id),
-            String(prop.parent_id),
-            String(prop.name),
-            new Date(String(prop.created_at)),
-            String(prop.type),
-            Boolean(prop.is_static),
-            Boolean(prop.is_readonly),
-            String(prop.visibility) as VisibilityType
+            prop.id,
+            prop.package_id,
+            prop.module_id,
+            prop.parent_id,
+            prop.name,
+            new Date(prop.created_at),
+            prop.type,
+            prop.is_static,
+            prop.is_readonly,
+            prop.visibility as VisibilityType
           )
         );
       });

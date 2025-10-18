@@ -9,6 +9,9 @@ import { readPackage } from 'read-pkg';
 import { Database } from '../db/Database';
 import { DuckDBAdapter } from '../db/adapter/DuckDBAdapter';
 import { ClassRepository } from '../db/repositories/ClassRepository';
+import { ExportRepository } from '../db/repositories/ExportRepository';
+import { FunctionRepository } from '../db/repositories/FunctionRepository';
+import { ImportRepository } from '../db/repositories/ImportRepository';
 import { InterfaceRepository } from '../db/repositories/InterfaceRepository';
 import { MethodRepository } from '../db/repositories/MethodRepository';
 import { ModuleRepository } from '../db/repositories/ModuleRepository';
@@ -29,22 +32,31 @@ program
   .description('Analyze a TypeScript project')
   .argument('<dir>', 'Directory containing the TypeScript project')
   .option('-o, --output <file>', 'Output database file', 'typescript-viewer.duckdb')
-  .action(async (dir: string, options: { output: string; readOnly?: boolean }) => {
+  .option('--no-reset', 'Do not reset the database before analyzing (append mode)')
+  .action(async (dir: string, options: { output: string; reset?: boolean; readOnly?: boolean }) => {
     const spinner = ora('Analyzing TypeScript project...').start();
 
     try {
       console.log('options.output', options.output);
       // Initialize database and repositories
       const adapter = new DuckDBAdapter(options.output, { allowWrite: true });
-      await adapter.init(); // Initialize the adapter first
       const db = new Database(adapter, options.output);
-      await db.initializeDatabase();
+      // Default to reset=true for idempotent behavior, unless --no-reset is specified
+      const shouldReset = options.reset !== false;
+      console.log(
+        'reset mode:',
+        shouldReset ? 'RESET (will delete existing data)' : 'APPEND (will keep existing data)'
+      );
+      await db.initializeDatabase(shouldReset);
 
       const repositories = {
         package: new PackageRepository(adapter),
         module: new ModuleRepository(adapter),
         class: new ClassRepository(adapter),
+        export: new ExportRepository(adapter),
         interface: new InterfaceRepository(adapter),
+        function: new FunctionRepository(adapter),
+        import: new ImportRepository(adapter),
         method: new MethodRepository(adapter),
         parameter: new ParameterRepository(adapter),
         property: new PropertyRepository(adapter),
@@ -82,6 +94,10 @@ program
         await repositories.interface.create(iface);
       }
 
+      // Save functions
+      for (const func of parseResult.functions) {
+        await repositories.function.create(func);
+      }
       // Save methods
       for (const method of parseResult.methods) {
         await repositories.method.create(method);
@@ -97,6 +113,31 @@ program
         await repositories.property.create(prop);
       }
 
+      // Save imports with module context
+      if (parseResult.importsWithModules) {
+        for (const { import: imp, moduleId } of parseResult.importsWithModules) {
+          const importDTO = {
+            id: imp.uuid,
+            package_id: parseResult.package?.id ?? '',
+            module_id: moduleId,
+            source: imp.fullPath,
+          };
+          await repositories.import.create(importDTO);
+        }
+      }
+
+      // Save exports
+      for (const exp of parseResult.exports) {
+        const exportDTO = {
+          id: exp.uuid,
+          package_id: parseResult.package?.id ?? '',
+          module_id: exp.module,
+          name: exp.name,
+          is_default: exp.isDefault,
+        };
+        await repositories.export.create(exportDTO);
+      }
+
       spinner.succeed(chalk.green('Analysis complete!'));
       console.log();
       console.log(chalk.blue('Statistics:'));
@@ -107,6 +148,8 @@ program
       console.log(chalk.gray('- Methods found:'), parseResult.methods.length);
       console.log(chalk.gray('- Properties found:'), parseResult.properties.length);
       console.log(chalk.gray('- Parameters found:'), parseResult.parameters.length);
+      console.log(chalk.gray('- Imports found:'), parseResult.importsWithModules?.length ?? 0);
+      console.log(chalk.gray('- Exports found:'), parseResult.exports.length);
 
       await db.close();
     } catch (error) {

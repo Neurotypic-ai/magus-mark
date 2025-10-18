@@ -34,11 +34,12 @@ export class LayoutProcessor {
     this.config = mergeConfig(config, defaultLayoutConfig);
   }
 
-  private calculateGroupDimensions(
-    groupNode: DependencyNode,
+  private calculateContainerDimensions(
+    containerNode: DependencyNode,
     childNodes: DependencyNode[]
   ): { width: number; height: number; x: number; y: number } {
-    const children = childNodes.filter((child) => child.data?.parentId === groupNode.id);
+    // Filter children by parentNode property (VueFlow hierarchy)
+    const children = childNodes.filter((child) => child.parentNode === containerNode.id);
 
     if (!children.length) {
       return {
@@ -124,12 +125,24 @@ export class LayoutProcessor {
       // Perform layout
       dagre.layout(g);
 
-      // Extract positions with special handling for group nodes
+      // Extract positions with special handling for container nodes (package, module, group)
       const layoutedNodes = graph.nodes.map((node) => {
         const layoutNode = g.node(node.id);
 
-        if (node.type === 'group') {
-          const dimensions = this.calculateGroupDimensions(node, graph.nodes);
+        // Handle container nodes (package, module, group) that contain other nodes
+        if (node.type === 'package' || node.type === 'module' || node.type === 'group') {
+          const dimensions = this.calculateContainerDimensions(node, graph.nodes);
+
+          // Set z-index based on container type for proper layering
+          let zIndex = 1;
+          if (node.type === 'package') {
+            zIndex = 0; // Packages at the back
+          } else if (node.type === 'module') {
+            zIndex = 1; // Modules in the middle
+          } else {
+            zIndex = 1; // Groups same as modules
+          }
+
           return {
             ...node,
             position: {
@@ -137,30 +150,15 @@ export class LayoutProcessor {
               y: dimensions.y,
             },
             style: {
-              ...node.style,
+              ...(typeof node.style === 'object' ? node.style : {}),
               width: dimensions.width,
               height: dimensions.height,
-              zIndex: 1,
+              zIndex,
             },
           };
         }
 
-        // For package nodes (no parentId), make them prominent
-        if (!node.data?.parentId) {
-          return {
-            ...node,
-            position: {
-              x: layoutNode.x - layoutNode.width / 2,
-              y: layoutNode.y - layoutNode.height / 2,
-            },
-            style: {
-              ...node.style,
-              zIndex: 5,
-            },
-          };
-        }
-
-        // For other nodes, adjust position from center to top-left
+        // For leaf nodes (class, interface, etc.), adjust position from center to top-left
         return {
           ...node,
           position: {
@@ -168,8 +166,8 @@ export class LayoutProcessor {
             y: layoutNode.y - layoutNode.height / 2,
           },
           style: {
-            ...node.style,
-            zIndex: 1,
+            ...(typeof node.style === 'object' ? node.style : {}),
+            zIndex: 2, // Leaf nodes on top
           },
         };
       });

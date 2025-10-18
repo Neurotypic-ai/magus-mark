@@ -115,10 +115,13 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       }
     });
 
-    // Filter edges to only include valid connections
-    // Containment is now handled by hierarchy, not edges
+    // Filter edges to only include valid connections and exclude containment edges
+    // Containment is now handled by hierarchy structure, not as edges for layout
     const validEdges = edges.filter((edge) => {
-      return nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target);
+      const edgeType = (edge.data as { type?: string } | undefined)?.type;
+      const isValid = nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target);
+      const isNotContainment = edgeType !== 'contains';
+      return isValid && isNotContainment;
     });
 
     // Define ELK edge type - ELK uses sources/targets arrays
@@ -128,7 +131,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       targets: string[];
     }
 
-    // Create ELK edges with correct format
+    // Create ELK edges with correct format (only non-containment edges for layout)
     const elkEdges: ElkEdge[] = validEdges.map((edge) => ({
       id: edge.id,
       sources: [edge.source],
@@ -176,7 +179,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     // For VueFlow, nested nodes need RELATIVE positions to their parent, not absolute
     const positionMap = new Map<string, { x: number; y: number }>();
 
-    function extractPositions(nodes: ElkNode[], isRoot = true): void {
+    function extractPositions(nodes: ElkNode[]): void {
       nodes.forEach((node) => {
         // For root nodes, use absolute positions
         // For nested nodes, use relative positions (as calculated by ELK within the parent)
@@ -186,13 +189,13 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 
         // Recursively process children with their relative positions
         if (node.children && node.children.length > 0) {
-          extractPositions(node.children, false);
+          extractPositions(node.children);
         }
       });
     }
 
     if (layoutedGraph.children) {
-      extractPositions(layoutedGraph.children, true);
+      extractPositions(layoutedGraph.children);
     }
 
     // Apply positions to nodes

@@ -100,6 +100,9 @@ export class GraphDataAssembler {
       version: string;
       path: string;
       created_at: string;
+      dependencies?: Record<string, DependencyRef>;
+      devDependencies?: Record<string, DependencyRef>;
+      peerDependencies?: Record<string, DependencyRef>;
       modules?: Record<string, ModuleStructure>;
     }[]
   ): DependencyPackageGraph {

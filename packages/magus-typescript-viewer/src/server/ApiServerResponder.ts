@@ -4,11 +4,13 @@ import { Database } from './db/Database';
 import { DuckDBAdapter } from './db/adapter/DuckDBAdapter';
 import { RepositoryError } from './db/errors/RepositoryError';
 import { ClassRepository } from './db/repositories/ClassRepository';
+import { ImportRepository } from './db/repositories/ImportRepository';
 import { InterfaceRepository } from './db/repositories/InterfaceRepository';
 import { ModuleRepository } from './db/repositories/ModuleRepository';
 import { PackageRepository } from './db/repositories/PackageRepository';
 
 import type { Package } from '../shared/types/Package';
+import type { TypeCollection } from '../shared/types/TypeCollection';
 
 export interface ApiServerResponderOptions {
   dbPath?: string;
@@ -23,6 +25,7 @@ export class ApiServerResponder {
 
   private readonly classRepository: ClassRepository;
   private readonly interfaceRepository: InterfaceRepository;
+  private readonly importRepository: ImportRepository;
   private readonly moduleRepository: ModuleRepository;
   private readonly packageRepository: PackageRepository;
 
@@ -36,6 +39,7 @@ export class ApiServerResponder {
     // Initialize repositories
     this.classRepository = new ClassRepository(this.dbAdapter);
     this.interfaceRepository = new InterfaceRepository(this.dbAdapter);
+    this.importRepository = new ImportRepository(this.dbAdapter);
     this.moduleRepository = new ModuleRepository(this.dbAdapter);
     this.packageRepository = new PackageRepository(this.dbAdapter);
   }
@@ -58,9 +62,59 @@ export class ApiServerResponder {
     }
   }
 
-  async getPackages(): Promise<Package[]> {
+  async getPackages(): Promise<
+    {
+      id: string;
+      name: string;
+      version: string;
+      path: string;
+      created_at: Date;
+      dependencies: TypeCollection<Package>;
+      devDependencies: TypeCollection<Package>;
+      peerDependencies: TypeCollection<Package>;
+      modules: string[];
+    }[]
+  > {
     try {
-      return await this.packageRepository.retrieve();
+      const packages = await this.packageRepository.retrieve();
+
+      // Fetch module IDs for each package
+      const packagesWithModuleIds = await Promise.all(
+        packages.map(async (pkg) => {
+          try {
+            const modules = await this.moduleRepository.retrieveAll(pkg.id);
+            const moduleIds = modules.map((mod) => mod.id);
+
+            // Return plain object with moduleIds array
+            return {
+              id: pkg.id,
+              name: pkg.name,
+              version: pkg.version,
+              path: pkg.path,
+              created_at: pkg.created_at,
+              dependencies: pkg.dependencies,
+              devDependencies: pkg.devDependencies,
+              peerDependencies: pkg.peerDependencies,
+              modules: moduleIds,
+            };
+          } catch (error) {
+            this.logger.error(`Failed to get module IDs for package ${pkg.id}`, error);
+            return {
+              id: pkg.id,
+              name: pkg.name,
+              version: pkg.version,
+              path: pkg.path,
+              created_at: pkg.created_at,
+              dependencies: pkg.dependencies,
+              devDependencies: pkg.devDependencies,
+              peerDependencies: pkg.peerDependencies,
+              modules: [],
+            };
+          }
+        })
+      );
+
+      return packagesWithModuleIds;
     } catch (error) {
       this.logger.error('Failed to get packages, returning empty list', error);
       return [];
@@ -132,6 +186,25 @@ export class ApiServerResponder {
             }
           }
 
+          // Load imports for this module
+          const imports = new Map();
+          try {
+            const importsArray = await this.importRepository.findByModuleId(mod.id);
+            for (const imp of importsArray) {
+              imports.set(imp.id, {
+                uuid: imp.id,
+                fullPath: imp.source,
+                relativePath: imp.source,
+                name: imp.source,
+                specifiers: new Map(),
+                depth: 0,
+              });
+            }
+          } catch (error) {
+            this.logger.error(`Failed to load imports for module ${mod.id}:`, error);
+            // Continue with empty imports
+          }
+
           // Create enriched module
           enrichedModules.push(
             new Module(
@@ -142,7 +215,7 @@ export class ApiServerResponder {
               mod.created_at,
               classes,
               interfaces,
-              mod.imports,
+              imports,
               mod.exports,
               mod.packages,
               mod.typeAliases,

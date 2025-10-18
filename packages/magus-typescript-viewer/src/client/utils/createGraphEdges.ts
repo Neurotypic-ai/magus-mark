@@ -15,8 +15,31 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   return data.packages.flatMap((pkg) => {
     const edges: GraphEdge[] = [];
 
+    // Add containment edges from package to modules
+    if (pkg.modules && Object.keys(pkg.modules).length > 0) {
+      mapTypeCollection(pkg.modules, (module) => {
+        edges.push({
+          id: `${pkg.id}-${module.id}-contains`,
+          source: pkg.id,
+          target: module.id,
+          data: {
+            type: 'contains' as DependencyEdgeKind,
+          },
+          style: {
+            ...getEdgeStyle('contains'),
+            strokeDasharray: '5,5', // Dashed line for containment
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 15,
+            height: 15,
+          },
+        });
+      });
+    }
+
     // Handle regular dependencies
-    if (pkg.dependencies) {
+    if (pkg.dependencies && Object.keys(pkg.dependencies).length > 0) {
       mapTypeCollection(pkg.dependencies, (dep) => {
         if (!dep.id) return;
 
@@ -38,7 +61,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
     }
 
     // Handle dev dependencies
-    if (pkg.devDependencies) {
+    if (pkg.devDependencies && Object.keys(pkg.devDependencies).length > 0) {
       mapTypeCollection(pkg.devDependencies, (dep) => {
         if (!dep.id) return;
 
@@ -60,7 +83,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
     }
 
     // Handle peer dependencies
-    if (pkg.peerDependencies) {
+    if (pkg.peerDependencies && Object.keys(pkg.peerDependencies).length > 0) {
       mapTypeCollection(pkg.peerDependencies, (dep) => {
         if (!dep.id) return;
 
@@ -82,32 +105,81 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
     }
 
     // Handle module dependencies
-    if (pkg.modules) {
+    if (pkg.modules && Object.keys(pkg.modules).length > 0) {
       mapTypeCollection(pkg.modules, (module) => {
-        // Add module imports
-        if (module.imports) {
-          mapTypeCollection(module.imports, (imp) => {
-            if (!imp.uuid) return;
-
+        // Add containment edges from module to classes
+        if (module.classes && Object.keys(module.classes).length > 0) {
+          mapTypeCollection(module.classes, (cls) => {
             edges.push({
-              id: `${module.id}-${imp.uuid}-import`,
+              id: `${module.id}-${cls.id}-contains`,
               source: module.id,
-              target: imp.uuid,
+              target: cls.id,
               data: {
-                type: 'import' as DependencyEdgeKind,
+                type: 'contains' as DependencyEdgeKind,
               },
-              style: getEdgeStyle('import'),
+              style: {
+                ...getEdgeStyle('contains'),
+                strokeDasharray: '5,5',
+              },
               markerEnd: {
                 type: MarkerType.ArrowClosed,
-                width: 20,
-                height: 20,
+                width: 15,
+                height: 15,
               },
             });
           });
         }
 
+        // Add containment edges from module to interfaces
+        if (module.interfaces && Object.keys(module.interfaces).length > 0) {
+          mapTypeCollection(module.interfaces, (iface) => {
+            edges.push({
+              id: `${module.id}-${iface.id}-contains`,
+              source: module.id,
+              target: iface.id,
+              data: {
+                type: 'contains' as DependencyEdgeKind,
+              },
+              style: {
+                ...getEdgeStyle('contains'),
+                strokeDasharray: '5,5',
+              },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 15,
+                height: 15,
+              },
+            });
+          });
+        }
+
+        // Add module imports
+        // NOTE: Import edges require resolving import source paths to target module IDs
+        // This requires adding target_module_id to the imports table and resolution logic
+        // For now, imports are stored but edges are not created until resolution is implemented
+        // if (module.imports) {
+        //   mapTypeCollection(module.imports, (imp) => {
+        //     if (!imp.uuid) return;
+        //
+        //     edges.push({
+        //       id: `${module.id}-${imp.uuid}-import`,
+        //       source: module.id,
+        //       target: imp.uuid, // TODO: Should be target module ID, not import UUID
+        //       data: {
+        //         type: 'import' as DependencyEdgeKind,
+        //       },
+        //       style: getEdgeStyle('import'),
+        //       markerEnd: {
+        //         type: MarkerType.ArrowClosed,
+        //         width: 20,
+        //         height: 20,
+        //       },
+        //     });
+        //   });
+        // }
+
         // Add class inheritance and implementation edges
-        if (module.classes) {
+        if (module.classes && Object.keys(module.classes).length > 0) {
           mapTypeCollection(module.classes, (cls) => {
             // Handle class inheritance
             if (cls.extends_id) {
@@ -128,7 +200,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
             }
 
             // Handle interface implementations
-            if (cls.implemented_interfaces) {
+            if (cls.implemented_interfaces && Object.keys(cls.implemented_interfaces).length > 0) {
               mapTypeCollection(cls.implemented_interfaces, (iface) => {
                 if (!iface.id) return;
 
@@ -152,9 +224,9 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
         }
 
         // Add interface inheritance edges
-        if (module.interfaces) {
+        if (module.interfaces && Object.keys(module.interfaces).length > 0) {
           mapTypeCollection(module.interfaces, (iface) => {
-            if (iface.extended_interfaces) {
+            if (iface.extended_interfaces && Object.keys(iface.extended_interfaces).length > 0) {
               mapTypeCollection(iface.extended_interfaces, (extended) => {
                 if (!extended.id) return;
 

@@ -1,32 +1,22 @@
-import { markRaw } from 'vue';
-
-import DependencyNode from './DependencyNode.vue';
+import ModuleNode from './ModuleNode.vue';
+import PackageNode from './PackageNode.vue';
+import SymbolNode from './SymbolNode.vue';
 
 import type { Component } from 'vue';
 
-import type { DependencyKind } from '../types';
-
 /**
  * Custom node types for the VueFlow dependency graph
- * Each key maps to a DependencyKind value
- * Components are marked as raw to prevent Vue from making them reactive,
- * which avoids unnecessary performance overhead
+ * Static component mapping - frozen to prevent Vue from making it reactive
  */
-const nodeTypeKeys: DependencyKind[] = [
-  'package',
-  'module',
-  'class',
-  'interface',
-  'enum',
-  'type',
-  'function',
-  'group',
-  'property',
-  'method',
-];
-
-// Create the nodeTypes object with properly typed keys and components
-// markRaw prevents Vue from making component definitions reactive
-export const nodeTypes: Record<string, Component> = Object.fromEntries(
-  nodeTypeKeys.map((key) => [key, markRaw(DependencyNode)])
-);
+export const nodeTypes: Record<string, Component> = Object.freeze({
+  package: PackageNode,
+  module: ModuleNode,
+  class: SymbolNode,
+  interface: SymbolNode,
+  enum: SymbolNode,
+  type: SymbolNode,
+  function: SymbolNode,
+  group: SymbolNode,
+  property: SymbolNode,
+  method: SymbolNode,
+});

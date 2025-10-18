@@ -93,6 +93,7 @@ export class Database {
       'imports',
       'class_implements',
       'interface_extends',
+      'functions',
       'class_extends',
     ];
 
@@ -149,14 +150,15 @@ export class Database {
     console.log('exists:', exists);
     console.log('reset', reset);
 
-    // Initialize the adapter (this will create a new database)
-    await this.adapter.init();
-
-    // For file-based databases, remove the file if it exists and reset is true
+    // For file-based databases, remove the file BEFORE initializing if it exists and reset is true
     if (exists && reset) {
+      console.log('Resetting database: removing existing file...');
       await fs.unlink(path);
       exists = false;
     }
+
+    // Initialize the adapter (this will create a new database if needed)
+    await this.adapter.init();
 
     // If the file doesn't exist, or if reset is true, or if schema verification fails,
     // we need to execute the schema

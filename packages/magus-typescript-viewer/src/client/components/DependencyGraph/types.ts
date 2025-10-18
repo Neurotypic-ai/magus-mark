@@ -164,20 +164,26 @@ export interface InterfaceStructure {
 }
 
 /**
+ * Package structure for graph visualization
+ */
+export interface PackageStructure {
+  id: string;
+  name: string;
+  version: string;
+  path: string;
+  created_at: string;
+  dependencies?: Record<string, DependencyRef>;
+  devDependencies?: Record<string, DependencyRef>;
+  peerDependencies?: Record<string, DependencyRef>;
+  modules?: Record<string, ModuleStructure>;
+  [key: string]: unknown;
+}
+
+/**
  * Package graph structure
  */
 export interface DependencyPackageGraph {
-  packages: {
-    id: string;
-    name: string;
-    version: string;
-    path: string;
-    created_at: string;
-    dependencies?: Record<string, DependencyRef>;
-    devDependencies?: Record<string, DependencyRef>;
-    peerDependencies?: Record<string, DependencyRef>;
-    modules?: Record<string, ModuleStructure>;
-  }[];
+  packages: PackageStructure[];
 }
 
 /**

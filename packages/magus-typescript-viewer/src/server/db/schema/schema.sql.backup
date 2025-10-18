@@ -122,16 +122,6 @@ CREATE TABLE imports (
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
--- Exports table for module exports
-CREATE TABLE exports (
-  id CHAR(36) PRIMARY KEY,
-  package_id CHAR(36) NOT NULL REFERENCES packages (id),
-  module_id CHAR(36) NOT NULL REFERENCES modules (id),
-  name TEXT NOT NULL,
-  is_default BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
-);
-
 -- Class implements table (many-to-many relationship)
 CREATE TABLE class_implements (
   id CHAR(36) PRIMARY KEY,
@@ -162,15 +152,3 @@ CREATE TABLE class_extends (
 );
 
 -- Triggers and additional polymorphic relationship validations removed for DuckDB (triggers are not supported)
-
--- Functions table for module-level functions
-CREATE TABLE functions (
-  id CHAR(36) PRIMARY KEY,
-  package_id CHAR(36) NOT NULL REFERENCES packages (id),
-  module_id CHAR(36) NOT NULL REFERENCES modules (id),
-  name TEXT NOT NULL,
-  return_type TEXT,
-  is_async BOOLEAN NOT NULL DEFAULT FALSE,
-  is_exported BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
-);

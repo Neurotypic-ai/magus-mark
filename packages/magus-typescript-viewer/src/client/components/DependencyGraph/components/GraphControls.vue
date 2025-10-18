@@ -31,11 +31,28 @@ const handleResetLayout = () => {
   emit('reset-layout');
 };
 
-const relationshipTypes = ['IMPORTS', 'EXPORTS', 'EXTENDS', 'IMPLEMENTS', 'CONTAINS', 'USES', 'REFERENCES'];
+// Relationship types matching the actual edge data types (lowercase)
+const relationshipTypes = [
+  'import',
+  'export',
+  'inheritance',
+  'implements',
+  'contains',
+  'dependency',
+  'devDependency',
+  'peerDependency',
+];
+
+// Track which types are currently enabled (all enabled by default)
+const enabledTypes = ref<string[]>([...relationshipTypes]);
 
 const handleFilterChange = (type: string, checked: boolean) => {
-  const types = checked ? [...relationshipTypes] : relationshipTypes.filter((t) => t !== type);
-  emit('relationship-filter-change', types);
+  if (checked) {
+    enabledTypes.value = [...enabledTypes.value, type];
+  } else {
+    enabledTypes.value = enabledTypes.value.filter((t) => t !== type);
+  }
+  emit('relationship-filter-change', enabledTypes.value);
 };
 
 const handleDirectionChange = (direction: 'LR' | 'RL' | 'TB' | 'BT') => {
@@ -149,11 +166,11 @@ const handleSpacingChange = () => {
           >
             <input
               type="checkbox"
-              :checked="true"
+              :checked="enabledTypes.includes(type)"
               @change="(e) => handleFilterChange(type, (e.target as HTMLInputElement).checked)"
               class="cursor-pointer accent-primary-main"
             />
-            <span class="text-xs">{{ type }}</span>
+            <span class="text-xs capitalize">{{ type }}</span>
           </label>
         </div>
       </div>

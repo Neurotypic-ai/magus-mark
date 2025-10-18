@@ -123,6 +123,12 @@ const initializeGraph = async () => {
   const graphNodes = createGraphNodes(props.data);
   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
+  // Debug: Log edge creation
+  graphLogger.debug(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
+  if (graphEdges.length > 0) {
+    graphLogger.debug('Sample edge:', graphEdges[0]);
+  }
+
   // Process initial layout
   await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
 
