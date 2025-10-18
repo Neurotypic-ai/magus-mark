@@ -95,9 +95,22 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     const typedNodes = result.nodes as unknown as DependencyNode[];
     const typedEdges = result.edges as unknown as GraphEdge[];
 
+    // Debug: Check edges after layout processing
+    graphLogger.info(`After layout: ${typedEdges.length} edges`);
+    if (typedEdges.length > 0) {
+      graphLogger.info(
+        'Edges still have hidden=false:',
+        typedEdges.every((e) => e.hidden === false)
+      );
+      graphLogger.info('Sample edge after layout:', typedEdges[0]);
+    }
+
     // Update nodes without transition for better dragging performance
     graphStore['setNodes'](typedNodes);
     graphStore['setEdges'](typedEdges);
+
+    // Debug: Verify store state
+    graphLogger.info('Store edges count:', edges.value.length);
 
     // Fit view after layout with faster animation
     await fitView({ duration: 150, padding: 0.1 });
@@ -124,9 +137,25 @@ const initializeGraph = async () => {
   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
   // Debug: Log edge creation
-  graphLogger.debug(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
+  graphLogger.info(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
   if (graphEdges.length > 0) {
-    graphLogger.debug('Sample edge:', graphEdges[0]);
+    graphLogger.info('Sample edges:', graphEdges.slice(0, 3));
+    graphLogger.info('Edge types:', [...new Set(graphEdges.map((e) => e.data?.type))]);
+    graphLogger.info(
+      'All edges have hidden=false:',
+      graphEdges.every((e) => e.hidden === false)
+    );
+
+    // Validate edge connections
+    const nodeIds = new Set(graphNodes.map((n) => n.id));
+    const invalidEdges = graphEdges.filter((e) => !nodeIds.has(e.source) || !nodeIds.has(e.target));
+    if (invalidEdges.length > 0) {
+      graphLogger.warn(`Found ${invalidEdges.length} edges with invalid source/target IDs:`, invalidEdges.slice(0, 3));
+    } else {
+      graphLogger.info('All edge connections are valid');
+    }
+  } else {
+    graphLogger.warn('No edges created! Check data structure.');
   }
 
   // Process initial layout

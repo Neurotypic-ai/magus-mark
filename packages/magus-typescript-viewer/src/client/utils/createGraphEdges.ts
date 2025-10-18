@@ -22,6 +22,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${module.id}-contains`,
           source: pkg.id,
           target: module.id,
+          hidden: false,
           data: {
             type: 'contains' as DependencyEdgeKind,
           },
@@ -47,6 +48,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${dep.id}-dependency`,
           source: pkg.id,
           target: dep.id,
+          hidden: false,
           data: {
             type: 'dependency' as DependencyEdgeKind,
           },
@@ -69,6 +71,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${dep.id}-devDependency`,
           source: pkg.id,
           target: dep.id,
+          hidden: false,
           data: {
             type: 'devDependency' as DependencyEdgeKind,
           },
@@ -91,6 +94,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
           id: `${pkg.id}-${dep.id}-peerDependency`,
           source: pkg.id,
           target: dep.id,
+          hidden: false,
           data: {
             type: 'peerDependency' as DependencyEdgeKind,
           },
@@ -114,6 +118,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
               id: `${module.id}-${cls.id}-contains`,
               source: module.id,
               target: cls.id,
+              hidden: false,
               data: {
                 type: 'contains' as DependencyEdgeKind,
               },
@@ -137,6 +142,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
               id: `${module.id}-${iface.id}-contains`,
               source: module.id,
               target: iface.id,
+              hidden: false,
               data: {
                 type: 'contains' as DependencyEdgeKind,
               },
@@ -187,6 +193,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
                 id: `${cls.id}-${cls.extends_id}-inheritance`,
                 source: cls.id,
                 target: cls.extends_id,
+                hidden: false,
                 data: {
                   type: 'inheritance' as DependencyEdgeKind,
                 },
@@ -208,6 +215,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
                   id: `${cls.id}-${iface.id}-implements`,
                   source: cls.id,
                   target: iface.id,
+                  hidden: false,
                   data: {
                     type: 'implements' as DependencyEdgeKind,
                   },
@@ -234,6 +242,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
                   id: `${iface.id}-${extended.id}-inheritance`,
                   source: iface.id,
                   target: extended.id,
+                  hidden: false,
                   data: {
                     type: 'inheritance' as DependencyEdgeKind,
                   },
