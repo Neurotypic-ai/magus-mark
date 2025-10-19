@@ -203,8 +203,59 @@ const initializeGraph = async () => {
 // Watch for data changes
 watch(() => props.data, initializeGraph, { immediate: true });
 
-// Node click handler with focused layout showing module internals
-const onNodeClick = async ({ node }: { node: unknown }): Promise<void> => {
+// Single click handler - highlight connected nodes
+const onNodeClick = ({ node }: { node: unknown }): void => {
+  const clickedNode = node as DependencyNode;
+  graphStore['setSelectedNode'](clickedNode);
+
+  // Find all connected nodes
+  const connectedNodeIds = new Set<string>([clickedNode.id]);
+  edges.value.forEach((edge: GraphEdge) => {
+    if (edge.source === clickedNode.id) {
+      connectedNodeIds.add(edge.target);
+    } else if (edge.target === clickedNode.id) {
+      connectedNodeIds.add(edge.source);
+    }
+  });
+
+  // Update nodes with highlighting
+  graphStore['setNodes'](
+    nodes.value.map((n: DependencyNode) => {
+      const isConnected = connectedNodeIds.has(n.id);
+      const isClicked = n.id === clickedNode.id;
+
+      return {
+        ...n,
+        style: {
+          ...getNodeStyle(n.type as DependencyKind),
+          opacity: isConnected ? 1 : 0.3,
+          borderWidth: isClicked ? '3px' : isConnected ? '2px' : '1px',
+          borderColor: isClicked ? '#00ffff' : isConnected ? '#61dafb' : undefined,
+        },
+      };
+    })
+  );
+
+  // Update edges with highlighting
+  graphStore['setEdges'](
+    edges.value.map((edge: GraphEdge) => {
+      const isConnected = edge.source === clickedNode.id || edge.target === clickedNode.id;
+
+      return {
+        ...edge,
+        style: {
+          ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
+          opacity: isConnected ? 1 : 0.2,
+          strokeWidth: isConnected ? 3 : 1,
+        },
+        animated: isConnected,
+      };
+    })
+  );
+};
+
+// Double click handler - show detailed view
+const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => {
   const selectedNode = node as DependencyNode;
   graphStore['setSelectedNode'](selectedNode);
 
@@ -648,6 +699,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
           zIndex: 1000,
         }"
         @node-click="onNodeClick"
+        @node-double-click="onNodeDoubleClick"
         @pane-click="onPaneClick"
       >
         <Background />

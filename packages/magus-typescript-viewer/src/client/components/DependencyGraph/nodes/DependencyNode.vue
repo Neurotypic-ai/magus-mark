@@ -15,120 +15,221 @@ const isSelected = computed(() => !!props.selected);
 const sourcePosition = computed(() => props.sourcePosition ?? Position.Bottom);
 const targetPosition = computed(() => props.targetPosition ?? Position.Top);
 
-// Compute visibility color
+// Compute visibility color class
 const getVisibilityColor = (visibility: string) => {
-  if (visibility === 'public') return 'bg-visibility-public';
-  if (visibility === 'protected') return 'bg-visibility-protected';
-  return 'bg-visibility-private';
+  if (visibility === 'public') return 'visibility-public';
+  if (visibility === 'protected') return 'visibility-protected';
+  return 'visibility-private';
 };
-
-const containerClasses = computed(() => {
-  const baseClasses = [
-    'relative',
-    'rounded',
-    'border',
-    'transition-fast',
-    'cursor-move',
-    'w-auto',
-    'h-auto',
-    'shadow-lg',
-  ];
-
-  let sizeClasses: string[];
-  let bgClass: string;
-  let zIndexClass: string;
-
-  switch (nodeType.value) {
-    case 'package':
-      sizeClasses = ['text-sm', 'p-3'];
-      bgClass = 'bg-background-node-package';
-      zIndexClass = 'z-[5]';
-      break;
-    case 'module':
-      sizeClasses = ['text-xs', 'p-2'];
-      bgClass = 'bg-background-node';
-      zIndexClass = 'z-[4]';
-      break;
-    case 'class':
-    case 'interface':
-      sizeClasses = ['text-xs', 'p-2'];
-      bgClass = 'bg-background-node';
-      zIndexClass = 'z-[3]';
-      break;
-    default:
-      sizeClasses = ['text-xs', 'p-2'];
-      bgClass = 'bg-background-node';
-      zIndexClass = 'z-[1]';
-  }
-
-  const borderClass = isSelected.value
-    ? 'border-border-focus shadow-[0_0_12px_rgba(144,202,249,0.4)]'
-    : 'border-border-default hover:border-border-hover';
-
-  return [...baseClasses, ...sizeClasses, bgClass, borderClass, zIndexClass].join(' ');
-});
 </script>
 
 <template>
-  <div :class="containerClasses">
-    <Handle type="target" :position="targetPosition" />
+  <div :class="['node-container', `node-type-${nodeType}`, { 'node-selected': isSelected }]">
+    <Handle type="target" :position="targetPosition" class="node-handle" />
 
     <!-- Node Header -->
-    <div class="flex items-center gap-1 border-b border-border-default pb-1 mb-1">
-      <div
-        :class="[
-          'flex-1 font-medium text-text-primary overflow-hidden text-ellipsis whitespace-nowrap',
-          nodeType === 'package' ? 'text-sm' : 'text-xs',
-        ]"
-      >
+    <div class="node-header">
+      <div :class="['node-title', nodeType === 'package' ? 'node-title-large' : '']">
         {{ nodeData.label || 'Unnamed' }}
       </div>
-      <div class="px-2 py-0.5 bg-white/10 rounded text-text-secondary text-xs uppercase tracking-wider font-semibold">
+      <div class="node-badge">
         {{ nodeType }}
       </div>
     </div>
 
     <!-- Node Content -->
-    <div class="flex flex-col gap-1">
+    <div class="node-content">
       <!-- Properties Section -->
-      <div
-        v-if="nodeData.properties && nodeData.properties.length > 0"
-        class="flex flex-col gap-0.5 p-1.5 bg-white/5 rounded"
-      >
-        <div class="text-text-secondary text-xs font-bold uppercase mb-0.5">Properties</div>
-        <div
-          v-for="(prop, index) in nodeData.properties"
-          :key="index"
-          class="flex items-center gap-1.5 text-text-primary text-xs p-0.5 rounded transition-fast hover:bg-white/10"
-        >
-          <span
-            v-if="prop.visibility"
-            :class="['w-2 h-2 rounded-full flex-shrink-0', getVisibilityColor(prop.visibility)]"
-          ></span>
-          <span class="truncate">{{ prop.name }}: {{ prop.type }}</span>
+      <div v-if="nodeData.properties && nodeData.properties.length > 0" class="section">
+        <div class="section-header">Properties</div>
+        <div v-for="(prop, index) in nodeData.properties" :key="index" class="section-item">
+          <span v-if="prop.visibility" :class="['visibility-indicator', getVisibilityColor(prop.visibility)]"></span>
+          <span class="section-item-text">{{ prop.name }}: {{ prop.type }}</span>
         </div>
       </div>
 
       <!-- Methods Section -->
-      <div
-        v-if="nodeData.methods && nodeData.methods.length > 0"
-        class="flex flex-col gap-0.5 p-1.5 bg-white/5 rounded"
-      >
-        <div class="text-text-secondary text-xs font-bold uppercase mb-0.5">Methods</div>
-        <div
-          v-for="(method, index) in nodeData.methods"
-          :key="index"
-          class="flex items-center gap-1.5 text-text-primary text-xs p-0.5 rounded transition-fast hover:bg-white/10"
-        >
+      <div v-if="nodeData.methods && nodeData.methods.length > 0" class="section">
+        <div class="section-header">Methods</div>
+        <div v-for="(method, index) in nodeData.methods" :key="index" class="section-item">
           <span
             v-if="method.visibility"
-            :class="['w-2 h-2 rounded-full flex-shrink-0', getVisibilityColor(method.visibility)]"
+            :class="['visibility-indicator', getVisibilityColor(method.visibility)]"
           ></span>
-          <span class="truncate">{{ method.name }}(): {{ method.returnType }}</span>
+          <span class="section-item-text">{{ method.name }}(): {{ method.returnType }}</span>
         </div>
       </div>
     </div>
 
-    <Handle type="source" :position="sourcePosition" />
+    <Handle type="source" :position="sourcePosition" class="node-handle" />
   </div>
 </template>
+
+<style scoped>
+/* Node Container Base */
+.node-container {
+  position: relative;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border-default);
+  transition: all 150ms ease-in-out;
+  cursor: move;
+  width: auto;
+  height: auto;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.node-container:hover {
+  border-color: var(--border-hover);
+}
+
+.node-container.node-selected {
+  border-color: var(--border-focus);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05),
+    0 0 12px rgba(144, 202, 249, 0.4);
+}
+
+/* Type-specific Styling */
+.node-type-package {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding: 0.75rem;
+  background-color: var(--background-node-package);
+  z-index: 5;
+}
+
+.node-type-module {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding: 0.5rem;
+  background-color: var(--background-node);
+  z-index: 4;
+}
+
+.node-type-class,
+.node-type-interface {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding: 0.5rem;
+  background-color: var(--background-node);
+  z-index: 3;
+}
+
+.node-container:not(.node-type-package):not(.node-type-module):not(.node-type-class):not(.node-type-interface) {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding: 0.5rem;
+  background-color: var(--background-node);
+  z-index: 1;
+}
+
+/* Node Handles */
+.node-handle {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* Node Header */
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-default);
+  padding: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.node-title {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.node-title-large {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.node-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* Node Content */
+.node-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+/* Section */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.section-header {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.section-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 150ms ease-in-out;
+}
+
+.section-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visibility Indicators */
+.visibility-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.visibility-public {
+  background-color: var(--visibility-public);
+}
+
+.visibility-protected {
+  background-color: var(--visibility-protected);
+}
+
+.visibility-private {
+  background-color: var(--visibility-private);
+}
+</style>

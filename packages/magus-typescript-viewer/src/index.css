@@ -74,16 +74,18 @@ body {
 
 /* VueFlow customization */
 .vue-flow__handle {
-  width: 8px !important;
-  height: 8px !important;
-  background-color: rgba(255, 255, 255, 0.5) !important;
-  border: 1px solid rgba(0, 0, 0, 0.3) !important;
+  width: 12px !important;
+  height: 12px !important;
+  background-color: transparent !important;
+  border: none !important;
+  opacity: 0 !important;
   transition: all 0.15s ease-out !important;
 }
 
 .vue-flow__handle:hover {
+  opacity: 0.3 !important;
   background-color: var(--color-primary-main) !important;
-  transform: scale(1.2);
+  border: 2px solid #fff !important;
 }
 
 .vue-flow__edge {
