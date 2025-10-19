@@ -114,6 +114,15 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     const typedNodes = result.nodes as unknown as DependencyNode[];
     const typedEdges = result.edges as unknown as GraphEdge[];
 
+    // Explicitly update handle positions based on current layout direction
+    // This ensures handles are correctly positioned even after worker processing
+    const { sourcePosition, targetPosition } = getHandlePositions(layoutConfig.direction);
+    const nodesWithCorrectHandles = typedNodes.map((node) => ({
+      ...node,
+      sourcePosition,
+      targetPosition,
+    }));
+
     // Debug: Check edges after layout processing
     graphLogger.info(`After layout: ${typedEdges.length} edges`);
     if (typedEdges.length > 0) {
@@ -125,7 +134,7 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     }
 
     // Update nodes without transition for better dragging performance
-    graphStore['setNodes'](typedNodes);
+    graphStore['setNodes'](nodesWithCorrectHandles);
     graphStore['setEdges'](typedEdges);
 
     // Debug: Verify store state

@@ -52,6 +52,36 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Map color variables to shorter names for component use */
+  --background-default: var(--color-background-default);
+  --background-paper: var(--color-background-paper);
+  --background-node: var(--color-background-node);
+  --background-node-package: var(--color-background-node-package);
+
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+
+  --border-default: var(--color-border-default);
+  --border-hover: var(--color-border-hover);
+  --border-focus: var(--color-border-focus);
+  --border-default-rgb: 64, 64, 64;
+
+  --primary-main: var(--color-primary-main);
+  --primary-light: var(--color-primary-light);
+  --primary-dark: var(--color-primary-dark);
+
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --error: var(--color-error);
+
+  --visibility-public: var(--color-visibility-public);
+  --visibility-protected: var(--color-visibility-protected);
+  --visibility-private: var(--color-visibility-private);
+
+  --text-secondary-rgb: 255, 255, 255;
+
 }
 
 * {
@@ -146,6 +176,11 @@ body {
 /* Improve node dragging performance */
 .vue-flow__node {
   transition: none !important;
+  padding: 0 !important;
+  border: none !important;
+  background-color: transparent !important;
+  border-radius: 0.5rem !important;
+  overflow: visible !important;
 }
 
 .vue-flow__node.dragging {

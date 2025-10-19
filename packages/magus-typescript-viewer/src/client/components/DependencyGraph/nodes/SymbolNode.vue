@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
 import { computed, ref } from 'vue';
+
+import BaseNode from './BaseNode.vue';
 
 import type { DependencyProps } from '../types';
 
@@ -8,11 +9,6 @@ const props = defineProps<DependencyProps>();
 
 const nodeData = computed(() => props.data);
 const nodeType = computed(() => props.type);
-const isSelected = computed(() => !!props.selected);
-
-// Get handle positions from props (set by createGraphNodes based on layout direction)
-const sourcePosition = computed(() => props.sourcePosition ?? Position.Bottom);
-const targetPosition = computed(() => props.targetPosition ?? Position.Top);
 
 // Collapsible sections state
 const isPropertiesExpanded = ref(true);
@@ -60,200 +56,124 @@ const hasContent = computed(() => {
   const hasMethods = nodeData.value.methods && nodeData.value.methods.length > 0;
   return hasProps || hasMethods;
 });
+
+// Badge text is the node type uppercased
+const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </script>
 
 <template>
-  <div :class="['symbol-container', { 'symbol-selected': isSelected }]">
-    <Handle type="target" :position="targetPosition" class="symbol-handle" />
-
-    <!-- Node Header -->
-    <div class="symbol-header">
-      <div class="symbol-title-container">
-        <div class="symbol-title" :title="nodeData.label">
-          {{ nodeData.label || 'Unnamed' }}
-        </div>
-      </div>
-      <div :class="['symbol-badge', getTypeColor]">
-        {{ nodeType }}
-      </div>
-    </div>
-
-    <!-- Node Content -->
-    <div v-if="hasContent" class="symbol-content">
-      <!-- Properties Section -->
-      <div v-if="nodeData.properties && nodeData.properties.length > 0" class="collapsible-section">
-        <!-- Collapsible Header -->
-        <button
-          class="collapsible-header"
-          @click="toggleProperties"
-          type="button"
-          :aria-expanded="isPropertiesExpanded"
-          aria-label="Toggle properties section"
-        >
-          <div class="collapsible-header-label">
-            <span class="section-title">Properties</span>
-            <span class="section-count">({{ nodeData.properties.length }})</span>
-          </div>
-          <svg
-            class="collapsible-icon"
-            :class="{ 'collapsible-icon-expanded': isPropertiesExpanded }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+  <BaseNode
+    v-bind="props"
+    :badge-text="badgeText"
+    :badge-class="getTypeColor"
+    :z-index="2"
+    min-width="280px"
+    max-width="450px"
+  >
+    <template #content>
+      <!-- Node Content -->
+      <div v-if="hasContent" class="symbol-content">
+        <!-- Properties Section -->
+        <div v-if="nodeData.properties && nodeData.properties.length > 0" class="collapsible-section">
+          <!-- Collapsible Header -->
+          <button
+            class="collapsible-header"
+            @click="toggleProperties"
+            type="button"
+            :aria-expanded="isPropertiesExpanded"
+            aria-label="Toggle properties section"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            <div class="collapsible-header-label">
+              <span class="section-title">Properties</span>
+              <span class="section-count">({{ nodeData.properties.length }})</span>
+            </div>
+            <svg
+              class="collapsible-icon"
+              :class="{ 'collapsible-icon-expanded': isPropertiesExpanded }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        <!-- Collapsible Content -->
-        <div v-show="isPropertiesExpanded" class="collapsible-content">
-          <div v-for="(prop, index) in nodeData.properties" :key="index" class="member-item">
-            <span
-              v-if="prop.visibility"
-              :class="['visibility-dot', getVisibilityColor(prop.visibility)]"
-              :title="`${prop.visibility} visibility`"
-            ></span>
-            <span v-if="prop.visibility" class="visibility-symbol" :title="`${prop.visibility} visibility`">
-              {{ getVisibilitySymbol(prop.visibility) }}
-            </span>
-            <div class="member-signature">
-              <span class="member-name">{{ prop.name }}</span>
-              <span class="member-separator">: </span>
-              <span class="member-type-property" :title="prop.type">{{ prop.type }}</span>
+          <!-- Collapsible Content -->
+          <div v-show="isPropertiesExpanded" class="collapsible-content">
+            <div v-for="(prop, index) in nodeData.properties" :key="index" class="member-item">
+              <span
+                v-if="prop.visibility"
+                :class="['visibility-dot', getVisibilityColor(prop.visibility)]"
+                :title="`${prop.visibility} visibility`"
+              ></span>
+              <span v-if="prop.visibility" class="visibility-symbol" :title="`${prop.visibility} visibility`">
+                {{ getVisibilitySymbol(prop.visibility) }}
+              </span>
+              <div class="member-signature">
+                <span class="member-name">{{ prop.name }}</span>
+                <span class="member-separator">: </span>
+                <span class="member-type-property" :title="prop.type">{{ prop.type }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Methods Section -->
+        <div v-if="nodeData.methods && nodeData.methods.length > 0" class="collapsible-section">
+          <!-- Collapsible Header -->
+          <button
+            class="collapsible-header"
+            @click="toggleMethods"
+            type="button"
+            :aria-expanded="isMethodsExpanded"
+            aria-label="Toggle methods section"
+          >
+            <div class="collapsible-header-label">
+              <span class="section-title">Methods</span>
+              <span class="section-count">({{ nodeData.methods.length }})</span>
+            </div>
+            <svg
+              class="collapsible-icon"
+              :class="{ 'collapsible-icon-expanded': isMethodsExpanded }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <!-- Collapsible Content -->
+          <div v-show="isMethodsExpanded" class="collapsible-content">
+            <div v-for="(method, index) in nodeData.methods" :key="index" class="member-item">
+              <span
+                v-if="method.visibility"
+                :class="['visibility-dot', getVisibilityColor(method.visibility)]"
+                :title="`${method.visibility} visibility`"
+              ></span>
+              <span v-if="method.visibility" class="visibility-symbol" :title="`${method.visibility} visibility`">
+                {{ getVisibilitySymbol(method.visibility) }}
+              </span>
+              <div class="member-signature">
+                <span class="member-name">{{ method.name }}</span>
+                <span class="member-separator">()</span>
+                <span class="member-separator">: </span>
+                <span class="member-type-method" :title="method.returnType">{{ method.returnType }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+    </template>
 
-      <!-- Methods Section -->
-      <div v-if="nodeData.methods && nodeData.methods.length > 0" class="collapsible-section">
-        <!-- Collapsible Header -->
-        <button
-          class="collapsible-header"
-          @click="toggleMethods"
-          type="button"
-          :aria-expanded="isMethodsExpanded"
-          aria-label="Toggle methods section"
-        >
-          <div class="collapsible-header-label">
-            <span class="section-title">Methods</span>
-            <span class="section-count">({{ nodeData.methods.length }})</span>
-          </div>
-          <svg
-            class="collapsible-icon"
-            :class="{ 'collapsible-icon-expanded': isMethodsExpanded }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        <!-- Collapsible Content -->
-        <div v-show="isMethodsExpanded" class="collapsible-content">
-          <div v-for="(method, index) in nodeData.methods" :key="index" class="member-item">
-            <span
-              v-if="method.visibility"
-              :class="['visibility-dot', getVisibilityColor(method.visibility)]"
-              :title="`${method.visibility} visibility`"
-            ></span>
-            <span v-if="method.visibility" class="visibility-symbol" :title="`${method.visibility} visibility`">
-              {{ getVisibilitySymbol(method.visibility) }}
-            </span>
-            <div class="member-signature">
-              <span class="member-name">{{ method.name }}</span>
-              <span class="member-separator">()</span>
-              <span class="member-separator">: </span>
-              <span class="member-type-method" :title="method.returnType">{{ method.returnType }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else class="symbol-empty-state">No properties or methods</div>
-
-    <Handle type="source" :position="sourcePosition" class="symbol-handle" />
-  </div>
+    <template #empty>
+      <!-- Empty State -->
+      <div v-if="!hasContent" class="symbol-empty-state">No properties or methods</div>
+    </template>
+  </BaseNode>
 </template>
 
 <style scoped>
-/* Symbol Container */
-.symbol-container {
-  position: relative;
-  border-radius: 0.25rem;
-  border: 1px solid var(--border-default);
-  transition: all 200ms;
-  cursor: move;
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  background-color: var(--background-node);
-  z-index: 2;
-  min-width: 280px;
-  max-width: 450px;
-}
-
-.symbol-container:hover {
-  border-color: var(--border-hover);
-}
-
-.symbol-container.symbol-selected {
-  border-color: var(--border-focus);
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05),
-    0 0 16px rgba(144, 202, 249, 0.5);
-}
-
-/* Symbol Handles */
-.symbol-handle {
-  width: 0.75rem !important;
-  height: 0.75rem !important;
-}
-
-/* Symbol Header */
-.symbol-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--border-default);
-  padding: 0.75rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-}
-
-.symbol-title-container {
-  flex: 1;
-  min-width: 0;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-}
-
-.symbol-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.symbol-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
 /* Type-specific Badge Colors */
 .type-class {
   background-color: rgba(59, 130, 246, 0.2);
@@ -278,12 +198,6 @@ const hasContent = computed(() => {
 .type-default {
   background-color: rgba(255, 255, 255, 0.1);
   color: var(--text-secondary);
-}
-
-/* Symbol Content */
-.symbol-content {
-  display: flex;
-  flex-direction: column;
 }
 
 /* Collapsible Section */
@@ -448,24 +362,5 @@ const hasContent = computed(() => {
   line-height: 1rem;
   font-style: italic;
   opacity: 0.6;
-}
-
-/* Animations */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slide-in-from-top {
-  from {
-    transform: translateY(-8px);
-  }
-  to {
-    transform: translateY(0);
-  }
 }
 </style>
