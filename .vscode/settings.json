@@ -48,13 +48,8 @@
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
-    "**/build/**": true,
-    "**/coverage/**": true,
-    "**/dist/**": true,
-    "**/documentation/**": true,
     "**/node_modules/**": true,
-    "**/out/**": true,
-    "**/public/build/**": true
+    "**/dist/**": true
   },
   "git.confirmSync": false,
   "git.enableSmartCommit": true,
@@ -86,13 +81,8 @@
   "peacock.color": "#2f263f",
   "prettier.configPath": "./prettier.config.js",
   "search.exclude": {
-    "**/.*": true,
-    "**/bower_components": true,
-    "**/build": true,
-    "**/coverage": true,
-    "**/dist": true,
-    "**/documentation": true,
-    "**/node_modules": true
+    "**/node_modules": true,
+    "**/dist": true
   },
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.defaultProfile.osx": "zsh",
@@ -103,6 +93,13 @@
   "typescript.preferences.preferTypeOnlyAutoImports": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "typescript.tsserver.useSyntaxServer": "auto",
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "useFsEvents",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriority",
+    "synchronousWatchDirectory": false
+  },
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.workspaceSymbols.excludeLibrarySymbols": false,
   "vitest.experimentalStaticAstCollect": true,

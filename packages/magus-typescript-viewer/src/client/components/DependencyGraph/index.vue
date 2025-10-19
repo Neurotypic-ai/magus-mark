@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background';
-import { MarkerType, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
+import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { computed, onUnmounted, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
@@ -646,11 +646,7 @@ const handleRelationshipFilterChange = (types: string[]) => {
 };
 
 // Layout change handler
-const handleLayoutChange = async (config: {
-  direction?: string;
-  nodeSpacing?: number;
-  rankSpacing?: number;
-}) => {
+const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
   if (config.direction) {
     layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
   }
@@ -794,6 +790,8 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :snap-grid="[15, 15]"
         :pan-on-scroll="true"
         :zoom-on-scroll="true"
+        :zoom-on-pinch="true"
+        :pan-on-scroll-mode="PanOnScrollMode.Free"
         :zoom-on-double-click="false"
         :elevate-edges-on-select="true"
         :default-edge-options="{

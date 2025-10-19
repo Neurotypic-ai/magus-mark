@@ -68,6 +68,7 @@ vitest.config.*.timestamp*
 storybook-static
 # SpecStory explanation file
 .specstory/.what-is-this.md
+.specstory/history
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md

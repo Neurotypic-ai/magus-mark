@@ -70,8 +70,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     const leafNodes = nodes.filter((n) => !parentNodeIds.has(n.id));
 
     leafNodes.forEach((node) => {
-      const nodeWidth = (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth;
-      const nodeHeight = (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight;
+      // Priority order: measured dimensions > node dimensions > default dimensions
+      const measured = (node as unknown as { measured?: { width?: number; height?: number } }).measured;
+      const nodeWidth = measured?.width ?? (typeof node.width === 'number' ? node.width : defaultWidth);
+      const nodeHeight = measured?.height ?? (typeof node.height === 'number' ? node.height : defaultHeight);
 
       g.setNode(node.id, {
         width: nodeWidth,
@@ -117,59 +119,106 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     // Run dagre layout
     dagre.layout(g as any);
 
-    // Extract positions from dagre layout
-    const newNodes = nodes.map((node) => {
-      // If this is a leaf node, use dagre's calculated position
+    // First pass: position all leaf nodes from dagre
+    const nodeMap = new Map<string, DependencyNode>();
+    nodes.forEach((node) => {
       if (!parentNodeIds.has(node.id)) {
         const dagreNode = g.node(node.id);
         if (dagreNode) {
-          return {
+          nodeMap.set(node.id, {
             ...node,
             position: {
               x: dagreNode.x - (dagreNode.width || defaultWidth) / 2,
               y: dagreNode.y - (dagreNode.height || defaultHeight) / 2,
             },
-          };
+          });
+        } else {
+          nodeMap.set(node.id, node);
         }
-        return node;
+      }
+    });
+
+    // Helper to get node bounds (recursively for parent nodes)
+    const getNodeBounds = (nodeId: string): { x: number; y: number; width: number; height: number } | null => {
+      // Check if we already processed this node
+      const processed = nodeMap.get(nodeId);
+      if (processed?.position) {
+        const width =
+          typeof processed.style === 'object' && typeof processed.style.width === 'number'
+            ? processed.style.width
+            : defaultWidth;
+        const height =
+          typeof processed.style === 'object' && typeof processed.style.height === 'number'
+            ? processed.style.height
+            : defaultHeight;
+        return {
+          x: processed.position.x,
+          y: processed.position.y,
+          width,
+          height,
+        };
       }
 
-      // This is a parent node - calculate position and size based on children
-      const children = nodes.filter((n) => n.parentNode === node.id);
-      if (children.length > 0) {
+      // If not processed yet and it's a parent, calculate from children
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) return null;
+
+      if (parentNodeIds.has(nodeId)) {
+        const children = nodes.filter((n) => n.parentNode === nodeId);
+        if (children.length === 0) return null;
+
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
         let maxY = -Infinity;
 
         children.forEach((child) => {
-          const childDagre = g.node(child.id);
-          if (childDagre) {
-            const childX = childDagre.x - childDagre.width / 2;
-            const childY = childDagre.y - childDagre.height / 2;
-            minX = Math.min(minX, childX);
-            minY = Math.min(minY, childY);
-            maxX = Math.max(maxX, childX + childDagre.width);
-            maxY = Math.max(maxY, childY + childDagre.height);
+          const childBounds = getNodeBounds(child.id);
+          if (childBounds) {
+            minX = Math.min(minX, childBounds.x);
+            minY = Math.min(minY, childBounds.y);
+            maxX = Math.max(maxX, childBounds.x + childBounds.width);
+            maxY = Math.max(maxY, childBounds.y + childBounds.height);
           }
         });
 
-        // Add padding around children
+        if (minX === Infinity) return null;
+
         const padding = 40;
         return {
-          ...node,
-          position: { x: minX - padding, y: minY - padding },
-          style: {
-            ...(typeof node.style === 'object' ? node.style : {}),
-            width: maxX - minX + padding * 2,
-            height: maxY - minY + padding * 2,
-          },
+          x: minX - padding,
+          y: minY - padding,
+          width: maxX - minX + padding * 2,
+          height: maxY - minY + padding * 2,
         };
       }
 
-      // No children, return as-is
-      return node;
+      return null;
+    };
+
+    // Second pass: position all parent nodes based on their children
+    nodes.forEach((node) => {
+      if (parentNodeIds.has(node.id)) {
+        const bounds = getNodeBounds(node.id);
+        if (bounds) {
+          nodeMap.set(node.id, {
+            ...node,
+            position: { x: bounds.x, y: bounds.y },
+            style: {
+              ...(typeof node.style === 'object' ? node.style : {}),
+              width: bounds.width,
+              height: bounds.height,
+            },
+          });
+        } else {
+          // Fallback: keep original node
+          nodeMap.set(node.id, node);
+        }
+      }
     });
+
+    // Convert map back to array
+    const newNodes = Array.from(nodeMap.values());
 
     // Return all edges (including containment edges), not just the ones used for layout
     self.postMessage({
