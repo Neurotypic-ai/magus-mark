@@ -4,9 +4,10 @@
 // 2. localStorage (for runtime control: localStorage.setItem('DEBUG', 'true'))
 // 3. process.env fallback (for Node.js contexts)
 const DEBUG =
-  import.meta.env['DEBUG'] === 'true' ||
+  (typeof process !== 'undefined' && process.env['DEBUG'] === 'true') ||
+  (typeof import.meta.env !== 'undefined' && 'DEBUG' in import.meta.env && import.meta.env['DEBUG'] === 'true') ||
   (typeof localStorage !== 'undefined' && localStorage.getItem('DEBUG') === 'true') ||
-  (typeof process !== 'undefined' && process.env['DEBUG'] === 'true');
+  false;
 
 export interface Logger {
   info: (message: string, ...args: unknown[]) => void;

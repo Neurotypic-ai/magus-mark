@@ -62,14 +62,7 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </script>
 
 <template>
-  <BaseNode
-    v-bind="props"
-    :badge-text="badgeText"
-    :badge-class="getTypeColor"
-    :z-index="2"
-    min-width="280px"
-    max-width="450px"
-  >
+  <BaseNode v-bind="props" :badge-text="badgeText" :badge-class="getTypeColor" :z-index="2" min-width="280px">
     <template #content>
       <!-- Node Content -->
       <div v-if="hasContent" class="symbol-content">

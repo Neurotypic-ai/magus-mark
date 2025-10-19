@@ -14,6 +14,10 @@ interface PersistedSettings {
   collapseScc: boolean;
   clusterByFolder: boolean;
   visibleNodeTypes: string[];
+  layoutDirection: 'LR' | 'RL' | 'TB' | 'BT';
+  nodeSpacing: number;
+  rankSpacing: number;
+  enabledRelationshipTypes: string[];
 }
 
 function isPersistedSettings(value: unknown): value is PersistedSettings {
@@ -25,7 +29,17 @@ function isPersistedSettings(value: unknown): value is PersistedSettings {
     typeof obj['collapseScc'] === 'boolean' &&
     typeof obj['clusterByFolder'] === 'boolean' &&
     Array.isArray(obj['visibleNodeTypes']) &&
-    obj['visibleNodeTypes'].every((item) => typeof item === 'string')
+    obj['visibleNodeTypes'].every((item) => typeof item === 'string') &&
+    (obj['layoutDirection'] === undefined ||
+      obj['layoutDirection'] === 'LR' ||
+      obj['layoutDirection'] === 'RL' ||
+      obj['layoutDirection'] === 'TB' ||
+      obj['layoutDirection'] === 'BT') &&
+    (obj['nodeSpacing'] === undefined || typeof obj['nodeSpacing'] === 'number') &&
+    (obj['rankSpacing'] === undefined || typeof obj['rankSpacing'] === 'number') &&
+    (obj['enabledRelationshipTypes'] === undefined ||
+      (Array.isArray(obj['enabledRelationshipTypes']) &&
+        obj['enabledRelationshipTypes'].every((item) => typeof item === 'string')))
   );
 }
 
@@ -58,6 +72,10 @@ function saveSettings(settings: {
   collapseScc: boolean;
   clusterByFolder: boolean;
   visibleNodeTypes: string[];
+  layoutDirection: 'LR' | 'RL' | 'TB' | 'BT';
+  nodeSpacing: number;
+  rankSpacing: number;
+  enabledRelationshipTypes: string[];
 }) {
   logger.debug('Saving settings to localStorage:', settings);
   try {
@@ -95,9 +113,41 @@ export const useGraphSettings = defineStore('graphSettings', () => {
   );
   logger.debug('Initial visible node types:', Array.from(visibleNodeTypes.value));
 
+  // Layout configuration
+  const layoutDirection = ref<'LR' | 'RL' | 'TB' | 'BT'>(persisted?.layoutDirection ?? 'LR');
+  const nodeSpacing = ref<number>(persisted?.nodeSpacing ?? 150);
+  const rankSpacing = ref<number>(persisted?.rankSpacing ?? 250);
+  logger.debug(
+    `Initial layout - direction: ${layoutDirection.value}, nodeSpacing: ${String(nodeSpacing.value)}, rankSpacing: ${String(rankSpacing.value)}`
+  );
+
+  // Relationship type filters - all enabled by default
+  const defaultRelationshipTypes = [
+    'import',
+    'export',
+    'inheritance',
+    'implements',
+    'contains',
+    'dependency',
+    'devDependency',
+    'peerDependency',
+  ];
+  const enabledRelationshipTypes = ref<string[]>(persisted?.enabledRelationshipTypes ?? defaultRelationshipTypes);
+  logger.debug('Initial enabled relationship types:', enabledRelationshipTypes.value);
+
   // Watch for changes and persist to localStorage
   watch(
-    [showPackages, showClasses, collapseScc, clusterByFolder, visibleNodeTypes],
+    [
+      showPackages,
+      showClasses,
+      collapseScc,
+      clusterByFolder,
+      visibleNodeTypes,
+      layoutDirection,
+      nodeSpacing,
+      rankSpacing,
+      enabledRelationshipTypes,
+    ],
     () => {
       saveSettings({
         showPackages: showPackages.value,
@@ -105,6 +155,10 @@ export const useGraphSettings = defineStore('graphSettings', () => {
         collapseScc: collapseScc.value,
         clusterByFolder: clusterByFolder.value,
         visibleNodeTypes: Array.from(visibleNodeTypes.value),
+        layoutDirection: layoutDirection.value,
+        nodeSpacing: nodeSpacing.value,
+        rankSpacing: rankSpacing.value,
+        enabledRelationshipTypes: enabledRelationshipTypes.value,
       });
     },
     { deep: true }
@@ -147,6 +201,10 @@ export const useGraphSettings = defineStore('graphSettings', () => {
       collapseScc: collapseScc.value,
       clusterByFolder: clusterByFolder.value,
       visibleNodeTypes: Array.from(visibleNodeTypes.value),
+      layoutDirection: layoutDirection.value,
+      nodeSpacing: nodeSpacing.value,
+      rankSpacing: rankSpacing.value,
+      enabledRelationshipTypes: enabledRelationshipTypes.value,
     });
   }
 
@@ -162,14 +220,42 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     setNodeTypeVisibility(nodeType, !currentVisibility);
   }
 
+  function setLayoutDirection(value: 'LR' | 'RL' | 'TB' | 'BT'): void {
+    logger.debug(`setLayoutDirection: ${layoutDirection.value} -> ${value}`);
+    layoutDirection.value = value;
+  }
+
+  function setNodeSpacing(value: number): void {
+    logger.debug(`setNodeSpacing: ${String(nodeSpacing.value)} -> ${String(value)}`);
+    nodeSpacing.value = value;
+  }
+
+  function setRankSpacing(value: number): void {
+    logger.debug(`setRankSpacing: ${String(rankSpacing.value)} -> ${String(value)}`);
+    rankSpacing.value = value;
+  }
+
+  function setEnabledRelationshipTypes(types: string[]): void {
+    logger.debug(
+      `setEnabledRelationshipTypes: ${String(enabledRelationshipTypes.value.length)} -> ${String(types.length)} types`
+    );
+    enabledRelationshipTypes.value = types;
+  }
+
   return {
-    // Return refs, not values
+    // View option refs
     showPackages,
     showClasses,
     collapseScc,
     clusterByFolder,
     visibleNodeTypes,
-    // Actions
+    // Layout configuration refs
+    layoutDirection,
+    nodeSpacing,
+    rankSpacing,
+    // Relationship filter refs
+    enabledRelationshipTypes,
+    // View actions
     setShowPackages,
     setShowClasses,
     setCollapseScc,
@@ -177,5 +263,11 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     setNodeTypeVisibility,
     isNodeTypeVisible,
     toggleNodeType,
+    // Layout actions
+    setLayoutDirection,
+    setNodeSpacing,
+    setRankSpacing,
+    // Relationship filter actions
+    setEnabledRelationshipTypes,
   };
 });

@@ -56,7 +56,7 @@
     "analyze": "node dist/bin/typescript-viewer.js analyze",
     "build": "pnpm typecheck && vite build && node ./esbuild.config.js",
     "dev": "pnpm run --filter magus-typescript-viewer --parallel \"/^dev:.*/\"",
-    "dev:server": "nodemon --watch src/server --watch src/server.ts --watch src/server/db --exec 'tsx' src/server.ts",
+    "dev:server": "source .env && nodemon --watch src/server --watch src/server.ts --watch src/server/db --exec 'tsx' src/server.ts",
     "dev:ui": "vite",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

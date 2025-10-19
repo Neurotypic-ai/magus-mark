@@ -19,15 +19,24 @@ const emit = defineEmits<{
 const { zoomIn, zoomOut, fitView } = useVueFlow();
 const graphSettings = useGraphSettings();
 
-// Layout configuration (dagre only supports hierarchical layout with different directions)
-const layoutDirection = ref<'LR' | 'RL' | 'TB' | 'BT'>('LR');
-const nodeSpacing = ref(150);
-const rankSpacing = ref(250);
+// Layout configuration - use writable computed properties for two-way binding
+const layoutDirection = computed(() => graphSettings.layoutDirection);
+const nodeSpacing = computed({
+  get: () => graphSettings.nodeSpacing,
+  set: (value: number) => graphSettings.setNodeSpacing(value),
+});
+const rankSpacing = computed({
+  get: () => graphSettings.rankSpacing,
+  set: (value: number) => graphSettings.setRankSpacing(value),
+});
 
 // View options - use computed to reference the store's reactive refs
 const showPackages = computed(() => graphSettings.showPackages);
 const showClasses = computed(() => graphSettings.showClasses);
 const clusterByFolder = computed(() => graphSettings.clusterByFolder);
+
+// Relationship filters - use computed to reference the store's reactive refs
+const enabledTypes = computed(() => graphSettings.enabledRelationshipTypes);
 
 const handleZoomIn = () => {
   void zoomIn({ duration: 150 });
@@ -84,24 +93,20 @@ const relationshipTypes = [
   'peerDependency',
 ];
 
-// Track which types are currently enabled (all enabled by default)
-const enabledTypes = ref<string[]>([...relationshipTypes]);
-
 const handleFilterChange = (type: string, checked: boolean) => {
-  if (checked) {
-    enabledTypes.value = [...enabledTypes.value, type];
-  } else {
-    enabledTypes.value = enabledTypes.value.filter((t) => t !== type);
-  }
-  emit('relationship-filter-change', enabledTypes.value);
+  const currentTypes = enabledTypes.value;
+  const newTypes = checked ? [...currentTypes, type] : currentTypes.filter((t) => t !== type);
+  graphSettings.setEnabledRelationshipTypes(newTypes);
+  emit('relationship-filter-change', newTypes);
 };
 
 const handleDirectionChange = (direction: 'LR' | 'RL' | 'TB' | 'BT') => {
-  layoutDirection.value = direction;
+  graphSettings.setLayoutDirection(direction);
   emit('layout-change', { direction });
 };
 
 const handleSpacingChange = () => {
+  // Values are already updated via writable computed setters
   emit('layout-change', {
     nodeSpacing: nodeSpacing.value,
     rankSpacing: rankSpacing.value,
