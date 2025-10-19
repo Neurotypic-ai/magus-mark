@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background';
-import { Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
+import { MarkerType, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { computed, onUnmounted, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
@@ -50,13 +50,12 @@ const { fitView } = useVueFlow();
 // Keep a reference to the layout processor for cleanup
 let layoutProcessor: WebWorkerLayoutProcessor | null = null;
 
-// Layout configuration state optimized for module import visualization
+// Layout configuration state - dagre uses hierarchical layout with configurable direction
 const layoutConfig = {
-  algorithm: 'layered' as 'layered' | 'radial' | 'force' | 'stress',
   direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT', // Left-to-right flow
-  nodeSpacing: 80, // Space between nodes in same rank
-  rankSpacing: 200, // Space between ranks (layers) - increased for clarity
-  edgeSpacing: 30, // Space between parallel edges
+  nodeSpacing: 150, // Space between nodes in same rank (increased for better separation)
+  rankSpacing: 250, // Space between ranks (layers) - increased for clarity
+  edgeSpacing: 50, // Space between parallel edges
 };
 
 // Helper to get handle positions based on layout direction
@@ -83,9 +82,7 @@ const initializeLayoutProcessor = () => {
   }
 
   // Create a new instance
-  // Note: WebWorkerLayoutProcessor internally converts TB/LR/etc to DOWN/RIGHT/etc
   layoutProcessor = new WebWorkerLayoutProcessor({
-    algorithm: layoutConfig.algorithm,
     direction: layoutConfig.direction,
     nodeSpacing: layoutConfig.nodeSpacing,
     rankSpacing: layoutConfig.rankSpacing,
@@ -201,11 +198,16 @@ const initializeGraph = async () => {
   initializeLayoutProcessor();
 
   // Create nodes and edges using extracted utilities
-  // For now, show only modules with their import relationships (no packages, no classes)
+  // includePackages and includeClasses control whether to create these node types at all
+  // These are controlled by the "Show package nodes" and "Show class details" toggles
+  const includePackages = graphSettings.showPackages;
+  const includeClasses = graphSettings.showClasses;
+
   const graphNodes = createGraphNodes(props.data, {
-    includePackages: false, // No package nodes = cleaner module view
-    includeClasses: false, // No classes = focus on module structure
+    includePackages,
+    includeClasses,
     direction: layoutConfig.direction,
+    visibleNodeTypes: graphSettings.visibleNodeTypes,
   });
   let graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
@@ -323,7 +325,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
 
   // If it's a module node, show its internal structure
   if (selectedNode.type === 'module') {
-    graphLogger.info(`Expanding module view: ${selectedNode.data.label}`);
+    graphLogger.info(`Expanding module view: ${selectedNode.data?.label}`);
 
     // Create detailed nodes for this module from the original data
     const moduleData = props.data.packages
@@ -399,7 +401,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
             hidden: false,
             data: { type: 'inheritance' as DependencyEdgeKind },
             style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
-            markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+            markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
           } as GraphEdge);
         }
 
@@ -414,7 +416,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
                 hidden: false,
                 data: { type: 'implements' as DependencyEdgeKind },
                 style: { ...getEdgeStyle('implements'), strokeWidth: 3 },
-                markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
               } as GraphEdge);
             }
           });
@@ -470,7 +472,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
                 hidden: false,
                 data: { type: 'inheritance' as DependencyEdgeKind },
                 style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
-                markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
               } as GraphEdge);
             }
           });
@@ -602,14 +604,10 @@ const handleRelationshipFilterChange = (types: string[]) => {
 
 // Layout change handler
 const handleLayoutChange = async (config: {
-  algorithm?: string;
   direction?: string;
   nodeSpacing?: number;
   rankSpacing?: number;
 }) => {
-  if (config.algorithm) {
-    layoutConfig.algorithm = config.algorithm as 'layered' | 'radial' | 'force' | 'stress';
-  }
   if (config.direction) {
     layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
   }
@@ -623,14 +621,14 @@ const handleLayoutChange = async (config: {
   // Recreate layout processor with new config
   initializeLayoutProcessor();
 
-  // Re-run layout with updated direction for handle positions
-  const graphNodes = createGraphNodes(props.data, {
-    includePackages: false,
-    includeClasses: false,
-    direction: layoutConfig.direction,
-  });
-  const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
-  await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
+  // Re-run layout with updated configuration
+  await initializeGraph();
+};
+
+// Node visibility change handler
+const handleNodeVisibilityChange = async () => {
+  // Re-initialize graph when node visibility changes
+  await initializeGraph();
 };
 
 // Search result handler
@@ -738,7 +736,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
     <button
       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
       @keydown="handleKeyDown"
-      aria-label="Press arrow keys to navigate between connected nodes"
+      aria-label="Press arrowclosed keys to navigate between connected nodes"
     >
       <!-- The actual graph -->
       <VueFlow
@@ -757,7 +755,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :elevate-edges-on-select="true"
         :default-edge-options="{
           style: { stroke: '#61dafb', strokeWidth: 3 },
-          markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
           zIndex: 1000,
           type: 'step',
         }"
@@ -769,9 +767,16 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         <GraphControls
           @relationship-filter-change="handleRelationshipFilterChange"
           @layout-change="handleLayoutChange"
-          @toggle-collapse-scc="
+          @node-visibility-change="handleNodeVisibilityChange"
+          @toggle-show-packages="
             (v: boolean) => {
-              graphSettings.setCollapseScc(v);
+              graphSettings.setShowPackages(v);
+              void initializeGraph();
+            }
+          "
+          @toggle-show-classes="
+            (v: boolean) => {
+              graphSettings.setShowClasses(v);
               void initializeGraph();
             }
           "

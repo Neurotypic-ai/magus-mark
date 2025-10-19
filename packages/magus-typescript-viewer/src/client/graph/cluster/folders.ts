@@ -42,6 +42,7 @@ export function clusterByFolder(
       data: { label: dir || 'root' },
       style: { ...getNodeStyle('group') },
       expandParent: true,
+      extent: 'parent',
     });
     return id;
   }
@@ -55,9 +56,9 @@ export function clusterByFolder(
     return {
       ...n,
       parentNode: parentId,
-      extent: 'parent',
+      extent: 'parent' as const,
       data: { ...(n.data ?? {}), parentId },
-    };
+    } as DependencyNode;
   });
 
   return { nodes: [...dirNodes, ...remappedNodes], edges };

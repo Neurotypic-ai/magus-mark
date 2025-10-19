@@ -1,40 +1,64 @@
 {
+  "[markdown]": {
+    "editor.quickSuggestions": {
+      "comments": "on",
+      "other": "on",
+      "strings": "on"
+    },
+    "editor.wordWrap": "on"
+  },
+  "dotenv.enableAutocloaking": false,
   "eslint.codeActionsOnSave.mode": "problems",
+  "eslint.codeActionsOnSave.rules": ["!@typescript-eslint/no-unsafe-*"],
+  "eslint.lintTask.enable": true,
+  "eslint.useESLintClass": true,
+  "eslint.useFlatConfig": true,
+  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+  "eslint.workingDirectories": [
+    {
+      "pattern": "apps/*/"
+    },
+    {
+      "pattern": "packages/*/"
+    }
+  ],
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.js": "${capture}.test.js, ${capture}.spec.js, ${capture}.js.map",
+    "*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.d.ts, ${capture}.ts.map",
+    "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx, ${capture}.tsx.map",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .npmrc",
+    "tsconfig.json": "tsconfig.*.json"
+  },
+  "explorerExclude.backup": {},
   "files.exclude": {
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/CVS": true,
     "**/.DS_Store": true,
-    "**/Thumbs.db": true,
+    "**/.git": true,
+    "**/.hg": true,
+    "**/.nx": false,
+    "**/.svn": true,
+    "**/*.tsbuildinfo": true,
+    "**/coverage": true,
+    "**/CVS": true,
     "**/dist": false,
     "**/out": false,
-    "**/coverage": true,
-    "**/.nx": false,
-    "**/*.tsbuildinfo": true
+    "**/Thumbs.db": true
   },
   "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
     "**/build/**": true,
     "**/coverage/**": true,
     "**/dist/**": true,
     "**/documentation/**": true,
     "**/node_modules/**": true,
     "**/out/**": true,
-    "**/public/build/**": true,
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true
+    "**/public/build/**": true
   },
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.expand": false,
-  "explorer.fileNesting.patterns": {
-    "*.ts": "${capture}.test.ts, ${capture}.spec.ts, ${capture}.d.ts, ${capture}.ts.map",
-    "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx, ${capture}.tsx.map",
-    "*.js": "${capture}.test.js, ${capture}.spec.js, ${capture}.js.map",
-    "tsconfig.json": "tsconfig.*.json",
-    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .npmrc"
-  },
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
   "js/ts.implicitProjectConfig.checkJs": true,
-  "js/ts.implicitProjectConfig.experimentalDecorators": true,
   "js/ts.implicitProjectConfig.module": "ESNext",
   "js/ts.implicitProjectConfig.target": "ESNext",
   "json.format.keepLines": true,
@@ -56,6 +80,11 @@
       "url": "https://json.schemastore.org/tsconfig"
     }
   ],
+  "markdown.preview.breaks": true,
+  "markdown.preview.linkify": true,
+  "nxConsole.generateAiAgentRules": true,
+  "peacock.color": "#2f263f",
+  "prettier.configPath": "./prettier.config.js",
   "search.exclude": {
     "**/.*": true,
     "**/bower_components": true,
@@ -65,42 +94,20 @@
     "**/documentation": true,
     "**/node_modules": true
   },
-  "typescript.check.npmIsInstalled": false,
-  "typescript.disableAutomaticTypeAcquisition": true,
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "typescript.preferences.autoImportFileExcludePatterns": [
-    "@radix-ui/**",
-    "node:console",
-    "node:stream/consumers",
-    "node:test",
-    "react-router-dom"
-  ],
   "typescript.preferences.importModuleSpecifier": "shortest",
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.preferTypeOnlyAutoImports": true,
-  "typescript.tsc.autoDetect": "off",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-  "typescript.tsserver.maxTsServerMemory": 8096,
-  "typescript.tsserver.watchOptions": {
-    "excludeDirectories": [
-      "**/node_modules/**/*",
-      "**/build/**/*",
-      "**/dist/**/*",
-      "**/out/**/*",
-      "**/coverage/**/*",
-      "**/documentation/**/*",
-      "**/public/build/**/*"
-    ]
-  },
-  "typescript.workspaceSymbols.excludeLibrarySymbols": false,
-  "typescript.workspaceSymbols.scope": "allOpenProjects",
   "typescript.updateImportsOnFileMove.enabled": "always",
-  "typescript.preferences.quoteStyle": "single",
-  "typescript.suggest.completeFunctionCalls": true,
-  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
-  "eslint.workingDirectories": [{ "pattern": "apps/*/" }, { "pattern": "packages/*/" }],
-  "eslint.codeActionsOnSave.rules": ["!@typescript-eslint/no-unsafe-*"],
+  "typescript.workspaceSymbols.excludeLibrarySymbols": false,
+  "vitest.experimentalStaticAstCollect": true,
+  "vitest.filesWatcherInclude": "**/src/**/*.{ts|tsx}",
+  "vitest.shellType": "terminal",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#47395f",
     "activityBar.background": "#47395f",
@@ -111,45 +118,16 @@
     "commandCenter.border": "#e7e7e799",
     "sash.hoverBorder": "#47395f",
     "statusBar.background": "#2f263f",
+    "statusBar.debuggingBackground": "#363f26",
+    "statusBar.debuggingForeground": "#e7e7e7",
     "statusBar.foreground": "#e7e7e7",
+    "statusBar.noFolderBackground": "#007acc",
     "statusBarItem.hoverBackground": "#47395f",
     "statusBarItem.remoteBackground": "#2f263f",
     "statusBarItem.remoteForeground": "#e7e7e7",
     "titleBar.activeBackground": "#2f263f",
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#2f263f99",
-    "titleBar.inactiveForeground": "#e7e7e799",
-    "statusBar.noFolderBackground": "#007acc",
-    "statusBar.debuggingBackground": "#363f26",
-    "statusBar.debuggingForeground": "#e7e7e7"
-  },
-  "peacock.color": "#2f263f",
-  "eslint.lintTask.enable": true,
-  "eslint.useESLintClass": true,
-  "eslint.useFlatConfig": true,
-  "prettier.configPath": "./prettier.config.js",
-  "vitest.experimentalStaticAstCollect": true,
-  "vitest.shellType": "terminal",
-  "vitest.filesWatcherInclude": "**/src/**/*.{ts|tsx}",
-  "terminal.integrated.defaultProfile.linux": "bash",
-  "terminal.integrated.defaultProfile.osx": "zsh",
-  "terminal.integrated.defaultProfile.windows": "PowerShell",
-  "git.enableSmartCommit": true,
-  "git.confirmSync": false,
-  "markdown.preview.breaks": true,
-  "markdown.preview.linkify": true,
-  "[markdown]": {
-    "editor.wordWrap": "on",
-    "editor.quickSuggestions": {
-      "comments": "on",
-      "strings": "on",
-      "other": "on"
-    }
-  },
-  "explorerExclude.backup": {},
-  "dotenv.enableAutocloaking": false,
-  "nxConsole.generateAiAgentRules": true,
-  "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": false,
-  "typescript.tsserver.web.typeAcquisition.enabled": false,
-  "typescript.tsserver.useSyntaxServer": "always"
+    "titleBar.inactiveForeground": "#e7e7e799"
+  }
 }

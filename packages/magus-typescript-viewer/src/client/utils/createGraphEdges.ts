@@ -193,7 +193,6 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
                 hidden: false,
                 data: {
                   type: 'import' as DependencyEdgeKind,
-                  importName: imp.name,
                 },
                 style: getEdgeStyle('import'),
                 markerEnd: {
@@ -204,6 +203,46 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
               });
             }
           });
+        }
+
+        // Add module export edges (if module has exports property)
+        const moduleWithExports = module as unknown as {
+          exports?: Record<string, { uuid: string; name?: string; path?: string }>;
+        };
+        if (moduleWithExports.exports) {
+          const moduleExports = moduleWithExports.exports;
+          if (Object.keys(moduleExports).length > 0) {
+            mapTypeCollection(moduleExports, (exp) => {
+              if (!exp.path) return; // Skip exports without paths
+
+              // Resolve the export path relative to the current module
+              const resolvedPath = resolveImportPath(module.source.relativePath, exp.path);
+
+              // Look up the target module ID
+              const targetModuleId =
+                modulePathMap.get(resolvedPath) ?? modulePathMap.get(resolvedPath.replace(/\.(ts|tsx|js|jsx)$/, ''));
+
+              if (targetModuleId && targetModuleId !== module.id) {
+                // Arrow points FROM exporting module TO exported module
+                // Shows "exports from" relationship
+                edges.push({
+                  id: `${module.id}-${targetModuleId}-export`,
+                  source: module.id,
+                  target: targetModuleId,
+                  hidden: false,
+                  data: {
+                    type: 'export' as DependencyEdgeKind,
+                  },
+                  style: getEdgeStyle('export'),
+                  markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    width: 20,
+                    height: 20,
+                  },
+                });
+              }
+            });
+          }
         }
 
         // Add class inheritance and implementation edges

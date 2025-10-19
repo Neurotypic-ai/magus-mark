@@ -26,9 +26,20 @@ import type { DependencyKind, DependencyNode, DependencyPackageGraph } from '../
  */
 export function createGraphNodes(
   data: DependencyPackageGraph,
-  options: { includePackages?: boolean; includeClasses?: boolean; direction?: 'LR' | 'RL' | 'TB' | 'BT' } = {}
+  options: {
+    includePackages?: boolean;
+    includeClasses?: boolean;
+    direction?: 'LR' | 'RL' | 'TB' | 'BT';
+    visibleNodeTypes?: Set<DependencyKind>;
+  } = {}
 ): DependencyNode[] {
-  const { includePackages = false, includeClasses = false, direction = 'LR' } = options;
+  const { includePackages = false, includeClasses = false, direction = 'LR', visibleNodeTypes } = options;
+
+  // Helper to check if a node type should be included
+  const shouldIncludeNodeType = (nodeType: DependencyKind): boolean => {
+    if (!visibleNodeTypes) return true; // If no filter provided, include all
+    return visibleNodeTypes.has(nodeType);
+  };
 
   // Calculate handle positions based on layout direction
   let sourcePosition: Position;
@@ -56,7 +67,7 @@ export function createGraphNodes(
   const graphNodes: DependencyNode[] = [];
 
   // Optionally create package nodes
-  if (includePackages) {
+  if (includePackages && shouldIncludeNodeType('package')) {
     data.packages.forEach((pkg) => {
       graphNodes.push({
         id: pkg.id,
@@ -79,7 +90,7 @@ export function createGraphNodes(
   // Create module nodes
   data.packages.forEach((pkg) => {
     // Add module nodes
-    if (pkg.modules) {
+    if (pkg.modules && shouldIncludeNodeType('module')) {
       mapTypeCollection(pkg.modules, (module) => {
         const moduleNode: DependencyNode = {
           id: module.id,
@@ -104,7 +115,7 @@ export function createGraphNodes(
           moduleNode.parentNode = pkg.id;
           moduleNode.extent = 'parent' as const;
           moduleNode.expandParent = true;
-          moduleNode.data.parentId = pkg.id;
+          moduleNode.data = { ...moduleNode.data, parentId: pkg.id, label: moduleNode.data?.label ?? moduleNode.id };
         }
 
         graphNodes.push(moduleNode);
@@ -112,7 +123,7 @@ export function createGraphNodes(
         // Optionally add class and interface nodes
         if (includeClasses) {
           // Add class nodes
-          if (module.classes) {
+          if (module.classes && shouldIncludeNodeType('class')) {
             mapTypeCollection(module.classes, (cls) => {
               // Convert Map/Object to array for properties and methods
               const properties = cls.properties
@@ -160,7 +171,7 @@ export function createGraphNodes(
           }
 
           // Add interface nodes
-          if (module.interfaces) {
+          if (module.interfaces && shouldIncludeNodeType('interface')) {
             mapTypeCollection(module.interfaces, (iface) => {
               // Convert Map/Object to array for properties and methods
               const properties = iface.properties

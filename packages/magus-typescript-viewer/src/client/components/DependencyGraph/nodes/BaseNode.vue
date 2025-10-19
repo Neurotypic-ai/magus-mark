@@ -4,12 +4,14 @@ import { computed } from 'vue';
 
 import type { DependencyProps } from '../types';
 
-interface BaseNodeProps extends DependencyProps {
+interface BaseNodeProps extends Omit<DependencyProps, 'width' | 'height'> {
   minWidth?: string;
   maxWidth?: string;
   zIndex?: number;
   badgeText: string;
   badgeClass?: string;
+  width?: number;
+  height?: number;
 }
 
 const props = withDefaults(defineProps<BaseNodeProps>(), {

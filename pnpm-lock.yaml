@@ -451,6 +451,9 @@ importers:
       '@dagrejs/dagre':
         specifier: ^1.1.5
         version: 1.1.5
+      '@dagrejs/graphlib':
+        specifier: ^2.2.4
+        version: 2.2.4
       '@duckdb/node-api':
         specifier: 1.4.1-r.2
         version: 1.4.1-r.2
@@ -475,9 +478,6 @@ importers:
       commander:
         specifier: ^14.0.1
         version: 14.0.1
-      elkjs:
-        specifier: ^0.11.0
-        version: 0.11.0
       jscodeshift:
         specifier: ^17.3.0
         version: 17.3.0(@babel/preset-env@7.28.3(@babel/core@7.28.4))
@@ -4485,9 +4485,6 @@ packages:
     resolution: {integrity: sha512-Wij4AzX4SAV0X/ktq+NrWrp5piTCSS8F6YWh1KAcG+QRtNzyns9XLKERP68nFHIwfprhxF2YCN2uj7nx9DaeJw==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
-
-  elkjs@0.11.0:
-    resolution: {integrity: sha512-u4J8h9mwEDaYMqo0RYJpqNMFDoMK7f+pu4GjcV+N8jIC7TRdORgzkfSjTJemhqONFfH6fBI3wpysgWbhgVWIXw==}
 
   elliptic@6.6.1:
     resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
@@ -12853,8 +12850,6 @@ snapshots:
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
-
-  elkjs@0.11.0: {}
 
   elliptic@6.6.1:
     dependencies:

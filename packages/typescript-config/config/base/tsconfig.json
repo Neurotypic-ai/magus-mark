@@ -27,8 +27,14 @@
     }
   ],
   "watchOptions": {
-    "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"],
-    "watchDirectory": "useFsEvents",
-    "watchFile": "useFsEvents"
+    "excludeDirectories": [
+      "${configDir}/**/node_modules/**/*",
+      "${configDir}/**/build/**/*",
+      "${configDir}/**/dist/**/*",
+      "${configDir}/**/out/**/*",
+      "${configDir}/**/coverage/**/*",
+      "${configDir}/**/documentation/**/*",
+      "${configDir}/**/public/build/**/*"
+    ]
   }
 }

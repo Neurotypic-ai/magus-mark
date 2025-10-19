@@ -24,8 +24,8 @@ export interface LayoutConfig {
 
 export const defaultLayoutConfig: LayoutConfig = {
   direction: 'LR', // Left-to-right works better for hierarchical dependency graphs
-  nodeSpacing: 100,
-  rankSpacing: 150,
+  nodeSpacing: 150, // Increased for better node separation
+  rankSpacing: 250, // Increased for clearer hierarchy
   edgeSpacing: 50,
   margins: {
     top: 80,
@@ -36,18 +36,6 @@ export const defaultLayoutConfig: LayoutConfig = {
   animationDuration: 150,
   theme: graphTheme,
 };
-
-// Layout-specific configurations
-export interface HierarchicalLayoutConfig extends LayoutConfig {
-  alignSiblings?: boolean;
-  depthSeparation?: number;
-}
-
-export interface ForceLayoutConfig extends LayoutConfig {
-  iterations?: number;
-  strength?: number;
-  distance?: number;
-}
 
 // Utility to merge configs with defaults
 export function mergeConfig<T extends LayoutConfig>(config: Partial<T>, defaults: T): T {

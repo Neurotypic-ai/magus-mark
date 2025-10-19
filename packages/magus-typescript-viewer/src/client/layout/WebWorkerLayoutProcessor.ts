@@ -11,9 +11,9 @@ import type { DependencyNode } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
 
 // Internal layout configuration type used by the worker
+// Dagre only supports hierarchical layout with configurable direction
 export interface LayoutConfig {
-  algorithm: 'layered' | 'radial' | 'force' | 'stress';
-  direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
+  direction: 'TB' | 'BT' | 'LR' | 'RL'; // Dagre rankdir parameter
   nodesep: number;
   edgesep: number;
   ranksep: number;
@@ -48,7 +48,6 @@ interface WorkerResponse {
  * Configuration for initializing the WebWorkerLayoutProcessor
  */
 export interface WebWorkerLayoutConfig {
-  algorithm?: 'layered' | 'radial' | 'force' | 'stress';
   direction?: 'TB' | 'LR' | 'BT' | 'RL';
   nodeSpacing?: number;
   rankSpacing?: number;
@@ -72,26 +71,24 @@ export class WebWorkerLayoutProcessor {
       ...config,
     };
 
-    // Map TB/BT/LR/RL to ELK's DOWN/UP/RIGHT/LEFT
-    const mapDirection = (dir: string): 'DOWN' | 'UP' | 'RIGHT' | 'LEFT' => {
+    // Map TB/BT/LR/RL to dagre's expected direction values (no mapping needed)
+    const mapDirection = (dir: string): 'TB' | 'BT' | 'LR' | 'RL' => {
+      // Dagre uses the same direction names as our input
       switch (dir) {
         case 'TB':
-          return 'DOWN';
         case 'BT':
-          return 'UP';
-        case 'RL':
-          return 'LEFT';
         case 'LR':
+        case 'RL':
+          return dir;
         default:
-          return 'RIGHT';
+          return 'LR';
       }
     };
 
     this.config = {
-      algorithm: mergedConfig.algorithm ?? 'layered',
       direction: mapDirection(mergedConfig.direction ?? 'LR'),
-      nodesep: mergedConfig.nodeSpacing ?? 100,
-      ranksep: mergedConfig.rankSpacing ?? 150,
+      nodesep: mergedConfig.nodeSpacing ?? 150,
+      ranksep: mergedConfig.rankSpacing ?? 250,
       edgesep: mergedConfig.edgeSpacing ?? 50,
       theme: mergedConfig.theme ?? defaultLayoutConfig.theme,
       animationDuration: mergedConfig.animationDuration,
@@ -184,57 +181,135 @@ export class WebWorkerLayoutProcessor {
    * @param edges The edges to process
    * @returns A promise that resolves with the processed layout
    */
-  private fallbackProcessLayout(nodes: DependencyNode[], edges: Edge[]): Promise<LayoutResult> {
-    // Simple fallback layout algorithm - hierarchical grid layout
-    const packages = nodes.filter((n) => n.type === 'package');
-    const modules = nodes.filter((n) => n.type === 'module');
-    const others = nodes.filter((n) => n.type !== 'package' && n.type !== 'module');
+  private async fallbackProcessLayout(nodes: DependencyNode[], edges: Edge[]): Promise<LayoutResult> {
+    // Use dagre for fallback layout as well
+    try {
+      const { default: dagre } = await import('@dagrejs/dagre');
+      const { default: graphlib } = await import('@dagrejs/graphlib');
 
-    let currentY = 50;
-    let currentX = 50;
-    const horizontalSpacing = 250;
-    const verticalSpacing = 200;
-    const maxPerRow = 4;
+      const g = new graphlib.Graph({ directed: true });
 
-    // Layout packages
-    packages.forEach((node, index) => {
-      if (index > 0 && index % maxPerRow === 0) {
+      // Set graph options using current config
+      const graphOptions: {
+        rankdir?: string;
+        nodesep?: number;
+        edgesep?: number;
+        ranksep?: number;
+        marginx?: number;
+        marginy?: number;
+      } = {
+        rankdir: this.config.direction,
+        nodesep: this.config.nodesep,
+        edgesep: this.config.edgesep,
+        ranksep: this.config.ranksep,
+        marginx: 50,
+        marginy: 50,
+      };
+
+      g.setGraph(graphOptions);
+      g.setDefaultNodeLabel(() => ({}));
+      g.setDefaultEdgeLabel(() => ({}));
+
+      const defaultWidth = 200;
+      const defaultHeight = 120;
+
+      // Add nodes
+      nodes.forEach((node) => {
+        const nodeWidth = (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth;
+        const nodeHeight = (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight;
+
+        g.setNode(node.id, {
+          width: nodeWidth,
+          height: nodeHeight,
+          label: node.data?.label || node.id,
+        });
+      });
+
+      // Filter edges for layout (exclude containment edges)
+      const validEdges = edges.filter((edge) => {
+        const edgeType = (edge.data as { type?: string } | undefined)?.type;
+        const isValid = nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target);
+        const isNotContainment = edgeType !== 'contains';
+        return isValid && isNotContainment;
+      });
+
+      // Add edges
+      validEdges.forEach((edge) => {
+        g.setEdge(edge.source, edge.target, { minlen: 1 });
+      });
+
+      // Run dagre layout
+      dagre.layout(g as any);
+
+      // Extract positions
+      const newNodes = nodes.map((node) => {
+        const dagreNode = g.node(node.id);
+        if (dagreNode) {
+          return {
+            ...node,
+            position: {
+              x: dagreNode.x - (dagreNode.width || defaultWidth) / 2,
+              y: dagreNode.y - (dagreNode.height || defaultHeight) / 2,
+            },
+          };
+        }
+        return node;
+      });
+
+      return { nodes: newNodes, edges };
+    } catch (error) {
+      console.error('Dagre fallback layout error:', error);
+      // Final fallback: simple grid layout
+      const packages = nodes.filter((n) => n.type === 'package');
+      const modules = nodes.filter((n) => n.type === 'module');
+      const others = nodes.filter((n) => n.type !== 'package' && n.type !== 'module');
+
+      let currentY = 50;
+      let currentX = 50;
+      const horizontalSpacing = 250;
+      const verticalSpacing = 200;
+      const maxPerRow = 4;
+
+      // Layout packages
+      packages.forEach((node, index) => {
+        if (index > 0 && index % maxPerRow === 0) {
+          currentY += verticalSpacing;
+          currentX = 50;
+        }
+        node.position = { x: currentX, y: currentY };
+        currentX += horizontalSpacing;
+      });
+
+      // Layout modules
+      if (modules.length > 0) {
         currentY += verticalSpacing;
         currentX = 50;
+        modules.forEach((node, index) => {
+          if (index > 0 && index % maxPerRow === 0) {
+            currentY += verticalSpacing;
+            currentX = 50;
+          }
+          node.position = { x: currentX, y: currentY };
+          currentX += horizontalSpacing;
+        });
       }
-      node.position = { x: currentX, y: currentY };
-      currentX += horizontalSpacing;
-    });
 
-    // Layout modules
-    if (modules.length > 0) {
-      currentY += verticalSpacing;
-      currentX = 50;
-      modules.forEach((node, index) => {
-        if (index > 0 && index % maxPerRow === 0) {
-          currentY += verticalSpacing;
-          currentX = 50;
-        }
-        node.position = { x: currentX, y: currentY };
-        currentX += horizontalSpacing;
-      });
+      // Layout other nodes
+      if (others.length > 0) {
+        currentY += verticalSpacing;
+        currentX = 50;
+        others.forEach((node, index) => {
+          if (index > 0 && index % maxPerRow === 0) {
+            currentY += verticalSpacing;
+            currentX = 50;
+          }
+          node.position = { x: currentX, y: currentY };
+          currentX += horizontalSpacing;
+        });
+      }
+
+      return { nodes, edges };
     }
-
-    // Layout other nodes
-    if (others.length > 0) {
-      currentY += verticalSpacing;
-      currentX = 50;
-      others.forEach((node, index) => {
-        if (index > 0 && index % maxPerRow === 0) {
-          currentY += verticalSpacing;
-          currentX = 50;
-        }
-        node.position = { x: currentX, y: currentY };
-        currentX += horizontalSpacing;
-      });
-    }
-
-    return Promise.resolve({ nodes, edges });
   }
 
   /**

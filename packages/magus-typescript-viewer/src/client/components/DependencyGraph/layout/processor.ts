@@ -1,4 +1,4 @@
-import dagre from '@dagrejs/dagre';
+import * as dagre from '@dagrejs/dagre';
 
 import { createLogger } from '../../../../shared/utils/logger';
 import { defaultLayoutConfig, mergeConfig } from './config';

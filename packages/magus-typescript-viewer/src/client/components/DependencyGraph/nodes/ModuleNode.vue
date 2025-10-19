@@ -108,9 +108,30 @@ const toggleMetadata = () => {
   flex-direction: column;
   gap: 0.25rem;
   padding: 0 1rem 0.75rem 1rem;
+  max-height: 200px;
+  overflow-y: auto;
   animation:
     fade-in 200ms ease-out,
     slide-in-from-top 200ms ease-out;
+}
+
+/* Custom Scrollbar for metadata */
+.metadata-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.metadata-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.metadata-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.metadata-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .metadata-item {

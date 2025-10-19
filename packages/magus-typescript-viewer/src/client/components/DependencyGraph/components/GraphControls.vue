@@ -2,21 +2,31 @@
 import { Panel, useVueFlow } from '@vue-flow/core';
 import { ref } from 'vue';
 
+import { useGraphSettings } from '../../../stores/graphSettings';
+
+import type { DependencyKind } from '../types';
+
 const emit = defineEmits<{
   'relationship-filter-change': [types: string[]];
   'reset-layout': [];
-  'layout-change': [config: { algorithm?: string; direction?: string; nodeSpacing?: number; rankSpacing?: number }];
-  'toggle-collapse-scc': [value: boolean];
+  'layout-change': [config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }];
   'toggle-cluster-folder': [value: boolean];
+  'toggle-show-packages': [value: boolean];
+  'toggle-show-classes': [value: boolean];
+  'node-visibility-change': [];
 }>();
 
 const { zoomIn, zoomOut, fitView } = useVueFlow();
+const graphSettings = useGraphSettings();
 
-// Layout configuration
-const layoutAlgorithm = ref<'layered' | 'radial' | 'force' | 'stress'>('layered');
+// Layout configuration (dagre only supports hierarchical layout with different directions)
 const layoutDirection = ref<'LR' | 'RL' | 'TB' | 'BT'>('LR');
-const nodeSpacing = ref(100);
-const rankSpacing = ref(150);
+const nodeSpacing = ref(150);
+const rankSpacing = ref(250);
+
+// View options
+const showPackages = ref(false); // Start with packages hidden for cleaner view
+const showClasses = ref(false); // Start with classes hidden, showing only modules
 
 const handleZoomIn = () => {
   void zoomIn({ duration: 150 });
@@ -32,6 +42,33 @@ const handleFitView = () => {
 
 const handleResetLayout = () => {
   emit('reset-layout');
+};
+
+// Node types that can be toggled
+// Note: Only include leaf/content node types, not containers (package, module, group)
+// Packages and modules are controlled by includePackages/includeClasses options
+const nodeTypes: DependencyKind[] = ['class', 'interface', 'enum', 'type', 'function'];
+
+const nodeTypeLabels: Record<DependencyKind, string> = {
+  package: 'Packages',
+  module: 'Modules',
+  class: 'Classes',
+  interface: 'Interfaces',
+  enum: 'Enums',
+  type: 'Types',
+  function: 'Functions',
+  group: 'Groups',
+  property: 'Properties',
+  method: 'Methods',
+};
+
+const handleNodeTypeToggle = (nodeType: DependencyKind) => {
+  graphSettings.toggleNodeType(nodeType);
+  emit('node-visibility-change');
+};
+
+const isNodeTypeVisible = (nodeType: DependencyKind) => {
+  return graphSettings.isNodeTypeVisible(nodeType);
 };
 
 // Relationship types matching the actual edge data types (lowercase)
@@ -58,11 +95,6 @@ const handleFilterChange = (type: string, checked: boolean) => {
   emit('relationship-filter-change', enabledTypes.value);
 };
 
-const handleAlgorithmChange = (algorithm: 'layered' | 'radial' | 'force' | 'stress') => {
-  layoutAlgorithm.value = algorithm;
-  emit('layout-change', { algorithm });
-};
-
 const handleDirectionChange = (direction: 'LR' | 'RL' | 'TB' | 'BT') => {
   layoutDirection.value = direction;
   emit('layout-change', { direction });
@@ -73,6 +105,16 @@ const handleSpacingChange = () => {
     nodeSpacing: nodeSpacing.value,
     rankSpacing: rankSpacing.value,
   });
+};
+
+const handleShowPackagesToggle = (checked: boolean) => {
+  showPackages.value = checked;
+  emit('toggle-show-packages', checked);
+};
+
+const handleShowClassesToggle = (checked: boolean) => {
+  showClasses.value = checked;
+  emit('toggle-show-classes', checked);
 };
 </script>
 
@@ -111,28 +153,7 @@ const handleSpacingChange = () => {
         </button>
       </div>
 
-      <!-- Layout Algorithm -->
-      <div class="mt-4 pt-4 border-t border-border-default">
-        <h4 class="text-sm font-semibold text-text-primary mb-2">Layout Algorithm</h4>
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            v-for="algo in ['layered', 'radial', 'force', 'stress']"
-            :key="algo"
-            @click="handleAlgorithmChange(algo as 'layered' | 'radial' | 'force' | 'stress')"
-            :class="[
-              'px-2 py-1.5 text-xs rounded border transition-fast capitalize',
-              layoutAlgorithm === algo
-                ? 'bg-primary-main text-white border-primary-main'
-                : 'bg-white/10 text-text-primary border-border-default hover:bg-white/20',
-            ]"
-            :aria-label="`Set layout algorithm to ${algo}`"
-          >
-            {{ algo }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Layout Direction -->
+      <!-- Layout Direction (dagre uses hierarchical layout with different flow directions) -->
       <div class="mt-4 pt-4 border-t border-border-default">
         <h4 class="text-sm font-semibold text-text-primary mb-2">Layout Direction</h4>
         <div class="grid grid-cols-2 gap-2">
@@ -184,20 +205,31 @@ const handleSpacingChange = () => {
         </div>
       </div>
 
-      <!-- Clustering -->
+      <!-- View Options -->
       <div class="mt-4 pt-4 border-t border-border-default">
-        <h4 class="text-sm font-semibold text-text-primary mb-2">Clustering</h4>
+        <h4 class="text-sm font-semibold text-text-primary mb-2">View Options</h4>
         <div class="flex flex-col gap-2">
           <label
             class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
           >
             <input
               type="checkbox"
+              :checked="showPackages"
+              @change="(e) => handleShowPackagesToggle((e.target as HTMLInputElement).checked)"
               class="cursor-pointer accent-primary-main"
-              @change="(e) => emit('toggle-collapse-scc', (e.target as HTMLInputElement).checked)"
-              checked
             />
-            <span class="text-xs">Collapse cycles (SCC)</span>
+            <span class="text-xs">Show package nodes</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              :checked="showClasses"
+              @change="(e) => handleShowClassesToggle((e.target as HTMLInputElement).checked)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs">Show class details</span>
           </label>
           <label
             class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
@@ -207,7 +239,27 @@ const handleSpacingChange = () => {
               class="cursor-pointer accent-primary-main"
               @change="(e) => emit('toggle-cluster-folder', (e.target as HTMLInputElement).checked)"
             />
-            <span class="text-xs">Cluster by folder</span>
+            <span class="text-xs">Group by folder</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Symbol Type Filters (only shown when class details are visible) -->
+      <div v-if="showClasses" class="mt-4 pt-4 border-t border-border-default">
+        <h4 class="text-sm font-semibold text-text-primary mb-2">Symbol Types</h4>
+        <div class="flex flex-col gap-1.5">
+          <label
+            v-for="nodeType in nodeTypes"
+            :key="nodeType"
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              :checked="isNodeTypeVisible(nodeType)"
+              @change="handleNodeTypeToggle(nodeType)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs capitalize">{{ nodeTypeLabels[nodeType] }}</span>
           </label>
         </div>
       </div>

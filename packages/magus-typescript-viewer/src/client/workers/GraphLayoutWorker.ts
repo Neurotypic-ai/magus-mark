@@ -3,6 +3,9 @@
  * This offloads CPU-intensive operations from the main thread
  */
 
+import * as dagre from '@dagrejs/dagre';
+import * as graphlib from '@dagrejs/graphlib';
+
 import type { Edge } from '@vue-flow/core';
 
 import type { DependencyNode } from '../components/DependencyGraph/types';
@@ -19,7 +22,6 @@ interface WorkerMessage {
 }
 
 interface LayoutConfig {
-  algorithm: 'layered' | 'radial' | 'force' | 'stress';
   direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
   nodesep: number;
   edgesep: number;
@@ -28,108 +30,49 @@ interface LayoutConfig {
   animationDuration?: number;
 }
 
-// Handle messages from the main thread using ELK layered layout
+// Handle messages from the main thread using dagre layout
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const { nodes, edges, config } = event.data.payload;
 
   try {
-    // Import ELK API (will spawn its own worker)
-    const { default: ELK } = await import('elkjs/lib/elk-api.js');
+    // Create a new directed graph using graphlib
+    const g = new graphlib.Graph({ directed: true });
 
-    // Create ELK instance with worker URL (allows ELK to spawn subworker)
-    // Use new URL() for proper Vite bundling
-    const workerUrl = new URL('elkjs/lib/elk-worker.min.js', import.meta.url).href;
-    const elk = new ELK({
-      workerUrl,
-    });
+    // Set graph options - map config to dagre options
+    const graphOptions: dagre.GraphLabel = {
+      rankdir: mapDirectionToDagre(config.direction),
+      nodesep: config.nodesep,
+      edgesep: config.edgesep,
+      ranksep: config.ranksep,
+      marginx: 50,
+      marginy: 50,
+    };
+
+    g.setGraph(graphOptions);
+
+    // Set default node options
+    g.setDefaultNodeLabel(() => ({}));
+
+    // Set default edge options
+    g.setDefaultEdgeLabel(() => ({}));
 
     const defaultWidth = 200;
     const defaultHeight = 120;
 
-    // Define ELK node type
-    interface ElkNode {
-      id: string;
-      width: number;
-      height: number;
-      x?: number;
-      y?: number;
-      children?: ElkNode[];
-      layoutOptions?: Record<string, string>;
-    }
-
-    // Map VueFlow directions to ELK's expected values
-    const directionMap: Record<string, string> = {
-      RIGHT: 'RIGHT',
-      LEFT: 'LEFT',
-      DOWN: 'DOWN',
-      UP: 'UP',
-    };
-    const elkDirection = directionMap[config.direction] ?? 'RIGHT';
-
-    // Build hierarchical structure for ELK
-    const nodeMap = new Map<string, ElkNode>();
-    const rootNodes: ElkNode[] = [];
-
-    // First pass: create all nodes
+    // Add nodes to the graph
     nodes.forEach((node) => {
       const nodeWidth = (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth;
       const nodeHeight = (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight;
 
-      const elkNode: ElkNode = {
-        id: node.id,
+      g.setNode(node.id, {
         width: nodeWidth,
         height: nodeHeight,
-        children: [],
-      };
-      nodeMap.set(node.id, elkNode);
-    });
-
-    // Add layout options to nodes that will have children
-    nodeMap.forEach((elkNode) => {
-      // Check if this node will have children
-      const hasChildren = nodes.some((n) => (n as unknown as { parentNode?: string }).parentNode === elkNode.id);
-      if (hasChildren) {
-        // Base layout options
-        const baseOptions: Record<string, string> = {
-          'elk.algorithm': config.algorithm,
-          'elk.padding': '[top=30,left=30,bottom=30,right=30]',
-          'elk.spacing.nodeNode': '20',
-        };
-
-        // Algorithm-specific options
-        if (config.algorithm === 'layered') {
-          baseOptions['elk.direction'] = elkDirection;
-          baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '30';
-        } else if (config.algorithm === 'radial') {
-          baseOptions['elk.radial.radius'] = '200';
-          baseOptions['elk.radial.compactionStepSize'] = '0.1';
-          baseOptions['elk.radial.compaction'] = 'true';
-          baseOptions['elk.radial.sorter'] = 'QUADRANTS';
-        }
-
-        elkNode.layoutOptions = baseOptions;
-      }
-    });
-
-    // Second pass: build hierarchy based on parentNode
-    nodes.forEach((node) => {
-      const elkNode = nodeMap.get(node.id);
-      if (!elkNode) return;
-
-      const parentNodeId = (node as unknown as { parentNode?: string }).parentNode;
-      if (parentNodeId) {
-        const parent = nodeMap.get(parentNodeId);
-        if (parent) {
-          parent.children = parent.children ?? [];
-          parent.children.push(elkNode);
-        }
-      } else {
-        rootNodes.push(elkNode);
-      }
+        label: node.data?.label || node.id,
+      });
     });
 
     // Filter edges to only include valid connections and exclude containment edges
-    // Containment is now handled by hierarchy structure, not as edges for layout
+    // Containment edges are handled by VueFlow parentNode, not by layout algorithm
     const validEdges = edges.filter((edge) => {
       const edgeType = (edge.data as { type?: string } | undefined)?.type;
       const isValid = nodes.some((n) => n.id === edge.source) && nodes.some((n) => n.id === edge.target);
@@ -137,113 +80,44 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       return isValid && isNotContainment;
     });
 
-    // Define ELK edge type - ELK uses sources/targets arrays
-    interface ElkEdge {
-      id: string;
-      sources: string[];
-      targets: string[];
-    }
+    // Add edges to the graph
+    validEdges.forEach((edge) => {
+      // Set edge options based on type
+      const edgeOptions: { minlen?: number } = {};
+      const edgeType = (edge.data as { type?: string } | undefined)?.type;
 
-    // Create ELK edges with correct format (only non-containment edges for layout)
-    const elkEdges: ElkEdge[] = validEdges.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    }));
+      // Different edge types can have different weights/minlen for better layout
+      switch (edgeType) {
+        case 'inheritance':
+          edgeOptions.minlen = 2; // Longer distance for inheritance relationships
+          break;
+        case 'implements':
+          edgeOptions.minlen = 1;
+          break;
+        case 'dependency':
+        case 'import':
+        case 'export':
+        default:
+          edgeOptions.minlen = 1;
+          break;
+      }
 
-    // Define ELK graph type
-    interface ElkGraph {
-      id: string;
-      layoutOptions: Record<string, string>;
-      children: ElkNode[];
-      edges: ElkEdge[];
-    }
+      g.setEdge(edge.source, edge.target, edgeOptions);
+    });
 
-    // Build layout options based on algorithm
-    const layoutOptions: Record<string, string> = {
-      'elk.algorithm': config.algorithm,
-      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-      'elk.spacing.nodeNode': String(config.nodesep),
-      'elk.spacing.edgeNode': String(config.edgesep),
-      'elk.padding': '[top=50,left=50,bottom=50,right=50]',
-      'elk.spacing.componentComponent': '30',
-      'elk.spacing.portPort': '10',
-      // Global preferences for clearer, orthogonal routing and consistent ports
-      'elk.edgeRouting': 'ORTHOGONAL',
-      'elk.portAlignment.default': 'CENTER',
-    };
+    // Run dagre layout
+    dagre.layout(g as any);
 
-    // Add algorithm-specific options
-    if (config.algorithm === 'layered') {
-      layoutOptions['elk.direction'] = elkDirection;
-      layoutOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = String(config.ranksep);
-      layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = String(config.edgesep);
-      layoutOptions['elk.layered.nodePlacement.strategy'] = 'BRANDES_KOEPF';
-      layoutOptions['elk.layered.nodePlacement.bk.fixedAlignment'] = 'BALANCED';
-      layoutOptions['elk.layered.layering.strategy'] = 'NETWORK_SIMPLEX';
-      layoutOptions['elk.layered.cycleBreaking.strategy'] = 'GREEDY';
-      layoutOptions['elk.layered.crossingMinimization.strategy'] = 'LAYER_SWEEP';
-      layoutOptions['elk.layered.compaction.postCompaction.strategy'] = 'EDGE_LENGTH';
-      layoutOptions['elk.layered.mergeEdges'] = 'true';
-    } else if (config.algorithm === 'radial') {
-      layoutOptions['elk.radial.radius'] = String(config.ranksep);
-      layoutOptions['elk.radial.compactionStepSize'] = '0.1';
-      layoutOptions['elk.radial.compaction'] = 'true';
-      layoutOptions['elk.radial.sorter'] = 'QUADRANTS';
-      layoutOptions['elk.radial.wedgeCriteria'] = 'CONNECTIONS';
-      layoutOptions['elk.radial.optimizeDistance'] = 'true';
-      layoutOptions['elk.edgeRouting'] = 'SPLINES';
-    } else if (config.algorithm === 'force') {
-      layoutOptions['elk.force.repulsion'] = '5.0';
-      layoutOptions['elk.force.temperature'] = '0.001';
-      layoutOptions['elk.edgeRouting'] = 'SPLINES';
-    } else {
-      // stress algorithm
-      layoutOptions['elk.stress.desiredEdgeLength'] = String(config.ranksep);
-      layoutOptions['elk.stress.epsilon'] = '0.0001';
-      layoutOptions['elk.edgeRouting'] = 'SPLINES';
-    }
-
-    // Create the ELK graph with hierarchical structure
-    const elkGraph: ElkGraph = {
-      id: 'root',
-      layoutOptions,
-      children: rootNodes,
-      edges: elkEdges,
-    };
-
-    const layoutedGraph = await elk.layout(elkGraph);
-
-    // Extract positions from the hierarchical layout recursively
-    // For VueFlow, nested nodes need RELATIVE positions to their parent, not absolute
-    const positionMap = new Map<string, { x: number; y: number }>();
-
-    function extractPositions(nodes: ElkNode[]): void {
-      nodes.forEach((node) => {
-        // For root nodes, use absolute positions
-        // For nested nodes, use relative positions (as calculated by ELK within the parent)
-        const x = node.x ?? 0;
-        const y = node.y ?? 0;
-        positionMap.set(node.id, { x, y });
-
-        // Recursively process children with their relative positions
-        if (node.children && node.children.length > 0) {
-          extractPositions(node.children);
-        }
-      });
-    }
-
-    if (layoutedGraph.children) {
-      extractPositions(layoutedGraph.children);
-    }
-
-    // Apply positions to nodes
+    // Extract positions from dagre layout
     const newNodes = nodes.map((node) => {
-      const position = positionMap.get(node.id);
-      if (position) {
+      const dagreNode = g.node(node.id);
+      if (dagreNode) {
         return {
           ...node,
-          position: { x: position.x, y: position.y },
+          position: {
+            x: dagreNode.x - (dagreNode.width || defaultWidth) / 2,
+            y: dagreNode.y - (dagreNode.height || defaultHeight) / 2,
+          },
         };
       }
       return node;
@@ -255,7 +129,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       payload: { nodes: newNodes, edges },
     });
   } catch (error) {
-    console.error('ELK layout error:', error);
+    console.error('Dagre layout error:', error);
     // Fallback: return nodes unchanged
     self.postMessage({
       type: 'layout-complete',
@@ -263,6 +137,21 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     });
   }
 };
+
+// Helper function to map config directions to dagre rankdir
+function mapDirectionToDagre(direction: string): 'TB' | 'BT' | 'LR' | 'RL' {
+  switch (direction) {
+    case 'DOWN':
+      return 'TB';
+    case 'UP':
+      return 'BT';
+    case 'LEFT':
+      return 'RL';
+    case 'RIGHT':
+    default:
+      return 'LR';
+  }
+}
 
 // Export empty object to satisfy TypeScript
 export {};
