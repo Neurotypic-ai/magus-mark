@@ -213,8 +213,15 @@ export class WebWorkerLayoutProcessor {
       const defaultWidth = 200;
       const defaultHeight = 120;
 
-      // Add nodes
-      nodes.forEach((node) => {
+      // Separate parent nodes from leaf nodes (same as worker)
+      const parentNodeIds = new Set(
+        nodes.filter((n) => n.type === 'package' || n.type === 'module' || n.type === 'group').map((n) => n.id)
+      );
+
+      // Only add leaf nodes to dagre for layout
+      const leafNodes = nodes.filter((n) => !parentNodeIds.has(n.id));
+
+      leafNodes.forEach((node) => {
         const nodeWidth = (node as unknown as { measured?: { width?: number } }).measured?.width ?? defaultWidth;
         const nodeHeight = (node as unknown as { measured?: { height?: number } }).measured?.height ?? defaultHeight;
 
@@ -241,18 +248,57 @@ export class WebWorkerLayoutProcessor {
       // Run dagre layout
       dagre.layout(g as any);
 
-      // Extract positions
+      // Extract positions (same logic as worker)
       const newNodes = nodes.map((node) => {
-        const dagreNode = g.node(node.id);
-        if (dagreNode) {
+        // If this is a leaf node, use dagre's calculated position
+        if (!parentNodeIds.has(node.id)) {
+          const dagreNode = g.node(node.id);
+          if (dagreNode) {
+            return {
+              ...node,
+              position: {
+                x: dagreNode.x - (dagreNode.width || defaultWidth) / 2,
+                y: dagreNode.y - (dagreNode.height || defaultHeight) / 2,
+              },
+            };
+          }
+          return node;
+        }
+
+        // This is a parent node - calculate position and size based on children
+        const children = nodes.filter((n) => n.parentNode === node.id);
+        if (children.length > 0) {
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+
+          children.forEach((child) => {
+            const childDagre = g.node(child.id);
+            if (childDagre) {
+              const childX = childDagre.x - childDagre.width / 2;
+              const childY = childDagre.y - childDagre.height / 2;
+              minX = Math.min(minX, childX);
+              minY = Math.min(minY, childY);
+              maxX = Math.max(maxX, childX + childDagre.width);
+              maxY = Math.max(maxY, childY + childDagre.height);
+            }
+          });
+
+          // Add padding around children
+          const padding = 40;
           return {
             ...node,
-            position: {
-              x: dagreNode.x - (dagreNode.width || defaultWidth) / 2,
-              y: dagreNode.y - (dagreNode.height || defaultHeight) / 2,
+            position: { x: minX - padding, y: minY - padding },
+            style: {
+              ...(typeof node.style === 'object' ? node.style : {}),
+              width: maxX - minX + padding * 2,
+              height: maxY - minY + padding * 2,
             },
           };
         }
+
+        // No children, return as-is
         return node;
       });
 

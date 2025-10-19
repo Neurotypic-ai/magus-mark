@@ -36,8 +36,12 @@ export function createGraphNodes(
   const { includePackages = false, includeClasses = false, direction = 'LR', visibleNodeTypes } = options;
 
   // Helper to check if a node type should be included
+  // Note: visibleNodeTypes only applies to symbol types (class, interface, etc.)
+  // Structural types (package, module, group) are controlled by includePackages/includeClasses
   const shouldIncludeNodeType = (nodeType: DependencyKind): boolean => {
     if (!visibleNodeTypes) return true; // If no filter provided, include all
+    // For structural types, always return true (they're controlled by other flags)
+    if (nodeType === 'package' || nodeType === 'module' || nodeType === 'group') return true;
     return visibleNodeTypes.has(nodeType);
   };
 

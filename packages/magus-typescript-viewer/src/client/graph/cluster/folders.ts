@@ -41,8 +41,8 @@ export function clusterByFolder(
       position: { x: 0, y: 0 },
       data: { label: dir || 'root' },
       style: { ...getNodeStyle('group') },
-      expandParent: true,
-      extent: 'parent',
+      // Group nodes ARE parents, they don't have parents themselves
+      // Remove expandParent and extent properties
     });
     return id;
   }

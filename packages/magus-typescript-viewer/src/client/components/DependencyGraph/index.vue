@@ -194,6 +194,20 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
 const initializeGraph = async () => {
   performance.mark('graph-init-start');
 
+  // Debug: Check if we have data
+  graphLogger.info('Initializing graph with data:', {
+    packageCount: props.data?.packages?.length ?? 0,
+    packages: props.data?.packages?.map((p) => ({ id: p.id, name: p.name })) ?? [],
+  });
+
+  // Early return if no data
+  if (!props.data || !props.data.packages || props.data.packages.length === 0) {
+    graphLogger.warn('No data available to create graph');
+    graphStore['setNodes']([]);
+    graphStore['setEdges']([]);
+    return;
+  }
+
   // Initialize layout processor
   initializeLayoutProcessor();
 
@@ -209,10 +223,33 @@ const initializeGraph = async () => {
     direction: layoutConfig.direction,
     visibleNodeTypes: graphSettings.visibleNodeTypes,
   });
+
+  // Debug: Log node creation details
+  graphLogger.info('Node creation details:', {
+    includePackages,
+    includeClasses,
+    totalNodesCreated: graphNodes.length,
+    nodeTypes: graphNodes.reduce(
+      (acc, n) => {
+        acc[n.type] = (acc[n.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
+  });
+
   let graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
+  // CRITICAL: Filter edges to only include those connecting visible nodes
+  // This prevents "Edge source or target is missing" errors from VueFlow
+  const nodeIds = new Set(graphNodes.map((n) => n.id));
+  const edgesBeforeFilter = graphEdges.length;
+  graphEdges = graphEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+
   // Debug: Log edge creation
-  graphLogger.info(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
+  graphLogger.info(
+    `Created ${graphNodes.length} nodes and ${graphEdges.length} edges (filtered from ${edgesBeforeFilter})`
+  );
   if (graphEdges.length > 0) {
     graphLogger.info('Sample edges:', graphEdges.slice(0, 3));
     graphLogger.info('First edge FULL object:', JSON.stringify(graphEdges[0], null, 2));
@@ -251,11 +288,17 @@ const initializeGraph = async () => {
     const collapsed = collapseSccs(nodesToLayout, edgesToLayout);
     nodesToLayout = collapsed.nodes as DependencyNode[];
     edgesToLayout = collapsed.edges as GraphEdge[];
+    // Re-filter edges after SCC collapse
+    const sccNodeIds = new Set(nodesToLayout.map((n) => n.id));
+    edgesToLayout = edgesToLayout.filter((e) => sccNodeIds.has(e.source) && sccNodeIds.has(e.target));
   }
   if (graphSettings.clusterByFolder) {
     const clustered = clusterByFolder(nodesToLayout, edgesToLayout);
     nodesToLayout = clustered.nodes as DependencyNode[];
     edgesToLayout = clustered.edges as GraphEdge[];
+    // Re-filter edges after folder clustering
+    const clusterNodeIds = new Set(nodesToLayout.map((n) => n.id));
+    edgesToLayout = edgesToLayout.filter((e) => clusterNodeIds.has(e.source) && clusterNodeIds.has(e.target));
   }
 
   await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
