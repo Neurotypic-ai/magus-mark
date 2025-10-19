@@ -4,7 +4,10 @@ import { Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { computed, onUnmounted, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
+import { clusterByFolder } from '../../graph/cluster/folders';
+import { collapseSccs } from '../../graph/cluster/scc';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
+import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
 import { createGraphEdges } from '../../utils/createGraphEdges';
@@ -37,6 +40,7 @@ const props = defineProps<DependencyGraphProps>();
 
 // Get graph state from Pinia store
 const graphStore = useGraphStore();
+const graphSettings = useGraphSettings();
 const nodes = computed(() => graphStore['nodes']);
 const edges = computed(() => graphStore['edges']);
 const selectedNode = computed(() => graphStore['selectedNode']);
@@ -133,6 +137,42 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
       graphLogger.info('Sample edge after layout:', typedEdges[0]);
     }
 
+    // Minimal post-layout metrics
+    const idToBox = new Map<string, { x: number; y: number; w: number; h: number }>();
+    nodesWithCorrectHandles.forEach((n) => {
+      const measured = (n as unknown as { measured?: { width?: number; height?: number } }).measured;
+      const w = measured?.width ?? (typeof n.width === 'number' ? n.width : 150);
+      const h = measured?.height ?? (typeof n.height === 'number' ? n.height : 50);
+      idToBox.set(n.id, { x: n.position.x, y: n.position.y, w, h });
+    });
+    let totalLen = 0;
+    const outdeg = new Map<string, number>();
+    const indeg = new Map<string, number>();
+    typedEdges.forEach((e) => {
+      outdeg.set(e.source, (outdeg.get(e.source) ?? 0) + 1);
+      indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
+      const s = idToBox.get(e.source);
+      const t = idToBox.get(e.target);
+      if (s && t) {
+        const sx = s.x + s.w / 2;
+        const sy = s.y + s.h / 2;
+        const tx = t.x + t.w / 2;
+        const ty = t.y + t.h / 2;
+        totalLen += Math.abs(sx - tx) + Math.abs(sy - ty);
+      }
+    });
+    const numNodes = nodesWithCorrectHandles.length;
+    const numEdges = typedEdges.length;
+    const avgOut = numNodes > 0 ? Array.from(outdeg.values()).reduce((a, b) => a + b, 0) / numNodes : 0;
+    const avgIn = numNodes > 0 ? Array.from(indeg.values()).reduce((a, b) => a + b, 0) / numNodes : 0;
+    graphLogger.info('Layout metrics', {
+      nodes: numNodes,
+      edges: numEdges,
+      avgOutdeg: avgOut,
+      avgIndeg: avgIn,
+      approxTotalEdgeLength: Math.round(totalLen),
+    });
+
     // Update nodes without transition for better dragging performance
     graphStore['setNodes'](nodesWithCorrectHandles);
     graphStore['setEdges'](typedEdges);
@@ -167,7 +207,7 @@ const initializeGraph = async () => {
     includeClasses: false, // No classes = focus on module structure
     direction: layoutConfig.direction,
   });
-  const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+  let graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
   // Debug: Log edge creation
   graphLogger.info(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
@@ -202,8 +242,21 @@ const initializeGraph = async () => {
     graphLogger.warn('No edges created! Check data structure.');
   }
 
-  // Process initial layout
-  await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
+  // Optional transforms: SCC collapse then folder clustering
+  let nodesToLayout = graphNodes as DependencyNode[];
+  let edgesToLayout = graphEdges as GraphEdge[];
+  if (graphSettings.collapseScc) {
+    const collapsed = collapseSccs(nodesToLayout, edgesToLayout);
+    nodesToLayout = collapsed.nodes as DependencyNode[];
+    edgesToLayout = collapsed.edges as GraphEdge[];
+  }
+  if (graphSettings.clusterByFolder) {
+    const clustered = clusterByFolder(nodesToLayout, edgesToLayout);
+    nodesToLayout = clustered.nodes as DependencyNode[];
+    edgesToLayout = clustered.edges as GraphEdge[];
+  }
+
+  await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
 
   performance.mark('graph-init-end');
   measurePerformance('graph-initialization', 'graph-init-start', 'graph-init-end');
@@ -706,6 +759,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
           style: { stroke: '#61dafb', strokeWidth: 3 },
           markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
           zIndex: 1000,
+          type: 'step',
         }"
         @node-click="onNodeClick"
         @node-double-click="onNodeDoubleClick"
@@ -715,6 +769,18 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         <GraphControls
           @relationship-filter-change="handleRelationshipFilterChange"
           @layout-change="handleLayoutChange"
+          @toggle-collapse-scc="
+            (v: boolean) => {
+              graphSettings.setCollapseScc(v);
+              void initializeGraph();
+            }
+          "
+          @toggle-cluster-folder="
+            (v: boolean) => {
+              graphSettings.setClusterByFolder(v);
+              void initializeGraph();
+            }
+          "
         />
         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />

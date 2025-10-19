@@ -6,6 +6,8 @@ const emit = defineEmits<{
   'relationship-filter-change': [types: string[]];
   'reset-layout': [];
   'layout-change': [config: { algorithm?: string; direction?: string; nodeSpacing?: number; rankSpacing?: number }];
+  'toggle-collapse-scc': [value: boolean];
+  'toggle-cluster-folder': [value: boolean];
 }>();
 
 const { zoomIn, zoomOut, fitView } = useVueFlow();
@@ -179,6 +181,34 @@ const handleSpacingChange = () => {
               class="w-full cursor-pointer accent-primary-main"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- Clustering -->
+      <div class="mt-4 pt-4 border-t border-border-default">
+        <h4 class="text-sm font-semibold text-text-primary mb-2">Clustering</h4>
+        <div class="flex flex-col gap-2">
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              class="cursor-pointer accent-primary-main"
+              @change="(e) => emit('toggle-collapse-scc', (e.target as HTMLInputElement).checked)"
+              checked
+            />
+            <span class="text-xs">Collapse cycles (SCC)</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              class="cursor-pointer accent-primary-main"
+              @change="(e) => emit('toggle-cluster-folder', (e.target as HTMLInputElement).checked)"
+            />
+            <span class="text-xs">Cluster by folder</span>
+          </label>
         </div>
       </div>
 

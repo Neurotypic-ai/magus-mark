@@ -168,6 +168,9 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       'elk.padding': '[top=50,left=50,bottom=50,right=50]',
       'elk.spacing.componentComponent': '30',
       'elk.spacing.portPort': '10',
+      // Global preferences for clearer, orthogonal routing and consistent ports
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.portAlignment.default': 'CENTER',
     };
 
     // Add algorithm-specific options
@@ -175,13 +178,13 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       layoutOptions['elk.direction'] = elkDirection;
       layoutOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = String(config.ranksep);
       layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = String(config.edgesep);
-      layoutOptions['elk.edgeRouting'] = 'ORTHOGONAL';
       layoutOptions['elk.layered.nodePlacement.strategy'] = 'BRANDES_KOEPF';
       layoutOptions['elk.layered.nodePlacement.bk.fixedAlignment'] = 'BALANCED';
       layoutOptions['elk.layered.layering.strategy'] = 'NETWORK_SIMPLEX';
       layoutOptions['elk.layered.cycleBreaking.strategy'] = 'GREEDY';
       layoutOptions['elk.layered.crossingMinimization.strategy'] = 'LAYER_SWEEP';
       layoutOptions['elk.layered.compaction.postCompaction.strategy'] = 'EDGE_LENGTH';
+      layoutOptions['elk.layered.mergeEdges'] = 'true';
     } else if (config.algorithm === 'radial') {
       layoutOptions['elk.radial.radius'] = String(config.ranksep);
       layoutOptions['elk.radial.compactionStepSize'] = '0.1';
