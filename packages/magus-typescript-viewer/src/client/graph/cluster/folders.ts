@@ -1,6 +1,9 @@
+import { createLogger } from '../../../shared/utils/logger';
 import { getNodeStyle } from '../../theme/graphTheme';
 
 import type { DependencyKind, DependencyNode, GraphEdge } from '../../components/DependencyGraph/types';
+
+const logger = createLogger('clusterByFolder');
 
 function getPathFromNode(node: DependencyNode): string | null {
   const props = node.data?.properties;
@@ -23,8 +26,16 @@ export function clusterByFolder(
   nodes: DependencyNode[],
   edges: GraphEdge[]
 ): { nodes: DependencyNode[]; edges: GraphEdge[] } {
+  logger.info('Starting folder clustering');
+  logger.debug(`Input: ${String(nodes.length)} nodes, ${String(edges.length)} edges`);
+
   const modules = nodes.filter((n) => n.type === 'module');
-  if (modules.length === 0) return { nodes, edges };
+  logger.debug(`Found ${String(modules.length)} module nodes`);
+
+  if (modules.length === 0) {
+    logger.debug('No modules to cluster, returning unchanged');
+    return { nodes, edges };
+  }
 
   const dirToId = new Map<string, string>();
   const dirNodes: DependencyNode[] = [];
@@ -34,6 +45,7 @@ export function clusterByFolder(
       return dirToId.get(dir) ?? `dir:${dir || 'root'}`;
     }
     const id = `dir:${dir || 'root'}`;
+    logger.debug(`Creating directory node: ${id}`);
     dirToId.set(dir, id);
     dirNodes.push({
       id,
@@ -47,12 +59,15 @@ export function clusterByFolder(
     return id;
   }
 
+  logger.debug('Remapping module nodes to directory parents...');
+  let remappedCount = 0;
   const remappedNodes = nodes.map((n) => {
     if (n.type !== 'module') return n;
     const p = getPathFromNode(n);
     if (!p) return n;
     const dir = getDirname(p);
     const parentId = ensureDirNode(dir);
+    remappedCount++;
     return {
       ...n,
       parentNode: parentId,
@@ -60,6 +75,9 @@ export function clusterByFolder(
       data: { ...(n.data ?? {}), parentId },
     } as DependencyNode;
   });
+
+  logger.info(`Remapped ${String(remappedCount)} modules to ${String(dirNodes.length)} directory groups`);
+  logger.debug(`Output: ${String(dirNodes.length + remappedNodes.length)} nodes, ${String(edges.length)} edges`);
 
   return { nodes: [...dirNodes, ...remappedNodes], edges };
 }

@@ -116,37 +116,47 @@ export class GraphDataAssembler {
    * @returns A Promise resolving to the dependency package graph
    */
   async assembleGraphData(signal?: AbortSignal): Promise<DependencyPackageGraph> {
+    assemblerLogger.info('Starting graph data assembly');
     try {
       // Check cache first
       const cacheKey = this.baseUrl;
+      assemblerLogger.debug(`Checking cache with key: ${cacheKey}`);
       const cachedData = this.cache.get(cacheKey);
       if (cachedData) {
-        assemblerLogger.debug('Using cached graph data...');
+        assemblerLogger.info('Cache hit! Returning cached data');
+        assemblerLogger.debug(`Cached data has ${String(cachedData.packages.length)} packages`);
         return cachedData;
       }
+      assemblerLogger.debug('Cache miss. Fetching fresh data...');
 
-      assemblerLogger.debug('Fetching packages data...');
+      assemblerLogger.debug(`Fetching from URL: ${this.baseUrl}/packages`);
       const packagesResponse = await fetch(`${this.baseUrl}/packages`, signal ? { signal } : {});
       if (!packagesResponse.ok) {
+        assemblerLogger.error(`HTTP error: ${String(packagesResponse.status)}`);
         throw new Error(`HTTP error! status: ${packagesResponse.status.toString()}`);
       }
       const packages = (await packagesResponse.json()) as Package[];
-      assemblerLogger.debug('Fetched packages:', packages.length);
+      assemblerLogger.info(`Fetched ${String(packages.length)} packages`);
 
       // Fetch modules and their dependencies for each package
       assemblerLogger.debug('Fetching modules for each package...');
       const enrichedPackages = await Promise.all(
-        packages.map(async (pkg) => {
-          assemblerLogger.debug(`Fetching modules for package: ${pkg.name}`);
+        packages.map(async (pkg, index) => {
+          assemblerLogger.debug(
+            `[${String(index + 1)}/${String(packages.length)}] Fetching modules for package: ${pkg.name}`
+          );
           const modulesResponse = await fetch(`${this.baseUrl}/modules?packageId=${pkg.id}`, signal ? { signal } : {});
           if (!modulesResponse.ok) {
+            assemblerLogger.error(`Failed to fetch modules for ${pkg.name}: ${String(modulesResponse.status)}`);
             throw new Error(`HTTP error! status: ${modulesResponse.status.toString()}`);
           }
           const modules = (await modulesResponse.json()) as Module[];
-          assemblerLogger.debug(`Fetched ${modules.length.toString()} modules for package: ${pkg.name}`);
+          assemblerLogger.debug(`Fetched ${String(modules.length)} modules for package: ${pkg.name}`);
 
           // Transform the module data
+          assemblerLogger.debug(`Transforming ${String(modules.length)} modules...`);
           const enrichedModules = this.transformModules(modules);
+          assemblerLogger.debug(`Transformed ${String(enrichedModules.length)} modules`);
 
           // Transform the package data and include modules
           return {
@@ -157,15 +167,19 @@ export class GraphDataAssembler {
       );
 
       // Create the final graph data
+      assemblerLogger.debug(`Creating final graph data with ${String(enrichedPackages.length)} enriched packages`);
       const graphData = this.createGraphData(enrichedPackages);
+      assemblerLogger.debug('Graph data created successfully');
 
       // Store in cache
+      assemblerLogger.debug(`Storing data in cache with key: ${cacheKey}`);
       this.cache.set(cacheKey, graphData);
+      assemblerLogger.debug('Data cached successfully');
 
-      assemblerLogger.debug('Assembled graph data with enriched packages...');
+      assemblerLogger.info('Assembly complete');
       return graphData;
     } catch (error) {
-      assemblerLogger.error('Error assembling graph data:', error);
+      assemblerLogger.error('Error during assembly', error);
       if (error instanceof Error) {
         throw error;
       }
@@ -179,11 +193,13 @@ export class GraphDataAssembler {
    * @returns The transformed modules as ModuleStructure[]
    */
   private transformModules(modules: Module[]): ModuleStructure[] {
+    assemblerLogger.debug(`transformModules: Processing ${String(modules.length)} modules`);
     // Use type assertion to convert array elements
-    return modules.map((module) => {
+    return modules.map((module, index) => {
+      assemblerLogger.debug(`Transforming module [${String(index)}]: ${module.name}`);
       const relativePath = module.source.relativePath;
       // Simple module transformation that meets ModuleStructure requirements
-      return {
+      const moduleStructure: ModuleStructure = {
         id: module.id,
         package_id: module.package_id,
         name: module.name,
@@ -194,7 +210,9 @@ export class GraphDataAssembler {
         classes: this.transformClassCollection(this.typeCollectionToArray(module.classes)),
         interfaces: this.transformInterfaceCollection(this.typeCollectionToArray(module.interfaces)),
         created_at: typeof module.created_at === 'string' ? module.created_at : module.created_at.toISOString(),
-      } as ModuleStructure;
+      };
+
+      return moduleStructure;
     });
   }
 
@@ -359,6 +377,6 @@ export class GraphDataAssembler {
    */
   public clearCache(): void {
     this.cache.clear();
-    assemblerLogger.debug('Cleared graph data cache');
+    assemblerLogger.info('Cleared graph data cache');
   }
 }

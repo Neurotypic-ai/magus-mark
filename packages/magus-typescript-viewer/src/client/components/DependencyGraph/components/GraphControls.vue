@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Panel, useVueFlow } from '@vue-flow/core';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { useGraphSettings } from '../../../stores/graphSettings';
 
@@ -24,9 +24,10 @@ const layoutDirection = ref<'LR' | 'RL' | 'TB' | 'BT'>('LR');
 const nodeSpacing = ref(150);
 const rankSpacing = ref(250);
 
-// View options
-const showPackages = ref(false); // Start with packages hidden for cleaner view
-const showClasses = ref(false); // Start with classes hidden, showing only modules
+// View options - use computed to reference the store's reactive refs
+const showPackages = computed(() => graphSettings.showPackages);
+const showClasses = computed(() => graphSettings.showClasses);
+const clusterByFolder = computed(() => graphSettings.clusterByFolder);
 
 const handleZoomIn = () => {
   void zoomIn({ duration: 150 });
@@ -108,13 +109,18 @@ const handleSpacingChange = () => {
 };
 
 const handleShowPackagesToggle = (checked: boolean) => {
-  showPackages.value = checked;
+  graphSettings.setShowPackages(checked);
   emit('toggle-show-packages', checked);
 };
 
 const handleShowClassesToggle = (checked: boolean) => {
-  showClasses.value = checked;
+  graphSettings.setShowClasses(checked);
   emit('toggle-show-classes', checked);
+};
+
+const handleClusterByFolderToggle = (checked: boolean) => {
+  graphSettings.setClusterByFolder(checked);
+  emit('toggle-cluster-folder', checked);
 };
 </script>
 
@@ -236,8 +242,9 @@ const handleShowClassesToggle = (checked: boolean) => {
           >
             <input
               type="checkbox"
+              :checked="clusterByFolder"
+              @change="(e) => handleClusterByFolderToggle((e.target as HTMLInputElement).checked)"
               class="cursor-pointer accent-primary-main"
-              @change="(e) => emit('toggle-cluster-folder', (e.target as HTMLInputElement).checked)"
             />
             <span class="text-xs">Group by folder</span>
           </label>

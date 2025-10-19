@@ -1,5 +1,6 @@
 import { Position } from '@vue-flow/core';
 
+import { createLogger } from '../../shared/utils/logger';
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getNodeStyle } from '../theme/graphTheme';
 
@@ -14,6 +15,8 @@ import type {
   NodeProperty,
   PackageStructure,
 } from '../components/DependencyGraph/types';
+
+const logger = createLogger('createGraphNodes');
 
 /**
  * Configuration for handle positions based on layout direction
@@ -306,45 +309,87 @@ export function createGraphNodes(
   data: DependencyPackageGraph,
   options: CreateGraphNodesOptions = {}
 ): DependencyNode[] {
+  logger.info('Starting node creation');
+  logger.debug(`Input: ${String(data.packages.length)} packages`);
   const { includePackages = false, includeClasses = false, direction = 'LR', visibleNodeTypes } = options;
+  logger.debug('Options:', {
+    includePackages,
+    includeClasses,
+    direction,
+    visibleNodeTypes: visibleNodeTypes ? Array.from(visibleNodeTypes) : 'all',
+  });
 
   const positions = calculateHandlePositions(direction);
+  logger.debug('Handle positions:', positions);
 
   const graphNodes: DependencyNode[] = [];
 
   // Create package nodes if requested
   if (includePackages && shouldIncludeNodeType('package', visibleNodeTypes)) {
-    data.packages.forEach((pkg) => {
+    logger.debug(`Creating ${String(data.packages.length)} package nodes`);
+    data.packages.forEach((pkg, index) => {
+      if (index < 3) {
+        logger.debug(`Creating package node [${String(index)}]: ${pkg.name}`);
+      }
       graphNodes.push(createPackageNode(pkg, positions));
     });
+    logger.debug(`Created ${String(data.packages.length)} package nodes`);
+  } else {
+    logger.debug('Skipping package nodes (includePackages=false or filtered out)');
   }
 
   // Create module, class, and interface nodes
-  data.packages.forEach((pkg) => {
+  logger.debug('Processing modules, classes, and interfaces...');
+  let moduleCount = 0;
+  let classCount = 0;
+  let interfaceCount = 0;
+
+  data.packages.forEach((pkg, pkgIndex) => {
     if (pkg.modules && shouldIncludeNodeType('module', visibleNodeTypes)) {
-      mapTypeCollection(pkg.modules, (module) => {
+      const modules = mapTypeCollection(pkg.modules, (module) => {
         // Add module node
         graphNodes.push(createModuleNode(module, pkg, positions, includePackages));
+        moduleCount++;
 
         // Optionally add class and interface nodes
         if (includeClasses) {
           // Add class nodes
           if (module.classes && shouldIncludeNodeType('class', visibleNodeTypes)) {
-            mapTypeCollection(module.classes, (cls) => {
+            const classesAdded = mapTypeCollection(module.classes, (cls) => {
               graphNodes.push(createClassNode(cls, module.id, positions));
-            });
+              classCount++;
+              return cls;
+            }).length;
+            if (classesAdded > 0 && classCount <= 5) {
+              logger.debug(`Added ${String(classesAdded)} class nodes from module ${module.name}`);
+            }
           }
 
           // Add interface nodes
           if (module.interfaces && shouldIncludeNodeType('interface', visibleNodeTypes)) {
-            mapTypeCollection(module.interfaces, (iface) => {
+            const interfacesAdded = mapTypeCollection(module.interfaces, (iface) => {
               graphNodes.push(createInterfaceNode(iface, module.id, positions));
-            });
+              interfaceCount++;
+              return iface;
+            }).length;
+            if (interfacesAdded > 0 && interfaceCount <= 5) {
+              logger.debug(`Added ${String(interfacesAdded)} interface nodes from module ${module.name}`);
+            }
           }
         }
+        return module;
       });
+      if (pkgIndex === 0) {
+        logger.debug(`Package ${pkg.name} has ${String(modules.length)} modules`);
+      }
     }
   });
+
+  logger.info(`Node creation complete:`);
+  logger.info(`  - Modules: ${String(moduleCount)}`);
+  logger.info(`  - Classes: ${String(classCount)}`);
+  logger.info(`  - Interfaces: ${String(interfaceCount)}`);
+  logger.info(`  - Total nodes: ${String(graphNodes.length)}`);
 
   return graphNodes;
 }

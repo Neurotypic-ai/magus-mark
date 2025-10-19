@@ -1,5 +1,12 @@
 // Logger configuration
-const DEBUG = process.env['DEBUG'] === 'true';
+// Check multiple sources for debug flag:
+// 1. Vite's import.meta.env (set via .env files or --mode)
+// 2. localStorage (for runtime control: localStorage.setItem('DEBUG', 'true'))
+// 3. process.env fallback (for Node.js contexts)
+const DEBUG =
+  import.meta.env['DEBUG'] === 'true' ||
+  (typeof localStorage !== 'undefined' && localStorage.getItem('DEBUG') === 'true') ||
+  (typeof process !== 'undefined' && process.env['DEBUG'] === 'true');
 
 export interface Logger {
   info: (message: string, ...args: unknown[]) => void;

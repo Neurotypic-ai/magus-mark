@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 
 import DependencyGraph from './index.vue';
 
@@ -53,46 +53,74 @@ const props = defineProps<DependencyGraphProps>();
 // Get the singleton instance of PerformanceMetrics
 const metrics = PerformanceMetrics.getInstance();
 
+// Store cleanup functions to ensure proper removal
+const cleanupFunctions = ref<Array<() => void>>([]);
+
+/**
+ * Waits for stylesheets and fonts to be fully loaded before querying DOM
+ * This prevents FOUC (Flash of Unstyled Content) warnings
+ */
+async function waitForStylesLoaded(): Promise<void> {
+  // Wait for Vue to update the DOM
+  await nextTick();
+
+  // Wait for fonts to be ready (includes external fonts like Google Fonts)
+  if ('fonts' in document) {
+    await document.fonts.ready;
+  }
+
+  // Wait for next browser paint to ensure styles are applied
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 onMounted(() => {
   // Create a mark for the start of component rendering
   performance.mark('graph-render-start');
 
-  // Set up interaction observers
-  const trackInteraction = (type: string, callback: () => void) => {
-    return () => {
-      const start = performance.now();
-      callback();
-      const end = performance.now();
-      metrics.trackInteraction(type, end - start);
+  // Set up interaction observers after styles are loaded
+  void waitForStylesLoaded().then(() => {
+    // Set up interaction observers
+    const trackInteraction = (type: string, callback: () => void) => {
+      return () => {
+        const start = performance.now();
+        callback();
+        const end = performance.now();
+        metrics.trackInteraction(type, end - start);
+      };
     };
-  };
 
-  // Set up event listeners for common interactions
-  const graphElement = document.querySelector('.vue-flow');
-  if (graphElement) {
-    const trackMousemove = trackInteraction('mousemove', () => {
-      /* Track mousemove */
-    });
-    const trackClick = trackInteraction('click', () => {
-      /* Track click */
-    });
-    const trackWheel = trackInteraction('wheel', () => {
-      /* Track wheel */
-    });
+    // Set up event listeners for common interactions
+    const graphElement = document.querySelector('.vue-flow');
+    if (graphElement) {
+      const trackMousemove = trackInteraction('mousemove', () => {
+        /* Track mousemove */
+      });
+      const trackClick = trackInteraction('click', () => {
+        /* Track click */
+      });
+      const trackWheel = trackInteraction('wheel', () => {
+        /* Track wheel */
+      });
 
-    graphElement.addEventListener('mousemove', trackMousemove, { passive: true });
-    graphElement.addEventListener('click', trackClick);
-    graphElement.addEventListener('wheel', trackWheel, { passive: true });
+      graphElement.addEventListener('mousemove', trackMousemove, { passive: true });
+      graphElement.addEventListener('click', trackClick);
+      graphElement.addEventListener('wheel', trackWheel, { passive: true });
 
-    onUnmounted(() => {
-      graphElement.removeEventListener('mousemove', trackMousemove);
-      graphElement.removeEventListener('click', trackClick);
-      graphElement.removeEventListener('wheel', trackWheel);
-    });
-  }
+      // Store cleanup functions
+      cleanupFunctions.value.push(
+        () => graphElement.removeEventListener('mousemove', trackMousemove),
+        () => graphElement.removeEventListener('click', trackClick),
+        () => graphElement.removeEventListener('wheel', trackWheel)
+      );
+    }
+  });
 });
 
 onUnmounted(() => {
+  // Clean up event listeners
+  cleanupFunctions.value.forEach((cleanup) => cleanup());
+  cleanupFunctions.value = [];
+
   // Measure render time on component unmount
   performance.mark('graph-render-end');
   performance.measure('graph-render', 'graph-render-start', 'graph-render-end');

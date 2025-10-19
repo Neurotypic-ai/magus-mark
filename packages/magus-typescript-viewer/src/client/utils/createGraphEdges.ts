@@ -1,5 +1,6 @@
 import { MarkerType } from '@vue-flow/core';
 
+import { createLogger } from '../../shared/utils/logger';
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getEdgeStyle } from '../theme/graphTheme';
 
@@ -12,6 +13,8 @@ import type {
   ModuleStructure,
   PackageStructure,
 } from '../components/DependencyGraph/types';
+
+const logger = createLogger('createGraphEdges');
 
 /**
  * Common edge marker configuration
@@ -276,39 +279,70 @@ function createInterfaceInheritanceEdges(iface: InterfaceStructure): GraphEdge[]
  * @returns Array of edges for the dependency graph
  */
 export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
+  logger.info('Starting edge creation');
+  logger.debug(`Input: ${String(data.packages.length)} packages`);
   const edges: GraphEdge[] = [];
 
   // Build module path lookup for import resolution
+  logger.debug('Building module path map...');
   const modulePathMap = buildModulePathMap(data);
+  logger.debug(`Module path map has ${String(modulePathMap.size)} entries`);
 
   // Process each package
-  data.packages.forEach((pkg) => {
+  logger.debug('Processing packages...');
+  let packageDepEdges = 0;
+  let importEdges = 0;
+  let exportEdges = 0;
+  let classEdges = 0;
+  let interfaceEdges = 0;
+
+  data.packages.forEach((pkg, pkgIndex) => {
     // Create package dependency edges
-    edges.push(...createPackageDependencyEdges(pkg));
+    const pkgEdges = createPackageDependencyEdges(pkg);
+    edges.push(...pkgEdges);
+    packageDepEdges += pkgEdges.length;
+    if (pkgIndex < 2 && pkgEdges.length > 0) {
+      logger.debug(`Package ${pkg.name} has ${String(pkgEdges.length)} dependency edges`);
+    }
 
     // Process modules within the package
     if (pkg.modules && Object.keys(pkg.modules).length > 0) {
       mapTypeCollection(pkg.modules, (module) => {
         // Create module import and export edges
-        edges.push(...createModuleImportEdges(module, modulePathMap));
-        edges.push(...createModuleExportEdges(module, modulePathMap));
+        const modImportEdges = createModuleImportEdges(module, modulePathMap);
+        const modExportEdges = createModuleExportEdges(module, modulePathMap);
+        edges.push(...modImportEdges, ...modExportEdges);
+        importEdges += modImportEdges.length;
+        exportEdges += modExportEdges.length;
 
         // Create class relationship edges
         if (module.classes && Object.keys(module.classes).length > 0) {
           mapTypeCollection(module.classes, (cls) => {
-            edges.push(...createClassRelationshipEdges(cls));
+            const clsEdges = createClassRelationshipEdges(cls);
+            edges.push(...clsEdges);
+            classEdges += clsEdges.length;
           });
         }
 
         // Create interface inheritance edges
         if (module.interfaces && Object.keys(module.interfaces).length > 0) {
           mapTypeCollection(module.interfaces, (iface) => {
-            edges.push(...createInterfaceInheritanceEdges(iface));
+            const ifaceEdges = createInterfaceInheritanceEdges(iface);
+            edges.push(...ifaceEdges);
+            interfaceEdges += ifaceEdges.length;
           });
         }
       });
     }
   });
+
+  logger.info(`Edge creation complete:`);
+  logger.info(`  - Package dependencies: ${String(packageDepEdges)}`);
+  logger.info(`  - Import edges: ${String(importEdges)}`);
+  logger.info(`  - Export edges: ${String(exportEdges)}`);
+  logger.info(`  - Class relationship edges: ${String(classEdges)}`);
+  logger.info(`  - Interface inheritance edges: ${String(interfaceEdges)}`);
+  logger.info(`  - Total edges: ${String(edges.length)}`);
 
   return edges;
 }
