@@ -12,6 +12,7 @@ import type { GraphTheme } from '../theme/graphTheme';
 
 // Internal layout configuration type used by the worker
 export interface LayoutConfig {
+  algorithm: 'layered' | 'radial' | 'force' | 'stress';
   direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
   nodesep: number;
   edgesep: number;
@@ -47,6 +48,7 @@ interface WorkerResponse {
  * Configuration for initializing the WebWorkerLayoutProcessor
  */
 export interface WebWorkerLayoutConfig {
+  algorithm?: 'layered' | 'radial' | 'force' | 'stress';
   direction?: 'TB' | 'LR' | 'BT' | 'RL';
   nodeSpacing?: number;
   rankSpacing?: number;
@@ -86,6 +88,7 @@ export class WebWorkerLayoutProcessor {
     };
 
     this.config = {
+      algorithm: mergedConfig.algorithm ?? 'layered',
       direction: mapDirection(mergedConfig.direction ?? 'LR'),
       nodesep: mergedConfig.nodeSpacing ?? 100,
       ranksep: mergedConfig.rankSpacing ?? 150,

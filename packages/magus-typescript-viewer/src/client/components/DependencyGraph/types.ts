@@ -1,4 +1,4 @@
-import type { Edge, Node } from '@vue-flow/core';
+import type { Edge, Node, Position } from '@vue-flow/core';
 
 /**
  * Dependency kinds (node types)
@@ -78,6 +78,8 @@ export interface DependencyProps {
   selected?: boolean;
   width?: number;
   height?: number;
+  sourcePosition?: Position;
+  targetPosition?: Position;
 }
 
 /**

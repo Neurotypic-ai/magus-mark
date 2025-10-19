@@ -183,10 +183,13 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
               modulePathMap.get(resolvedPath) ?? modulePathMap.get(resolvedPath.replace(/\.(ts|tsx|js|jsx)$/, ''));
 
             if (targetModuleId && targetModuleId !== module.id) {
+              // Arrow points FROM imported module TO importing module
+              // Shows "is imported by" / "is used by" relationship
+              // If module A imports module B, arrow goes: B -> A
               edges.push({
-                id: `${module.id}-${targetModuleId}-import`,
-                source: module.id,
-                target: targetModuleId,
+                id: `${targetModuleId}-${module.id}-import`,
+                source: targetModuleId,
+                target: module.id,
                 hidden: false,
                 data: {
                   type: 'import' as DependencyEdgeKind,

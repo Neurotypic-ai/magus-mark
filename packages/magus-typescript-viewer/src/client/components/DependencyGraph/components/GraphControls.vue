@@ -5,12 +5,13 @@ import { ref } from 'vue';
 const emit = defineEmits<{
   'relationship-filter-change': [types: string[]];
   'reset-layout': [];
-  'layout-change': [config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }];
+  'layout-change': [config: { algorithm?: string; direction?: string; nodeSpacing?: number; rankSpacing?: number }];
 }>();
 
 const { zoomIn, zoomOut, fitView } = useVueFlow();
 
 // Layout configuration
+const layoutAlgorithm = ref<'layered' | 'radial' | 'force' | 'stress'>('layered');
 const layoutDirection = ref<'LR' | 'RL' | 'TB' | 'BT'>('LR');
 const nodeSpacing = ref(100);
 const rankSpacing = ref(150);
@@ -53,6 +54,11 @@ const handleFilterChange = (type: string, checked: boolean) => {
     enabledTypes.value = enabledTypes.value.filter((t) => t !== type);
   }
   emit('relationship-filter-change', enabledTypes.value);
+};
+
+const handleAlgorithmChange = (algorithm: 'layered' | 'radial' | 'force' | 'stress') => {
+  layoutAlgorithm.value = algorithm;
+  emit('layout-change', { algorithm });
 };
 
 const handleDirectionChange = (direction: 'LR' | 'RL' | 'TB' | 'BT') => {
@@ -101,6 +107,27 @@ const handleSpacingChange = () => {
         >
           Reset
         </button>
+      </div>
+
+      <!-- Layout Algorithm -->
+      <div class="mt-4 pt-4 border-t border-border-default">
+        <h4 class="text-sm font-semibold text-text-primary mb-2">Layout Algorithm</h4>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            v-for="algo in ['layered', 'radial', 'force', 'stress']"
+            :key="algo"
+            @click="handleAlgorithmChange(algo as 'layered' | 'radial' | 'force' | 'stress')"
+            :class="[
+              'px-2 py-1.5 text-xs rounded border transition-fast capitalize',
+              layoutAlgorithm === algo
+                ? 'bg-primary-main text-white border-primary-main'
+                : 'bg-white/10 text-text-primary border-border-default hover:bg-white/20',
+            ]"
+            :aria-label="`Set layout algorithm to ${algo}`"
+          >
+            {{ algo }}
+          </button>
+        </div>
       </div>
 
       <!-- Layout Direction -->

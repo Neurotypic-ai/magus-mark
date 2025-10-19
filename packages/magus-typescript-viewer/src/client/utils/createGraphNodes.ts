@@ -1,4 +1,6 @@
 // import { getMembersAsProperties } from '../components/DependencyGraph';
+import { Position } from '@vue-flow/core';
+
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getNodeStyle } from '../theme/graphTheme';
 
@@ -24,9 +26,32 @@ import type { DependencyKind, DependencyNode, DependencyPackageGraph } from '../
  */
 export function createGraphNodes(
   data: DependencyPackageGraph,
-  options: { includePackages?: boolean; includeClasses?: boolean } = {}
+  options: { includePackages?: boolean; includeClasses?: boolean; direction?: 'LR' | 'RL' | 'TB' | 'BT' } = {}
 ): DependencyNode[] {
-  const { includePackages = false, includeClasses = false } = options;
+  const { includePackages = false, includeClasses = false, direction = 'LR' } = options;
+
+  // Calculate handle positions based on layout direction
+  let sourcePosition: Position;
+  let targetPosition: Position;
+
+  switch (direction) {
+    case 'LR':
+      sourcePosition = Position.Right;
+      targetPosition = Position.Left;
+      break;
+    case 'RL':
+      sourcePosition = Position.Left;
+      targetPosition = Position.Right;
+      break;
+    case 'TB':
+      sourcePosition = Position.Bottom;
+      targetPosition = Position.Top;
+      break;
+    case 'BT':
+      sourcePosition = Position.Top;
+      targetPosition = Position.Bottom;
+      break;
+  }
 
   const graphNodes: DependencyNode[] = [];
 
@@ -37,6 +62,8 @@ export function createGraphNodes(
         id: pkg.id,
         type: 'package' as DependencyKind,
         position: { x: 0, y: 0 },
+        sourcePosition,
+        targetPosition,
         expandParent: true,
         data: {
           label: pkg.name,
@@ -58,6 +85,8 @@ export function createGraphNodes(
           id: module.id,
           type: 'module' as DependencyKind,
           position: { x: 0, y: 0 },
+          sourcePosition,
+          targetPosition,
           data: {
             label: module.name,
             properties: [
@@ -112,6 +141,8 @@ export function createGraphNodes(
                 id: cls.id,
                 type: 'class' as DependencyKind,
                 position: { x: 0, y: 0 },
+                sourcePosition,
+                targetPosition,
                 parentNode: module.id,
                 extent: 'parent' as const,
                 expandParent: true,
@@ -158,6 +189,8 @@ export function createGraphNodes(
                 id: iface.id,
                 type: 'interface' as DependencyKind,
                 position: { x: 0, y: 0 },
+                sourcePosition,
+                targetPosition,
                 parentNode: module.id,
                 extent: 'parent' as const,
                 expandParent: true,

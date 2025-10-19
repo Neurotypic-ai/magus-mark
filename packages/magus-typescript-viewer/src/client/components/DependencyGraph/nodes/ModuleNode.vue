@@ -9,6 +9,10 @@ const props = defineProps<DependencyProps>();
 const nodeData = computed(() => props.data);
 const isSelected = computed(() => !!props.selected);
 
+// Get handle positions from props (set by createGraphNodes based on layout direction)
+const sourcePosition = computed(() => props.sourcePosition ?? Position.Bottom);
+const targetPosition = computed(() => props.targetPosition ?? Position.Top);
+
 // Collapsible sections state
 const isMetadataExpanded = ref(true);
 
@@ -42,7 +46,7 @@ const containerClasses = computed(() => {
 
 <template>
   <div :class="containerClasses">
-    <Handle type="target" :position="Position.Top" class="!w-3 !h-3" />
+    <Handle type="target" :position="targetPosition" class="!w-3 !h-3" />
 
     <!-- Node Header -->
     <div class="flex items-center gap-2 border-b border-border-default p-3 bg-white/5">
@@ -99,7 +103,7 @@ const containerClasses = computed(() => {
     <!-- Empty State -->
     <div v-else class="p-4 text-center text-text-secondary text-xs italic opacity-60">No metadata available</div>
 
-    <Handle type="source" :position="Position.Bottom" class="!w-3 !h-3" />
+    <Handle type="source" :position="sourcePosition" class="!w-3 !h-3" />
   </div>
 </template>
 

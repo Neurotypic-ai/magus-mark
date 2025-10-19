@@ -11,6 +11,10 @@ const nodeData = computed(() => props.data);
 const nodeType = computed(() => props.type);
 const isSelected = computed(() => !!props.selected);
 
+// Get handle positions from props (set by createGraphNodes based on layout direction)
+const sourcePosition = computed(() => props.sourcePosition ?? Position.Bottom);
+const targetPosition = computed(() => props.targetPosition ?? Position.Top);
+
 // Compute visibility color
 const getVisibilityColor = (visibility: string) => {
   if (visibility === 'public') return 'bg-visibility-public';
@@ -67,7 +71,7 @@ const containerClasses = computed(() => {
 
 <template>
   <div :class="containerClasses">
-    <Handle type="target" :position="Position.Top" />
+    <Handle type="target" :position="targetPosition" />
 
     <!-- Node Header -->
     <div class="flex items-center gap-1 border-b border-border-default pb-1 mb-1">
@@ -125,6 +129,6 @@ const containerClasses = computed(() => {
       </div>
     </div>
 
-    <Handle type="source" :position="Position.Bottom" />
+    <Handle type="source" :position="sourcePosition" />
   </div>
 </template>

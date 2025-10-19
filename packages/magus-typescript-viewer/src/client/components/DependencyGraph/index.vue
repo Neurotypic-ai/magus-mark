@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background';
-import { Panel, VueFlow, useVueFlow } from '@vue-flow/core';
+import { Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { computed, onUnmounted, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
@@ -13,6 +13,7 @@ import { measurePerformance } from '../../utils/performanceMonitoring';
 import GraphControls from './components/GraphControls.vue';
 import GraphSearch from './components/GraphSearch.vue';
 import NodeDetails from './components/NodeDetails.vue';
+import { mapTypeCollection } from './mapTypeCollection';
 import { nodeTypes } from './nodes/nodes';
 
 import type {
@@ -47,10 +48,27 @@ let layoutProcessor: WebWorkerLayoutProcessor | null = null;
 
 // Layout configuration state optimized for module import visualization
 const layoutConfig = {
+  algorithm: 'layered' as 'layered' | 'radial' | 'force' | 'stress',
   direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT', // Left-to-right flow
   nodeSpacing: 80, // Space between nodes in same rank
   rankSpacing: 200, // Space between ranks (layers) - increased for clarity
   edgeSpacing: 30, // Space between parallel edges
+};
+
+// Helper to get handle positions based on layout direction
+const getHandlePositions = (
+  direction: 'LR' | 'RL' | 'TB' | 'BT'
+): { sourcePosition: Position; targetPosition: Position } => {
+  switch (direction) {
+    case 'LR':
+      return { sourcePosition: Position.Right, targetPosition: Position.Left };
+    case 'RL':
+      return { sourcePosition: Position.Left, targetPosition: Position.Right };
+    case 'TB':
+      return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
+    case 'BT':
+      return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
+  }
 };
 
 // Create WebWorkerLayoutProcessor
@@ -63,6 +81,7 @@ const initializeLayoutProcessor = () => {
   // Create a new instance
   // Note: WebWorkerLayoutProcessor internally converts TB/LR/etc to DOWN/RIGHT/etc
   layoutProcessor = new WebWorkerLayoutProcessor({
+    algorithm: layoutConfig.algorithm,
     direction: layoutConfig.direction,
     nodeSpacing: layoutConfig.nodeSpacing,
     rankSpacing: layoutConfig.rankSpacing,
@@ -137,6 +156,7 @@ const initializeGraph = async () => {
   const graphNodes = createGraphNodes(props.data, {
     includePackages: false, // No package nodes = cleaner module view
     includeClasses: false, // No classes = focus on module structure
+    direction: layoutConfig.direction,
   });
   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
 
@@ -183,62 +203,268 @@ const initializeGraph = async () => {
 // Watch for data changes
 watch(() => props.data, initializeGraph, { immediate: true });
 
-// Node click handler with focused layout
+// Node click handler with focused layout showing module internals
 const onNodeClick = async ({ node }: { node: unknown }): Promise<void> => {
   const selectedNode = node as DependencyNode;
   graphStore['setSelectedNode'](selectedNode);
 
-  // Find all connected node IDs
-  const connectedNodeIds = new Set<string>([selectedNode.id]);
-  const connectedEdges: GraphEdge[] = [];
+  // If it's a module node, show its internal structure
+  if (selectedNode.type === 'module') {
+    graphLogger.info(`Expanding module view: ${selectedNode.data.label}`);
 
-  edges.value.forEach((edge: GraphEdge) => {
-    if (edge.source === selectedNode.id) {
-      connectedNodeIds.add(edge.target);
-      connectedEdges.push(edge);
-    } else if (edge.target === selectedNode.id) {
-      connectedNodeIds.add(edge.source);
-      connectedEdges.push(edge);
+    // Create detailed nodes for this module from the original data
+    const moduleData = props.data.packages
+      .flatMap((pkg) => Object.values(pkg.modules || {}))
+      .find((m) => m.id === selectedNode.id);
+
+    if (!moduleData) {
+      graphLogger.warn('Could not find module data');
+      return;
     }
-  });
 
-  graphLogger.info(`Selected node: ${selectedNode.data.label}, Connected nodes: ${connectedNodeIds.size - 1}`);
+    const detailedNodes: DependencyNode[] = [];
+    const detailedEdges: GraphEdge[] = [];
 
-  // Create focused subgraph with selected node and its connections
-  const focusedNodes = nodes.value
-    .filter((n: DependencyNode) => connectedNodeIds.has(n.id))
-    .map((n: DependencyNode) => ({
-      ...n,
+    // Get handle positions based on current layout direction
+    const { sourcePosition, targetPosition } = getHandlePositions(layoutConfig.direction);
+
+    // Add the module node itself
+    detailedNodes.push({
+      ...selectedNode,
+      sourcePosition,
+      targetPosition,
       style: {
-        ...n.style,
-        borderWidth: n.id === selectedNode.id ? '3px' : '2px',
-        borderColor: n.id === selectedNode.id ? '#00ffff' : '#61dafb',
+        ...selectedNode.style,
+        borderWidth: '3px',
+        borderColor: '#00ffff',
       },
+    });
+
+    // Add all classes in this module
+    if (moduleData.classes) {
+      mapTypeCollection(moduleData.classes, (cls) => {
+        const properties = cls.properties
+          ? Object.values(cls.properties).map((p) => ({
+              name: p.name,
+              type: p.type,
+              visibility: p.visibility,
+            }))
+          : [];
+
+        const methods = cls.methods
+          ? Object.values(cls.methods).map((m) => ({
+              name: m.name,
+              returnType: m.returnType,
+              visibility: m.visibility,
+              signature: m.signature || `${m.name}(): ${m.returnType}`,
+            }))
+          : [];
+
+        detailedNodes.push({
+          id: cls.id,
+          type: 'class' as DependencyKind,
+          position: { x: 0, y: 0 },
+          sourcePosition,
+          targetPosition,
+          data: {
+            label: cls.name,
+            properties,
+            methods,
+          },
+          style: {
+            ...getNodeStyle('class'),
+            borderColor: '#4caf50',
+          },
+        });
+
+        // Add inheritance edge if exists
+        if (cls.extends_id) {
+          detailedEdges.push({
+            id: `${cls.id}-${cls.extends_id}-inheritance`,
+            source: cls.id,
+            target: cls.extends_id,
+            hidden: false,
+            data: { type: 'inheritance' as DependencyEdgeKind },
+            style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
+            markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+          } as GraphEdge);
+        }
+
+        // Add implementation edges
+        if (cls.implemented_interfaces) {
+          Object.values(cls.implemented_interfaces).forEach((iface) => {
+            if (iface.id) {
+              detailedEdges.push({
+                id: `${cls.id}-${iface.id}-implements`,
+                source: cls.id,
+                target: iface.id,
+                hidden: false,
+                data: { type: 'implements' as DependencyEdgeKind },
+                style: { ...getEdgeStyle('implements'), strokeWidth: 3 },
+                markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+              } as GraphEdge);
+            }
+          });
+        }
+      });
+    }
+
+    // Add all interfaces in this module
+    if (moduleData.interfaces) {
+      mapTypeCollection(moduleData.interfaces, (iface) => {
+        const properties = iface.properties
+          ? Object.values(iface.properties).map((p) => ({
+              name: p.name,
+              type: p.type,
+              visibility: p.visibility,
+            }))
+          : [];
+
+        const methods = iface.methods
+          ? Object.values(iface.methods).map((m) => ({
+              name: m.name,
+              returnType: m.returnType,
+              visibility: m.visibility,
+              signature: m.signature || `${m.name}(): ${m.returnType}`,
+            }))
+          : [];
+
+        detailedNodes.push({
+          id: iface.id,
+          type: 'interface' as DependencyKind,
+          position: { x: 0, y: 0 },
+          sourcePosition,
+          targetPosition,
+          data: {
+            label: iface.name,
+            properties,
+            methods,
+          },
+          style: {
+            ...getNodeStyle('interface'),
+            borderColor: '#ff9800',
+          },
+        });
+
+        // Add interface inheritance edges
+        if (iface.extended_interfaces) {
+          Object.values(iface.extended_interfaces).forEach((extended) => {
+            if (extended.id) {
+              detailedEdges.push({
+                id: `${iface.id}-${extended.id}-inheritance`,
+                source: iface.id,
+                target: extended.id,
+                hidden: false,
+                data: { type: 'inheritance' as DependencyEdgeKind },
+                style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
+                markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+              } as GraphEdge);
+            }
+          });
+        }
+      });
+    }
+
+    // Add connected modules (imports)
+    const connectedModuleIds = new Set<string>();
+    edges.value.forEach((edge: GraphEdge) => {
+      if (edge.source === selectedNode.id) {
+        connectedModuleIds.add(edge.target);
+        detailedEdges.push({
+          ...edge,
+          style: { ...edge.style, stroke: '#61dafb', strokeWidth: 3 },
+          animated: true,
+        } as GraphEdge);
+      } else if (edge.target === selectedNode.id) {
+        connectedModuleIds.add(edge.source);
+        detailedEdges.push({
+          ...edge,
+          style: { ...edge.style, stroke: '#ffd700', strokeWidth: 3 },
+          animated: true,
+        } as GraphEdge);
+      }
+    });
+
+    // Add connected module nodes
+    connectedModuleIds.forEach((moduleId) => {
+      const connectedModule = nodes.value.find((n: DependencyNode) => n.id === moduleId);
+      if (connectedModule) {
+        detailedNodes.push({
+          ...connectedModule,
+          sourcePosition,
+          targetPosition,
+          style: {
+            ...connectedModule.style,
+            borderWidth: '2px',
+            borderColor: '#61dafb',
+          },
+        });
+      }
+    });
+
+    graphLogger.info(
+      `Showing ${detailedNodes.length} nodes (${detailedNodes.filter((n) => n.type === 'class').length} classes, ${detailedNodes.filter((n) => n.type === 'interface').length} interfaces) and ${detailedEdges.length} edges`
+    );
+
+    // Trigger re-layout with detailed subgraph
+    await processGraphLayout({
+      nodes: detailedNodes,
+      edges: detailedEdges,
+    });
+
+    // Fit view to the detailed subgraph
+    await fitView({
+      duration: 300,
+      padding: 0.2,
+    });
+  } else {
+    // For non-module nodes, just show connections
+    const connectedNodeIds = new Set<string>([selectedNode.id]);
+    const connectedEdges: GraphEdge[] = [];
+
+    edges.value.forEach((edge: GraphEdge) => {
+      if (edge.source === selectedNode.id) {
+        connectedNodeIds.add(edge.target);
+        connectedEdges.push(edge);
+      } else if (edge.target === selectedNode.id) {
+        connectedNodeIds.add(edge.source);
+        connectedEdges.push(edge);
+      }
+    });
+
+    const focusedNodes = nodes.value
+      .filter((n: DependencyNode) => connectedNodeIds.has(n.id))
+      .map((n: DependencyNode) => ({
+        ...n,
+        style: {
+          ...n.style,
+          borderWidth: n.id === selectedNode.id ? '3px' : '2px',
+          borderColor: n.id === selectedNode.id ? '#00ffff' : '#61dafb',
+        },
+      }));
+
+    const focusedEdges = connectedEdges.map((edge: GraphEdge) => ({
+      ...edge,
+      style: {
+        ...edge.style,
+        stroke: '#00ffff',
+        strokeWidth: 4,
+        opacity: 1,
+      },
+      animated: true,
     }));
 
-  const focusedEdges = connectedEdges.map((edge: GraphEdge) => ({
-    ...edge,
-    style: {
-      ...edge.style,
-      stroke: '#00ffff',
-      strokeWidth: 4,
-      opacity: 1,
-    },
-    animated: true,
-  }));
+    await processGraphLayout({
+      nodes: focusedNodes,
+      edges: focusedEdges,
+    });
 
-  // Trigger re-layout with focused subgraph
-  await processGraphLayout({
-    nodes: focusedNodes,
-    edges: focusedEdges,
-  });
-
-  // Fit view to the focused subgraph
-  await fitView({
-    duration: 300,
-    padding: 0.3,
-    nodes: Array.from(connectedNodeIds),
-  });
+    await fitView({
+      duration: 300,
+      padding: 0.3,
+      nodes: Array.from(connectedNodeIds),
+    });
+  }
 };
 
 // Pane click handler to deselect and restore full graph
@@ -262,7 +488,15 @@ const handleRelationshipFilterChange = (types: string[]) => {
 };
 
 // Layout change handler
-const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
+const handleLayoutChange = async (config: {
+  algorithm?: string;
+  direction?: string;
+  nodeSpacing?: number;
+  rankSpacing?: number;
+}) => {
+  if (config.algorithm) {
+    layoutConfig.algorithm = config.algorithm as 'layered' | 'radial' | 'force' | 'stress';
+  }
   if (config.direction) {
     layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
   }
@@ -276,8 +510,12 @@ const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: nu
   // Recreate layout processor with new config
   initializeLayoutProcessor();
 
-  // Re-run layout
-  const graphNodes = createGraphNodes(props.data);
+  // Re-run layout with updated direction for handle positions
+  const graphNodes = createGraphNodes(props.data, {
+    includePackages: false,
+    includeClasses: false,
+    direction: layoutConfig.direction,
+  });
   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
   await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
 };

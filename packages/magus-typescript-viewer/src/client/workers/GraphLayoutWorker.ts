@@ -19,6 +19,7 @@ interface WorkerMessage {
 }
 
 interface LayoutConfig {
+  algorithm: 'layered' | 'radial' | 'force' | 'stress';
   direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
   nodesep: number;
   edgesep: number;
@@ -88,13 +89,25 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       // Check if this node will have children
       const hasChildren = nodes.some((n) => (n as unknown as { parentNode?: string }).parentNode === elkNode.id);
       if (hasChildren) {
-        elkNode.layoutOptions = {
-          'elk.algorithm': 'layered',
-          'elk.direction': elkDirection,
+        // Base layout options
+        const baseOptions: Record<string, string> = {
+          'elk.algorithm': config.algorithm,
           'elk.padding': '[top=30,left=30,bottom=30,right=30]',
           'elk.spacing.nodeNode': '20',
-          'elk.layered.spacing.nodeNodeBetweenLayers': '30',
         };
+
+        // Algorithm-specific options
+        if (config.algorithm === 'layered') {
+          baseOptions['elk.direction'] = elkDirection;
+          baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '30';
+        } else if (config.algorithm === 'radial') {
+          baseOptions['elk.radial.radius'] = '200';
+          baseOptions['elk.radial.compactionStepSize'] = '0.1';
+          baseOptions['elk.radial.compaction'] = 'true';
+          baseOptions['elk.radial.sorter'] = 'QUADRANTS';
+        }
+
+        elkNode.layoutOptions = baseOptions;
       }
     });
 
@@ -146,29 +159,52 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       edges: ElkEdge[];
     }
 
+    // Build layout options based on algorithm
+    const layoutOptions: Record<string, string> = {
+      'elk.algorithm': config.algorithm,
+      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+      'elk.spacing.nodeNode': String(config.nodesep),
+      'elk.spacing.edgeNode': String(config.edgesep),
+      'elk.padding': '[top=50,left=50,bottom=50,right=50]',
+      'elk.spacing.componentComponent': '30',
+      'elk.spacing.portPort': '10',
+    };
+
+    // Add algorithm-specific options
+    if (config.algorithm === 'layered') {
+      layoutOptions['elk.direction'] = elkDirection;
+      layoutOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = String(config.ranksep);
+      layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = String(config.edgesep);
+      layoutOptions['elk.edgeRouting'] = 'ORTHOGONAL';
+      layoutOptions['elk.layered.nodePlacement.strategy'] = 'BRANDES_KOEPF';
+      layoutOptions['elk.layered.nodePlacement.bk.fixedAlignment'] = 'BALANCED';
+      layoutOptions['elk.layered.layering.strategy'] = 'NETWORK_SIMPLEX';
+      layoutOptions['elk.layered.cycleBreaking.strategy'] = 'GREEDY';
+      layoutOptions['elk.layered.crossingMinimization.strategy'] = 'LAYER_SWEEP';
+      layoutOptions['elk.layered.compaction.postCompaction.strategy'] = 'EDGE_LENGTH';
+    } else if (config.algorithm === 'radial') {
+      layoutOptions['elk.radial.radius'] = String(config.ranksep);
+      layoutOptions['elk.radial.compactionStepSize'] = '0.1';
+      layoutOptions['elk.radial.compaction'] = 'true';
+      layoutOptions['elk.radial.sorter'] = 'QUADRANTS';
+      layoutOptions['elk.radial.wedgeCriteria'] = 'CONNECTIONS';
+      layoutOptions['elk.radial.optimizeDistance'] = 'true';
+      layoutOptions['elk.edgeRouting'] = 'SPLINES';
+    } else if (config.algorithm === 'force') {
+      layoutOptions['elk.force.repulsion'] = '5.0';
+      layoutOptions['elk.force.temperature'] = '0.001';
+      layoutOptions['elk.edgeRouting'] = 'SPLINES';
+    } else {
+      // stress algorithm
+      layoutOptions['elk.stress.desiredEdgeLength'] = String(config.ranksep);
+      layoutOptions['elk.stress.epsilon'] = '0.0001';
+      layoutOptions['elk.edgeRouting'] = 'SPLINES';
+    }
+
     // Create the ELK graph with hierarchical structure
     const elkGraph: ElkGraph = {
       id: 'root',
-      layoutOptions: {
-        'elk.algorithm': 'layered',
-        'elk.direction': elkDirection,
-        'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-        'elk.spacing.nodeNode': String(config.nodesep),
-        'elk.layered.spacing.nodeNodeBetweenLayers': String(config.ranksep),
-        'elk.layered.spacing.edgeNodeBetweenLayers': String(config.edgesep),
-        'elk.spacing.edgeNode': String(config.edgesep),
-        'elk.edgeRouting': 'ORTHOGONAL',
-        'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-        'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-        'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
-        'elk.layered.cycleBreaking.strategy': 'GREEDY',
-        'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-        'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-        'elk.padding': '[top=50,left=50,bottom=50,right=50]',
-        // Padding for nested nodes (children within parents)
-        'elk.spacing.componentComponent': '30',
-        'elk.spacing.portPort': '10',
-      },
+      layoutOptions,
       children: rootNodes,
       edges: elkEdges,
     };

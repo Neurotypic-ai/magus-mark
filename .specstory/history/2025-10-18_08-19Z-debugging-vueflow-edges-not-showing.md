@@ -4018,3 +4018,2417 @@ Your Humble Servant, Sebastién
 
 ---
 
+_**User**_
+
+Now lets add subtypes and relationships for that back to the graph. IE: when I click on a module i want to see all the symbols and whats imported
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>The user wants to enhance the focused view when clicking a module to show:
+1. All symbols (classes, interfaces, functions) within that module
+2. What's being imported into that module
+3. Possibly show relationships between symbols
+
+This means when a module is selected, we need to:
+1. Show the module node (already done)
+2. Show all class/interface nodes that belong to that module
+3. Show import edges
+4. Possibly show inheritance/implementation edges between symbols
+
+Let me update the node creation to optionally include classes/interfaces when focused on a module, and update the click handler to show this expanded view.</details></think>
+
+---
+
+Your Grace,
+
+Excellent! I'll enhance the focused view to show a module's internal structure and imports when you click it.
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 429, lines removed: 244
+
+```diff
+@@ -184,254 +184,439 @@
+  watch(() => props.data, initializeGraph, { immediate: true });
+  
+- // Node click handler with focused layout
++ // Node click handler with focused layout showing module internals
+...
+-   // Find all connected node IDs
+-   const connectedNodeIds = new Set<string>([selectedNode.id]);
+-   const connectedEdges: GraphEdge[] = [];
+- 
+-   edges.value.forEach((edge: GraphEdge) => {
+-     if (edge.source === selectedNode.id) {
+-       connectedNodeIds.add(edge.target);
+-       connectedEdges.push(edge);
+-     } else if (edge.target === selectedNode.id) {
+-       connectedNodeIds.add(edge.source);
+-       connectedEdges.push(edge);
+-     }
+-   });
+- 
+-   graphLogger.info(`Selected node: ${selectedNode.data.label}, Connected nodes: ${connectedNodeIds.size - 1}`);
+- 
+-   // Create focused subgraph with selected node and its connections
+-   const focusedNodes = nodes.value
+-     .filter((n: DependencyNode) => connectedNodeIds.has(n.id))
+-     .map((n: DependencyNode) => ({
+-       ...n,
++   // If it's a module node, show its internal structure
++   if (selectedNode.type === 'module') {
++     graphLogger.info(`Expanding module view: ${selectedNode.data.label}`);
++     
++     // Create detailed nodes for this module from the original data
++     const moduleData = props.data.packages
++       .flatMap(pkg => Object.values(pkg.modules || {}))
++       .find(m => m.id === selectedNode.id);
++     
++     if (!moduleData) {
++       graphLogger.warn('Could not find module data');
++       return;
++     }
++     
++     const detailedNodes: DependencyNode[] = [];
++     const detailedEdges: GraphEdge[] = [];
++     
++     // Add the module node itself
++     detailedNodes.push({
++       ...selectedNode,
+...
+-         ...n.style,
+-         borderWidth: n.id === selectedNode.id ? '3px' : '2px',
+-         borderColor: n.id === selectedNode.id ? '#00ffff' : '#61dafb',
++         ...selectedNode.style,
++         borderWidth: '3px',
++         borderColor: '#00ffff',
+...
+-     }));
+- 
+-   const focusedEdges = connectedEdges.map((edge: GraphEdge) => ({
+-     ...edge,
+-     style: {
+-       ...edge.style,
+-       stroke: '#00ffff',
+-       strokeWidth: 4,
+-       opacity: 1,
+-     },
+-     animated: true,
+-   }));
+- 
+-   // Trigger re-layout with focused subgraph
+-   await processGraphLayout({
+-     nodes: focusedNodes,
+-     edges: focusedEdges,
+-   });
+- 
+-   // Fit view to the focused subgraph
+-   await fitView({
+-     duration: 300,
+-     padding: 0.3,
+-     nodes: Array.from(connectedNodeIds),
+-   });
+- };
+- 
+- // Pane click handler to deselect and restore full graph
+- const onPaneClick = async (): Promise<void> => {
+-   graphStore['setSelectedNode'](null);
+- 
+-   graphLogger.info('Restoring full graph view');
+- 
+-   // Restore full graph by re-initializing
+-   await initializeGraph();
+- };
+- 
+- // Filter handler for relationship types
+- const handleRelationshipFilterChange = (types: string[]) => {
+-   graphStore['setEdges'](
+-     edges.value.map((edge: GraphEdge) => ({
+-       ...edge,
+-       hidden: !types.includes(edge.data?.type ?? 'default'),
+-     }))
+-   );
+- };
+- 
+- // Layout change handler
+- const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
+-   if (config.direction) {
+-     layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
+-   }
+-   if (config.nodeSpacing !== undefined) {
+-     layoutConfig.nodeSpacing = config.nodeSpacing;
+-   }
+-   if (config.rankSpacing !== undefined) {
+-     layoutConfig.rankSpacing = config.rankSpacing;
+-   }
+- 
+-   // Recreate layout processor with new config
+-   initializeLayoutProcessor();
+- 
+-   // Re-run layout
+-   const graphNodes = createGraphNodes(props.data);
+-   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+-   await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
+- };
+- 
+- // Search result handler
+- const handleSearchResult = (result: SearchResult) => {
+-   // Update node styling based on search results
+-   graphStore['setNodes'](
+-     nodes.value.map((node: DependencyNode) => ({
+-       ...node,
+-       selected: result.nodes.some((searchNode) => searchNode.id === node.id),
+-       style: {
+-         ...getNodeStyle(node.type as DependencyKind),
+-         opacity: result.nodes.length === 0 ? 1 : result.nodes.some((searchNode) => searchNode.id === node.id) ? 1 : 0.2,
+-       },
+-     }))
+-   );
+- 
+-   // Update edge styling based on search results
+-   graphStore['setEdges'](
+-     edges.value.map((edge: GraphEdge) => ({
+-       ...edge,
+-       selected: result.edges.some((searchEdge) => searchEdge.id === edge.id),
+-       style: {
+-         ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
+-         opacity: result.edges.length === 0 ? 1 : result.edges.some((searchEdge) => searchEdge.id === edge.id) ? 1 : 0.2,
+-       },
+-     }))
+-   );
+- 
+-   // Highlight path if it exists
+-   if (result.path) {
+-     graphStore['setNodes'](
+-       nodes.value.map((node: DependencyNode) => ({
+-         ...node,
+-         style: {
+-           ...getNodeStyle(node.type as DependencyKind),
+-           opacity: result.path?.some((pathNode) => pathNode.id === node.id) ? 1 : 0.2,
+-           borderWidth: result.path?.some((pathNode) => pathNode.id === node.id)
+-             ? graphTheme.edges.sizes.width.selected
+-             : graphTheme.edges.sizes.width.default,
+-         },
+-       }))
+-     );
+-   }
+- };
+- 
+- // Keyboard navigation handlers
+- const handleKeyDown = (event: KeyboardEvent) => {
+-   if (
+-     selectedNode.value &&
+-     (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'ArrowUp' || event.key === 'ArrowDown')
+-   ) {
+-     event.preventDefault();
+-     const connectedEdges = edges.value.filter(
+-       (edge: GraphEdge) => edge.source === selectedNode.value?.id || edge.target === selectedNode.value?.id
+-     );
+-     if (connectedEdges.length > 0) {
+-       let nextNodeId: string | undefined;
+-       if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+-         if (connectedEdges[0]) {
+-           nextNodeId =
+-             connectedEdges[0].source === selectedNode.value.id ? connectedEdges[0].target : connectedEdges[0].source;
+-         }
+-       } else {
+-         const lastEdge = connectedEdges[connectedEdges.length - 1];
+-         if (lastEdge) {
+-           nextNodeId = lastEdge.source === selectedNode.value.id ? lastEdge.target : lastEdge.source;
+-         }
++     });
++     
++     // Add all classes in this module
++     if (moduleData.classes) {
++       mapTypeCollection(moduleData.classes, (cls) => {
++         const properties = cls.properties ? Object.values(cls.properties).map(p => ({
++           name: p.name,
++           type: p.type,
++           visibility: p.visibility
++         })) : [];
++         
++         const methods = cls.methods ? Object.values(cls.methods).map(m => ({
++           name: m.name,
++           returnType: m.returnType,
++           visibility: m.visibility,
++           signature: m.signature || `${m.name}(): ${m.returnType}`
++         })) : [];
++         
++         detailedNodes.push({
++           id: cls.id,
++           type: 'class' as DependencyKind,
++           position: { x: 0, y: 0 },
++           data: {
++             label: cls.name,
++             properties,
++             methods,
++           },
++           style: {
++             ...getNodeStyle('class'),
++             borderColor: '#4caf50',
++           },
++         });
++         
++         // Add inheritance edge if exists
++         if (cls.extends_id) {
++           detailedEdges.push({
++             id: `${cls.id}-${cls.extends_id}-inheritance`,
++             source: cls.id,
++             target: cls.extends_id,
++             hidden: false,
++             data: { type: 'inheritance' as DependencyEdgeKind },
++             style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
++             markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
++           } as GraphEdge);
++         }
++         
++         // Add implementation edges
++         if (cls.implemented_interfaces) {
++           Object.values(cls.implemented_interfaces).forEach(iface => {
++             if (iface.id) {
++               detailedEdges.push({
++                 id: `${cls.id}-${iface.id}-implements`,
++                 source: cls.id,
++                 target: iface.id,
++                 hidden: false,
++                 data: { type: 'implements' as DependencyEdgeKind },
++                 style: { ...getEdgeStyle('implements'), strokeWidth: 3 },
++                 markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
++               } as GraphEdge);
++             }
++           });
++         }
++       });
++     }
++     
++     // Add all interfaces in this module
++     if (moduleData.interfaces) {
++       mapTypeCollection(moduleData.interfaces, (iface) => {
++         const properties = iface.properties ? Object.values(iface.properties).map(p => ({
++           name: p.name,
++           type: p.type,
++           visibility: p.visibility
++         })) : [];
++         
++         const methods = iface.methods ? Object.values(iface.methods).map(m => ({
++           name: m.name,
++           returnType: m.returnType,
++           visibility: m.visibility,
++           signature: m.signature || `${m.name}(): ${m.returnType}`
++         })) : [];
++         
++         detailedNodes.push({
++           id: iface.id,
++           type: 'interface' as DependencyKind,
++           position: { x: 0, y: 0 },
++           data: {
++             label: iface.name,
++             properties,
++             methods,
++           },
++           style: {
++             ...getNodeStyle('interface'),
++             borderColor: '#ff9800',
++           },
++         });
++         
++         // Add interface inheritance edges
++         if (iface.extended_interfaces) {
++           Object.values(iface.extended_interfaces).forEach(extended => {
++             if (extended.id) {
++               detailedEdges.push({
++                 id: `${iface.id}-${extended.id}-inheritance`,
++                 source: iface.id,
++                 target: extended.id,
++                 hidden: false,
++                 data: { type: 'inheritance' as DependencyEdgeKind },
++                 style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
++                 markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
++               } as GraphEdge);
++             }
++           });
++         }
++       });
++     }
++     
++     // Add connected modules (imports)
++     const connectedModuleIds = new Set<string>();
++     edges.value.forEach((edge: GraphEdge) => {
++       if (edge.source === selectedNode.id) {
++         connectedModuleIds.add(edge.target);
++         detailedEdges.push({
++           ...edge,
++           style: { ...edge.style, stroke: '#61dafb', strokeWidth: 3 },
++           animated: true,
++         } as GraphEdge);
++       } else if (edge.target === selectedNode.id) {
++         connectedModuleIds.add(edge.source);
++         detailedEdges.push({
++           ...edge,
++           style: { ...edge.style, stroke: '#ffd700', strokeWidth: 3 },
++           animated: true,
++         } as GraphEdge);
+...
+-       if (nextNodeId) {
+-         const nextNode = nodes.value.find((node: DependencyNode) => node.id === nextNodeId);
+-         if (nextNode) {
+-           graphStore['setSelectedNode'](nextNode);
+-           void fitView({
+-             nodes: [nextNode.id],
+-             duration: 150,
+-             padding: 0.5,
+-           });
+-         }
+-       }
+-     }
+-   }
+- };
+- 
+- function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
+-   if (
+-     type === 'dependency' ||
+-     type === 'devDependency' ||
+-     type === 'peerDependency' ||
+-     type === 'import' ||
+-     type === 'export' ||
+-     type === 'inheritance' ||
+-     type === 'implements' ||
+-     type === 'extends' ||
+-     type === 'contains'
+-   ) {
+-     return type;
+-   }
+-   return 'dependency';
+- }
+- </script>
+- 
+- <template>
+-   <div class="h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
+-     <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
+-     <button
+-       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
+-       @keydown="handleKeyDown"
+-       aria-label="Press arrow keys to navigate between connected nodes"
+-     >
+-       <!-- The actual graph -->
+-       <VueFlow
+-         :nodes="nodes"
+-         :edges="edges"
+-         :node-types="nodeTypes as any"
+-         :fit-view-on-init="true"
+-         :min-zoom="0.1"
+-         :max-zoom="2"
+-         :default-viewport="{ x: 0, y: 0, zoom: 0.5 }"
+-         :snap-to-grid="true"
+-         :snap-grid="[15, 15]"
+-         :pan-on-scroll="true"
+-         :zoom-on-scroll="true"
+-         :zoom-on-double-click="false"
+-         :elevate-edges-on-select="true"
+-         :default-edge-options="{
+-           style: { stroke: '#61dafb', strokeWidth: 3 },
+-           markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
+-           zIndex: 1000,
+-         }"
+-         @node-click="onNodeClick"
+-         @pane-click="onPaneClick"
+-       >
+-         <Background />
+-         <GraphControls
+-           @relationship-filter-change="handleRelationshipFilterChange"
+-           @layout-change="handleLayoutChange"
+-         />
+-         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
+-         <NodeDetails v-if="selectedNode" :node="selectedNode" />
+- 
+-         <!-- Back to Full Graph button -->
+-         <Panel v-if="selectedNode" position="bottom-left">
+-           <button
+-             @click="onPaneClick"
+-             class="px-4 py-2 bg-primary-main text-white rounded-md hover:bg-primary-dark transition-colors shadow-lg border border-primary-light"
+-             aria-label="Return to full graph view"
+-           >
+-             ← Back to Full Graph
+-           </button>
+-         </Panel>
+-       </VueFlow>
+-     </button>
+-   </div>
+- </template>
++     });
++     
++     // Add connected module nodes
++     connectedModuleIds.forEach(moduleId => {
++       const connectedModule = nodes.value.find((n: DependencyNode) => n.id === moduleId);
++       if (connectedModule) {
++         detailedNodes.push({
++           ...connectedModule,
++           style: {
++             ...connectedModule.style,
++             borderWidth: '2px',
++             borderColor: '#61dafb',
++           },
++         });
++       }
++     });
++     
++     graphLogger.info(`Showing ${detailedNodes.length} nodes (${detailedNodes.filter(n => n.type === 'class').length} classes, ${detailedNodes.filter(n => n.type === 'interface').length} interfaces) and ${detailedEdges.length} edges`);
++     
++     // Trigger re-layout with detailed subgraph
++     await processGraphLayout({
++       nodes: detailedNodes,
++       edges: detailedEdges,
++     });
++     
++     // Fit view to the detailed subgraph
++     await fitView({
++       duration: 300,
++       padding: 0.2,
++     });
++   } else {
++     // For non-module nodes, just show connections
++     const connectedNodeIds = new Set<string>([selectedNode.id]);
++     const connectedEdges: GraphEdge[] = [];
++ 
++     edges.value.forEach((edge: GraphEdge) => {
++       if (edge.source === selectedNode.id) {
++         connectedNodeIds.add(edge.target);
++         connectedEdges.push(edge);
++       } else if (edge.target === selectedNode.id) {
++         connectedNodeIds.add(edge.source);
++         connectedEdges.push(edge);
++       }
++     });
++ 
++     const focusedNodes = nodes.value
++       .filter((n: DependencyNode) => connectedNodeIds.has(n.id))
++       .map((n: DependencyNode) => ({
++         ...n,
++         style: {
++           ...n.style,
++           borderWidth: n.id === selectedNode.id ? '3px' : '2px',
++           borderColor: n.id === selectedNode.id ? '#00ffff' : '#61dafb',
++         },
++       }));
++ 
++     const focusedEdges = connectedEdges.map((edge: GraphEdge) => ({
++       ...edge,
++       style: {
++         ...edge.style,
++         stroke: '#00ffff',
++         strokeWidth: 4,
++         opacity: 1,
++       },
++       animated: true,
++     }));
++ 
++     await processGraphLayout({
++       nodes: focusedNodes,
++       edges: focusedEdges,
++     });
++ 
++     await fitView({
++       duration: 300,
++       padding: 0.3,
++       nodes: Array.from(connectedNodeIds),
++     });
++   }
++ };
++ 
++ // Pane click handler to deselect and restore full graph
++ const onPaneClick = async (): Promise<void> => {
++   graphStore['setSelectedNode'](null);
++ 
++   graphLogger.info('Restoring full graph view');
+...
++   // Restore full graph by re-initializing
++   await initializeGraph();
++ };
++ 
++ // Filter handler for relationship types
++ const handleRelationshipFilterChange = (types: string[]) => {
++   graphStore['setEdges'](
++     edges.value.map((edge: GraphEdge) => ({
++       ...edge,
++       hidden: !types.includes(edge.data?.type ?? 'default'),
++     }))
++   );
++ };
++ 
++ // Layout change handler
++ const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
++   if (config.direction) {
++     layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
++   }
++   if (config.nodeSpacing !== undefined) {
++     layoutConfig.nodeSpacing = config.nodeSpacing;
++   }
++   if (config.rankSpacing !== undefined) {
++     layoutConfig.rankSpacing = config.rankSpacing;
++   }
++ 
++   // Recreate layout processor with new config
++   initializeLayoutProcessor();
++ 
++   // Re-run layout
++   const graphNodes = createGraphNodes(props.data);
++   const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
++   await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
++ };
++ 
++ // Search result handler
++ const handleSearchResult = (result: SearchResult) => {
++   // Update node styling based on search results
++   graphStore['setNodes'](
++     nodes.value.map((node: DependencyNode) => ({
++       ...node,
++       selected: result.nodes.some((searchNode) => searchNode.id === node.id),
++       style: {
++         ...getNodeStyle(node.type as DependencyKind),
++         opacity: result.nodes.length === 0 ? 1 : result.nodes.some((searchNode) => searchNode.id === node.id) ? 1 : 0.2,
++       },
++     }))
++   );
++ 
++   // Update edge styling based on search results
++   graphStore['setEdges'](
++     edges.value.map((edge: GraphEdge) => ({
++       ...edge,
++       selected: result.edges.some((searchEdge) => searchEdge.id === edge.id),
++       style: {
++         ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
++         opacity: result.edges.length === 0 ? 1 : result.edges.some((searchEdge) => searchEdge.id === edge.id) ? 1 : 0.2,
++       },
++     }))
++   );
++ 
++   // Highlight path if it exists
++   if (result.path) {
++     graphStore['setNodes'](
++       nodes.value.map((node: DependencyNode) => ({
++         ...node,
++         style: {
++           ...getNodeStyle(node.type as DependencyKind),
++           opacity: result.path?.some((pathNode) => pathNode.id === node.id) ? 1 : 0.2,
++           borderWidth: result.path?.some((pathNode) => pathNode.id === node.id)
++             ? graphTheme.edges.sizes.width.selected
++             : graphTheme.edges.sizes.width.default,
++         },
++       }))
++     );
++   }
++ };
++ 
++ // Keyboard navigation handlers
++ const handleKeyDown = (event: KeyboardEvent) => {
++   if (
++     selectedNode.value &&
++     (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'ArrowUp' || event.key === 'ArrowDown')
++   ) {
++     event.preventDefault();
++     const connectedEdges = edges.value.filter(
++       (edge: GraphEdge) => edge.source === selectedNode.value?.id || edge.target === selectedNode.value?.id
++     );
++     if (connectedEdges.length > 0) {
++       let nextNodeId: string | undefined;
++       if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
++         if (connectedEdges[0]) {
++           nextNodeId =
++             connectedEdges[0].source === selectedNode.value.id ? connectedEdges[0].target : connectedEdges[0].source;
++         }
++       } else {
++         const lastEdge = connectedEdges[connectedEdges.length - 1];
++         if (lastEdge) {
++           nextNodeId = lastEdge.source === selectedNode.value.id ? lastEdge.target : lastEdge.source;
++         }
++       }
++       if (nextNodeId) {
++         const nextNode = nodes.value.find((node: DependencyNode) => node.id === nextNodeId);
++         if (nextNode) {
++           graphStore['setSelectedNode'](nextNode);
++           void fitView({
++             nodes: [nextNode.id],
++             duration: 150,
++             padding: 0.5,
++           });
++         }
++       }
++     }
++   }
++ };
++ 
++ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
++   if (
++     type === 'dependency' ||
++     type === 'devDependency' ||
++     type === 'peerDependency' ||
++     type === 'import' ||
++     type === 'export' ||
++     type === 'inheritance' ||
++     type === 'implements' ||
++     type === 'extends' ||
++     type === 'contains'
++   ) {
++     return type;
++   }
++   return 'dependency';
++ }
++ </script>
++ 
++ <template>
++   <div class="h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
++     <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
++     <button
++       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
++       @keydown="handleKeyDown"
++       aria-label="Press arrow keys to navigate between connected nodes"
++     >
++       <!-- The actual graph -->
++       <VueFlow
++         :nodes="nodes"
++         :edges="edges"
++         :node-types="nodeTypes as any"
++         :fit-view-on-init="true"
++         :min-zoom="0.1"
++         :max-zoom="2"
++         :default-viewport="{ x: 0, y: 0, zoom: 0.5 }"
++         :snap-to-grid="true"
++         :snap-grid="[15, 15]"
++         :pan-on-scroll="true"
++         :zoom-on-scroll="true"
++         :zoom-on-double-click="false"
++         :elevate-edges-on-select="true"
++         :default-edge-options="{
++           style: { stroke: '#61dafb', strokeWidth: 3 },
++           markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
++           zIndex: 1000,
++         }"
++         @node-click="onNodeClick"
++         @pane-click="onPaneClick"
++       >
++         <Background />
++         <GraphControls
++           @relationship-filter-change="handleRelationshipFilterChange"
++           @layout-change="handleLayoutChange"
++         />
++         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
++         <NodeDetails v-if="selectedNode" :node="selectedNode" />
++ 
++         <!-- Back to Full Graph button -->
++         <Panel v-if="selectedNode" position="bottom-left">
++           <button
++             @click="onPaneClick"
++             class="px-4 py-2 bg-primary-main text-white rounded-md hover:bg-primary-dark transition-colors shadow-lg border border-primary-light"
++             aria-label="Return to full graph view"
++           >
++             ← Back to Full Graph
++           </button>
++         </Panel>
++       </VueFlow>
++     </button>
++   </div>
++ </template>
++ 
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>I need to add the missing imports for mapTypeCollection and make sure everything compiles correctly.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -13,4 +13,5 @@
+  import GraphControls from './components/GraphControls.vue';
+  import GraphSearch from './components/GraphSearch.vue';
++ import { mapTypeCollection } from './mapTypeCollection';
+  import NodeDetails from './components/NodeDetails.vue';
+  import { nodeTypes } from './nodes/nodes';
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>I need to check if there are any linter errors and fix them.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Great! No errors. Now let me create a summary of what I've implemented.</details></think>
+
+---
+
+Perfect, Your Grace! Here's what I've implemented:
+
+## ✅ Enhanced Module Drill-Down View
+
+### **New Behavior When Clicking a Module:**
+
+The graph now shows a **complete internal view** of the module:
+
+#### **1. Module Structure** 
+- 🔵 **Module node** (selected, cyan border)
+- 🟢 **All classes** in the module with green borders
+- 🟠 **All interfaces** in the module with orange borders
+- Each class/interface shows properties and methods
+
+#### **2. Symbol Relationships**
+- 🟢 **Inheritance edges** (green) - class → parent class, interface → parent interface  
+- 🟠 **Implementation edges** (orange) - class → interfaces it implements
+
+#### **3. Module Dependencies**
+- 🔵 **Import edges** (cyan, animated) - modules this one imports FROM
+- 🟡 **Imported-by edges** (gold, animated) - modules that import THIS one
+- Connected module nodes shown with cyan borders
+
+### **Visual Legend:**
+
+**Node Colors:**
+- **Cyan border**: Selected module
+- **Green border**: Classes  
+- **Orange border**: Interfaces
+- **Cyan highlight**: Connected modules
+
+**Edge Colors:**
+- **Cyan animated**: Imports (outgoing)
+- **Gold animated**: Imported by (incoming)
+- **Green thick**: Inheritance
+- **Orange thick**: Implements
+
+### **Example:**
+
+Click on `UserRepository.ts`:
+```
+Shows:
+- UserRepository module (cyan)
+- UserRepository class (green) with methods
+- IUserRepository interface (orange)
+- Repository class it extends (green edge)
+- IRepository interface it implements (orange edge)
+- Database module it imports (cyan edge)
+- Controller module that imports it (gold edge)
+```
+
+### **Console Logging:**
+
+Watch the console for details:
+```
+[DependencyGraph] Expanding module view: UserRepository
+[DependencyGraph] Showing 8 nodes (2 classes, 1 interfaces) and 5 edges
+```
+
+**Reload and try clicking any module!** You'll see its complete internal structure and dependencies.
+
+Your Humble Servant, Sebastién
+
+---
+
+_**User**_
+
+implement an elk radia view
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>The user wants to implement an ELK (Eclipse Layout Kernel) radial view for the graph. This is a different layout algorithm that arranges nodes in a radial/circular pattern, which is great for visualizing dependencies.
+
+I need to:
+1. Check what layout algorithm is currently being used
+2. Add support for radial layout in the ELK configuration
+3. Make it switchable via the graph controls
+
+Let me first check the current layout processor and configuration.</details></think>
+
+---
+
+Your Grace,
+
+I'll implement a radial layout using ELK's radial algorithm. This will arrange nodes in concentric circles around a focal point.
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>I need to check what layout algorithm is being used in the web worker. Let me look at the worker implementation.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Let me search more broadly for layout files.</details></think>
+
+---
+
+<details>
+            <summary>Listed directory undefined • **0** results</summary>
+        
+No results found
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Let me check the rest of the WebWorkerLayoutProcessor to see how it implements the layout and where the worker is initialized.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to look at the GraphLayoutWorker to see how it uses ELK.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>Now I understand the current implementation. It's using ELK's "layered" algorithm. To implement a radial view, I need to:
+
+1. Change the algorithm to "radial" in the ELK configuration
+2. Add an option to switch between layered and radial layouts
+3. Update the layout configuration interface to support the algorithm choice
+4. Add UI controls to toggle between layout types
+
+Let me create a plan and implement this.</details></think>
+
+---
+
+Now I understand the current setup. I'll implement a radial layout option using ELK's radial algorithm. Let me create a plan:
+
+## Implementation Plan
+
+1. **Update `WebWorkerLayoutProcessor` interface** to support layout algorithm choice
+2. **Modify `GraphLayoutWorker`** to handle radial algorithm with proper configuration
+3. **Add layout type control** in the graph controls UI
+4. **Update the graph component** to switch between layered and radial layouts
+
+Let me implement these changes:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/layout/WebWorkerLayoutProcessor.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -13,4 +13,5 @@
+  // Internal layout configuration type used by the worker
+  export interface LayoutConfig {
++   algorithm: 'layered' | 'radial' | 'force' | 'stress';
+    direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
+    nodesep: number;
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the WebWorkerLayoutConfig interface to include the algorithm option, and update the constructor to use it.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/layout/WebWorkerLayoutProcessor.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -49,4 +49,5 @@
+   */
+  export interface WebWorkerLayoutConfig {
++   algorithm?: 'layered' | 'radial' | 'force' | 'stress';
+    direction?: 'TB' | 'LR' | 'BT' | 'RL';
+    nodeSpacing?: number;
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the constructor to include the algorithm in the config.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/layout/WebWorkerLayoutProcessor.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -89,4 +89,5 @@
+  
+      this.config = {
++       algorithm: mergedConfig.algorithm ?? 'layered',
+        direction: mapDirection(mergedConfig.direction ?? 'LR'),
+        nodesep: mergedConfig.nodeSpacing ?? 100,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the GraphLayoutWorker to handle different algorithms, especially the radial one.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/workers/GraphLayoutWorker.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -20,4 +20,5 @@
+  
+  interface LayoutConfig {
++   algorithm: 'layered' | 'radial' | 'force' | 'stress';
+    direction: 'DOWN' | 'UP' | 'RIGHT' | 'LEFT';
+    nodesep: number;
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to modify the ELK graph configuration to support different algorithms. I'll need to update the layoutOptions based on the algorithm type. Let me replace the section where the ELK graph is created.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/workers/GraphLayoutWorker.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 17, lines removed: 5
+
+```diff
+@@ -90,11 +90,23 @@
+        const hasChildren = nodes.some((n) => (n as unknown as { parentNode?: string }).parentNode === elkNode.id);
+        if (hasChildren) {
+-         elkNode.layoutOptions = {
+-           'elk.algorithm': 'layered',
+-           'elk.direction': elkDirection,
++         // Base layout options
++         const baseOptions: Record<string, string> = {
++           'elk.algorithm': config.algorithm,
+            'elk.padding': '[top=30,left=30,bottom=30,right=30]',
+            'elk.spacing.nodeNode': '20',
+-           'elk.layered.spacing.nodeNodeBetweenLayers': '30',
+-         };
++         };
++ 
++         // Algorithm-specific options
++         if (config.algorithm === 'layered') {
++           baseOptions['elk.direction'] = elkDirection;
++           baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '30';
++         } else if (config.algorithm === 'radial') {
++           baseOptions['elk.radial.radius'] = '200';
++           baseOptions['elk.radial.compactionStepSize'] = '0.1';
++           baseOptions['elk.radial.compaction'] = 'true';
++           baseOptions['elk.radial.sorter'] = 'QUADRANTS';
++         }
++ 
++         elkNode.layoutOptions = baseOptions;
+        }
+      });
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the main ELK graph options to also be algorithm-aware.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/workers/GraphLayoutWorker.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 42, lines removed: 20
+
+```diff
+@@ -159,28 +159,50 @@
+        edges: ElkEdge[];
+      }
++ 
++     // Build layout options based on algorithm
++     const layoutOptions: Record<string, string> = {
++       'elk.algorithm': config.algorithm,
++       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
++       'elk.spacing.nodeNode': String(config.nodesep),
++       'elk.spacing.edgeNode': String(config.edgesep),
++       'elk.padding': '[top=50,left=50,bottom=50,right=50]',
++       'elk.spacing.componentComponent': '30',
++       'elk.spacing.portPort': '10',
++     };
++ 
++     // Add algorithm-specific options
++     if (config.algorithm === 'layered') {
++       layoutOptions['elk.direction'] = elkDirection;
++       layoutOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = String(config.ranksep);
++       layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = String(config.edgesep);
++       layoutOptions['elk.edgeRouting'] = 'ORTHOGONAL';
++       layoutOptions['elk.layered.nodePlacement.strategy'] = 'BRANDES_KOEPF';
++       layoutOptions['elk.layered.nodePlacement.bk.fixedAlignment'] = 'BALANCED';
++       layoutOptions['elk.layered.layering.strategy'] = 'NETWORK_SIMPLEX';
++       layoutOptions['elk.layered.cycleBreaking.strategy'] = 'GREEDY';
++       layoutOptions['elk.layered.crossingMinimization.strategy'] = 'LAYER_SWEEP';
++       layoutOptions['elk.layered.compaction.postCompaction.strategy'] = 'EDGE_LENGTH';
++     } else if (config.algorithm === 'radial') {
++       layoutOptions['elk.radial.radius'] = String(config.ranksep);
++       layoutOptions['elk.radial.compactionStepSize'] = '0.1';
++       layoutOptions['elk.radial.compaction'] = 'true';
++       layoutOptions['elk.radial.sorter'] = 'QUADRANTS';
++       layoutOptions['elk.radial.wedgeCriteria'] = 'CONNECTIONS';
++       layoutOptions['elk.radial.optimizeDistance'] = 'true';
++       layoutOptions['elk.edgeRouting'] = 'SPLINES';
++     } else if (config.algorithm === 'force') {
++       layoutOptions['elk.force.repulsion'] = '5.0';
++       layoutOptions['elk.force.temperature'] = '0.001';
++       layoutOptions['elk.edgeRouting'] = 'SPLINES';
++     } else if (config.algorithm === 'stress') {
++       layoutOptions['elk.stress.desiredEdgeLength'] = String(config.ranksep);
++       layoutOptions['elk.stress.epsilon'] = '0.0001';
++       layoutOptions['elk.edgeRouting'] = 'SPLINES';
++     }
+  
+      // Create the ELK graph with hierarchical structure
+      const elkGraph: ElkGraph = {
+        id: 'root',
+-       layoutOptions: {
+-         'elk.algorithm': 'layered',
+-         'elk.direction': elkDirection,
+-         'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+-         'elk.spacing.nodeNode': String(config.nodesep),
+-         'elk.layered.spacing.nodeNodeBetweenLayers': String(config.ranksep),
+-         'elk.layered.spacing.edgeNodeBetweenLayers': String(config.edgesep),
+-         'elk.spacing.edgeNode': String(config.edgesep),
+-         'elk.edgeRouting': 'ORTHOGONAL',
+-         'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+-         'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+-         'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+-         'elk.layered.cycleBreaking.strategy': 'GREEDY',
+-         'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+-         'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
+-         'elk.padding': '[top=50,left=50,bottom=50,right=50]',
+-         // Padding for nested nodes (children within parents)
+-         'elk.spacing.componentComponent': '30',
+-         'elk.spacing.portPort': '10',
+-       },
++       layoutOptions,
+        children: rootNodes,
+        edges: elkEdges,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to add UI controls to switch between layout algorithms. Let me check the GraphControls component to see where to add this.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to add layout algorithm controls to the GraphControls component. I'll add a new section for layout algorithm selection.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/components/GraphControls.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 1
+
+```diff
+@@ -6,5 +6,7 @@
+    'relationship-filter-change': [types: string[]];
+    'reset-layout': [];
+-   'layout-change': [config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }];
++   'layout-change': [
++     config: { algorithm?: string; direction?: string; nodeSpacing?: number; rankSpacing?: number },
++   ];
+  }>();
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I'll add the layout algorithm state and handler.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/components/GraphControls.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -14,4 +14,5 @@
+  
+  // Layout configuration
++ const layoutAlgorithm = ref<'layered' | 'radial' | 'force' | 'stress'>('layered');
+  const layoutDirection = ref<'LR' | 'RL' | 'TB' | 'BT'>('LR');
+  const nodeSpacing = ref(100);
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I'll add the handler for algorithm change.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/components/GraphControls.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -56,4 +56,9 @@
+    emit('relationship-filter-change', enabledTypes.value);
+  };
++ 
++ const handleAlgorithmChange = (algorithm: 'layered' | 'radial' | 'force' | 'stress') => {
++   layoutAlgorithm.value = algorithm;
++   emit('layout-change', { algorithm });
++ };
+  
+  const handleDirectionChange = (direction: 'LR' | 'RL' | 'TB' | 'BT') => {
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to add the UI section for layout algorithm selection in the template.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/components/GraphControls.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 21, lines removed: undefined
+
+```diff
+@@ -109,4 +109,25 @@
+          </button>
+        </div>
++ 
++       <!-- Layout Algorithm -->
++       <div class="mt-4 pt-4 border-t border-border-default">
++         <h4 class="text-sm font-semibold text-text-primary mb-2">Layout Algorithm</h4>
++         <div class="grid grid-cols-2 gap-2">
++           <button
++             v-for="algo in ['layered', 'radial', 'force', 'stress']"
++             :key="algo"
++             @click="handleAlgorithmChange(algo as 'layered' | 'radial' | 'force' | 'stress')"
++             :class="[
++               'px-2 py-1.5 text-xs rounded border transition-fast capitalize',
++               layoutAlgorithm === algo
++                 ? 'bg-primary-main text-white border-primary-main'
++                 : 'bg-white/10 text-text-primary border-border-default hover:bg-white/20',
++             ]"
++             :aria-label="`Set layout algorithm to ${algo}`"
++           >
++             {{ algo }}
++           </button>
++         </div>
++       </div>
+  
+        <!-- Layout Direction -->
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to update the main DependencyGraph/index.vue component to handle the layout algorithm changes. Let me check what's currently in that file for layout handling.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Let me check the section where layoutConfig is used and where the layout-change event is handled.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Let me read that section of the file where handleLayoutChange is defined.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to update the layoutConfig and handleLayoutChange to include algorithm. Let me also update the initializeLayoutProcessor to use it.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -49,4 +49,5 @@
+  // Layout configuration state optimized for module import visualization
+  const layoutConfig = {
++   algorithm: 'layered' as 'layered' | 'radial' | 'force' | 'stress',
+    direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT', // Left-to-right flow
+    nodeSpacing: 80, // Space between nodes in same rank
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to update initializeLayoutProcessor to include the algorithm.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -66,4 +66,5 @@
+    // Note: WebWorkerLayoutProcessor internally converts TB/LR/etc to DOWN/RIGHT/etc
+    layoutProcessor = new WebWorkerLayoutProcessor({
++     algorithm: layoutConfig.algorithm,
+      direction: layoutConfig.direction,
+      nodeSpacing: layoutConfig.nodeSpacing,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to update the handleLayoutChange function to handle the algorithm parameter.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 9, lines removed: 1
+
+```diff
+@@ -461,5 +461,13 @@
+  
+  // Layout change handler
+- const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
++ const handleLayoutChange = async (config: {
++   algorithm?: string;
++   direction?: string;
++   nodeSpacing?: number;
++   rankSpacing?: number;
++ }) => {
++   if (config.algorithm) {
++     layoutConfig.algorithm = config.algorithm as 'layered' | 'radial' | 'force' | 'stress';
++   }
+    if (config.direction) {
+      layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now let me check for linter errors in all the files I've modified.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+There's a linter error at line 197. Let me check what's at that line. It seems like there's an always-true comparison. Let me look at that section of the file.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+The linter is saying that the condition at line 197 is always true. This is actually a false positive from the linter - it's part of an if-else-if chain. The condition is not always true in the context of the code. However, I should silence this error or restructure the code. Let me convert the last else-if to just an else since we've already covered all other cases.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/workers/GraphLayoutWorker.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -195,5 +195,6 @@
+        layoutOptions['elk.force.temperature'] = '0.001';
+        layoutOptions['elk.edgeRouting'] = 'SPLINES';
+-     } else if (config.algorithm === 'stress') {
++     } else {
++       // stress algorithm
+        layoutOptions['elk.stress.desiredEdgeLength'] = String(config.ranksep);
+        layoutOptions['elk.stress.epsilon'] = '0.0001';
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Let me check for any remaining linter errors.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Great! All linter errors are resolved. Now let me create a summary of what was implemented and test it.</details></think>
+
+---
+
+Perfect! I've successfully implemented the ELK radial view (and other layout algorithms). Let me create a summary and test it:
+
+---
+
+```bash
+cd /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer && pnpm dev
+```
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now let me create a comprehensive summary of what was implemented.</details></think>
+
+---
+
+Your Grace,
+
+I've successfully implemented ELK radial view and multiple layout algorithm support for your TypeScript dependency viewer! Here's what was done:
+
+## Implementation Summary
+
+### 1. **Enhanced Layout Configuration** 
+Added support for multiple ELK layout algorithms:
+- **Layered** (default) - Hierarchical layered layout
+- **Radial** - Circular/radial layout with nodes arranged in concentric circles
+- **Force** - Force-directed physics-based layout
+- **Stress** - Stress-minimization layout
+
+### 2. **Updated Files**
+
+**WebWorkerLayoutProcessor.ts**:
+- Added `algorithm` parameter to `LayoutConfig` and `WebWorkerLayoutConfig` interfaces
+- Updated constructor to pass algorithm to worker
+
+**GraphLayoutWorker.ts**:
+- Implemented algorithm-specific ELK configuration:
+  - **Radial**: Configured with radius, compaction, quadrant sorting, and connection-based wedge criteria
+  - **Force**: Set repulsion and temperature parameters
+  - **Stress**: Configured desired edge length and epsilon tolerance
+- All non-layered algorithms use `SPLINES` edge routing for smoother curves
+
+**GraphControls.vue**:
+- Added "Layout Algorithm" control panel with 4 buttons (layered, radial, force, stress)
+- Updated emit types to include `algorithm` parameter
+- Added `handleAlgorithmChange` function to switch algorithms
+
+**DependencyGraph/index.vue**:
+- Added `algorithm` to `layoutConfig` state
+- Updated `initializeLayoutProcessor` to pass algorithm
+- Updated `handleLayoutChange` to handle algorithm changes
+- Layout automatically recalculates when algorithm is changed
+
+### 3. **Key Features**
+
+✅ **Radial Layout**: Perfect for visualizing circular dependencies and module relationships radiating from a central point
+✅ **Interactive Switching**: Click any algorithm button in the top-left control panel to switch layouts in real-time
+✅ **Optimized Configuration**: Each algorithm has tailored ELK options for best visualization
+✅ **Smooth Edges**: Non-layered algorithms use spline routing for organic, curved connections
+✅ **No Linter Errors**: All code follows TypeScript best practices
+
+### 4. **How to Use**
+
+1. **Open the viewer** (dev server is now starting)
+2. **Look for the control panel** in the top-left corner
+3. **Click "radial"** in the "Layout Algorithm" section
+4. **Watch the graph** re-arrange into a radial pattern with nodes in concentric circles
+
+The radial view is particularly effective for:
+- Visualizing hub modules with many connections
+- Seeing circular dependencies
+- Understanding module centrality in your codebase
+- Creating aesthetically pleasing graph visualizations
+
+Your Humble Servant, Sebastién
+
+---
+
+_**User**_
+
+Lets reverse the direction of the dependency arrows. if a module A imports module B then the arrow should point from module b -> module a. If module C imports Module A, the arrow should point to module C. 
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>The user wants to reverse the direction of dependency arrows. Currently, if module A imports module B, the arrow goes from A -> B (showing "A depends on B"). The user wants it reversed so the arrow goes from B -> A (showing "B is imported by A").
+
+This is actually a common visualization choice - some people prefer to show "depends on" (A -> B when A imports B) while others prefer "is used by" (B -> A when A imports B).
+
+I need to find where the import edges are created and reverse the source and target.
+
+Looking at the code, the import edges are created in `createGraphEdges.ts`. Let me check that file.</details></think>
+
+---
+
+Your Grace,
+
+I'll reverse the dependency arrow directions so that arrows point from the imported module to the importing module (showing "is used by" relationships instead of "depends on").
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>I can see where the import edges are created. On lines 186-201, when module A imports module B (targetModuleId), the edge is created with:
+- source: module.id (the importing module A)
+- target: targetModuleId (the imported module B)
+
+This creates an arrow from A -> B.
+
+The user wants to reverse this, so if A imports B, the arrow should go from B -> A (showing "B is used by A").
+
+I need to swap the source and target in the import edge creation.
+
+I also need to check if there are similar cases in the DependencyGraph/index.vue where edges are created for the focused view.</details></think>
+
+---
+
+I'll reverse the import arrow directions so they point from the imported module to the importing module.
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphEdges.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -185,7 +185,7 @@
+              if (targetModuleId && targetModuleId !== module.id) {
+                edges.push({
+-                 id: `${module.id}-${targetModuleId}-import`,
+-                 source: module.id,
+-                 target: targetModuleId,
++                 id: `${targetModuleId}-${module.id}-import`,
++                 source: targetModuleId,
++                 target: module.id,
+                  hidden: false,
+                  data: {
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I also need to check if there are edges created in the focused view logic in the DependencyGraph/index.vue file. Let me search for where import edges are created when showing module details.</details></think>
+
+---
+
+Now let me check if there are import edges created in the focused view (when clicking on a module) that also need to be reversed:
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Let me check the focused view logic more carefully. I need to see how it filters edges when a node is clicked.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>Good, I can see that in the focused view (lines 342-360), the code filters existing edges. Since we're reversing the edges in `createGraphEdges`, these edges will already have the reversed direction, so the focused view logic should work correctly.
+
+The logic checks:
+- If `edge.source === selectedNode.id` - these are edges going OUT from the selected node (after reversal, these will be modules that IMPORT the selected module)
+- If `edge.target === selectedNode.id` - these are edges coming IN to the selected node (after reversal, these will be modules that the selected module IMPORTS)
+
+The colors are:
+- Cyan (#61dafb) for edges going out from selected node
+- Gold (#ffd700) for edges coming in to selected node
+
+After the reversal:
+- Cyan edges will show "who imports this module"
+- Gold edges will show "what this module imports"
+
+This makes semantic sense! Let me verify there are no linter errors.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Perfect! Now let me explain what this change does and how it affects the visualization.</details></think>
+
+---
+
+Perfect! Let me also add a comment to clarify the reversed semantics:
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphEdges.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -184,4 +184,7 @@
+  
+              if (targetModuleId && targetModuleId !== module.id) {
++               // Arrow points FROM imported module TO importing module
++               // Shows "is imported by" / "is used by" relationship
++               // If module A imports module B, arrow goes: B -> A
+                edges.push({
+                  id: `${targetModuleId}-${module.id}-import`,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Let me verify there are no linter errors and then test the change.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Great! Now let me explain what this change does. The user wanted to reverse the direction of dependency arrows so that:
+
+- If module A imports module B, the arrow should point from B -> A (showing "B is imported by A" or "B is used by A")
+- If module C imports module A, the arrow should point from A -> C (showing "A is imported by C" or "A is used by C")
+
+This is a "reverse dependency" or "usage" view, which is useful for understanding:
+1. Which modules depend on a given module (who uses it)
+2. The impact of changing a module (all arrows pointing out show who will be affected)
+3. Popular/central modules (nodes with many outgoing arrows)
+
+The change I made:
+- Swapped `source` and `target` in the import edge creation
+- Changed the edge ID to match the new direction
+- Added a comment explaining the reversed semantics
+
+Now let me also check if the server is still running and if we need to restart it.</details></think>
+
+---
+
+```bash
+lsof -i :4000 | grep LISTEN
+```
+
+```
+node    66302 khallmark   29u  IPv6 0x74731eabfcf7421f      0t0  TCP localhost:terabase (LISTEN)                                                                
+```
+
+---
+
+<think><details><summary>Thought Process</summary>Good, the dev server is still running on port 4000 (the UI failed to start earlier because port 4000 was already in use). The changes should be hot-reloaded by Vite. Let me tell the user to refresh the browser to see the reversed arrows.</details></think>
+
+---
+
+Your Grace,
+
+I've successfully reversed the dependency arrow directions! Here's what changed:
+
+## Implementation Summary
+
+**Modified File**: `createGraphEdges.ts`
+
+### Key Changes:
+
+1. **Reversed Import Arrow Direction**:
+   - **Before**: If module A imports module B → arrow: A → B (showing "A depends on B")
+   - **After**: If module A imports module B → arrow: B → A (showing "B is used by A")
+
+2. **Updated Edge Creation**:
+   ```typescript
+   // Arrow now points FROM imported module TO importing module
+   source: targetModuleId,  // The imported module (B)
+   target: module.id,       // The importing module (A)
+   ```
+
+3. **Semantic Meaning**:
+   - Arrows now show **"is imported by"** or **"is used by"** relationships
+   - Outgoing arrows from a node show **which modules depend on it**
+   - This makes it easier to:
+     - See the impact radius of changing a module
+     - Identify highly-used core modules (many outgoing arrows)
+     - Understand who depends on what
+
+### Visualization Impact:
+
+When you click a module in focused view:
+- **Cyan edges** (going out) → Show modules that **import/use** this module
+- **Gold edges** (coming in) → Show modules that **this module imports**
+
+### Testing:
+
+The dev server is already running. **Refresh your browser** (or use the radial layout button to trigger a re-render) and you'll see:
+- Import arrows now point from imported modules to importing modules
+- Module dependencies flow in the reverse direction
+- The graph shows "usage" relationships rather than "dependency" relationships
+
+Your Humble Servant, Sebastién
+
+---
+
+_**User**_
+
+For LR or RL orientation, the handles should be on the left and right side of the node. For TB and BT they should be on the top/bottom
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>The user wants the node handles (connection points for edges) to be positioned based on the layout direction:
+- LR (Left-to-Right) or RL (Right-to-Left): handles on left and right sides
+- TB (Top-to-Bottom) or BT (Bottom-to-Top): handles on top and bottom
+
+In VueFlow, this is typically controlled by the `sourcePosition` and `targetPosition` properties on nodes. I need to:
+
+1. Check how nodes are currently configured
+2. Add logic to set source/target positions based on the layout direction
+3. Update nodes when layout direction changes
+
+Let me look at the node creation and see how this should be implemented.</details></think>
+
+---
+
+Your Grace,
+
+I'll configure the node handles to align with the layout direction. This requires setting `sourcePosition` and `targetPosition` on the nodes based on whether we're using horizontal (LR/RL) or vertical (TB/BT) layouts.
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>I need to:
+1. Update the `createGraphNodes` function to accept a direction parameter and set `sourcePosition` and `targetPosition` on nodes
+2. Update the calls to `createGraphNodes` in the main component to pass the layout direction
+3. Ensure nodes are updated when layout direction changes
+
+Let me check the VueFlow types to see what values are valid for positions.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Let me check the VueFlow core types by looking at imports in the index.vue file</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -1,3 +1,5 @@
+  // import { getMembersAsProperties } from '../components/DependencyGraph';
++ import { Position } from '@vue-flow/core';
++ 
+  import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
+  import { getNodeStyle } from '../theme/graphTheme';
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Good, I've imported Position from VueFlow. Now I need to:
+1. Add a direction parameter to the function
+2. Calculate the sourcePosition and targetPosition based on the direction
+3. Add these to each node
+
+For LR (Left-to-Right): source on Right, target on Left
+For RL (Right-to-Left): source on Left, target on Right
+For TB (Top-to-Bottom): source on Bottom, target on Top
+For BT (Bottom-to-Top): source on Top, target on Bottom
+
+Actually, thinking about it more carefully:
+- sourcePosition is where edges START from this node (outgoing)
+- targetPosition is where edges END at this node (incoming)
+
+For LR layout:
+- Edges flow left-to-right
+- Edges should start from the right side of source nodes
+- Edges should end at the left side of target nodes
+- So: sourcePosition = Right, targetPosition = Left
+
+For RL layout:
+- Edges flow right-to-left
+- Edges should start from the left side of source nodes
+- Edges should end at the right side of target nodes
+- So: sourcePosition = Left, targetPosition = Right
+
+For TB layout:
+- Edges flow top-to-bottom
+- Edges should start from the bottom of source nodes
+- Edges should end at the top of target nodes
+- So: sourcePosition = Bottom, targetPosition = Top
+
+For BT layout:
+- Edges flow bottom-to-top
+- Edges should start from the top of source nodes
+- Edges should end at the bottom of target nodes
+- So: sourcePosition = Top, targetPosition = Bottom</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 25, lines removed: 2
+
+```diff
+@@ -27,7 +27,30 @@
+  export function createGraphNodes(
+    data: DependencyPackageGraph,
+-   options: { includePackages?: boolean; includeClasses?: boolean } = {}
++   options: { includePackages?: boolean; includeClasses?: boolean; direction?: 'LR' | 'RL' | 'TB' | 'BT' } = {}
+  ): DependencyNode[] {
+-   const { includePackages = false, includeClasses = false } = options;
++   const { includePackages = false, includeClasses = false, direction = 'LR' } = options;
++ 
++   // Calculate handle positions based on layout direction
++   let sourcePosition: Position;
++   let targetPosition: Position;
++ 
++   switch (direction) {
++     case 'LR':
++       sourcePosition = Position.Right;
++       targetPosition = Position.Left;
++       break;
++     case 'RL':
++       sourcePosition = Position.Left;
++       targetPosition = Position.Right;
++       break;
++     case 'TB':
++       sourcePosition = Position.Bottom;
++       targetPosition = Position.Top;
++       break;
++     case 'BT':
++       sourcePosition = Position.Top;
++       targetPosition = Position.Bottom;
++       break;
++   }
+  
+    const graphNodes: DependencyNode[] = [];
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to add sourcePosition and targetPosition to all the nodes that are created. Let me update each node creation to include these properties.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -63,4 +63,6 @@
+          type: 'package' as DependencyKind,
+          position: { x: 0, y: 0 },
++         sourcePosition,
++         targetPosition,
+          expandParent: true,
+          data: {
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Good, now I need to add sourcePosition and targetPosition to the module nodes as well.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -86,4 +86,6 @@
+            type: 'module' as DependencyKind,
+            position: { x: 0, y: 0 },
++           sourcePosition,
++           targetPosition,
+            data: {
+              label: module.name,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to add them to class and interface nodes as well.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -142,4 +142,6 @@
+                  type: 'class' as DependencyKind,
+                  position: { x: 0, y: 0 },
++                 sourcePosition,
++                 targetPosition,
+                  parentNode: module.id,
+                  extent: 'parent' as const,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now the interface nodes.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/utils/createGraphNodes.ts</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -190,4 +190,6 @@
+                  type: 'interface' as DependencyKind,
+                  position: { x: 0, y: 0 },
++                 sourcePosition,
++                 targetPosition,
+                  parentNode: module.id,
+                  extent: 'parent' as const,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Good! Now I need to update the calls to `createGraphNodes` to pass the direction parameter. Let me check where it's called in the main component.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Great! Now I need to update the calls to createGraphNodes in the index.vue component to pass the direction parameter.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>I see there are two places where `createGraphNodes` is called. I need to update both to pass the direction parameter from `layoutConfig.direction`.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -141,4 +141,5 @@
+      includePackages: false, // No package nodes = cleaner module view
+      includeClasses: false, // No classes = focus on module structure
++     direction: layoutConfig.direction,
+    });
+    const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now let me update the second call in the handleLayoutChange function.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 6, lines removed: 2
+
+```diff
+@@ -484,6 +484,10 @@
+    initializeLayoutProcessor();
+  
+-   // Re-run layout
+-   const graphNodes = createGraphNodes(props.data);
++   // Re-run layout with updated direction for handle positions
++   const graphNodes = createGraphNodes(props.data, {
++     includePackages: false,
++     includeClasses: false,
++     direction: layoutConfig.direction,
++   });
+    const graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+    await processGraphLayout({ nodes: graphNodes, edges: graphEdges });
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I also need to update the focused view (when clicking on a module) to include the sourcePosition and targetPosition on the dynamically created nodes. Let me find that section.</details></think>
+
+---
+
+Read file: undefined
+
+---
+
+<think><details><summary>Thought Process</summary>I need to add sourcePosition and targetPosition to the dynamically created nodes in the onNodeClick function. First, I need to import Position at the top of the file, then calculate the positions based on layoutConfig.direction, and then add them to each node created in that function.
+
+Let me first check if Position is already imported in index.vue.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+I need to import Position from VueFlow and then update the onNodeClick function to calculate and apply positions to the nodes.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1,5 +1,5 @@
+  <script setup lang="ts">
+  import { Background } from '@vue-flow/background';
+- import { Panel, VueFlow, useVueFlow } from '@vue-flow/core';
++ import { Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
+  import { computed, onUnmounted, watch } from 'vue';
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to add a helper function to calculate source and target positions based on direction, then use it in the onNodeClick function.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 16, lines removed: undefined
+
+```diff
+@@ -55,4 +55,20 @@
+    edgeSpacing: 30, // Space between parallel edges
+  };
++ 
++ // Helper to get handle positions based on layout direction
++ const getHandlePositions = (
++   direction: 'LR' | 'RL' | 'TB' | 'BT'
++ ): { sourcePosition: Position; targetPosition: Position } => {
++   switch (direction) {
++     case 'LR':
++       return { sourcePosition: Position.Right, targetPosition: Position.Left };
++     case 'RL':
++       return { sourcePosition: Position.Left, targetPosition: Position.Right };
++     case 'TB':
++       return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
++     case 'BT':
++       return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
++   }
++ };
+  
+  // Create WebWorkerLayoutProcessor
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to use this helper function in the onNodeClick function when creating detailed nodes. Let me find that section and update it.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -225,8 +225,13 @@
+      const detailedNodes: DependencyNode[] = [];
+      const detailedEdges: GraphEdge[] = [];
++ 
++     // Get handle positions based on current layout direction
++     const { sourcePosition, targetPosition } = getHandlePositions(layoutConfig.direction);
+  
+      // Add the module node itself
+      detailedNodes.push({
+        ...selectedNode,
++       sourcePosition,
++       targetPosition,
+        style: {
+          ...selectedNode.style,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to add sourcePosition and targetPosition to the class and interface nodes created in onNodeClick.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -265,4 +265,6 @@
+            type: 'class' as DependencyKind,
+            position: { x: 0, y: 0 },
++           sourcePosition,
++           targetPosition,
+            data: {
+              label: cls.name,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now the interface nodes:</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -334,4 +334,6 @@
+            type: 'interface' as DependencyKind,
+            position: { x: 0, y: 0 },
++           sourcePosition,
++           targetPosition,
+            data: {
+              label: iface.name,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Now I need to add sourcePosition and targetPosition to the connected module nodes as well. Let me find that part.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/src/client/components/DependencyGraph/index.vue</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -392,4 +392,6 @@
+          detailedNodes.push({
+            ...connectedModule,
++           sourcePosition,
++           targetPosition,
+            style: {
+              ...connectedModule.style,
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Great! Now let me check for any linter errors.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Perfect! Now let me test by reloading the page. Let me first check if the server is still running.</details></think>
+
+---
+
+Perfect! Let me create a brief summary of what was implemented:
+
+---
+
+```bash
+ps aux | grep -E "(vite|tsx)" | grep -v grep | head -5
+```
+
+```
+khallmark        66302  31.4  1.0 457757600 684416 s007  S+    2:58AM   2:45.16 node /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/node_modules/.bin/../vite/bin/vite.js                              
+khallmark         5175   0.0  0.1 435868960  57152 s009  S+    4:36AM   0:00.20 node /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/node_modules/.bin/../nodemon/bin/nodemon.js --watch src/server --watch src/server.ts --watch src/server/db --exec tsx src/server.ts                
+khallmark        69740   0.0  0.3 478064320 174320 s009  S+    6:01AM   0:11.58 /usr/local/bin/node --require /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/tsx@4.20.6/node_modules/tsx/dist/preflight.cjs --import file:///Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/tsx@4.20.6/node_modules/tsx/dist/loader.mjs src/server.ts                      
+khallmark        69731   0.0  0.1 435867312  58640 s009  S+    6:01AM   0:00.18 node /Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/packages/magus-typescript-viewer/node_modules/.bin/../tsx/dist/cli.mjs src/server.ts                
+```
+
+---
+
+<think><details><summary>Thought Process</summary>
+
+
+
+Great! The servers are running. Let me create a summary for the user.</details></think>
+
+---
+
+Your Grace,
+
+I've successfully implemented directional node handles that automatically adjust based on the layout orientation! Here's what was done:
+
+## Implementation Summary
+
+### 1. **Updated `createGraphNodes.ts`**
+- Added `direction` parameter to function options
+- Imported `Position` enum from VueFlow
+- Added logic to calculate `sourcePosition` and `targetPosition` based on layout direction:
+  - **LR** (Left-to-Right): source=Right, target=Left
+  - **RL** (Right-to-Left): source=Left, target=Right  
+  - **TB** (Top-to-Bottom): source=Bottom, target=Top
+  - **BT** (Bottom-to-Top): source=Top, target=Bottom
+- Applied positions to all node types (packages, modules, classes, interfaces)
+
+### 2. **Updated `index.vue`**
+- Imported `Position` from VueFlow
+- Created `getHandlePositions()` helper function to calculate positions
+- Updated all `createGraphNodes()` calls to pass `direction: layoutConfig.direction`
+- Applied positions to dynamically created nodes in focused view (onNodeClick)
+- All nodes now have proper handle positions
+
+## How It Works
+
+**Connection Points Now Match Layout Flow:**
+- When you select **LR** layout → edges connect via left/right sides of nodes
+- When you select **TB** layout → edges connect via top/bottom sides of nodes  
+- When you select **RL** layout → edges connect via right/left sides of nodes
+- When you select **BT** layout → edges connect via bottom/top sides of nodes
+
+**Result:** Edges will now properly attach to the appropriate sides of nodes based on your chosen layout direction, making the graph much cleaner and more intuitive to read!
+
+The dev servers are running. **Refresh your browser** and try switching between different layout directions (LR, TB, RL, BT) to see the handles automatically reposition!
+
+Your Humble Servant, Sebastién
+
+---
+
