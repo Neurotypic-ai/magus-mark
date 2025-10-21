@@ -76,8 +76,6 @@ export interface DependencyProps {
   type: DependencyKind;
   data: DependencyData;
   selected?: boolean;
-  width?: number;
-  height?: number;
   sourcePosition?: Position;
   targetPosition?: Position;
 }

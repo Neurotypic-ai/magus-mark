@@ -199,7 +199,7 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 }
 
 .collapsible-header {
-  width: 100%;
+  /* width: 100%; */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -250,7 +250,7 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
   flex-direction: column;
   gap: 0.125rem;
   padding: 0 0.75rem 0.75rem 0.75rem;
-  max-height: 200px;
+  /* max-height: 200px; */
   overflow-y: auto;
   animation:
     fade-in 200ms ease-out,

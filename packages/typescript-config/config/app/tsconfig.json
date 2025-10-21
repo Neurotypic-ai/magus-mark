@@ -6,9 +6,6 @@
     },
     {
       "path": "@magus-mark/typescript-config/config/test/tsconfig.json"
-    },
-    {
-      "path": "${configDir}/../../packages/core"
     }
   ]
 }

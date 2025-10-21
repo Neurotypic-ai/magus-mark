@@ -23,8 +23,6 @@ export interface LayoutResult {
   edges: Edge[];
 }
 
-const DEFAULT_WIDTH = 200;
-const DEFAULT_HEIGHT = 120;
 const PARENT_PADDING = 40;
 
 /**
@@ -66,25 +64,14 @@ export function applyDagreLayout(
     layoutLeafNodesWithinParents(leafNodes, modules, groups, validEdges, config, dagreLib, nodeMap);
   }
 
-  // Step 3: Update module sizes based on their children's bounds
-  if (modules.length > 0) {
-    updateContainerSizes(modules, nodeMap);
-  }
-
   // Step 4: Position and size group containers based on their children
   // Groups can contain modules (from folder clustering) or leaf nodes
   if (groups.length > 0) {
     const groupsWithModuleChildren = groups.filter((g) => modules.some((m) => m.parentNode === g.id));
-    const groupsWithLeafChildren = groups.filter((g) => !modules.some((m) => m.parentNode === g.id));
 
     // Groups containing modules need both position and size calculated
     if (groupsWithModuleChildren.length > 0) {
       positionContainers(groupsWithModuleChildren, nodeMap);
-    }
-
-    // Groups containing only leaf nodes just need size updated
-    if (groupsWithLeafChildren.length > 0) {
-      updateContainerSizes(groupsWithLeafChildren, nodeMap);
     }
   }
 
@@ -127,16 +114,7 @@ function layoutModules(
   g.setDefaultNodeLabel(() => ({}));
   g.setDefaultEdgeLabel(() => ({}));
 
-  // Add modules to graph with estimated sizes
   const moduleIds = new Set(modules.map((m) => m.id));
-  modules.forEach((module) => {
-    const measured = (module as unknown as { measured?: { width?: number; height?: number } }).measured;
-    const width = measured?.width ?? (typeof module.width === 'number' ? module.width : DEFAULT_WIDTH * 2);
-    const height = measured?.height ?? (typeof module.height === 'number' ? module.height : DEFAULT_HEIGHT * 2);
-
-    g.setNode(module.id, { width, height });
-  });
-
   // Add edges between modules
   edges
     .filter((e) => moduleIds.has(e.source) && moduleIds.has(e.target))
@@ -151,13 +129,13 @@ function layoutModules(
 
   // Position modules
   modules.forEach((module) => {
-    const dagreNode = g.node(module.id) as { x: number; y: number; width?: number; height?: number } | undefined;
+    const dagreNode = g.node(module.id) as { x: number; y: number } | undefined;
     if (dagreNode) {
       nodeMap.set(module.id, {
         ...module,
         position: {
-          x: dagreNode.x - (dagreNode.width ?? DEFAULT_WIDTH * 2) / 2,
-          y: dagreNode.y - (dagreNode.height ?? DEFAULT_HEIGHT * 2) / 2,
+          x: dagreNode.x,
+          y: dagreNode.y,
         },
       });
     }
@@ -233,11 +211,7 @@ function layoutNodesWithinContainer(
   // Add children to graph
   const childIds = new Set(children.map((c) => c.id));
   children.forEach((child) => {
-    const measured = (child as unknown as { measured?: { width?: number; height?: number } }).measured;
-    const width = measured?.width ?? (typeof child.width === 'number' ? child.width : DEFAULT_WIDTH);
-    const height = measured?.height ?? (typeof child.height === 'number' ? child.height : DEFAULT_HEIGHT);
-
-    g.setNode(child.id, { width, height });
+    g.setNode(child.id, {});
   });
 
   // Add edges between children
@@ -254,13 +228,13 @@ function layoutNodesWithinContainer(
 
   // Position children relative to parent (VueFlow handles the parent offset automatically)
   children.forEach((child) => {
-    const dagreNode = g.node(child.id) as { x: number; y: number; width?: number; height?: number } | undefined;
+    const dagreNode = g.node(child.id) as { x: number; y: number } | undefined;
     if (dagreNode) {
       nodeMap.set(child.id, {
         ...child,
         position: {
-          x: dagreNode.x - (dagreNode.width ?? DEFAULT_WIDTH) / 2,
-          y: dagreNode.y - (dagreNode.height ?? DEFAULT_HEIGHT) / 2,
+          x: dagreNode.x,
+          y: dagreNode.y,
         },
       });
     }
@@ -292,11 +266,7 @@ function layoutOrphanNodes(
 
   const orphanIds = new Set(orphanNodes.map((n) => n.id));
   orphanNodes.forEach((node) => {
-    const measured = (node as unknown as { measured?: { width?: number; height?: number } }).measured;
-    const width = measured?.width ?? (typeof node.width === 'number' ? node.width : DEFAULT_WIDTH);
-    const height = measured?.height ?? (typeof node.height === 'number' ? node.height : DEFAULT_HEIGHT);
-
-    g.setNode(node.id, { width, height });
+    g.setNode(node.id, {});
   });
 
   edges
@@ -310,41 +280,13 @@ function layoutOrphanNodes(
   dagreLib.layout(g);
 
   orphanNodes.forEach((node) => {
-    const dagreNode = g.node(node.id) as { x: number; y: number; width?: number; height?: number } | undefined;
+    const dagreNode = g.node(node.id) as { x: number; y: number } | undefined;
     if (dagreNode) {
       nodeMap.set(node.id, {
         ...node,
         position: {
-          x: dagreNode.x - (dagreNode.width ?? DEFAULT_WIDTH) / 2,
-          y: dagreNode.y - (dagreNode.height ?? DEFAULT_HEIGHT) / 2,
-        },
-      });
-    }
-  });
-}
-
-/**
- * Update container sizes (width/height) based on their children's bounds
- * This keeps the container's position but expands it to fit all children
- * Children positions are assumed to be RELATIVE to the container
- */
-function updateContainerSizes(containers: DependencyNode[], nodeMap: Map<string, DependencyNode>): void {
-  containers.forEach((container) => {
-    const existingContainer = nodeMap.get(container.id);
-    if (!existingContainer) return;
-
-    const size = calculateRelativeContainerSize(container.id, nodeMap);
-    if (size) {
-      // Update size but keep the existing position
-      // Set BOTH top-level width/height AND style.width/height for VueFlow
-      nodeMap.set(container.id, {
-        ...existingContainer,
-        width: size.width,
-        height: size.height,
-        style: {
-          ...(typeof existingContainer.style === 'object' ? existingContainer.style : {}),
-          width: size.width,
-          height: size.height,
+          x: dagreNode.x,
+          y: dagreNode.y,
         },
       });
     }
@@ -363,13 +305,6 @@ function positionContainers(containers: DependencyNode[], nodeMap: Map<string, D
       nodeMap.set(container.id, {
         ...container,
         position: { x: bounds.x, y: bounds.y },
-        width: bounds.width,
-        height: bounds.height,
-        style: {
-          ...(typeof container.style === 'object' ? container.style : {}),
-          width: bounds.width,
-          height: bounds.height,
-        },
       });
     } else {
       // No children found, use default positioning
@@ -379,65 +314,13 @@ function positionContainers(containers: DependencyNode[], nodeMap: Map<string, D
 }
 
 /**
- * Calculate container size based on RELATIVE child positions
- * Used when container is already positioned and we just need to update its size
- */
-function calculateRelativeContainerSize(
-  containerId: string,
-  nodeMap: Map<string, DependencyNode>
-): { width: number; height: number } | null {
-  const children = Array.from(nodeMap.values()).filter((n) => n.parentNode === containerId);
-
-  if (children.length === 0) {
-    return null;
-  }
-
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  let minX = Infinity;
-  let minY = Infinity;
-
-  children.forEach((child) => {
-    const childWidth =
-      typeof child.style === 'object' && typeof child.style.width === 'number'
-        ? child.style.width
-        : typeof child.width === 'number'
-          ? child.width
-          : DEFAULT_WIDTH;
-
-    const childHeight =
-      typeof child.style === 'object' && typeof child.style.height === 'number'
-        ? child.style.height
-        : typeof child.height === 'number'
-          ? child.height
-          : DEFAULT_HEIGHT;
-
-    // Use RELATIVE child positions (no parent offset)
-    minX = Math.min(minX, child.position.x);
-    minY = Math.min(minY, child.position.y);
-    maxX = Math.max(maxX, child.position.x + childWidth);
-    maxY = Math.max(maxY, child.position.y + childHeight);
-  });
-
-  if (maxX === -Infinity) {
-    return null;
-  }
-
-  // Account for negative positions by including minX/minY in the calculation
-  return {
-    width: Math.max(maxX - Math.min(minX, 0), 0) + PARENT_PADDING * 2,
-    height: Math.max(maxY - Math.min(minY, 0), 0) + PARENT_PADDING * 2,
-  };
-}
-
-/**
  * Calculate the bounding box for a container based on its children's ABSOLUTE positions
  * Note: Children with extent='parent' have positions relative to their parent, so we convert them
  */
 function calculateContainerBounds(
   containerId: string,
   nodeMap: Map<string, DependencyNode>
-): { x: number; y: number; width: number; height: number } | null {
+): { x: number; y: number } | null {
   // Find all children of this container
   const children = Array.from(nodeMap.values()).filter((n) => n.parentNode === containerId);
 
@@ -457,20 +340,6 @@ function calculateContainerBounds(
   let maxY = -Infinity;
 
   children.forEach((child) => {
-    const childWidth =
-      typeof child.style === 'object' && typeof child.style.width === 'number'
-        ? child.style.width
-        : typeof child.width === 'number'
-          ? child.width
-          : DEFAULT_WIDTH;
-
-    const childHeight =
-      typeof child.style === 'object' && typeof child.style.height === 'number'
-        ? child.style.height
-        : typeof child.height === 'number'
-          ? child.height
-          : DEFAULT_HEIGHT;
-
     // If child has extent='parent', positions are relative to parent
     // Convert to absolute coordinates for bounds calculation
     const childAbsX = child.extent === 'parent' ? parentX + child.position.x : child.position.x;
@@ -478,8 +347,8 @@ function calculateContainerBounds(
 
     minX = Math.min(minX, childAbsX);
     minY = Math.min(minY, childAbsY);
-    maxX = Math.max(maxX, childAbsX + childWidth);
-    maxY = Math.max(maxY, childAbsY + childHeight);
+    maxX = Math.max(maxX, childAbsX);
+    maxY = Math.max(maxY, childAbsY);
   });
 
   if (minX === Infinity) {
@@ -489,8 +358,6 @@ function calculateContainerBounds(
   return {
     x: minX - PARENT_PADDING,
     y: minY - PARENT_PADDING,
-    width: maxX - minX + PARENT_PADDING * 2,
-    height: maxY - minY + PARENT_PADDING * 2,
   };
 }
 

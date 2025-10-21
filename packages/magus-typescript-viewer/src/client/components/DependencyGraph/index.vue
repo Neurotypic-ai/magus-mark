@@ -5,7 +5,6 @@ import { computed, onUnmounted, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
 import { clusterByFolder } from '../../graph/cluster/folders';
-import { collapseSccs } from '../../graph/cluster/scc';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
@@ -142,6 +141,7 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
       const h = measured?.height ?? (typeof n.height === 'number' ? n.height : 50);
       idToBox.set(n.id, { x: n.position.x, y: n.position.y, w, h });
     });
+    nodesWithCorrectHandles.reverse();
     let totalLen = 0;
     const outdeg = new Map<string, number>();
     const indeg = new Map<string, number>();
@@ -284,14 +284,6 @@ const initializeGraph = async () => {
   // Optional transforms: SCC collapse then folder clustering
   let nodesToLayout = graphNodes as DependencyNode[];
   let edgesToLayout = graphEdges as GraphEdge[];
-  if (graphSettings.collapseScc) {
-    const collapsed = collapseSccs(nodesToLayout, edgesToLayout);
-    nodesToLayout = collapsed.nodes as DependencyNode[];
-    edgesToLayout = collapsed.edges as GraphEdge[];
-    // Re-filter edges after SCC collapse
-    const sccNodeIds = new Set(nodesToLayout.map((n) => n.id));
-    edgesToLayout = edgesToLayout.filter((e) => sccNodeIds.has(e.source) && sccNodeIds.has(e.target));
-  }
   if (graphSettings.clusterByFolder) {
     const clustered = clusterByFolder(nodesToLayout, edgesToLayout);
     nodesToLayout = clustered.nodes as DependencyNode[];

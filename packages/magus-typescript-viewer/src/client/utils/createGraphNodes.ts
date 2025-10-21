@@ -70,45 +70,6 @@ function shouldIncludeNodeType(nodeType: DependencyKind, visibleNodeTypes?: Set<
 }
 
 /**
- * Estimates node dimensions based on type and content
- * These estimates help the layout algorithm produce better initial layouts
- * @param nodeType The type of node
- * @param data The node data (for counting properties/methods)
- * @returns Estimated width and height in pixels
- */
-function estimateNodeDimensions(
-  nodeType: DependencyKind,
-  data?: { properties?: NodeProperty[]; methods?: NodeMethod[] }
-): { width: number; height: number } {
-  switch (nodeType) {
-    case 'package':
-      return { width: 300, height: 150 };
-    case 'module':
-      return { width: 250, height: 100 };
-    case 'group':
-      return { width: 400, height: 300 };
-    case 'class':
-    case 'interface': {
-      // Base dimensions
-      const baseWidth = 220;
-      const baseHeight = 60;
-
-      // Add height for properties and methods
-      const propertyCount = data?.properties?.length ?? 0;
-      const methodCount = data?.methods?.length ?? 0;
-      const itemHeight = 24; // Height per property/method row
-
-      return {
-        width: baseWidth,
-        height: baseHeight + (propertyCount + methodCount) * itemHeight,
-      };
-    }
-    default:
-      return { width: 180, height: 80 };
-  }
-}
-
-/**
  * Converts properties from a class or interface structure to node properties
  * @param properties The raw properties object
  * @returns Array of formatted node properties
@@ -153,25 +114,23 @@ function convertMethodsToNodeMethods(
  * @returns A dependency node representing the package
  */
 function createPackageNode(pkg: PackageStructure, positions: HandlePositions): DependencyNode {
-  const dimensions = estimateNodeDimensions('package');
-
   return {
     id: pkg.id,
     type: 'package' as DependencyKind,
     position: { x: 0, y: 0 },
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
-    expandParent: true,
-    width: dimensions.width,
-    height: dimensions.height,
+    expandParent: false,
+    // width: dimensions.width,
+    // height: dimensions.height,
     data: {
       label: pkg.name,
       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
     },
     style: {
       ...getNodeStyle('package'),
-      width: dimensions.width,
-      height: dimensions.height,
+      // width: dimensions.width,
+      // height: dimensions.height,
     },
   };
 }
@@ -190,16 +149,14 @@ function createModuleNode(
   positions: HandlePositions,
   includePackages: boolean
 ): DependencyNode {
-  const dimensions = estimateNodeDimensions('module');
-
   const moduleNode: DependencyNode = {
     id: module.id,
     type: 'module' as DependencyKind,
     position: { x: 0, y: 0 },
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
-    width: dimensions.width,
-    height: dimensions.height,
+    // width: dimensions.width,
+    // height: dimensions.height,
     data: {
       label: module.name,
       properties: [
@@ -209,8 +166,6 @@ function createModuleNode(
     },
     style: {
       ...getNodeStyle('module'),
-      width: dimensions.width,
-      height: dimensions.height,
     },
   };
 
@@ -235,7 +190,6 @@ function createModuleNode(
 function createClassNode(cls: ClassStructure, moduleId: string, positions: HandlePositions): DependencyNode {
   const properties = convertPropertiesToNodeProperties(cls.properties);
   const methods = convertMethodsToNodeMethods(cls.methods);
-  const dimensions = estimateNodeDimensions('class', { properties, methods });
 
   return {
     id: cls.id,
@@ -246,8 +200,6 @@ function createClassNode(cls: ClassStructure, moduleId: string, positions: Handl
     parentNode: moduleId,
     extent: 'parent' as const,
     expandParent: true,
-    width: dimensions.width,
-    height: dimensions.height,
     data: {
       parentId: moduleId,
       label: cls.name,
@@ -256,8 +208,6 @@ function createClassNode(cls: ClassStructure, moduleId: string, positions: Handl
     },
     style: {
       ...getNodeStyle('class'),
-      width: dimensions.width,
-      height: dimensions.height,
     },
   };
 }
@@ -272,7 +222,6 @@ function createClassNode(cls: ClassStructure, moduleId: string, positions: Handl
 function createInterfaceNode(iface: InterfaceStructure, moduleId: string, positions: HandlePositions): DependencyNode {
   const properties = convertPropertiesToNodeProperties(iface.properties);
   const methods = convertMethodsToNodeMethods(iface.methods);
-  const dimensions = estimateNodeDimensions('interface', { properties, methods });
 
   return {
     id: iface.id,
@@ -283,8 +232,6 @@ function createInterfaceNode(iface: InterfaceStructure, moduleId: string, positi
     parentNode: moduleId,
     extent: 'parent' as const,
     expandParent: true,
-    width: dimensions.width,
-    height: dimensions.height,
     data: {
       parentId: moduleId,
       label: iface.name,
@@ -293,8 +240,6 @@ function createInterfaceNode(iface: InterfaceStructure, moduleId: string, positi
     },
     style: {
       ...getNodeStyle('interface'),
-      width: dimensions.width,
-      height: dimensions.height,
     },
   };
 }

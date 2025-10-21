@@ -11,7 +11,6 @@ const STORAGE_KEY = 'magus-graph-settings';
 interface PersistedSettings {
   showPackages: boolean;
   showClasses: boolean;
-  collapseScc: boolean;
   clusterByFolder: boolean;
   visibleNodeTypes: string[];
   layoutDirection: 'LR' | 'RL' | 'TB' | 'BT';
@@ -26,7 +25,6 @@ function isPersistedSettings(value: unknown): value is PersistedSettings {
   return (
     typeof obj['showPackages'] === 'boolean' &&
     typeof obj['showClasses'] === 'boolean' &&
-    typeof obj['collapseScc'] === 'boolean' &&
     typeof obj['clusterByFolder'] === 'boolean' &&
     Array.isArray(obj['visibleNodeTypes']) &&
     obj['visibleNodeTypes'].every((item) => typeof item === 'string') &&
@@ -69,7 +67,6 @@ function loadSettings(): PersistedSettings | null {
 function saveSettings(settings: {
   showPackages: boolean;
   showClasses: boolean;
-  collapseScc: boolean;
   clusterByFolder: boolean;
   visibleNodeTypes: string[];
   layoutDirection: 'LR' | 'RL' | 'TB' | 'BT';
@@ -99,11 +96,8 @@ export const useGraphSettings = defineStore('graphSettings', () => {
   );
 
   // Clustering options
-  const collapseScc = ref<boolean>(persisted?.collapseScc ?? false);
   const clusterByFolder = ref<boolean>(persisted?.clusterByFolder ?? false);
-  logger.debug(
-    `Initial clustering - collapseScc: ${String(collapseScc.value)}, clusterByFolder: ${String(clusterByFolder.value)}`
-  );
+  logger.debug(`Initial clustering - clusterByFolder: ${String(clusterByFolder.value)}`);
 
   // Symbol type visibility settings - only applies when showClasses is true
   // All symbol types visible by default
@@ -140,7 +134,6 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     [
       showPackages,
       showClasses,
-      collapseScc,
       clusterByFolder,
       visibleNodeTypes,
       layoutDirection,
@@ -152,7 +145,6 @@ export const useGraphSettings = defineStore('graphSettings', () => {
       saveSettings({
         showPackages: showPackages.value,
         showClasses: showClasses.value,
-        collapseScc: collapseScc.value,
         clusterByFolder: clusterByFolder.value,
         visibleNodeTypes: Array.from(visibleNodeTypes.value),
         layoutDirection: layoutDirection.value,
@@ -174,11 +166,6 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     showClasses.value = value;
   }
 
-  function setCollapseScc(value: boolean): void {
-    logger.debug(`setCollapseScc: ${String(collapseScc.value)} -> ${String(value)}`);
-    collapseScc.value = value;
-  }
-
   function setClusterByFolder(value: boolean): void {
     logger.debug(`setClusterByFolder: ${String(clusterByFolder.value)} -> ${String(value)}`);
     clusterByFolder.value = value;
@@ -198,7 +185,6 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     saveSettings({
       showPackages: showPackages.value,
       showClasses: showClasses.value,
-      collapseScc: collapseScc.value,
       clusterByFolder: clusterByFolder.value,
       visibleNodeTypes: Array.from(visibleNodeTypes.value),
       layoutDirection: layoutDirection.value,
@@ -246,7 +232,6 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     // View option refs
     showPackages,
     showClasses,
-    collapseScc,
     clusterByFolder,
     visibleNodeTypes,
     // Layout configuration refs
@@ -258,7 +243,6 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     // View actions
     setShowPackages,
     setShowClasses,
-    setCollapseScc,
     setClusterByFolder,
     setNodeTypeVisibility,
     isNodeTypeVisible,

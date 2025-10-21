@@ -4,25 +4,8 @@ import { createLogger } from '../../../../shared/utils/logger';
 import { defaultLayoutConfig, mergeConfig } from './config';
 import { LayoutError } from './errors';
 
-import type { DependencyGraph, DependencyNode } from '../types';
+import type { DependencyGraph } from '../types';
 import type { LayoutConfig } from './config';
-
-// Helper function to get node dimensions (replaces @xyflow/system's getNodeDimensions)
-function getNodeDimensions(node: DependencyNode): { width: number; height: number } {
-  // Check for measured dimensions first (may not exist in type but can be set at runtime)
-  const measured = (node as { measured?: { width?: number; height?: number } }).measured;
-  if (measured) {
-    return {
-      width: measured.width ?? (typeof node.width === 'number' ? node.width : 150),
-      height: measured.height ?? (typeof node.height === 'number' ? node.height : 50),
-    };
-  }
-  // Fall back to width/height properties
-  return {
-    width: typeof node.width === 'number' ? node.width : 150,
-    height: typeof node.height === 'number' ? node.height : 50,
-  };
-}
 
 const logger = createLogger('LayoutProcessor');
 
@@ -68,9 +51,7 @@ export class LayoutProcessor {
 
       // Add nodes to dagre
       graph.nodes.forEach((node) => {
-        const dimensions = getNodeDimensions(node);
         g.setNode(node.id, {
-          ...dimensions,
           ...(node.data?.parentId ? { parent: node.data.parentId } : {}),
         });
       });

@@ -1,16 +1,17 @@
 {
-  "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
+  "extends": "@magus-mark/typescript-config/config/app/tsconfig.json",
   "compilerOptions": {
     "types": ["node", "vite/client"],
-    "jsx": "preserve",
     "jsxImportSource": "vue",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
     "isolatedDeclarations": false
+  },
+  "initializationOptions": {
+    "plugins": [
+      {
+        "name": "@vue/typescript-plugin",
+        "location": "../../../node_modules/@vue/language-server",
+        "languages": ["vue"]
+      }
+    ]
   }
 }

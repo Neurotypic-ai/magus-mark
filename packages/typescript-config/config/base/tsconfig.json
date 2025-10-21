@@ -2,15 +2,11 @@
   "compilerOptions": {
     "outDir": "${configDir}/dist",
     "rootDir": "${configDir}",
-    "types": ["node"]
   },
   "exclude": [
     "${configDir}/eslint.config.js",
-    "${configDir}/**/node_modules",
     "${configDir}/**/node_modules/**/*",
-    "${configDir}/**/dist",
     "${configDir}/**/dist/**/*",
-    "${configDir}/**/build",
     "${configDir}/**/build/**/*",
     "${configDir}/**/documentation",
     "${configDir}/**/.cursor/**",

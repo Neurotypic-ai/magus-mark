@@ -6,17 +6,13 @@ import type { DependencyProps } from '../types';
 
 interface BaseNodeProps extends Omit<DependencyProps, 'width' | 'height'> {
   minWidth?: string;
-  maxWidth?: string;
   zIndex?: number;
   badgeText: string;
   badgeClass?: string;
-  width?: number;
-  height?: number;
 }
 
 const props = withDefaults(defineProps<BaseNodeProps>(), {
   minWidth: '280px',
-  maxWidth: '400px',
   zIndex: 1,
 });
 
@@ -31,19 +27,8 @@ const targetPosition = computed(() => props.targetPosition ?? Position.Top);
 // Container style
 const containerStyle = computed(() => {
   const style: Record<string, string | number> = {
-    minWidth: props.minWidth,
-    maxWidth: props.maxWidth,
     zIndex: props.zIndex,
   };
-
-  // For parent nodes (packages, modules, groups), apply explicit dimensions
-  // This prevents the container from collapsing to fit content
-  if (props.width !== undefined) {
-    style.width = `${props.width}px`;
-  }
-  if (props.height !== undefined) {
-    style.height = `${props.height}px`;
-  }
 
   return style;
 });
