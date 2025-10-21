@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background';
 import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
@@ -11,6 +12,7 @@ import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
 import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
+import { detectCycles } from '../../utils/graphCycles';
 import { measurePerformance } from '../../utils/performanceMonitoring';
 import GraphControls from './components/GraphControls.vue';
 import GraphSearch from './components/GraphSearch.vue';
@@ -40,9 +42,7 @@ const props = defineProps<DependencyGraphProps>();
 // Get graph state from Pinia store
 const graphStore = useGraphStore();
 const graphSettings = useGraphSettings();
-const nodes = computed(() => graphStore.nodes);
-const edges = computed(() => graphStore.edges);
-const selectedNode = computed(() => graphStore.selectedNode);
+const { nodes, edges, selectedNode } = storeToRefs(graphStore);
 
 const { fitView, getNodes } = useVueFlow();
 
@@ -52,6 +52,31 @@ const layoutProcessor = shallowRef<WebWorkerLayoutProcessor | null>(null);
 // Track layout state to prevent infinite loops - use refs for reactivity
 const isInitialLayout = ref(false);
 const hasAppliedMeasuredLayout = ref(false);
+const isLayoutRunning = ref(false);
+
+// Shallow equality helpers to avoid redundant reactive writes
+function areNodesShallowEqual(a: DependencyNode[], b: DependencyNode[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const na = a[i] as unknown as { id: string; position: { x: number; y: number }; width?: number; height?: number };
+    const nb = b[i] as unknown as { id: string; position: { x: number; y: number }; width?: number; height?: number };
+    if (na.id !== nb.id) return false;
+    if (na.position.x !== nb.position.x || na.position.y !== nb.position.y) return false;
+    if ((na.width ?? 0) !== (nb.width ?? 0)) return false;
+    if ((na.height ?? 0) !== (nb.height ?? 0)) return false;
+  }
+  return true;
+}
+
+function areEdgesShallowEqual(a: GraphEdge[], b: GraphEdge[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const ea = a[i] as unknown as { id: string };
+    const eb = b[i] as unknown as { id: string };
+    if (ea.id !== eb.id) return false;
+  }
+  return true;
+}
 
 // Memoize measured dimensions to avoid redundant collection
 const measuredDimensions = shallowRef<Map<string, { width: number; height: number }>>(new Map());
@@ -263,20 +288,24 @@ const onNodesInitialized = async () => {
         return {
           ...node,
           measured: dims,
-          width: dims.width,
-          height: dims.height,
         };
       }
       return node;
     });
 
-    await processGraphLayout({ nodes: nodesWithDimensions, edges: edges.value });
+    if (!isLayoutRunning.value) {
+      await processGraphLayout({ nodes: nodesWithDimensions, edges: edges.value });
+    } else {
+      graphLogger.debug('Skipped measured re-layout because a layout is already running');
+    }
   }
 };
 
 // Process graph layout using web worker
 const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: GraphEdge[] }) => {
   if (!layoutProcessor.value) return;
+  if (isLayoutRunning.value) return;
+  isLayoutRunning.value = true;
 
   try {
     // Start performance measurement
@@ -316,7 +345,7 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
       const h = measured?.height ?? (typeof n.height === 'number' ? n.height : 50);
       idToBox.set(n.id, { x: n.position.x, y: n.position.y, w, h });
     });
-    nodesWithCorrectHandles.reverse();
+    // keep stable order to minimize reactivity churn
     let totalLen = 0;
     const outdeg = new Map<string, number>();
     const indeg = new Map<string, number>();
@@ -345,14 +374,19 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
       approxTotalEdgeLength: Math.round(totalLen),
     });
 
-    // Update nodes without transition for better dragging performance
-    graphStore.setNodes(nodesWithCorrectHandles);
-    graphStore.setEdges(typedEdges);
+    // Update nodes/edges only if changed to avoid recursive reactivity loops
+    if (!areNodesShallowEqual(nodes.value, nodesWithCorrectHandles)) {
+      graphStore.setNodes(nodesWithCorrectHandles);
+    }
+    if (!areEdgesShallowEqual(edges.value, typedEdges)) {
+      graphStore.setEdges(typedEdges);
+    }
 
     // Debug: Verify store state
     graphLogger.info('Store edges count:', edges.value.length);
 
-    // Fit view after layout with faster animation
+    // Fit view after layout with faster animation (schedule microtask to avoid sync reactivity loop)
+    await Promise.resolve();
     await fitView({ duration: 150, padding: 0.1 });
 
     // End performance measurement
@@ -362,6 +396,8 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     const error = err instanceof Error ? err : new Error('Unknown error during layout processing');
     graphLogger.error('Layout processing failed:', error);
     // Potentially update UI to show error state to the user
+  } finally {
+    isLayoutRunning.value = false;
   }
 };
 
@@ -468,12 +504,49 @@ const initializeGraph = async () => {
     edgesToLayout = edgesToLayout.filter((e) => clusterNodeIds.has(e.source) && clusterNodeIds.has(e.target));
   }
 
+  // Detect cycles on the current working subgraph (default: import edges)
+  try {
+    const cycles = detectCycles(nodesToLayout, edgesToLayout, { edgeTypes: ['import'] });
+    if (cycles.nodeIdsInCycles.size > 0) {
+      graphLogger.info(`Detected ${cycles.sccs.filter((c) => c.length > 1).length} cycle components`);
+      // Highlight cycle nodes and edges subtly for visibility
+      const cycleNodeIds = cycles.nodeIdsInCycles;
+      const cycleEdgeIds = cycles.edgeIdsInCycles;
+
+      nodesToLayout = nodesToLayout.map((n) =>
+        cycleNodeIds.has(n.id)
+          ? {
+              ...n,
+              style: { ...n.style, outline: '2px solid #ff6b6b', outlineOffset: '2px' },
+            }
+          : n
+      );
+      edgesToLayout = edgesToLayout.map((e) =>
+        cycleEdgeIds.has(e.id)
+          ? {
+              ...e,
+              style: { ...e.style, stroke: '#ff6b6b', strokeWidth: 3 },
+            }
+          : e
+      );
+    } else {
+      graphLogger.info('No cycles detected');
+    }
+  } catch (err) {
+    graphLogger.warn('Cycle detection failed', err);
+  }
+
   // Set flags for initial layout with measurement
   isInitialLayout.value = true;
   hasAppliedMeasuredLayout.value = false;
   measuredDimensions.value.clear(); // Clear any previous measurements
 
-  await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
+  // Guard against re-entrancy while a layout is already running
+  if (!isLayoutRunning.value) {
+    await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
+  } else {
+    graphLogger.debug('Skipped initialize layout because a layout is already running');
+  }
 
   performance.mark('graph-init-end');
   measurePerformance('graph-initialization', 'graph-init-start', 'graph-init-end');
@@ -739,11 +812,13 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
       `Showing ${detailedNodes.length} nodes (${detailedNodes.filter((n) => n.type === 'class').length} classes, ${detailedNodes.filter((n) => n.type === 'interface').length} interfaces) and ${detailedEdges.length} edges`
     );
 
-    // Trigger re-layout with detailed subgraph
-    await processGraphLayout({
-      nodes: detailedNodes,
-      edges: detailedEdges,
-    });
+    // Trigger re-layout with detailed subgraph (guard re-entrancy)
+    if (!isLayoutRunning.value) {
+      await processGraphLayout({
+        nodes: detailedNodes,
+        edges: detailedEdges,
+      });
+    }
 
     // Fit view to the detailed subgraph
     await fitView({
@@ -787,10 +862,12 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
       animated: true,
     }));
 
-    await processGraphLayout({
-      nodes: focusedNodes,
-      edges: focusedEdges,
-    });
+    if (!isLayoutRunning.value) {
+      await processGraphLayout({
+        nodes: focusedNodes,
+        edges: focusedEdges,
+      });
+    }
 
     await fitView({
       duration: 300,
@@ -859,8 +936,12 @@ const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: nu
   // Recreate layout processor with new config
   initializeLayoutProcessor();
 
-  // Re-run layout with updated configuration
-  await initializeGraph();
+  // Re-run layout with updated configuration if not running
+  if (!isLayoutRunning.value) {
+    await initializeGraph();
+  } else {
+    graphLogger.debug('Skipped layout change re-layout because a layout is already running');
+  }
 };
 
 // Node visibility change handler
@@ -998,7 +1079,6 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :default-edge-options="{
           style: { stroke: '#61dafb', strokeWidth: 3 },
           markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
-          zIndex: 1000,
           type: 'step',
         }"
         @node-click="onNodeClick"

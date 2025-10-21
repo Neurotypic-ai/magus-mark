@@ -120,7 +120,6 @@ function createPackageNode(pkg: PackageStructure, positions: HandlePositions): D
     position: { x: 0, y: 0 },
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
-    expandParent: false,
     data: {
       label: pkg.name,
       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],

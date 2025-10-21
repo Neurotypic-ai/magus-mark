@@ -25,16 +25,17 @@ export interface LayoutResult {
 
 /**
  * Helper to get node dimensions from measured values
- * Returns minimal fallback dimensions if no measurements are available to prevent NaN in layout
+ * Returns type-specific fallback dimensions if no measurements are available
  */
 function getNodeDimensions(node: DependencyNode): { width: number; height: number } {
-  // Check measured dimensions first (from VueFlow)
+  // Check measured dimensions first (from VueFlow DOM measurements)
   const nodeWithMeasured = node as unknown as { measured?: { width?: number; height?: number } };
-  const measuredWidth = nodeWithMeasured.measured?.width;
-  const measuredHeight = nodeWithMeasured.measured?.height;
-
-  if (measuredWidth !== undefined && measuredHeight !== undefined) {
-    return { width: measuredWidth, height: measuredHeight };
+  const measured = nodeWithMeasured.measured;
+  if (measured?.width !== undefined && measured.height !== undefined) {
+    return {
+      width: measured.width,
+      height: measured.height,
+    };
   }
 
   // Check explicit dimensions
@@ -42,9 +43,21 @@ function getNodeDimensions(node: DependencyNode): { width: number; height: numbe
     return { width: node.width, height: node.height };
   }
 
-  // Return minimal fallback to prevent NaN - these will be replaced after VueFlow measures nodes
-  // Using very small values so nodes size purely from content after measurement
-  return { width: 50, height: 30 };
+  // Type-specific fallbacks for better initial layout
+  const typeDefaults: Record<string, { width: number; height: number }> = {
+    package: { width: 600, height: 400 }, // Large container
+    module: { width: 300, height: 200 }, // Medium container
+    group: { width: 400, height: 300 }, // Folder groups
+    class: { width: 280, height: 120 }, // Symbol nodes
+    interface: { width: 280, height: 120 },
+    enum: { width: 200, height: 100 },
+    type: { width: 200, height: 80 },
+  };
+
+  // Safely get default dimensions with fallback
+  const nodeType = String(node.type);
+  const defaultDims = typeDefaults[nodeType];
+  return defaultDims ?? { width: 280, height: 100 };
 }
 
 /**
@@ -121,7 +134,7 @@ function layoutModules(
   dagreLib: typeof dagre,
   nodeMap: Map<string, DependencyNode>
 ): void {
-  const g = new dagreLib.graphlib.Graph({ directed: true });
+  const g = new dagreLib.graphlib.Graph({ directed: true, compound: true });
 
   g.setGraph({
     rankdir: config.direction,
@@ -140,6 +153,13 @@ function layoutModules(
   modules.forEach((module) => {
     const dims = getNodeDimensions(module);
     g.setNode(module.id, dims);
+  });
+
+  // Declare parent-child relationships for compound graph
+  modules.forEach((module) => {
+    if (module.parentNode) {
+      g.setParent(module.id, module.parentNode);
+    }
   });
 
   // Add edges between modules
@@ -222,7 +242,7 @@ function layoutNodesWithinContainer(
   dagreLib: typeof dagre,
   nodeMap: Map<string, DependencyNode>
 ): void {
-  const g = new dagreLib.graphlib.Graph({ directed: true });
+  const g = new dagreLib.graphlib.Graph({ directed: true, compound: true });
 
   g.setGraph({
     rankdir: config.direction,
@@ -240,6 +260,13 @@ function layoutNodesWithinContainer(
   children.forEach((child) => {
     const dims = getNodeDimensions(child);
     g.setNode(child.id, dims);
+  });
+
+  // Declare parent-child relationships for any nested children
+  children.forEach((child) => {
+    if (child.parentNode) {
+      g.setParent(child.id, child.parentNode);
+    }
   });
 
   // Add edges between children
@@ -279,7 +306,7 @@ function layoutOrphanNodes(
   dagreLib: typeof dagre,
   nodeMap: Map<string, DependencyNode>
 ): void {
-  const g = new dagreLib.graphlib.Graph({ directed: true });
+  const g = new dagreLib.graphlib.Graph({ directed: true, compound: true });
 
   g.setGraph({
     rankdir: config.direction,
@@ -296,6 +323,13 @@ function layoutOrphanNodes(
   orphanNodes.forEach((node) => {
     const dims = getNodeDimensions(node);
     g.setNode(node.id, dims);
+  });
+
+  // Declare parent-child relationships for any nested orphan nodes
+  orphanNodes.forEach((node) => {
+    if (node.parentNode) {
+      g.setParent(node.id, node.parentNode);
+    }
   });
 
   edges

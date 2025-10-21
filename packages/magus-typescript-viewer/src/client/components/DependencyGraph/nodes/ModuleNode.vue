@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { useVueFlow } from '@vue-flow/core';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 import BaseNode from './BaseNode.vue';
 
@@ -9,11 +10,29 @@ const props = defineProps<DependencyProps>();
 
 const nodeData = computed(() => props.data);
 
+// Ask VueFlow to recompute node dimensions when content changes
+const { updateNodeInternals } = useVueFlow();
+
+onMounted(async () => {
+  await nextTick();
+  updateNodeInternals(props.id);
+  // Also trigger parent update if this is a child node
+  if (props.data?.parentId) {
+    updateNodeInternals(props.data.parentId);
+  }
+});
+
 // Collapsible sections state
 const isMetadataExpanded = ref(true);
 
-const toggleMetadata = () => {
+const toggleMetadata = async () => {
   isMetadataExpanded.value = !isMetadataExpanded.value;
+  await nextTick();
+  updateNodeInternals(props.id);
+  // Trigger parent resize
+  if (props.data?.parentId) {
+    updateNodeInternals(props.data.parentId);
+  }
 };
 </script>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { useVueFlow } from '@vue-flow/core';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 import BaseNode from './BaseNode.vue';
 
@@ -10,16 +11,28 @@ const props = defineProps<DependencyProps>();
 const nodeData = computed(() => props.data);
 const nodeType = computed(() => props.type);
 
+// Ask VueFlow to recompute node dimensions when content changes
+const { updateNodeInternals } = useVueFlow();
+
+onMounted(async () => {
+  await nextTick();
+  updateNodeInternals(props.id);
+});
+
 // Collapsible sections state
 const isPropertiesExpanded = ref(true);
 const isMethodsExpanded = ref(true);
 
-const toggleProperties = () => {
+const toggleProperties = async () => {
   isPropertiesExpanded.value = !isPropertiesExpanded.value;
+  await nextTick();
+  updateNodeInternals(props.id);
 };
 
-const toggleMethods = () => {
+const toggleMethods = async () => {
   isMethodsExpanded.value = !isMethodsExpanded.value;
+  await nextTick();
+  updateNodeInternals(props.id);
 };
 
 // Compute visibility color class and icon
@@ -199,7 +212,7 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 }
 
 .collapsible-header {
-  /* width: 100%; */
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;

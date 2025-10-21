@@ -28,6 +28,7 @@ const targetPosition = computed(() => props.targetPosition ?? Position.Top);
 const containerStyle = computed(() => {
   const style: Record<string, string | number> = {
     zIndex: props.zIndex,
+    minWidth: props.minWidth,
   };
 
   return style;
@@ -75,7 +76,7 @@ const containerStyle = computed(() => {
   font-size: 0.75rem;
   line-height: 1rem;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .base-node-container:hover {
