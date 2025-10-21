@@ -23,8 +23,6 @@ export interface LayoutResult {
   edges: Edge[];
 }
 
-const PARENT_PADDING = 40;
-
 /**
  * Apply dagre layout algorithm to graph nodes and edges with hierarchical awareness
  * @param nodes - The nodes to layout
@@ -64,21 +62,19 @@ export function applyDagreLayout(
     layoutLeafNodesWithinParents(leafNodes, modules, groups, validEdges, config, dagreLib, nodeMap);
   }
 
-  // Step 4: Position and size group containers based on their children
-  // Groups can contain modules (from folder clustering) or leaf nodes
-  if (groups.length > 0) {
-    const groupsWithModuleChildren = groups.filter((g) => modules.some((m) => m.parentNode === g.id));
-
-    // Groups containing modules need both position and size calculated
-    if (groupsWithModuleChildren.length > 0) {
-      positionContainers(groupsWithModuleChildren, nodeMap);
+  // Step 4: Add groups and packages to nodeMap
+  // VueFlow will handle sizing via expandParent, we just need them in the map
+  groups.forEach((group) => {
+    if (!nodeMap.has(group.id)) {
+      nodeMap.set(group.id, { ...group, position: { x: 0, y: 0 } });
     }
-  }
+  });
 
-  // Step 5: Position package containers based on their module children
-  if (packages.length > 0) {
-    positionContainers(packages, nodeMap);
-  }
+  packages.forEach((pkg) => {
+    if (!nodeMap.has(pkg.id)) {
+      nodeMap.set(pkg.id, { ...pkg, position: { x: 0, y: 0 } });
+    }
+  });
 
   // Convert map back to array, ensuring all nodes are included
   nodes.forEach((node) => {
@@ -115,6 +111,12 @@ function layoutModules(
   g.setDefaultEdgeLabel(() => ({}));
 
   const moduleIds = new Set(modules.map((m) => m.id));
+
+  // Add modules to graph (let dagre use default sizing)
+  modules.forEach((module) => {
+    g.setNode(module.id, {});
+  });
+
   // Add edges between modules
   edges
     .filter((e) => moduleIds.has(e.source) && moduleIds.has(e.target))
@@ -202,8 +204,8 @@ function layoutNodesWithinContainer(
     nodesep: config.nodesep * 0.5, // Tighter spacing within containers
     edgesep: config.edgesep * 0.5,
     ranksep: config.ranksep * 0.5,
-    marginx: PARENT_PADDING,
-    marginy: PARENT_PADDING,
+    marginx: 20,
+    marginy: 20,
   });
   g.setDefaultNodeLabel(() => ({}));
   g.setDefaultEdgeLabel(() => ({}));
@@ -291,74 +293,6 @@ function layoutOrphanNodes(
       });
     }
   });
-}
-
-/**
- * Position containers (packages, groups) based on their children's bounds
- * This sets both position AND size based on children
- */
-function positionContainers(containers: DependencyNode[], nodeMap: Map<string, DependencyNode>): void {
-  containers.forEach((container) => {
-    const bounds = calculateContainerBounds(container.id, nodeMap);
-    if (bounds) {
-      // Set BOTH top-level width/height AND style.width/height for VueFlow
-      nodeMap.set(container.id, {
-        ...container,
-        position: { x: bounds.x, y: bounds.y },
-      });
-    } else {
-      // No children found, use default positioning
-      nodeMap.set(container.id, container);
-    }
-  });
-}
-
-/**
- * Calculate the bounding box for a container based on its children's ABSOLUTE positions
- * Note: Children with extent='parent' have positions relative to their parent, so we convert them
- */
-function calculateContainerBounds(
-  containerId: string,
-  nodeMap: Map<string, DependencyNode>
-): { x: number; y: number } | null {
-  // Find all children of this container
-  const children = Array.from(nodeMap.values()).filter((n) => n.parentNode === containerId);
-
-  if (children.length === 0) {
-    return null;
-  }
-
-  const parent = nodeMap.get(containerId);
-  // Parent position is required for relative child positioning
-  // If parent doesn't exist yet, default to (0, 0)
-  const parentX = parent ? parent.position.x : 0;
-  const parentY = parent ? parent.position.y : 0;
-
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-
-  children.forEach((child) => {
-    // If child has extent='parent', positions are relative to parent
-    // Convert to absolute coordinates for bounds calculation
-    const childAbsX = child.extent === 'parent' ? parentX + child.position.x : child.position.x;
-    const childAbsY = child.extent === 'parent' ? parentY + child.position.y : child.position.y;
-
-    minX = Math.min(minX, childAbsX);
-    minY = Math.min(minY, childAbsY);
-    maxX = Math.max(maxX, childAbsX);
-    maxY = Math.max(maxY, childAbsY);
-  });
-
-  if (minX === Infinity) {
-    return null;
-  }
-
-  return {
-    x: minX - PARENT_PADDING,
-    y: minY - PARENT_PADDING,
-  };
 }
 
 /**

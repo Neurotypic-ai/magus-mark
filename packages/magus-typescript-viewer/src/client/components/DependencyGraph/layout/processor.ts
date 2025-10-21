@@ -49,11 +49,9 @@ export class LayoutProcessor {
       // Default to allow edges between same rank
       g.setDefaultEdgeLabel(() => ({}));
 
-      // Add nodes to dagre
+      // Add nodes to dagre (no explicit sizing, let dagre use defaults)
       graph.nodes.forEach((node) => {
-        g.setNode(node.id, {
-          ...(node.data?.parentId ? { parent: node.data.parentId } : {}),
-        });
+        g.setNode(node.id, {});
       });
 
       // Add edges to dagre
@@ -66,15 +64,15 @@ export class LayoutProcessor {
       // Perform layout
       dagre.layout(g);
 
-      // Extract positions - all positioning now handled by worker
+      // Extract positions - use raw dagre coordinates without centering
       const layoutedNodes = graph.nodes.map((node) => {
         const layoutNode = g.node(node.id);
 
         return {
           ...node,
           position: {
-            x: layoutNode.x - layoutNode.width / 2,
-            y: layoutNode.y - layoutNode.height / 2,
+            x: layoutNode.x,
+            y: layoutNode.y,
           },
         };
       });

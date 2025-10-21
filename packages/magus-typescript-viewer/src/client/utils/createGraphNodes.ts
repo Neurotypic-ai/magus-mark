@@ -121,16 +121,12 @@ function createPackageNode(pkg: PackageStructure, positions: HandlePositions): D
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
     expandParent: false,
-    // width: dimensions.width,
-    // height: dimensions.height,
     data: {
       label: pkg.name,
       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
     },
     style: {
       ...getNodeStyle('package'),
-      // width: dimensions.width,
-      // height: dimensions.height,
     },
   };
 }
@@ -155,8 +151,6 @@ function createModuleNode(
     position: { x: 0, y: 0 },
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
-    // width: dimensions.width,
-    // height: dimensions.height,
     data: {
       label: module.name,
       properties: [
