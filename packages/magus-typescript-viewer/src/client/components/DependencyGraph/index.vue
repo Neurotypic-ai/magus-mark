@@ -3,11 +3,13 @@ import cytoscape from 'cytoscape';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
+import { clusterByFolder } from '../../graph/cluster/folders';
 import { collapseSccs } from '../../graph/cluster/scc';
-import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
+import { applyElkLayout } from '../../layout/elkLayoutEngine';
 import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
 import { getCytoscapeStylesheet } from '../../theme/cytoscapeTheme';
+import { graphTheme } from '../../theme/graphTheme';
 import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
 import { measurePerformance } from '../../utils/performanceMonitoring';
@@ -45,8 +47,10 @@ const selectedNode = computed(() => graphStore['selectedNode']);
 const cyRef = ref<CytoscapeCore | null>(null);
 const containerRef = ref<HTMLDivElement | null>(null);
 
-// Keep a reference to the layout processor for cleanup
-let layoutProcessor: WebWorkerLayoutProcessor | null = null;
+// Cleanup for custom gesture handlers
+let removeGestureHandlers: (() => void) | null = null;
+
+// Layout runs directly (no web worker needed - ELK handles its own threading)
 
 // Layout configuration state
 const layoutConfig = {
@@ -57,15 +61,15 @@ const layoutConfig = {
   algorithm: 'layered' as 'layered' | 'force' | 'stress' | 'mrtree',
 };
 
-// Clean up the worker when component unmounts
+// Clean up when component unmounts
 onUnmounted(() => {
-  if (layoutProcessor) {
-    layoutProcessor.dispose();
-    layoutProcessor = null;
-  }
   if (cyRef.value) {
     cyRef.value.destroy();
     cyRef.value = null;
+  }
+  if (removeGestureHandlers) {
+    removeGestureHandlers();
+    removeGestureHandlers = null;
   }
 });
 
@@ -78,7 +82,9 @@ const initializeCytoscape = () => {
     style: getCytoscapeStylesheet(),
     minZoom: 0.1,
     maxZoom: 2,
-    wheelSensitivity: 0.2,
+    // Disable default wheel zoom so we can map gestures precisely
+    userZoomingEnabled: false,
+    userPanningEnabled: true,
   });
 
   // Add event listeners
@@ -96,18 +102,31 @@ const initializeCytoscape = () => {
     }
   });
 
+  // Enable trackpad gestures: two-finger pan, pinch-zoom
+  if (containerRef.value) {
+    if (removeGestureHandlers) removeGestureHandlers();
+    removeGestureHandlers = enableTrackpadGestures(cy, containerRef.value);
+  }
+
   return cy;
 };
 
 // Process graph layout
 const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: GraphEdge[] }) => {
-  if (!cyRef.value || !layoutProcessor) return;
+  if (!cyRef.value) return;
 
   try {
     performance.mark('layout-start');
 
-    // Process layout using the web worker
-    const result = await layoutProcessor.processLayout(graphData);
+    // Apply ELK layout directly
+    const result = await applyElkLayout(graphData.nodes, graphData.edges, {
+      direction: layoutConfig.direction,
+      nodeSpacing: layoutConfig.nodeSpacing,
+      layerSpacing: layoutConfig.layerSpacing,
+      edgeSpacing: layoutConfig.edgeSpacing,
+      algorithm: layoutConfig.algorithm,
+      theme: graphTheme,
+    });
 
     graphLogger.info(`Layout complete: ${result.nodes.length} nodes, ${result.edges.length} edges`);
 
@@ -144,6 +163,55 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
   }
 };
 
+// Map two-finger scroll to pan, pinch to zoom (ctrlKey wheel or Safari gesture)
+function enableTrackpadGestures(cy: CytoscapeCore, container: HTMLDivElement): () => void {
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+  const wheelHandler = (e: WheelEvent) => {
+    // We fully manage wheel; prevent default scroll/zoom
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+    const renderedPosition = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+    if (e.ctrlKey) {
+      // Pinch-zoom on trackpad sets ctrlKey=true on WheelEvent in Chromium
+      const factor = Math.pow(1.0015, -e.deltaY);
+      const newLevel = clamp(cy.zoom() * factor, cy.minZoom(), cy.maxZoom());
+      cy.zoom({ level: newLevel, renderedPosition });
+    } else {
+      // Two-finger pan: deltaX/deltaY translate the canvas
+      cy.panBy({ x: -e.deltaX, y: -e.deltaY });
+    }
+  };
+
+  container.addEventListener('wheel', wheelHandler, { passive: false });
+
+  // Optional: Safari gesture events (non-standard)
+  let baseZoom = cy.zoom();
+  const center = () => ({ x: container.clientWidth / 2, y: container.clientHeight / 2 });
+  const onGestureStart = (ev: Event) => {
+    ev.preventDefault();
+    baseZoom = cy.zoom();
+  };
+  const onGestureChange = (ev: Event) => {
+    ev.preventDefault();
+    const e = ev as Event & { scale?: number };
+    const scale = typeof e.scale === 'number' ? e.scale : 1;
+    const newLevel = clamp(baseZoom * scale, cy.minZoom(), cy.maxZoom());
+    cy.zoom({ level: newLevel, renderedPosition: center() });
+  };
+  container.addEventListener('gesturestart', onGestureStart as EventListener, { passive: false });
+  container.addEventListener('gesturechange', onGestureChange as EventListener, { passive: false });
+  container.addEventListener('gestureend', (ev) => ev.preventDefault() as unknown as EventListener, { passive: false });
+
+  return () => {
+    container.removeEventListener('wheel', wheelHandler as EventListener);
+    container.removeEventListener('gesturestart', onGestureStart as EventListener);
+    container.removeEventListener('gesturechange', onGestureChange as EventListener);
+    container.removeEventListener('gestureend', (ev) => ev.preventDefault() as unknown as EventListener);
+  };
+}
+
 // Initialize graph
 const initializeGraph = async () => {
   performance.mark('graph-init-start');
@@ -164,17 +232,7 @@ const initializeGraph = async () => {
     cyRef.value = initializeCytoscape();
   }
 
-  // Initialize layout processor if needed
-  if (!layoutProcessor) {
-    layoutProcessor = new WebWorkerLayoutProcessor({
-      direction: layoutConfig.direction,
-      nodeSpacing: layoutConfig.nodeSpacing,
-      layerSpacing: layoutConfig.layerSpacing,
-      edgeSpacing: layoutConfig.edgeSpacing,
-      algorithm: layoutConfig.algorithm,
-      animationDuration: 150,
-    });
-  }
+  // Layout configuration is handled directly in processGraphLayout
 
   // Create nodes and edges
   const includePackages = graphSettings.showPackages;
@@ -202,6 +260,13 @@ const initializeGraph = async () => {
     const collapsed = collapseSccs(nodesToLayout, edgesToLayout);
     nodesToLayout = collapsed.nodes as DependencyNode[];
     edgesToLayout = collapsed.edges as GraphEdge[];
+  }
+
+  // Group modules by folder into compound parent nodes when enabled
+  if (graphSettings.clusterByFolder) {
+    const clustered = clusterByFolder(nodesToLayout, edgesToLayout);
+    nodesToLayout = clustered.nodes as DependencyNode[];
+    edgesToLayout = clustered.edges as GraphEdge[];
   }
 
   // Process layout
@@ -330,20 +395,7 @@ const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: nu
     layoutConfig.layerSpacing = config.layerSpacing;
   }
 
-  // Recreate layout processor with new config
-  if (layoutProcessor) {
-    layoutProcessor.dispose();
-  }
-  layoutProcessor = new WebWorkerLayoutProcessor({
-    direction: layoutConfig.direction,
-    nodeSpacing: layoutConfig.nodeSpacing,
-    layerSpacing: layoutConfig.layerSpacing,
-    edgeSpacing: layoutConfig.edgeSpacing,
-    algorithm: layoutConfig.algorithm,
-    animationDuration: 150,
-  });
-
-  // Re-run layout
+  // Re-run layout with new config
   await initializeGraph();
 };
 

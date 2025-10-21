@@ -1,13 +1,31 @@
-// Import the bundled browser version of ELK
-import * as ElkModule from 'elkjs/lib/elk.bundled.js';
-
-import type { ElkExtendedEdge, ElkNode, LayoutOptions } from 'elkjs';
+// Resolve asset URLs for UMD build and worker via Vite
+import elkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
+import elkBundledUrl from 'elkjs/lib/elk.bundled.js?url';
 
 import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
 
-// The bundled version exports ELK as default
-const ELK = (ElkModule as { default?: unknown }).default ?? ElkModule;
+// Local minimal ELK types to avoid runtime imports in ESM
+type LayoutOptions = Record<string, string>;
+
+interface ElkExtendedEdge {
+  id: string;
+  sources: string[];
+  targets: string[];
+}
+
+interface ElkNode {
+  id: string;
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  layoutOptions?: LayoutOptions;
+  children?: ElkNode[];
+  edges?: ElkExtendedEdge[];
+}
+
+// Note: Types come from 'elkjs' type definitions imported below
 
 /**
  * ELK Layout Engine
@@ -44,7 +62,7 @@ export async function applyElkLayout(
   edges: GraphEdge[],
   config: ElkLayoutConfig
 ): Promise<LayoutResult> {
-  const elk = new (ELK as new () => { layout: (graph: ElkNode) => Promise<ElkNode> })();
+  const elk = await createElkInstance();
 
   // Build ELK graph structure
   const elkGraph = buildElkGraph(nodes, edges, config);
@@ -54,6 +72,41 @@ export async function applyElkLayout(
 
   // Convert back to our node/edge format
   return convertElkLayout(laidOutGraph, nodes, edges);
+}
+
+async function createElkInstance(): Promise<{ layout: (graph: ElkNode) => Promise<ElkNode> }> {
+  // If already loaded on window, use it
+  const existing = (globalThis as unknown as { ELK?: new (options?: { workerUrl?: string }) => unknown }).ELK;
+  if (typeof existing === 'function') {
+    return new (existing as new (options: { workerUrl: string }) => { layout: (graph: ElkNode) => Promise<ElkNode> })({
+      workerUrl: elkWorkerUrl,
+    });
+  }
+
+  // Dynamically inject the UMD script so it defines window.ELK
+  await loadScript(elkBundledUrl);
+  const ctor = (globalThis as unknown as { ELK?: new (options?: { workerUrl?: string }) => unknown }).ELK;
+  if (typeof ctor === 'function') {
+    return new (ctor as new (options: { workerUrl: string }) => { layout: (graph: ElkNode) => Promise<ElkNode> })({
+      workerUrl: elkWorkerUrl,
+    });
+  }
+  throw new Error('Failed to initialize ELK: UMD build not available');
+}
+
+function loadScript(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.async = true;
+    script.onload = () => {
+      resolve();
+    };
+    script.onerror = () => {
+      reject(new Error(`Failed to load script: ${url}`));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 /**
