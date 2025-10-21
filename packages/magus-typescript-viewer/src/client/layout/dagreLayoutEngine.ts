@@ -24,6 +24,30 @@ export interface LayoutResult {
 }
 
 /**
+ * Helper to get node dimensions from measured values
+ * Returns minimal fallback dimensions if no measurements are available to prevent NaN in layout
+ */
+function getNodeDimensions(node: DependencyNode): { width: number; height: number } {
+  // Check measured dimensions first (from VueFlow)
+  const nodeWithMeasured = node as unknown as { measured?: { width?: number; height?: number } };
+  const measuredWidth = nodeWithMeasured.measured?.width;
+  const measuredHeight = nodeWithMeasured.measured?.height;
+
+  if (measuredWidth !== undefined && measuredHeight !== undefined) {
+    return { width: measuredWidth, height: measuredHeight };
+  }
+
+  // Check explicit dimensions
+  if (typeof node.width === 'number' && typeof node.height === 'number') {
+    return { width: node.width, height: node.height };
+  }
+
+  // Return minimal fallback to prevent NaN - these will be replaced after VueFlow measures nodes
+  // Using very small values so nodes size purely from content after measurement
+  return { width: 50, height: 30 };
+}
+
+/**
  * Apply dagre layout algorithm to graph nodes and edges with hierarchical awareness
  * @param nodes - The nodes to layout
  * @param edges - The edges connecting nodes
@@ -112,9 +136,10 @@ function layoutModules(
 
   const moduleIds = new Set(modules.map((m) => m.id));
 
-  // Add modules to graph (let dagre use default sizing)
+  // Add modules to graph with measured dimensions or minimal fallbacks
   modules.forEach((module) => {
-    g.setNode(module.id, {});
+    const dims = getNodeDimensions(module);
+    g.setNode(module.id, dims);
   });
 
   // Add edges between modules
@@ -129,15 +154,15 @@ function layoutModules(
   // Run layout
   dagreLib.layout(g);
 
-  // Position modules
+  // Position modules (dagre returns center position, convert to top-left)
   modules.forEach((module) => {
-    const dagreNode = g.node(module.id) as { x: number; y: number } | undefined;
+    const dagreNode = g.node(module.id) as { x: number; y: number; width: number; height: number } | undefined;
     if (dagreNode) {
       nodeMap.set(module.id, {
         ...module,
         position: {
-          x: dagreNode.x,
-          y: dagreNode.y,
+          x: dagreNode.x - dagreNode.width / 2,
+          y: dagreNode.y - dagreNode.height / 2,
         },
       });
     }
@@ -210,10 +235,11 @@ function layoutNodesWithinContainer(
   g.setDefaultNodeLabel(() => ({}));
   g.setDefaultEdgeLabel(() => ({}));
 
-  // Add children to graph
+  // Add children to graph with measured dimensions or minimal fallbacks
   const childIds = new Set(children.map((c) => c.id));
   children.forEach((child) => {
-    g.setNode(child.id, {});
+    const dims = getNodeDimensions(child);
+    g.setNode(child.id, dims);
   });
 
   // Add edges between children
@@ -228,15 +254,15 @@ function layoutNodesWithinContainer(
   // Run layout
   dagreLib.layout(g);
 
-  // Position children relative to parent (VueFlow handles the parent offset automatically)
+  // Position children relative to parent (dagre returns center position, convert to top-left)
   children.forEach((child) => {
-    const dagreNode = g.node(child.id) as { x: number; y: number } | undefined;
+    const dagreNode = g.node(child.id) as { x: number; y: number; width: number; height: number } | undefined;
     if (dagreNode) {
       nodeMap.set(child.id, {
         ...child,
         position: {
-          x: dagreNode.x,
-          y: dagreNode.y,
+          x: dagreNode.x - dagreNode.width / 2,
+          y: dagreNode.y - dagreNode.height / 2,
         },
       });
     }
@@ -268,7 +294,8 @@ function layoutOrphanNodes(
 
   const orphanIds = new Set(orphanNodes.map((n) => n.id));
   orphanNodes.forEach((node) => {
-    g.setNode(node.id, {});
+    const dims = getNodeDimensions(node);
+    g.setNode(node.id, dims);
   });
 
   edges
@@ -282,13 +309,13 @@ function layoutOrphanNodes(
   dagreLib.layout(g);
 
   orphanNodes.forEach((node) => {
-    const dagreNode = g.node(node.id) as { x: number; y: number } | undefined;
+    const dagreNode = g.node(node.id) as { x: number; y: number; width: number; height: number } | undefined;
     if (dagreNode) {
       nodeMap.set(node.id, {
         ...node,
         position: {
-          x: dagreNode.x,
-          y: dagreNode.y,
+          x: dagreNode.x - dagreNode.width / 2,
+          y: dagreNode.y - dagreNode.height / 2,
         },
       });
     }

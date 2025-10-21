@@ -9,11 +9,17 @@ import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/ty
 const NODES_CACHE_KEY = 'typescript-viewer-nodes';
 const EDGES_CACHE_KEY = 'typescript-viewer-edges';
 
-interface GraphStore {
+/**
+ * Graph store return type for proper Pinia typing
+ */
+interface GraphStoreReturn {
+  // State as refs (Pinia requirement)
   nodes: Ref<DependencyNode[]>;
   edges: Ref<GraphEdge[]>;
   selectedNode: Ref<DependencyNode | null>;
   cacheKey: Ref<string | null>;
+
+  // Actions
   setNodes: (newNodes: DependencyNode[]) => void;
   setEdges: (newEdges: GraphEdge[]) => void;
   setSelectedNode: (node: DependencyNode | null) => void;
@@ -22,9 +28,9 @@ interface GraphStore {
 }
 
 /**
- * Pinia store for graph state management
+ * Pinia store for graph state management with proper typing
  */
-export const useGraphStore = defineStore('graph', (): GraphStore => {
+export const useGraphStore = defineStore('graph', (): GraphStoreReturn => {
   // State
   const nodes = ref<DependencyNode[]>([]);
   const edges = ref<GraphEdge[]>([]);

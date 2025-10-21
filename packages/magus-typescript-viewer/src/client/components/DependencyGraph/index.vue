@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Background } from '@vue-flow/background';
 import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
-import { computed, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
 import { clusterByFolder } from '../../graph/cluster/folders';
@@ -40,14 +40,76 @@ const props = defineProps<DependencyGraphProps>();
 // Get graph state from Pinia store
 const graphStore = useGraphStore();
 const graphSettings = useGraphSettings();
-const nodes = computed(() => graphStore['nodes']);
-const edges = computed(() => graphStore['edges']);
-const selectedNode = computed(() => graphStore['selectedNode']);
+const nodes = computed(() => graphStore.nodes);
+const edges = computed(() => graphStore.edges);
+const selectedNode = computed(() => graphStore.selectedNode);
 
-const { fitView } = useVueFlow();
+const { fitView, getNodes } = useVueFlow();
 
 // Keep a reference to the layout processor for cleanup
-let layoutProcessor: WebWorkerLayoutProcessor | null = null;
+const layoutProcessor = shallowRef<WebWorkerLayoutProcessor | null>(null);
+
+// Track layout state to prevent infinite loops - use refs for reactivity
+const isInitialLayout = ref(false);
+const hasAppliedMeasuredLayout = ref(false);
+
+// Memoize measured dimensions to avoid redundant collection
+const measuredDimensions = shallowRef<Map<string, { width: number; height: number }>>(new Map());
+
+// Computed: Node IDs set for fast lookups (memoized)
+const nodeIdsSet = computed(() => new Set(nodes.value.map((n) => n.id)));
+
+// Computed: Dynamic graph extents based on actual node positions + padding
+const graphExtents = computed(() => {
+  if (nodes.value.length === 0) {
+    // Default extents if no nodes
+    return {
+      translate: [
+        [-1000, -1000],
+        [1000, 1000],
+      ],
+      node: [
+        [-1000, -1000],
+        [1000, 1000],
+      ],
+    };
+  }
+
+  // Calculate bounding box of all nodes
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  nodes.value.forEach((node) => {
+    const x = node.position.x;
+    const y = node.position.y;
+
+    // Use actual node dimensions if available, minimal estimate otherwise
+    // These small values will be replaced once VueFlow measures the actual content
+    const width = typeof node.width === 'number' ? node.width : 50;
+    const height = typeof node.height === 'number' ? node.height : 30;
+
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + width);
+    maxY = Math.max(maxY, y + height);
+  });
+
+  // Add 5000px padding on all sides
+  const padding = 5000;
+
+  return {
+    translate: [
+      [minX - padding, minY - padding],
+      [maxX + padding, maxY + padding],
+    ],
+    node: [
+      [minX - padding, minY - padding],
+      [maxX + padding, maxY + padding],
+    ],
+  };
+});
 
 // Layout configuration state - dagre uses hierarchical layout with configurable direction
 const layoutConfig = {
@@ -76,12 +138,12 @@ const getHandlePositions = (
 // Create WebWorkerLayoutProcessor
 const initializeLayoutProcessor = () => {
   // Clean up previous instance if it exists
-  if (layoutProcessor) {
-    layoutProcessor.dispose();
+  if (layoutProcessor.value) {
+    layoutProcessor.value.dispose();
   }
 
   // Create a new instance
-  layoutProcessor = new WebWorkerLayoutProcessor({
+  layoutProcessor.value = new WebWorkerLayoutProcessor({
     direction: layoutConfig.direction,
     nodeSpacing: layoutConfig.nodeSpacing,
     rankSpacing: layoutConfig.rankSpacing,
@@ -91,24 +153,137 @@ const initializeLayoutProcessor = () => {
   });
 };
 
+// Prevent browser zoom gestures on mount
+onMounted(() => {
+  // Prevent default zoom behavior on wheel with ctrl/cmd
+  const preventBrowserZoom = (e: WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+    }
+  };
+
+  // Prevent pinch zoom on trackpad/touchscreen
+  const preventPinchZoom = (e: TouchEvent) => {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  };
+
+  // Prevent gesture zoom (Safari)
+  const preventGestureZoom = (e: Event) => {
+    e.preventDefault();
+  };
+
+  document.addEventListener('wheel', preventBrowserZoom, { passive: false });
+  document.addEventListener('touchmove', preventPinchZoom, { passive: false });
+  document.addEventListener('gesturestart', preventGestureZoom);
+  document.addEventListener('gesturechange', preventGestureZoom);
+  document.addEventListener('gestureend', preventGestureZoom);
+
+  // Store cleanup functions
+  onUnmounted(() => {
+    document.removeEventListener('wheel', preventBrowserZoom);
+    document.removeEventListener('touchmove', preventPinchZoom);
+    document.removeEventListener('gesturestart', preventGestureZoom);
+    document.removeEventListener('gesturechange', preventGestureZoom);
+    document.removeEventListener('gestureend', preventGestureZoom);
+  });
+});
+
 // Clean up the worker when component unmounts
 onUnmounted(() => {
-  if (layoutProcessor) {
-    layoutProcessor.dispose();
-    layoutProcessor = null;
+  if (layoutProcessor.value) {
+    layoutProcessor.value.dispose();
+    layoutProcessor.value = null;
   }
+  // Clear memoized data
+  measuredDimensions.value.clear();
 });
+
+// Handler for when VueFlow nodes are initialized and measured
+const onNodesInitialized = async () => {
+  // Only run on initial layout, and only once
+  if (!isInitialLayout.value || hasAppliedMeasuredLayout.value) {
+    return;
+  }
+
+  graphLogger.info('Nodes initialized, collecting measured dimensions...');
+
+  // Get measured dimensions from VueFlow - use shallow access for performance
+  const vueFlowNodes = getNodes.value;
+  const newDimensions = new Map<string, { width: number; height: number }>();
+
+  // Only collect dimensions that have changed
+  let hasNewDimensions = false;
+
+  vueFlowNodes.forEach((node) => {
+    if (node.dimensions?.width && node.dimensions?.height) {
+      const existing = measuredDimensions.value.get(node.id);
+      const newDims = {
+        width: node.dimensions.width,
+        height: node.dimensions.height,
+      };
+
+      // Only add if dimensions changed or are new
+      if (!existing || existing.width !== newDims.width || existing.height !== newDims.height) {
+        newDimensions.set(node.id, newDims);
+        hasNewDimensions = true;
+        graphLogger.debug(`Node ${node.id} measured: ${newDims.width}x${newDims.height}`);
+      } else {
+        newDimensions.set(node.id, existing);
+      }
+    }
+  });
+
+  // Only proceed if we have new dimensions
+  if (!hasNewDimensions && measuredDimensions.value.size > 0) {
+    graphLogger.info('No dimension changes, skipping re-layout');
+    hasAppliedMeasuredLayout.value = true;
+    isInitialLayout.value = false;
+    return;
+  }
+
+  graphLogger.info(
+    `Collected ${newDimensions.size} node dimensions (${hasNewDimensions ? 'with changes' : 'no changes'})`
+  );
+
+  // Now re-run layout with measured dimensions
+  if (newDimensions.size > 0) {
+    // Mark that we're applying measured layout to prevent infinite loop
+    hasAppliedMeasuredLayout.value = true;
+    isInitialLayout.value = false;
+
+    // Store memoized dimensions
+    measuredDimensions.value = newDimensions;
+
+    // Add measured dimensions to nodes - avoid full map if possible
+    const nodesWithDimensions = nodes.value.map((node) => {
+      const dims = newDimensions.get(node.id);
+      if (dims) {
+        return {
+          ...node,
+          measured: dims,
+          width: dims.width,
+          height: dims.height,
+        };
+      }
+      return node;
+    });
+
+    await processGraphLayout({ nodes: nodesWithDimensions, edges: edges.value });
+  }
+};
 
 // Process graph layout using web worker
 const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: GraphEdge[] }) => {
-  if (!layoutProcessor) return;
+  if (!layoutProcessor.value) return;
 
   try {
     // Start performance measurement
     performance.mark('layout-start');
 
     // Process layout using the web worker
-    const result = await layoutProcessor.processLayout(graphData);
+    const result = await layoutProcessor.value.processLayout(graphData);
 
     // Force the correct types for nodes and edges
     const typedNodes = result.nodes as unknown as DependencyNode[];
@@ -171,8 +346,8 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     });
 
     // Update nodes without transition for better dragging performance
-    graphStore['setNodes'](nodesWithCorrectHandles);
-    graphStore['setEdges'](typedEdges);
+    graphStore.setNodes(nodesWithCorrectHandles);
+    graphStore.setEdges(typedEdges);
 
     // Debug: Verify store state
     graphLogger.info('Store edges count:', edges.value.length);
@@ -203,8 +378,8 @@ const initializeGraph = async () => {
   // Early return if no data
   if (!props.data || !props.data.packages || props.data.packages.length === 0) {
     graphLogger.warn('No data available to create graph');
-    graphStore['setNodes']([]);
-    graphStore['setEdges']([]);
+    graphStore.setNodes([]);
+    graphStore.setEdges([]);
     return;
   }
 
@@ -242,9 +417,10 @@ const initializeGraph = async () => {
 
   // CRITICAL: Filter edges to only include those connecting visible nodes
   // This prevents "Edge source or target is missing" errors from VueFlow
-  const nodeIds = new Set(graphNodes.map((n) => n.id));
+  // Use computed Set for better performance
+  const nodeIdsLocal = new Set(graphNodes.map((n) => n.id));
   const edgesBeforeFilter = graphEdges.length;
-  graphEdges = graphEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+  graphEdges = graphEdges.filter((e) => nodeIdsLocal.has(e.source) && nodeIdsLocal.has(e.target));
 
   // Debug: Log edge creation
   graphLogger.info(
@@ -269,9 +445,8 @@ const initializeGraph = async () => {
       graphEdges.every((e) => e.hidden === false)
     );
 
-    // Validate edge connections
-    const nodeIds = new Set(graphNodes.map((n) => n.id));
-    const invalidEdges = graphEdges.filter((e) => !nodeIds.has(e.source) || !nodeIds.has(e.target));
+    // Validate edge connections (reuse nodeIdsLocal from above)
+    const invalidEdges = graphEdges.filter((e) => !nodeIdsLocal.has(e.source) || !nodeIdsLocal.has(e.target));
     if (invalidEdges.length > 0) {
       graphLogger.warn(`Found ${invalidEdges.length} edges with invalid source/target IDs:`, invalidEdges.slice(0, 3));
     } else {
@@ -293,6 +468,11 @@ const initializeGraph = async () => {
     edgesToLayout = edgesToLayout.filter((e) => clusterNodeIds.has(e.source) && clusterNodeIds.has(e.target));
   }
 
+  // Set flags for initial layout with measurement
+  isInitialLayout.value = true;
+  hasAppliedMeasuredLayout.value = false;
+  measuredDimensions.value.clear(); // Clear any previous measurements
+
   await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
 
   performance.mark('graph-init-end');
@@ -305,22 +485,25 @@ watch(() => props.data, initializeGraph, { immediate: true });
 // Single click handler - highlight connected nodes
 const onNodeClick = ({ node }: { node: unknown }): void => {
   const clickedNode = node as DependencyNode;
-  graphStore['setSelectedNode'](clickedNode);
+  graphStore.setSelectedNode(clickedNode);
 
-  // Find all connected nodes
-  const connectedNodeIds = new Set<string>([clickedNode.id]);
-  edges.value.forEach((edge: GraphEdge) => {
+  // Calculate connected nodes locally to avoid reactive loops
+  // We get a snapshot of edges at this moment
+  const edgesSnapshot = edges.value;
+  const connected = new Set<string>([clickedNode.id]);
+
+  edgesSnapshot.forEach((edge: GraphEdge) => {
     if (edge.source === clickedNode.id) {
-      connectedNodeIds.add(edge.target);
+      connected.add(edge.target);
     } else if (edge.target === clickedNode.id) {
-      connectedNodeIds.add(edge.source);
+      connected.add(edge.source);
     }
   });
 
   // Update nodes with highlighting
-  graphStore['setNodes'](
+  graphStore.setNodes(
     nodes.value.map((n: DependencyNode) => {
-      const isConnected = connectedNodeIds.has(n.id);
+      const isConnected = connected.has(n.id);
       const isClicked = n.id === clickedNode.id;
 
       return {
@@ -336,7 +519,7 @@ const onNodeClick = ({ node }: { node: unknown }): void => {
   );
 
   // Update edges with highlighting
-  graphStore['setEdges'](
+  graphStore.setEdges(
     edges.value.map((edge: GraphEdge) => {
       const isConnected = edge.source === clickedNode.id || edge.target === clickedNode.id;
 
@@ -356,7 +539,7 @@ const onNodeClick = ({ node }: { node: unknown }): void => {
 // Double click handler - show detailed view
 const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => {
   const selectedNode = node as DependencyNode;
-  graphStore['setSelectedNode'](selectedNode);
+  graphStore.setSelectedNode(selectedNode);
 
   // If it's a module node, show its internal structure
   if (selectedNode.type === 'module') {
@@ -618,18 +801,42 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
 };
 
 // Pane click handler to deselect and restore full graph
-const onPaneClick = async (): Promise<void> => {
-  graphStore['setSelectedNode'](null);
+const onPaneClick = (): void => {
+  graphStore.setSelectedNode(null);
 
-  graphLogger.info('Restoring full graph view');
+  graphLogger.info('Clearing selection, restoring default styling');
 
-  // Restore full graph by re-initializing
-  await initializeGraph();
+  // Reset node styles to default (remove highlighting)
+  graphStore.setNodes(
+    nodes.value.map((node: DependencyNode) => ({
+      ...node,
+      selected: false,
+      style: {
+        ...getNodeStyle(node.type as DependencyKind),
+        opacity: 1,
+        borderWidth: '1px',
+      },
+    }))
+  );
+
+  // Reset edge styles to default
+  graphStore.setEdges(
+    edges.value.map((edge: GraphEdge) => ({
+      ...edge,
+      selected: false,
+      animated: false,
+      style: {
+        ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
+        opacity: 1,
+        strokeWidth: 1,
+      },
+    }))
+  );
 };
 
 // Filter handler for relationship types
 const handleRelationshipFilterChange = (types: string[]) => {
-  graphStore['setEdges'](
+  graphStore.setEdges(
     edges.value.map((edge: GraphEdge) => ({
       ...edge,
       hidden: !types.includes(edge.data?.type ?? 'default'),
@@ -665,7 +872,7 @@ const handleNodeVisibilityChange = async () => {
 // Search result handler
 const handleSearchResult = (result: SearchResult) => {
   // Update node styling based on search results
-  graphStore['setNodes'](
+  graphStore.setNodes(
     nodes.value.map((node: DependencyNode) => ({
       ...node,
       selected: result.nodes.some((searchNode) => searchNode.id === node.id),
@@ -677,7 +884,7 @@ const handleSearchResult = (result: SearchResult) => {
   );
 
   // Update edge styling based on search results
-  graphStore['setEdges'](
+  graphStore.setEdges(
     edges.value.map((edge: GraphEdge) => ({
       ...edge,
       selected: result.edges.some((searchEdge) => searchEdge.id === edge.id),
@@ -690,7 +897,7 @@ const handleSearchResult = (result: SearchResult) => {
 
   // Highlight path if it exists
   if (result.path) {
-    graphStore['setNodes'](
+    graphStore.setNodes(
       nodes.value.map((node: DependencyNode) => ({
         ...node,
         style: {
@@ -731,7 +938,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
       if (nextNodeId) {
         const nextNode = nodes.value.find((node: DependencyNode) => node.id === nextNodeId);
         if (nextNode) {
-          graphStore['setSelectedNode'](nextNode);
+          graphStore.setSelectedNode(nextNode);
           void fitView({
             nodes: [nextNode.id],
             duration: 150,
@@ -762,7 +969,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 </script>
 
 <template>
-  <div class="h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
+  <div class="graph-container h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
     <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
     <button
       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
@@ -778,6 +985,8 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :min-zoom="0.1"
         :max-zoom="2"
         :default-viewport="{ x: 0, y: 0, zoom: 0.5 }"
+        :translate-extent="graphExtents.translate"
+        :node-extent="graphExtents.node"
         :snap-to-grid="true"
         :snap-grid="[15, 15]"
         :pan-on-scroll="true"
@@ -795,6 +1004,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         @node-click="onNodeClick"
         @node-double-click="onNodeDoubleClick"
         @pane-click="onPaneClick"
+        @nodes-initialized="onNodesInitialized"
       >
         <Background />
         <GraphControls
@@ -837,3 +1047,31 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
     </button>
   </div>
 </template>
+
+<style scoped>
+/* Prevent browser zoom on pinch gestures - let VueFlow handle it */
+.graph-container {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Prevent iOS Safari double-tap zoom */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure VueFlow container also prevents browser gestures */
+.graph-container :deep(.vue-flow) {
+  touch-action: none;
+}
+
+/* Prevent zoom on all child elements */
+.graph-container :deep(*) {
+  touch-action: none;
+}
+
+/* Allow text selection within nodes if needed */
+.graph-container :deep(.vue-flow__node) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+</style>

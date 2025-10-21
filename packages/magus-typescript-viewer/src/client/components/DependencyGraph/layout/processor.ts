@@ -49,9 +49,19 @@ export class LayoutProcessor {
       // Default to allow edges between same rank
       g.setDefaultEdgeLabel(() => ({}));
 
-      // Add nodes to dagre (no explicit sizing, let dagre use defaults)
+      // Add nodes to dagre with dimensions if available
       graph.nodes.forEach((node) => {
-        g.setNode(node.id, {});
+        // Try to get measured or explicit dimensions
+        const nodeWithDims = node as unknown as {
+          measured?: { width?: number; height?: number };
+          width?: number;
+          height?: number;
+        };
+        // Use minimal fallbacks to prevent NaN - nodes will size from content after VueFlow measures them
+        const width = nodeWithDims.measured?.width ?? nodeWithDims.width ?? 50;
+        const height = nodeWithDims.measured?.height ?? nodeWithDims.height ?? 30;
+
+        g.setNode(node.id, { width, height });
       });
 
       // Add edges to dagre
@@ -64,15 +74,15 @@ export class LayoutProcessor {
       // Perform layout
       dagre.layout(g);
 
-      // Extract positions - use raw dagre coordinates without centering
+      // Extract positions - dagre returns center position, convert to top-left
       const layoutedNodes = graph.nodes.map((node) => {
         const layoutNode = g.node(node.id);
 
         return {
           ...node,
           position: {
-            x: layoutNode.x,
-            y: layoutNode.y,
+            x: layoutNode.x - layoutNode.width / 2,
+            y: layoutNode.y - layoutNode.height / 2,
           },
         };
       });

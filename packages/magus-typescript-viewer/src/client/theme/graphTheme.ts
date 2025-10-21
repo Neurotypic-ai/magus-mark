@@ -27,7 +27,6 @@ export interface NodeTheme {
   padding: NodePadding;
   colors: NodeColors;
   borderRadius: number;
-  minDimensions: NodeDimensions;
 }
 
 // Edge-related type definitions
@@ -97,10 +96,6 @@ export const graphTheme: GraphTheme = {
       border: '#404040',
     },
     borderRadius: 4,
-    minDimensions: {
-      width: 100,
-      height: 30,
-    },
   },
   edges: {
     sizes: {
@@ -145,8 +140,6 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
     borderRadius: defaultTheme.nodes.borderRadius,
     border: `1px solid ${defaultTheme.nodes.colors.border}`,
     backgroundColor: defaultTheme.nodes.colors.background.default,
-    minWidth: defaultTheme.nodes.minDimensions.width,
-    minHeight: defaultTheme.nodes.minDimensions.height,
   };
 
   switch (type) {
@@ -155,20 +148,17 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
         ...baseStyle,
         backgroundColor: defaultTheme.nodes.colors.background.package,
         borderRadius: defaultTheme.nodes.borderRadius * 2,
-        minWidth: '200px',
         padding: '20px',
       };
     case 'module':
       return {
         ...baseStyle,
-        minWidth: '180px',
         padding: '16px',
       };
     case 'class':
     case 'interface':
       return {
         ...baseStyle,
-        minWidth: '200px',
         padding: '12px',
       };
     case 'group':
@@ -177,7 +167,6 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
         backgroundColor: 'rgba(255, 255, 255, 0.02)',
         borderStyle: 'dashed',
         borderColor: 'rgba(255, 255, 255, 0.15)',
-        minWidth: '180px',
         padding: '8px',
       };
     case 'property':
@@ -185,7 +174,6 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
         ...baseStyle,
         backgroundColor: 'rgba(100, 149, 237, 0.15)',
         borderColor: 'rgba(100, 149, 237, 0.4)',
-        minWidth: '180px',
         padding: '6px 10px',
       };
     case 'method':
@@ -193,7 +181,6 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
         ...baseStyle,
         backgroundColor: 'rgba(186, 85, 211, 0.15)',
         borderColor: 'rgba(186, 85, 211, 0.4)',
-        minWidth: '180px',
         padding: '6px 10px',
       };
     default:
