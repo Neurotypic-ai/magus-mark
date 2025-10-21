@@ -1,12 +1,11 @@
 import { createLogger } from '../../../shared/utils/logger';
-import { getNodeStyle } from '../../theme/graphTheme';
 
 import type { DependencyKind, DependencyNode, GraphEdge } from '../../components/DependencyGraph/types';
 
 const logger = createLogger('clusterByFolder');
 
 function getPathFromNode(node: DependencyNode): string | null {
-  const props = node.data?.properties;
+  const props = node.data.properties;
   if (!Array.isArray(props)) return null;
   const pathProp = props.find((p) => p.name === 'path');
   return typeof pathProp?.type === 'string' ? pathProp.type : null;
@@ -29,7 +28,7 @@ export function clusterByFolder(
   logger.info('Starting folder clustering');
   logger.debug(`Input: ${String(nodes.length)} nodes, ${String(edges.length)} edges`);
 
-  const modules = nodes.filter((n) => n.type === 'module');
+  const modules = nodes.filter((n) => n.data.type === 'module');
   logger.debug(`Found ${String(modules.length)} module nodes`);
 
   if (modules.length === 0) {
@@ -48,13 +47,16 @@ export function clusterByFolder(
     logger.debug(`Creating directory node: ${id}`);
     dirToId.set(dir, id);
     dirNodes.push({
-      id,
-      type: 'group' as DependencyKind,
+      group: 'nodes',
+      data: {
+        id,
+        label: dir || 'root',
+        type: 'group' as DependencyKind,
+      },
       position: { x: 0, y: 0 },
-      data: { label: dir || 'root' },
-      style: { ...getNodeStyle('group') },
-      // Group nodes ARE parents, they don't have parents themselves
-      // Remove expandParent and extent properties
+      selectable: true,
+      grabbable: true,
+      classes: 'group-node',
     });
     return id;
   }
@@ -62,7 +64,7 @@ export function clusterByFolder(
   logger.debug('Remapping module nodes to directory parents...');
   let remappedCount = 0;
   const remappedNodes = nodes.map((n) => {
-    if (n.type !== 'module') return n;
+    if (n.data.type !== 'module') return n;
     const p = getPathFromNode(n);
     if (!p) return n;
     const dir = getDirname(p);
@@ -70,9 +72,7 @@ export function clusterByFolder(
     remappedCount++;
     return {
       ...n,
-      parentNode: parentId,
-      extent: 'parent' as const,
-      data: { ...(n.data ?? {}), parentId },
+      data: { ...n.data, parent: parentId, parentId },
     } as DependencyNode;
   });
 

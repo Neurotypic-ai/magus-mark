@@ -31,6 +31,11 @@ const config: UserConfigExport = defineConfig({
   },
   worker: {
     format: 'es',
+    rollupOptions: {
+      output: {
+        inlineDynamicImports: true, // Bundle worker dependencies inline
+      },
+    },
   },
   build: {
     outDir: 'dist',
@@ -39,13 +44,14 @@ const config: UserConfigExport = defineConfig({
       output: {
         manualChunks: {
           'vue-vendor': ['vue', 'pinia'],
-          'flow-vendor': ['@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
+          'graph-vendor': ['cytoscape'],
         },
       },
     },
   },
   optimizeDeps: {
-    include: ['vue', 'pinia', '@vue-flow/core', '@vue-flow/background', '@vue-flow/controls'],
+    include: ['vue', 'pinia', 'cytoscape'],
+    exclude: ['elkjs'], // Exclude elkjs since it's used in a worker
   },
   resolve: {
     dedupe: ['vue'],

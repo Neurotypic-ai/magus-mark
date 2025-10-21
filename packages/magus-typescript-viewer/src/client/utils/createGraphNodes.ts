@@ -1,8 +1,5 @@
-import { Position } from '@vue-flow/core';
-
 import { createLogger } from '../../shared/utils/logger';
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
-import { getNodeStyle } from '../theme/graphTheme';
 
 import type {
   ClassStructure,
@@ -19,14 +16,6 @@ import type {
 const logger = createLogger('createGraphNodes');
 
 /**
- * Configuration for handle positions based on layout direction
- */
-interface HandlePositions {
-  sourcePosition: Position;
-  targetPosition: Position;
-}
-
-/**
  * Options for creating graph nodes
  */
 interface CreateGraphNodesOptions {
@@ -34,24 +23,6 @@ interface CreateGraphNodesOptions {
   includeClasses?: boolean;
   direction?: 'LR' | 'RL' | 'TB' | 'BT';
   visibleNodeTypes?: Set<DependencyKind>;
-}
-
-/**
- * Calculates handle positions based on layout direction
- * @param direction The layout direction
- * @returns Object containing source and target positions
- */
-function calculateHandlePositions(direction: 'LR' | 'RL' | 'TB' | 'BT'): HandlePositions {
-  switch (direction) {
-    case 'LR':
-      return { sourcePosition: Position.Right, targetPosition: Position.Left };
-    case 'RL':
-      return { sourcePosition: Position.Left, targetPosition: Position.Right };
-    case 'TB':
-      return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
-    case 'BT':
-      return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
-  }
 }
 
 /**
@@ -67,45 +38,6 @@ function shouldIncludeNodeType(nodeType: DependencyKind, visibleNodeTypes?: Set<
   // For structural types, always return true (they're controlled by other flags)
   if (nodeType === 'package' || nodeType === 'module' || nodeType === 'group') return true;
   return visibleNodeTypes.has(nodeType);
-}
-
-/**
- * Estimates node dimensions based on type and content
- * These estimates help the layout algorithm produce better initial layouts
- * @param nodeType The type of node
- * @param data The node data (for counting properties/methods)
- * @returns Estimated width and height in pixels
- */
-function estimateNodeDimensions(
-  nodeType: DependencyKind,
-  data?: { properties?: NodeProperty[]; methods?: NodeMethod[] }
-): { width: number; height: number } {
-  switch (nodeType) {
-    case 'package':
-      return { width: 300, height: 150 };
-    case 'module':
-      return { width: 250, height: 100 };
-    case 'group':
-      return { width: 400, height: 300 };
-    case 'class':
-    case 'interface': {
-      // Base dimensions
-      const baseWidth = 220;
-      const baseHeight = 60;
-
-      // Add height for properties and methods
-      const propertyCount = data?.properties?.length ?? 0;
-      const methodCount = data?.methods?.length ?? 0;
-      const itemHeight = 24; // Height per property/method row
-
-      return {
-        width: baseWidth,
-        height: baseHeight + (propertyCount + methodCount) * itemHeight,
-      };
-    }
-    default:
-      return { width: 180, height: 80 };
-  }
 }
 
 /**
@@ -147,155 +79,109 @@ function convertMethodsToNodeMethods(
 }
 
 /**
- * Creates a package node
+ * Creates a package node in Cytoscape format
  * @param pkg The package structure
- * @param positions Handle positions for the node
  * @returns A dependency node representing the package
  */
-function createPackageNode(pkg: PackageStructure, positions: HandlePositions): DependencyNode {
-  const dimensions = estimateNodeDimensions('package');
-
+function createPackageNode(pkg: PackageStructure): DependencyNode {
   return {
-    id: pkg.id,
-    type: 'package' as DependencyKind,
-    position: { x: 0, y: 0 },
-    sourcePosition: positions.sourcePosition,
-    targetPosition: positions.targetPosition,
-    expandParent: true,
-    width: dimensions.width,
-    height: dimensions.height,
+    group: 'nodes',
     data: {
+      id: pkg.id,
       label: pkg.name,
+      type: 'package' as DependencyKind,
       properties: [{ name: 'version', type: pkg.version, visibility: 'public' }],
     },
-    style: {
-      ...getNodeStyle('package'),
-      width: dimensions.width,
-      height: dimensions.height,
-    },
+    selectable: true,
+    grabbable: true,
+    classes: 'package-node',
   };
 }
 
 /**
- * Creates a module node
+ * Creates a module node in Cytoscape format
  * @param module The module structure
  * @param pkg The parent package
- * @param positions Handle positions for the node
  * @param includePackages Whether to include package parent relationships
  * @returns A dependency node representing the module
  */
-function createModuleNode(
-  module: ModuleStructure,
-  pkg: PackageStructure,
-  positions: HandlePositions,
-  includePackages: boolean
-): DependencyNode {
-  const dimensions = estimateNodeDimensions('module');
-
-  const moduleNode: DependencyNode = {
+function createModuleNode(module: ModuleStructure, pkg: PackageStructure, includePackages: boolean): DependencyNode {
+  const nodeData: DependencyNode['data'] = {
     id: module.id,
+    label: module.name,
     type: 'module' as DependencyKind,
-    position: { x: 0, y: 0 },
-    sourcePosition: positions.sourcePosition,
-    targetPosition: positions.targetPosition,
-    width: dimensions.width,
-    height: dimensions.height,
-    data: {
-      label: module.name,
-      properties: [
-        { name: 'package', type: pkg.name, visibility: 'public' },
-        { name: 'path', type: module.source.relativePath || '', visibility: 'public' },
-      ],
-    },
-    style: {
-      ...getNodeStyle('module'),
-      width: dimensions.width,
-      height: dimensions.height,
-    },
+    properties: [
+      { name: 'package', type: pkg.name, visibility: 'public' },
+      { name: 'path', type: module.source.relativePath || '', visibility: 'public' },
+    ],
   };
 
   // Only add parent relationship if packages are included
   if (includePackages) {
-    moduleNode.parentNode = pkg.id;
-    moduleNode.extent = 'parent' as const;
-    moduleNode.expandParent = true;
-    moduleNode.data = { ...moduleNode.data, parentId: pkg.id, label: moduleNode.data?.label ?? moduleNode.id };
+    nodeData.parent = pkg.id;
+    nodeData.parentId = pkg.id;
   }
 
-  return moduleNode;
-}
-
-/**
- * Creates a class node
- * @param cls The class structure
- * @param moduleId The parent module ID
- * @param positions Handle positions for the node
- * @returns A dependency node representing the class
- */
-function createClassNode(cls: ClassStructure, moduleId: string, positions: HandlePositions): DependencyNode {
-  const properties = convertPropertiesToNodeProperties(cls.properties);
-  const methods = convertMethodsToNodeMethods(cls.methods);
-  const dimensions = estimateNodeDimensions('class', { properties, methods });
-
   return {
-    id: cls.id,
-    type: 'class' as DependencyKind,
-    position: { x: 0, y: 0 },
-    sourcePosition: positions.sourcePosition,
-    targetPosition: positions.targetPosition,
-    parentNode: moduleId,
-    extent: 'parent' as const,
-    expandParent: true,
-    width: dimensions.width,
-    height: dimensions.height,
-    data: {
-      parentId: moduleId,
-      label: cls.name,
-      properties,
-      methods,
-    },
-    style: {
-      ...getNodeStyle('class'),
-      width: dimensions.width,
-      height: dimensions.height,
-    },
+    group: 'nodes',
+    data: nodeData,
+    selectable: true,
+    grabbable: true,
+    classes: 'module-node',
   };
 }
 
 /**
- * Creates an interface node
- * @param iface The interface structure
+ * Creates a class node in Cytoscape format
+ * @param cls The class structure
  * @param moduleId The parent module ID
- * @param positions Handle positions for the node
- * @returns A dependency node representing the interface
+ * @returns A dependency node representing the class
  */
-function createInterfaceNode(iface: InterfaceStructure, moduleId: string, positions: HandlePositions): DependencyNode {
-  const properties = convertPropertiesToNodeProperties(iface.properties);
-  const methods = convertMethodsToNodeMethods(iface.methods);
-  const dimensions = estimateNodeDimensions('interface', { properties, methods });
+function createClassNode(cls: ClassStructure, moduleId: string): DependencyNode {
+  const properties = convertPropertiesToNodeProperties(cls.properties);
+  const methods = convertMethodsToNodeMethods(cls.methods);
 
   return {
-    id: iface.id,
-    type: 'interface' as DependencyKind,
-    position: { x: 0, y: 0 },
-    sourcePosition: positions.sourcePosition,
-    targetPosition: positions.targetPosition,
-    parentNode: moduleId,
-    extent: 'parent' as const,
-    expandParent: true,
-    width: dimensions.width,
-    height: dimensions.height,
+    group: 'nodes',
     data: {
+      id: cls.id,
+      label: cls.name,
+      type: 'class' as DependencyKind,
+      parent: moduleId,
       parentId: moduleId,
-      label: iface.name,
       properties,
       methods,
     },
-    style: {
-      ...getNodeStyle('interface'),
-      width: dimensions.width,
-      height: dimensions.height,
+    selectable: true,
+    grabbable: true,
+    classes: 'class-node',
+  };
+}
+
+/**
+ * Creates an interface node in Cytoscape format
+ * @param iface The interface structure
+ * @param moduleId The parent module ID
+ * @returns A dependency node representing the interface
+ */
+function createInterfaceNode(iface: InterfaceStructure, moduleId: string): DependencyNode {
+  const properties = convertPropertiesToNodeProperties(iface.properties);
+  const methods = convertMethodsToNodeMethods(iface.methods);
+
+  return {
+    group: 'nodes',
+    data: {
+      id: iface.id,
+      label: iface.name,
+      type: 'interface' as DependencyKind,
+      parent: moduleId,
+      parentId: moduleId,
+      properties,
+      methods,
     },
+    selectable: true,
+    grabbable: true,
+    classes: 'interface-node',
   };
 }
 
@@ -303,7 +189,7 @@ function createInterfaceNode(iface: InterfaceStructure, moduleId: string, positi
  * Creates graph nodes from the provided dependency package graph data
  * @param data The dependency package graph data
  * @param options Configuration options for node creation
- * @returns Array of dependency nodes
+ * @returns Array of dependency nodes in Cytoscape format
  */
 export function createGraphNodes(
   data: DependencyPackageGraph,
@@ -311,16 +197,12 @@ export function createGraphNodes(
 ): DependencyNode[] {
   logger.info('Starting node creation');
   logger.debug(`Input: ${String(data.packages.length)} packages`);
-  const { includePackages = false, includeClasses = false, direction = 'LR', visibleNodeTypes } = options;
+  const { includePackages = false, includeClasses = false, visibleNodeTypes } = options;
   logger.debug('Options:', {
     includePackages,
     includeClasses,
-    direction,
     visibleNodeTypes: visibleNodeTypes ? Array.from(visibleNodeTypes) : 'all',
   });
-
-  const positions = calculateHandlePositions(direction);
-  logger.debug('Handle positions:', positions);
 
   const graphNodes: DependencyNode[] = [];
 
@@ -331,7 +213,7 @@ export function createGraphNodes(
       if (index < 3) {
         logger.debug(`Creating package node [${String(index)}]: ${pkg.name}`);
       }
-      graphNodes.push(createPackageNode(pkg, positions));
+      graphNodes.push(createPackageNode(pkg));
     });
     logger.debug(`Created ${String(data.packages.length)} package nodes`);
   } else {
@@ -348,7 +230,7 @@ export function createGraphNodes(
     if (pkg.modules && shouldIncludeNodeType('module', visibleNodeTypes)) {
       const modules = mapTypeCollection(pkg.modules, (module) => {
         // Add module node
-        graphNodes.push(createModuleNode(module, pkg, positions, includePackages));
+        graphNodes.push(createModuleNode(module, pkg, includePackages));
         moduleCount++;
 
         // Optionally add class and interface nodes
@@ -356,7 +238,7 @@ export function createGraphNodes(
           // Add class nodes
           if (module.classes && shouldIncludeNodeType('class', visibleNodeTypes)) {
             const classesAdded = mapTypeCollection(module.classes, (cls) => {
-              graphNodes.push(createClassNode(cls, module.id, positions));
+              graphNodes.push(createClassNode(cls, module.id));
               classCount++;
               return cls;
             }).length;
@@ -368,7 +250,7 @@ export function createGraphNodes(
           // Add interface nodes
           if (module.interfaces && shouldIncludeNodeType('interface', visibleNodeTypes)) {
             const interfacesAdded = mapTypeCollection(module.interfaces, (iface) => {
-              graphNodes.push(createInterfaceNode(iface, module.id, positions));
+              graphNodes.push(createInterfaceNode(iface, module.id));
               interfaceCount++;
               return iface;
             }).length;

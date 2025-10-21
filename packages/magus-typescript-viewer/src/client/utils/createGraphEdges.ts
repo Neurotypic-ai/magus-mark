@@ -1,8 +1,5 @@
-import { MarkerType } from '@vue-flow/core';
-
 import { createLogger } from '../../shared/utils/logger';
 import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
-import { getEdgeStyle } from '../theme/graphTheme';
 
 import type {
   ClassStructure,
@@ -15,15 +12,6 @@ import type {
 } from '../components/DependencyGraph/types';
 
 const logger = createLogger('createGraphEdges');
-
-/**
- * Common edge marker configuration
- */
-const EDGE_MARKER = {
-  type: MarkerType.ArrowClosed,
-  width: 20,
-  height: 20,
-};
 
 /**
  * Normalizes a file path by converting backslashes to forward slashes and removing redundant parts
@@ -106,22 +94,25 @@ function resolveImportPath(importerPath: string, importPath: string): string {
 }
 
 /**
- * Creates a graph edge with common properties
+ * Creates a graph edge in Cytoscape format
  * @param id The edge ID
  * @param source The source node ID
  * @param target The target node ID
  * @param edgeType The type of edge relationship
- * @returns A graph edge
+ * @returns A graph edge in Cytoscape format
  */
 function createEdge(id: string, source: string, target: string, edgeType: DependencyEdgeKind): GraphEdge {
   return {
-    id,
-    source,
-    target,
-    hidden: false,
-    data: { type: edgeType },
-    style: getEdgeStyle(edgeType),
-    markerEnd: EDGE_MARKER,
+    group: 'edges',
+    data: {
+      id,
+      source,
+      target,
+      type: edgeType,
+      label: edgeType,
+    },
+    selectable: true,
+    classes: `edge-${edgeType}`,
   };
 }
 
@@ -276,7 +267,7 @@ function createInterfaceInheritanceEdges(iface: InterfaceStructure): GraphEdge[]
 /**
  * Creates graph edges from the provided dependency package graph data
  * @param data The dependency package graph data
- * @returns Array of edges for the dependency graph
+ * @returns Array of edges for the dependency graph in Cytoscape format
  */
 export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   logger.info('Starting edge creation');

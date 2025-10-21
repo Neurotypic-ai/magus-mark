@@ -2,10 +2,11 @@ import { graphTheme } from '../../../theme/graphTheme';
 
 export interface LayoutConfig {
   // Core layout options
-  direction?: 'TB' | 'LR' | 'BT' | 'RL';
+  direction?: 'DOWN' | 'UP' | 'LEFT' | 'RIGHT';
   nodeSpacing?: number;
-  rankSpacing?: number;
+  layerSpacing?: number;
   edgeSpacing?: number;
+  algorithm?: 'layered' | 'force' | 'stress' | 'mrtree';
 
   // Margins and padding
   margins?: {
@@ -23,10 +24,11 @@ export interface LayoutConfig {
 }
 
 export const defaultLayoutConfig: LayoutConfig = {
-  direction: 'LR', // Left-to-right works better for hierarchical dependency graphs
+  direction: 'RIGHT', // Left-to-right (ELK: RIGHT) works better for hierarchical dependency graphs
   nodeSpacing: 150, // Increased for better node separation
-  rankSpacing: 250, // Increased for clearer hierarchy
+  layerSpacing: 250, // Increased for clearer hierarchy (previously rankSpacing)
   edgeSpacing: 50,
+  algorithm: 'layered', // ELK layered algorithm for hierarchical layouts
   margins: {
     top: 80,
     right: 80,

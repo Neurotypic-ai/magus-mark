@@ -1,5 +1,3 @@
-import type { Edge, Node, Position } from '@vue-flow/core';
-
 /**
  * Dependency kinds (node types)
  */
@@ -53,6 +51,7 @@ export interface NodeProperty {
  */
 export interface DependencyData {
   label: string;
+  type: DependencyKind;
   parentId?: string;
   methods?: NodeMethod[];
   properties?: NodeProperty[];
@@ -64,30 +63,65 @@ export interface DependencyData {
 }
 
 /**
- * Dependency node type extending ReactFlow's Node
+ * Edge data structure for relationships
  */
-export type DependencyNode = Node<DependencyData>;
+export interface EdgeData {
+  type: DependencyEdgeKind;
+  label?: string;
+  [key: string]: unknown;
+}
 
 /**
- * Props for dependency node components - adapted to work with XYFlow's requirements
+ * Cytoscape node data with type information
+ */
+export interface CytoscapeNodeData extends DependencyData {
+  id: string;
+  parent?: string;
+}
+
+/**
+ * Cytoscape edge data with type information
+ */
+export interface CytoscapeEdgeData extends EdgeData {
+  id: string;
+  source: string;
+  target: string;
+}
+
+/**
+ * Dependency node type for Cytoscape
+ */
+export interface DependencyNode {
+  group: 'nodes';
+  data: CytoscapeNodeData;
+  position?: { x: number; y: number };
+  selected?: boolean;
+  selectable?: boolean;
+  locked?: boolean;
+  grabbable?: boolean;
+  classes?: string;
+}
+
+/**
+ * Graph edge type for Cytoscape
+ */
+export interface GraphEdge {
+  group: 'edges';
+  data: CytoscapeEdgeData;
+  selected?: boolean;
+  selectable?: boolean;
+  classes?: string;
+}
+
+/**
+ * Props for dependency node components
  */
 export interface DependencyProps {
   id: string;
   type: DependencyKind;
   data: DependencyData;
   selected?: boolean;
-  width?: number;
-  height?: number;
-  sourcePosition?: Position;
-  targetPosition?: Position;
 }
-
-/**
- * Graph edge extending ReactFlow's Edge
- */
-export type GraphEdge = Edge<{
-  type?: DependencyEdgeKind;
-}>;
 
 /**
  * Unified graph structure
@@ -192,10 +226,11 @@ export interface DependencyPackageGraph {
  * Layout configuration
  */
 export interface LayoutConfig {
-  direction: 'TB' | 'LR' | 'RL' | 'BT';
+  direction: 'DOWN' | 'RIGHT' | 'LEFT' | 'UP';
   nodeSpacing: number;
-  rankSpacing: number;
+  layerSpacing: number;
   hierarchical: boolean;
+  algorithm: 'layered' | 'force' | 'stress' | 'mrtree';
 }
 
 /**
@@ -205,4 +240,52 @@ export interface SearchResult {
   nodes: DependencyNode[];
   edges: GraphEdge[];
   path?: DependencyNode[];
+}
+
+/**
+ * Type guard to check if an element is a node
+ */
+export function isNode(element: DependencyNode | GraphEdge): element is DependencyNode {
+  return element.group === 'nodes';
+}
+
+/**
+ * Type guard to check if an element is an edge
+ */
+export function isEdge(element: DependencyNode | GraphEdge): element is GraphEdge {
+  return element.group === 'edges';
+}
+
+/**
+ * Helper to convert Vue Flow style position to ELK direction
+ */
+export function toElkDirection(direction: string): 'DOWN' | 'RIGHT' | 'LEFT' | 'UP' {
+  switch (direction) {
+    case 'TB':
+      return 'DOWN';
+    case 'BT':
+      return 'UP';
+    case 'LR':
+      return 'RIGHT';
+    case 'RL':
+      return 'LEFT';
+    default:
+      return 'RIGHT';
+  }
+}
+
+/**
+ * Helper to convert ELK direction to readable string
+ */
+export function fromElkDirection(direction: 'DOWN' | 'RIGHT' | 'LEFT' | 'UP'): 'LR' | 'RL' | 'TB' | 'BT' {
+  switch (direction) {
+    case 'DOWN':
+      return 'TB';
+    case 'UP':
+      return 'BT';
+    case 'RIGHT':
+      return 'LR';
+    case 'LEFT':
+      return 'RL';
+  }
 }

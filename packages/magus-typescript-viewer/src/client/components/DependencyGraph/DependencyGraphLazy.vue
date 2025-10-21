@@ -90,7 +90,7 @@ onMounted(() => {
     };
 
     // Set up event listeners for common interactions
-    const graphElement = document.querySelector('.vue-flow');
+    const graphElement = document.querySelector('[role="application"]');
     if (graphElement) {
       const trackMousemove = trackInteraction('mousemove', () => {
         /* Track mousemove */

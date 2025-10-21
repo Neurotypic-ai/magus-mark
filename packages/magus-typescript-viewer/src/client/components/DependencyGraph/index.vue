@@ -1,23 +1,21 @@
 <script setup lang="ts">
-import { Background } from '@vue-flow/background';
-import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
-import { computed, onUnmounted, watch } from 'vue';
+import cytoscape from 'cytoscape';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
-import { clusterByFolder } from '../../graph/cluster/folders';
 import { collapseSccs } from '../../graph/cluster/scc';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
-import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
+import { getCytoscapeStylesheet } from '../../theme/cytoscapeTheme';
 import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
 import { measurePerformance } from '../../utils/performanceMonitoring';
 import GraphControls from './components/GraphControls.vue';
 import GraphSearch from './components/GraphSearch.vue';
 import NodeDetails from './components/NodeDetails.vue';
-import { mapTypeCollection } from './mapTypeCollection';
-import { nodeTypes } from './nodes/nodes';
+
+import type { Core as CytoscapeCore, ElementDefinition } from 'cytoscape';
 
 import type {
   DependencyEdgeKind,
@@ -27,8 +25,6 @@ import type {
   GraphEdge,
   SearchResult,
 } from './types';
-
-import '@vue-flow/core/dist/style.css';
 
 const graphLogger = createLogger('DependencyGraph');
 
@@ -45,51 +41,20 @@ const nodes = computed(() => graphStore['nodes']);
 const edges = computed(() => graphStore['edges']);
 const selectedNode = computed(() => graphStore['selectedNode']);
 
-const { fitView } = useVueFlow();
+// Cytoscape instance
+const cyRef = ref<CytoscapeCore | null>(null);
+const containerRef = ref<HTMLDivElement | null>(null);
 
 // Keep a reference to the layout processor for cleanup
 let layoutProcessor: WebWorkerLayoutProcessor | null = null;
 
-// Layout configuration state - dagre uses hierarchical layout with configurable direction
+// Layout configuration state
 const layoutConfig = {
-  direction: 'LR' as 'LR' | 'RL' | 'TB' | 'BT', // Left-to-right flow
-  nodeSpacing: 150, // Space between nodes in same rank (increased for better separation)
-  rankSpacing: 250, // Space between ranks (layers) - increased for clarity
-  edgeSpacing: 50, // Space between parallel edges
-};
-
-// Helper to get handle positions based on layout direction
-const getHandlePositions = (
-  direction: 'LR' | 'RL' | 'TB' | 'BT'
-): { sourcePosition: Position; targetPosition: Position } => {
-  switch (direction) {
-    case 'LR':
-      return { sourcePosition: Position.Right, targetPosition: Position.Left };
-    case 'RL':
-      return { sourcePosition: Position.Left, targetPosition: Position.Right };
-    case 'TB':
-      return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
-    case 'BT':
-      return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
-  }
-};
-
-// Create WebWorkerLayoutProcessor
-const initializeLayoutProcessor = () => {
-  // Clean up previous instance if it exists
-  if (layoutProcessor) {
-    layoutProcessor.dispose();
-  }
-
-  // Create a new instance
-  layoutProcessor = new WebWorkerLayoutProcessor({
-    direction: layoutConfig.direction,
-    nodeSpacing: layoutConfig.nodeSpacing,
-    rankSpacing: layoutConfig.rankSpacing,
-    edgeSpacing: layoutConfig.edgeSpacing,
-    theme: graphTheme,
-    animationDuration: 150,
-  });
+  direction: 'RIGHT' as 'DOWN' | 'UP' | 'LEFT' | 'RIGHT',
+  nodeSpacing: 150,
+  layerSpacing: 250,
+  edgeSpacing: 50,
+  algorithm: 'layered' as 'layered' | 'force' | 'stress' | 'mrtree',
 };
 
 // Clean up the worker when component unmounts
@@ -98,95 +63,84 @@ onUnmounted(() => {
     layoutProcessor.dispose();
     layoutProcessor = null;
   }
+  if (cyRef.value) {
+    cyRef.value.destroy();
+    cyRef.value = null;
+  }
 });
 
-// Process graph layout using web worker
+// Initialize Cytoscape
+const initializeCytoscape = () => {
+  if (!containerRef.value) return null;
+
+  const cy = cytoscape({
+    container: containerRef.value,
+    style: getCytoscapeStylesheet(),
+    minZoom: 0.1,
+    maxZoom: 2,
+    wheelSensitivity: 0.2,
+  });
+
+  // Add event listeners
+  cy.on('tap', 'node', (evt) => {
+    onNodeClick(evt.target);
+  });
+
+  cy.on('dbltap', 'node', (evt) => {
+    void onNodeDoubleClick(evt.target);
+  });
+
+  cy.on('tap', (evt) => {
+    if (evt.target === cy) {
+      void onPaneClick();
+    }
+  });
+
+  return cy;
+};
+
+// Process graph layout
 const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: GraphEdge[] }) => {
-  if (!layoutProcessor) return;
+  if (!cyRef.value || !layoutProcessor) return;
 
   try {
-    // Start performance measurement
     performance.mark('layout-start');
 
     // Process layout using the web worker
     const result = await layoutProcessor.processLayout(graphData);
 
-    // Force the correct types for nodes and edges
-    const typedNodes = result.nodes as unknown as DependencyNode[];
-    const typedEdges = result.edges as unknown as GraphEdge[];
+    graphLogger.info(`Layout complete: ${result.nodes.length} nodes, ${result.edges.length} edges`);
 
-    // Explicitly update handle positions based on current layout direction
-    // This ensures handles are correctly positioned even after worker processing
-    const { sourcePosition, targetPosition } = getHandlePositions(layoutConfig.direction);
-    const nodesWithCorrectHandles = typedNodes.map((node) => ({
-      ...node,
-      sourcePosition,
-      targetPosition,
-    }));
+    // Update the graph
+    cyRef.value.elements().remove();
 
-    // Debug: Check edges after layout processing
-    graphLogger.info(`After layout: ${typedEdges.length} edges`);
-    if (typedEdges.length > 0) {
-      graphLogger.info(
-        'Edges still have hidden=false:',
-        typedEdges.every((e) => e.hidden === false)
-      );
-      graphLogger.info('Sample edge after layout:', typedEdges[0]);
-    }
+    // Add nodes and edges to Cytoscape
+    const elements: ElementDefinition[] = [
+      ...result.nodes.map((n) => ({
+        group: 'nodes' as const,
+        data: n.data,
+        position: n.position,
+      })),
+      ...result.edges.map((e) => ({
+        group: 'edges' as const,
+        data: e.data,
+      })),
+    ];
 
-    // Minimal post-layout metrics
-    const idToBox = new Map<string, { x: number; y: number; w: number; h: number }>();
-    nodesWithCorrectHandles.forEach((n) => {
-      const measured = (n as unknown as { measured?: { width?: number; height?: number } }).measured;
-      const w = measured?.width ?? (typeof n.width === 'number' ? n.width : 150);
-      const h = measured?.height ?? (typeof n.height === 'number' ? n.height : 50);
-      idToBox.set(n.id, { x: n.position.x, y: n.position.y, w, h });
-    });
-    let totalLen = 0;
-    const outdeg = new Map<string, number>();
-    const indeg = new Map<string, number>();
-    typedEdges.forEach((e) => {
-      outdeg.set(e.source, (outdeg.get(e.source) ?? 0) + 1);
-      indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
-      const s = idToBox.get(e.source);
-      const t = idToBox.get(e.target);
-      if (s && t) {
-        const sx = s.x + s.w / 2;
-        const sy = s.y + s.h / 2;
-        const tx = t.x + t.w / 2;
-        const ty = t.y + t.h / 2;
-        totalLen += Math.abs(sx - tx) + Math.abs(sy - ty);
-      }
-    });
-    const numNodes = nodesWithCorrectHandles.length;
-    const numEdges = typedEdges.length;
-    const avgOut = numNodes > 0 ? Array.from(outdeg.values()).reduce((a, b) => a + b, 0) / numNodes : 0;
-    const avgIn = numNodes > 0 ? Array.from(indeg.values()).reduce((a, b) => a + b, 0) / numNodes : 0;
-    graphLogger.info('Layout metrics', {
-      nodes: numNodes,
-      edges: numEdges,
-      avgOutdeg: avgOut,
-      avgIndeg: avgIn,
-      approxTotalEdgeLength: Math.round(totalLen),
-    });
+    cyRef.value.add(elements);
 
-    // Update nodes without transition for better dragging performance
-    graphStore['setNodes'](nodesWithCorrectHandles);
-    graphStore['setEdges'](typedEdges);
+    // Update store
+    graphStore['setNodes'](result.nodes);
+    graphStore['setEdges'](result.edges);
 
-    // Debug: Verify store state
-    graphLogger.info('Store edges count:', edges.value.length);
+    // Fit view
+    cyRef.value.fit(undefined, 50);
 
-    // Fit view after layout with faster animation
-    await fitView({ duration: 150, padding: 0.1 });
-
-    // End performance measurement
     performance.mark('layout-end');
     measurePerformance('graph-layout', 'layout-start', 'layout-end');
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Unknown error during layout processing');
     graphLogger.error('Layout processing failed:', error);
-    // Potentially update UI to show error state to the user
   }
 };
 
@@ -194,13 +148,10 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
 const initializeGraph = async () => {
   performance.mark('graph-init-start');
 
-  // Debug: Check if we have data
   graphLogger.info('Initializing graph with data:', {
     packageCount: props.data?.packages?.length ?? 0,
-    packages: props.data?.packages?.map((p) => ({ id: p.id, name: p.name })) ?? [],
   });
 
-  // Early return if no data
   if (!props.data || !props.data.packages || props.data.packages.length === 0) {
     graphLogger.warn('No data available to create graph');
     graphStore['setNodes']([]);
@@ -208,99 +159,52 @@ const initializeGraph = async () => {
     return;
   }
 
-  // Initialize layout processor
-  initializeLayoutProcessor();
+  // Initialize Cytoscape if needed
+  if (!cyRef.value) {
+    cyRef.value = initializeCytoscape();
+  }
 
-  // Create nodes and edges using extracted utilities
-  // includePackages and includeClasses control whether to create these node types at all
-  // These are controlled by the "Show package nodes" and "Show class details" toggles
+  // Initialize layout processor if needed
+  if (!layoutProcessor) {
+    layoutProcessor = new WebWorkerLayoutProcessor({
+      direction: layoutConfig.direction,
+      nodeSpacing: layoutConfig.nodeSpacing,
+      layerSpacing: layoutConfig.layerSpacing,
+      edgeSpacing: layoutConfig.edgeSpacing,
+      algorithm: layoutConfig.algorithm,
+      animationDuration: 150,
+    });
+  }
+
+  // Create nodes and edges
   const includePackages = graphSettings.showPackages;
   const includeClasses = graphSettings.showClasses;
 
   const graphNodes = createGraphNodes(props.data, {
     includePackages,
     includeClasses,
-    direction: layoutConfig.direction,
     visibleNodeTypes: graphSettings.visibleNodeTypes,
   });
 
-  // Debug: Log node creation details
-  graphLogger.info('Node creation details:', {
-    includePackages,
-    includeClasses,
-    totalNodesCreated: graphNodes.length,
-    nodeTypes: graphNodes.reduce(
-      (acc, n) => {
-        acc[n.type] = (acc[n.type] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    ),
-  });
+  let graphEdges = createGraphEdges(props.data);
 
-  let graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+  // Filter edges to only include those connecting visible nodes
+  const nodeIds = new Set(graphNodes.map((n) => n.data.id));
+  graphEdges = graphEdges.filter((e) => nodeIds.has(e.data.source) && nodeIds.has(e.data.target));
 
-  // CRITICAL: Filter edges to only include those connecting visible nodes
-  // This prevents "Edge source or target is missing" errors from VueFlow
-  const nodeIds = new Set(graphNodes.map((n) => n.id));
-  const edgesBeforeFilter = graphEdges.length;
-  graphEdges = graphEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+  graphLogger.info(`Created ${graphNodes.length} nodes and ${graphEdges.length} edges`);
 
-  // Debug: Log edge creation
-  graphLogger.info(
-    `Created ${graphNodes.length} nodes and ${graphEdges.length} edges (filtered from ${edgesBeforeFilter})`
-  );
-  if (graphEdges.length > 0) {
-    graphLogger.info('Sample edges:', graphEdges.slice(0, 3));
-    graphLogger.info('First edge FULL object:', JSON.stringify(graphEdges[0], null, 2));
-    const edgeTypes = [...new Set(graphEdges.map((e) => e.data?.type))];
-    graphLogger.info('Edge types:', edgeTypes);
+  // Optional transforms
+  let nodesToLayout = graphNodes;
+  let edgesToLayout = graphEdges;
 
-    // Count edges by type
-    const edgeTypeCounts: Record<string, number> = {};
-    graphEdges.forEach((e) => {
-      const type = e.data?.type ?? 'unknown';
-      edgeTypeCounts[type] = (edgeTypeCounts[type] ?? 0) + 1;
-    });
-    graphLogger.info('Edge counts by type:', edgeTypeCounts);
-
-    graphLogger.info(
-      'All edges have hidden=false:',
-      graphEdges.every((e) => e.hidden === false)
-    );
-
-    // Validate edge connections
-    const nodeIds = new Set(graphNodes.map((n) => n.id));
-    const invalidEdges = graphEdges.filter((e) => !nodeIds.has(e.source) || !nodeIds.has(e.target));
-    if (invalidEdges.length > 0) {
-      graphLogger.warn(`Found ${invalidEdges.length} edges with invalid source/target IDs:`, invalidEdges.slice(0, 3));
-    } else {
-      graphLogger.info('All edge connections are valid');
-    }
-  } else {
-    graphLogger.warn('No edges created! Check data structure.');
-  }
-
-  // Optional transforms: SCC collapse then folder clustering
-  let nodesToLayout = graphNodes as DependencyNode[];
-  let edgesToLayout = graphEdges as GraphEdge[];
   if (graphSettings.collapseScc) {
     const collapsed = collapseSccs(nodesToLayout, edgesToLayout);
     nodesToLayout = collapsed.nodes as DependencyNode[];
     edgesToLayout = collapsed.edges as GraphEdge[];
-    // Re-filter edges after SCC collapse
-    const sccNodeIds = new Set(nodesToLayout.map((n) => n.id));
-    edgesToLayout = edgesToLayout.filter((e) => sccNodeIds.has(e.source) && sccNodeIds.has(e.target));
-  }
-  if (graphSettings.clusterByFolder) {
-    const clustered = clusterByFolder(nodesToLayout, edgesToLayout);
-    nodesToLayout = clustered.nodes as DependencyNode[];
-    edgesToLayout = clustered.edges as GraphEdge[];
-    // Re-filter edges after folder clustering
-    const clusterNodeIds = new Set(nodesToLayout.map((n) => n.id));
-    edgesToLayout = edgesToLayout.filter((e) => clusterNodeIds.has(e.source) && clusterNodeIds.has(e.target));
   }
 
+  // Process layout
   await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
 
   performance.mark('graph-init-end');
@@ -308,320 +212,69 @@ const initializeGraph = async () => {
 };
 
 // Watch for data changes
-watch(() => props.data, initializeGraph, { immediate: true });
+watch(() => props.data, initializeGraph, { immediate: false });
+
+// Initialize on mount
+onMounted(() => {
+  void initializeGraph();
+});
 
 // Single click handler - highlight connected nodes
-const onNodeClick = ({ node }: { node: unknown }): void => {
-  const clickedNode = node as DependencyNode;
-  graphStore['setSelectedNode'](clickedNode);
+const onNodeClick = (node: cytoscape.NodeSingular): void => {
+  const clickedNodeId = node.id();
+  const clickedNodeData = nodes.value.find((n) => n.data.id === clickedNodeId);
 
-  // Find all connected nodes
-  const connectedNodeIds = new Set<string>([clickedNode.id]);
-  edges.value.forEach((edge: GraphEdge) => {
-    if (edge.source === clickedNode.id) {
-      connectedNodeIds.add(edge.target);
-    } else if (edge.target === clickedNode.id) {
-      connectedNodeIds.add(edge.source);
-    }
+  if (!clickedNodeData) return;
+
+  graphStore['setSelectedNode'](clickedNodeData);
+
+  if (!cyRef.value) return;
+
+  // Find connected nodes
+  const connectedEdges = cyRef.value.edges().filter((edge) => {
+    return edge.source().id() === clickedNodeId || edge.target().id() === clickedNodeId;
   });
 
-  // Update nodes with highlighting
-  graphStore['setNodes'](
-    nodes.value.map((n: DependencyNode) => {
-      const isConnected = connectedNodeIds.has(n.id);
-      const isClicked = n.id === clickedNode.id;
+  const connectedNodes = connectedEdges.connectedNodes();
 
-      return {
-        ...n,
-        style: {
-          ...getNodeStyle(n.type as DependencyKind),
-          opacity: isConnected ? 1 : 0.3,
-          borderWidth: isClicked ? '3px' : isConnected ? '2px' : '1px',
-          borderColor: isClicked ? '#00ffff' : isConnected ? '#61dafb' : undefined,
-        },
-      };
-    })
-  );
+  // Reset all nodes/edges
+  cyRef.value.nodes().removeClass('highlighted dimmed selected');
+  cyRef.value.edges().removeClass('highlighted dimmed');
 
-  // Update edges with highlighting
-  graphStore['setEdges'](
-    edges.value.map((edge: GraphEdge) => {
-      const isConnected = edge.source === clickedNode.id || edge.target === clickedNode.id;
+  // Highlight connected elements
+  node.addClass('selected');
+  connectedNodes.addClass('highlighted');
+  connectedEdges.addClass('highlighted');
 
-      return {
-        ...edge,
-        style: {
-          ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
-          opacity: isConnected ? 1 : 0.2,
-          strokeWidth: isConnected ? 3 : 1,
-        },
-        animated: isConnected,
-      };
-    })
-  );
+  // Dim non-connected elements
+  cyRef.value.nodes().not(node).not(connectedNodes).addClass('dimmed');
+  cyRef.value.edges().not(connectedEdges).addClass('dimmed');
 };
 
 // Double click handler - show detailed view
-const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => {
-  const selectedNode = node as DependencyNode;
-  graphStore['setSelectedNode'](selectedNode);
+const onNodeDoubleClick = async (node: cytoscape.NodeSingular): Promise<void> => {
+  const nodeId = node.id();
+  const nodeData = nodes.value.find((n) => n.data.id === nodeId);
+
+  if (!nodeData) return;
+
+  graphStore['setSelectedNode'](nodeData);
 
   // If it's a module node, show its internal structure
-  if (selectedNode.type === 'module') {
-    graphLogger.info(`Expanding module view: ${selectedNode.data?.label}`);
+  if (nodeData.data.type === 'module') {
+    graphLogger.info(`Expanding module view: ${nodeData.data.label}`);
 
-    // Create detailed nodes for this module from the original data
-    const moduleData = props.data.packages
-      .flatMap((pkg) => Object.values(pkg.modules || {}))
-      .find((m) => m.id === selectedNode.id);
-
-    if (!moduleData) {
-      graphLogger.warn('Could not find module data');
-      return;
-    }
-
-    const detailedNodes: DependencyNode[] = [];
-    const detailedEdges: GraphEdge[] = [];
-
-    // Get handle positions based on current layout direction
-    const { sourcePosition, targetPosition } = getHandlePositions(layoutConfig.direction);
-
-    // Add the module node itself
-    detailedNodes.push({
-      ...selectedNode,
-      sourcePosition,
-      targetPosition,
-      style: {
-        ...selectedNode.style,
-        borderWidth: '3px',
-        borderColor: '#00ffff',
-      },
-    });
-
-    // Add all classes in this module
-    if (moduleData.classes) {
-      mapTypeCollection(moduleData.classes, (cls) => {
-        const properties = cls.properties
-          ? Object.values(cls.properties).map((p) => ({
-              name: p.name,
-              type: p.type,
-              visibility: p.visibility,
-            }))
-          : [];
-
-        const methods = cls.methods
-          ? Object.values(cls.methods).map((m) => ({
-              name: m.name,
-              returnType: m.returnType,
-              visibility: m.visibility,
-              signature: m.signature || `${m.name}(): ${m.returnType}`,
-            }))
-          : [];
-
-        detailedNodes.push({
-          id: cls.id,
-          type: 'class' as DependencyKind,
-          position: { x: 0, y: 0 },
-          sourcePosition,
-          targetPosition,
-          data: {
-            label: cls.name,
-            properties,
-            methods,
-          },
-          style: {
-            ...getNodeStyle('class'),
-            borderColor: '#4caf50',
-          },
-        });
-
-        // Add inheritance edge if exists
-        if (cls.extends_id) {
-          detailedEdges.push({
-            id: `${cls.id}-${cls.extends_id}-inheritance`,
-            source: cls.id,
-            target: cls.extends_id,
-            hidden: false,
-            data: { type: 'inheritance' as DependencyEdgeKind },
-            style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
-            markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
-          } as GraphEdge);
-        }
-
-        // Add implementation edges
-        if (cls.implemented_interfaces) {
-          Object.values(cls.implemented_interfaces).forEach((iface) => {
-            if (iface.id) {
-              detailedEdges.push({
-                id: `${cls.id}-${iface.id}-implements`,
-                source: cls.id,
-                target: iface.id,
-                hidden: false,
-                data: { type: 'implements' as DependencyEdgeKind },
-                style: { ...getEdgeStyle('implements'), strokeWidth: 3 },
-                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
-              } as GraphEdge);
-            }
-          });
-        }
-      });
-    }
-
-    // Add all interfaces in this module
-    if (moduleData.interfaces) {
-      mapTypeCollection(moduleData.interfaces, (iface) => {
-        const properties = iface.properties
-          ? Object.values(iface.properties).map((p) => ({
-              name: p.name,
-              type: p.type,
-              visibility: p.visibility,
-            }))
-          : [];
-
-        const methods = iface.methods
-          ? Object.values(iface.methods).map((m) => ({
-              name: m.name,
-              returnType: m.returnType,
-              visibility: m.visibility,
-              signature: m.signature || `${m.name}(): ${m.returnType}`,
-            }))
-          : [];
-
-        detailedNodes.push({
-          id: iface.id,
-          type: 'interface' as DependencyKind,
-          position: { x: 0, y: 0 },
-          sourcePosition,
-          targetPosition,
-          data: {
-            label: iface.name,
-            properties,
-            methods,
-          },
-          style: {
-            ...getNodeStyle('interface'),
-            borderColor: '#ff9800',
-          },
-        });
-
-        // Add interface inheritance edges
-        if (iface.extended_interfaces) {
-          Object.values(iface.extended_interfaces).forEach((extended) => {
-            if (extended.id) {
-              detailedEdges.push({
-                id: `${iface.id}-${extended.id}-inheritance`,
-                source: iface.id,
-                target: extended.id,
-                hidden: false,
-                data: { type: 'inheritance' as DependencyEdgeKind },
-                style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
-                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
-              } as GraphEdge);
-            }
-          });
-        }
-      });
-    }
-
-    // Add connected modules (imports)
-    const connectedModuleIds = new Set<string>();
-    edges.value.forEach((edge: GraphEdge) => {
-      if (edge.source === selectedNode.id) {
-        connectedModuleIds.add(edge.target);
-        detailedEdges.push({
-          ...edge,
-          style: { ...edge.style, stroke: '#61dafb', strokeWidth: 3 },
-          animated: true,
-        } as GraphEdge);
-      } else if (edge.target === selectedNode.id) {
-        connectedModuleIds.add(edge.source);
-        detailedEdges.push({
-          ...edge,
-          style: { ...edge.style, stroke: '#ffd700', strokeWidth: 3 },
-          animated: true,
-        } as GraphEdge);
-      }
-    });
-
-    // Add connected module nodes
-    connectedModuleIds.forEach((moduleId) => {
-      const connectedModule = nodes.value.find((n: DependencyNode) => n.id === moduleId);
-      if (connectedModule) {
-        detailedNodes.push({
-          ...connectedModule,
-          sourcePosition,
-          targetPosition,
-          style: {
-            ...connectedModule.style,
-            borderWidth: '2px',
-            borderColor: '#61dafb',
-          },
-        });
-      }
-    });
-
-    graphLogger.info(
-      `Showing ${detailedNodes.length} nodes (${detailedNodes.filter((n) => n.type === 'class').length} classes, ${detailedNodes.filter((n) => n.type === 'interface').length} interfaces) and ${detailedEdges.length} edges`
-    );
-
-    // Trigger re-layout with detailed subgraph
-    await processGraphLayout({
-      nodes: detailedNodes,
-      edges: detailedEdges,
-    });
-
-    // Fit view to the detailed subgraph
-    await fitView({
-      duration: 300,
-      padding: 0.2,
-    });
-  } else {
-    // For non-module nodes, just show connections
-    const connectedNodeIds = new Set<string>([selectedNode.id]);
-    const connectedEdges: GraphEdge[] = [];
-
-    edges.value.forEach((edge: GraphEdge) => {
-      if (edge.source === selectedNode.id) {
-        connectedNodeIds.add(edge.target);
-        connectedEdges.push(edge);
-      } else if (edge.target === selectedNode.id) {
-        connectedNodeIds.add(edge.source);
-        connectedEdges.push(edge);
-      }
-    });
-
-    const focusedNodes = nodes.value
-      .filter((n: DependencyNode) => connectedNodeIds.has(n.id))
-      .map((n: DependencyNode) => ({
-        ...n,
-        style: {
-          ...n.style,
-          borderWidth: n.id === selectedNode.id ? '3px' : '2px',
-          borderColor: n.id === selectedNode.id ? '#00ffff' : '#61dafb',
+    // TODO: Implement detailed module view
+    // For now, just zoom to the node
+    if (cyRef.value) {
+      cyRef.value.animate({
+        fit: {
+          eles: node,
+          padding: 100,
         },
-      }));
-
-    const focusedEdges = connectedEdges.map((edge: GraphEdge) => ({
-      ...edge,
-      style: {
-        ...edge.style,
-        stroke: '#00ffff',
-        strokeWidth: 4,
-        opacity: 1,
-      },
-      animated: true,
-    }));
-
-    await processGraphLayout({
-      nodes: focusedNodes,
-      edges: focusedEdges,
-    });
-
-    await fitView({
-      duration: 300,
-      padding: 0.3,
-      nodes: Array.from(connectedNodeIds),
-    });
+        duration: 300,
+      });
+    }
   }
 };
 
@@ -629,219 +282,193 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
 const onPaneClick = async (): Promise<void> => {
   graphStore['setSelectedNode'](null);
 
-  graphLogger.info('Restoring full graph view');
+  if (cyRef.value) {
+    cyRef.value.nodes().removeClass('highlighted dimmed selected');
+    cyRef.value.edges().removeClass('highlighted dimmed');
+    cyRef.value.fit(undefined, 50);
+  }
 
-  // Restore full graph by re-initializing
-  await initializeGraph();
+  graphLogger.info('Restoring full graph view');
 };
 
 // Filter handler for relationship types
 const handleRelationshipFilterChange = (types: string[]) => {
-  graphStore['setEdges'](
-    edges.value.map((edge: GraphEdge) => ({
-      ...edge,
-      hidden: !types.includes(edge.data?.type ?? 'default'),
-    }))
-  );
+  if (!cyRef.value) return;
+
+  cyRef.value.edges().forEach((edge) => {
+    const edgeType = edge.data('type') as string;
+    if (types.includes(edgeType)) {
+      edge.style('display', 'element');
+    } else {
+      edge.style('display', 'none');
+    }
+  });
 };
 
 // Layout change handler
-const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }) => {
+const handleLayoutChange = async (config: { direction?: string; nodeSpacing?: number; layerSpacing?: number }) => {
   if (config.direction) {
-    layoutConfig.direction = config.direction as 'LR' | 'RL' | 'TB' | 'BT';
+    switch (config.direction) {
+      case 'LR':
+        layoutConfig.direction = 'RIGHT';
+        break;
+      case 'RL':
+        layoutConfig.direction = 'LEFT';
+        break;
+      case 'TB':
+        layoutConfig.direction = 'DOWN';
+        break;
+      case 'BT':
+        layoutConfig.direction = 'UP';
+        break;
+    }
   }
   if (config.nodeSpacing !== undefined) {
     layoutConfig.nodeSpacing = config.nodeSpacing;
   }
-  if (config.rankSpacing !== undefined) {
-    layoutConfig.rankSpacing = config.rankSpacing;
+  if (config.layerSpacing !== undefined) {
+    layoutConfig.layerSpacing = config.layerSpacing;
   }
 
   // Recreate layout processor with new config
-  initializeLayoutProcessor();
+  if (layoutProcessor) {
+    layoutProcessor.dispose();
+  }
+  layoutProcessor = new WebWorkerLayoutProcessor({
+    direction: layoutConfig.direction,
+    nodeSpacing: layoutConfig.nodeSpacing,
+    layerSpacing: layoutConfig.layerSpacing,
+    edgeSpacing: layoutConfig.edgeSpacing,
+    algorithm: layoutConfig.algorithm,
+    animationDuration: 150,
+  });
 
-  // Re-run layout with updated configuration
+  // Re-run layout
   await initializeGraph();
 };
 
 // Node visibility change handler
 const handleNodeVisibilityChange = async () => {
-  // Re-initialize graph when node visibility changes
   await initializeGraph();
 };
 
 // Search result handler
 const handleSearchResult = (result: SearchResult) => {
-  // Update node styling based on search results
-  graphStore['setNodes'](
-    nodes.value.map((node: DependencyNode) => ({
-      ...node,
-      selected: result.nodes.some((searchNode) => searchNode.id === node.id),
-      style: {
-        ...getNodeStyle(node.type as DependencyKind),
-        opacity: result.nodes.length === 0 ? 1 : result.nodes.some((searchNode) => searchNode.id === node.id) ? 1 : 0.2,
-      },
-    }))
-  );
+  if (!cyRef.value) return;
 
-  // Update edge styling based on search results
-  graphStore['setEdges'](
-    edges.value.map((edge: GraphEdge) => ({
-      ...edge,
-      selected: result.edges.some((searchEdge) => searchEdge.id === edge.id),
-      style: {
-        ...getEdgeStyle(toDependencyEdgeKind(edge.data?.type)),
-        opacity: result.edges.length === 0 ? 1 : result.edges.some((searchEdge) => searchEdge.id === edge.id) ? 1 : 0.2,
-      },
-    }))
-  );
+  // Reset highlighting
+  cyRef.value.nodes().removeClass('highlighted dimmed search-result');
+  cyRef.value.edges().removeClass('highlighted dimmed search-result');
 
-  // Highlight path if it exists
-  if (result.path) {
-    graphStore['setNodes'](
-      nodes.value.map((node: DependencyNode) => ({
-        ...node,
-        style: {
-          ...getNodeStyle(node.type as DependencyKind),
-          opacity: result.path?.some((pathNode) => pathNode.id === node.id) ? 1 : 0.2,
-          borderWidth: result.path?.some((pathNode) => pathNode.id === node.id)
-            ? graphTheme.edges.sizes.width.selected
-            : graphTheme.edges.sizes.width.default,
-        },
-      }))
-    );
+  if (result.nodes.length === 0) return;
+
+  // Highlight search results
+  result.nodes.forEach((node) => {
+    const cyNode = cyRef.value!.getElementById(node.data.id);
+    cyNode.addClass('search-result');
+  });
+
+  result.edges.forEach((edge) => {
+    const cyEdge = cyRef.value!.getElementById(edge.data.id);
+    cyEdge.addClass('search-result');
+  });
+
+  // Dim non-results
+  cyRef.value.nodes().not('.search-result').addClass('dimmed');
+  cyRef.value.edges().not('.search-result').addClass('dimmed');
+
+  // Fit to search results
+  const resultNodes = cyRef.value.$('.search-result');
+  if (resultNodes.length > 0) {
+    cyRef.value.animate({
+      fit: {
+        eles: resultNodes,
+        padding: 50,
+      },
+      duration: 300,
+    });
   }
 };
-
-// Keyboard navigation handlers
-const handleKeyDown = (event: KeyboardEvent) => {
-  if (
-    selectedNode.value &&
-    (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'ArrowUp' || event.key === 'ArrowDown')
-  ) {
-    event.preventDefault();
-    const connectedEdges = edges.value.filter(
-      (edge: GraphEdge) => edge.source === selectedNode.value?.id || edge.target === selectedNode.value?.id
-    );
-    if (connectedEdges.length > 0) {
-      let nextNodeId: string | undefined;
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-        if (connectedEdges[0]) {
-          nextNodeId =
-            connectedEdges[0].source === selectedNode.value.id ? connectedEdges[0].target : connectedEdges[0].source;
-        }
-      } else {
-        const lastEdge = connectedEdges[connectedEdges.length - 1];
-        if (lastEdge) {
-          nextNodeId = lastEdge.source === selectedNode.value.id ? lastEdge.target : lastEdge.source;
-        }
-      }
-      if (nextNodeId) {
-        const nextNode = nodes.value.find((node: DependencyNode) => node.id === nextNodeId);
-        if (nextNode) {
-          graphStore['setSelectedNode'](nextNode);
-          void fitView({
-            nodes: [nextNode.id],
-            duration: 150,
-            padding: 0.5,
-          });
-        }
-      }
-    }
-  }
-};
-
-function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
-  if (
-    type === 'dependency' ||
-    type === 'devDependency' ||
-    type === 'peerDependency' ||
-    type === 'import' ||
-    type === 'export' ||
-    type === 'inheritance' ||
-    type === 'implements' ||
-    type === 'extends' ||
-    type === 'contains'
-  ) {
-    return type;
-  }
-  return 'dependency';
-}
 </script>
 
 <template>
-  <div class="h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
-    <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
-    <button
-      class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
-      @keydown="handleKeyDown"
-      aria-label="Press arrowclosed keys to navigate between connected nodes"
-    >
-      <!-- The actual graph -->
-      <VueFlow
-        :nodes="nodes"
-        :edges="edges"
-        :node-types="nodeTypes as any"
-        :fit-view-on-init="true"
-        :min-zoom="0.1"
-        :max-zoom="2"
-        :default-viewport="{ x: 0, y: 0, zoom: 0.5 }"
-        :snap-to-grid="true"
-        :snap-grid="[15, 15]"
-        :pan-on-scroll="true"
-        :zoom-on-scroll="true"
-        :zoom-on-pinch="true"
-        :pan-on-scroll-mode="PanOnScrollMode.Free"
-        :zoom-on-double-click="false"
-        :elevate-edges-on-select="true"
-        :default-edge-options="{
-          style: { stroke: '#61dafb', strokeWidth: 3 },
-          markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
-          zIndex: 1000,
-          type: 'step',
-        }"
-        @node-click="onNodeClick"
-        @node-double-click="onNodeDoubleClick"
-        @pane-click="onPaneClick"
-      >
-        <Background />
-        <GraphControls
-          @relationship-filter-change="handleRelationshipFilterChange"
-          @layout-change="handleLayoutChange"
-          @node-visibility-change="handleNodeVisibilityChange"
-          @toggle-show-packages="
-            (v: boolean) => {
-              graphSettings.setShowPackages(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-show-classes="
-            (v: boolean) => {
-              graphSettings.setShowClasses(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-cluster-folder="
-            (v: boolean) => {
-              graphSettings.setClusterByFolder(v);
-              void initializeGraph();
-            }
-          "
-        />
-        <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
-        <NodeDetails v-if="selectedNode" :node="selectedNode" />
+  <div class="h-full w-full relative" role="application" aria-label="TypeScript dependency graph visualization">
+    <!-- Cytoscape container -->
+    <div ref="containerRef" class="h-full w-full" />
 
-        <!-- Back to Full Graph button -->
-        <Panel v-if="selectedNode" position="bottom-left">
-          <button
-            @click="onPaneClick"
-            class="px-4 py-2 bg-primary-main text-white rounded-md hover:bg-primary-dark transition-colors shadow-lg border border-primary-light"
-            aria-label="Return to full graph view"
-          >
-            ← Back to Full Graph
-          </button>
-        </Panel>
-      </VueFlow>
-    </button>
+    <!-- Controls overlay -->
+    <div class="absolute top-4 left-4 z-10">
+      <GraphControls
+        @relationship-filter-change="handleRelationshipFilterChange"
+        @layout-change="handleLayoutChange"
+        @node-visibility-change="handleNodeVisibilityChange"
+        @zoom-in="
+          () =>
+            cyRef?.zoom({
+              level: cyRef.zoom() * 1.2,
+              renderedPosition: { x: cyRef.width() / 2, y: cyRef.height() / 2 },
+            })
+        "
+        @zoom-out="
+          () =>
+            cyRef?.zoom({
+              level: cyRef.zoom() * 0.8,
+              renderedPosition: { x: cyRef.width() / 2, y: cyRef.height() / 2 },
+            })
+        "
+        @fit-view="() => cyRef?.fit(undefined, 50)"
+        @reset-layout="() => void initializeGraph()"
+        @toggle-show-packages="
+          (v: boolean) => {
+            graphSettings.setShowPackages(v);
+            void initializeGraph();
+          }
+        "
+        @toggle-show-classes="
+          (v: boolean) => {
+            graphSettings.setShowClasses(v);
+            void initializeGraph();
+          }
+        "
+        @toggle-cluster-folder="
+          (v: boolean) => {
+            graphSettings.setClusterByFolder(v);
+            void initializeGraph();
+          }
+        "
+      />
+    </div>
+
+    <!-- Search overlay -->
+    <div class="absolute top-4 right-4 z-10">
+      <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
+    </div>
+
+    <!-- Node details panel -->
+    <div v-if="selectedNode" class="absolute bottom-4 right-4 z-10">
+      <NodeDetails :node="selectedNode" />
+    </div>
+
+    <!-- Back to Full Graph button -->
+    <div v-if="selectedNode" class="absolute bottom-4 left-4 z-10">
+      <button
+        @click="onPaneClick"
+        class="px-4 py-2 bg-primary-main text-white rounded-md hover:bg-primary-dark transition-colors shadow-lg border border-primary-light"
+        aria-label="Return to full graph view"
+      >
+        ← Back to Full Graph
+      </button>
+    </div>
   </div>
 </template>
+
+<style scoped>
+/* Ensure the container fills the available space */
+.h-full {
+  height: 100%;
+}
+
+.w-full {
+  width: 100%;
+}
+</style>

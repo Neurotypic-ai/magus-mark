@@ -1,7 +1,4 @@
-import { MarkerType } from '@vue-flow/core';
-
 import { createLogger } from '../../../shared/utils/logger';
-import { getNodeStyle } from '../../theme/graphTheme';
 
 import type { DependencyKind, DependencyNode, GraphEdge } from '../../components/DependencyGraph/types';
 
@@ -16,15 +13,15 @@ interface StronglyConnectedComponent {
  * Build adjacency list for module-level graph from edges of supported dependency kinds.
  */
 function buildAdjacency(nodes: DependencyNode[], edges: GraphEdge[]): Map<string, string[]> {
-  const moduleIds = new Set(nodes.filter((n) => n.type === 'module').map((n) => n.id));
+  const moduleIds = new Set(nodes.filter((n) => n.data.type === 'module').map((n) => n.data.id));
   const adj = new Map<string, string[]>();
   moduleIds.forEach((id) => adj.set(id, []));
 
   edges.forEach((e) => {
-    const type = (e.data?.type as string | undefined) ?? 'dependency';
+    const type = (e.data.type as string | undefined) ?? 'dependency';
     if (!['import', 'export', 'dependency'].includes(type)) return;
-    if (moduleIds.has(e.source) && moduleIds.has(e.target)) {
-      adj.get(e.source)?.push(e.target);
+    if (moduleIds.has(e.data.source) && moduleIds.has(e.data.target)) {
+      adj.get(e.data.source)?.push(e.data.target);
     }
   });
 
@@ -131,16 +128,16 @@ export function collapseSccs(
       logger.debug(`Creating group node for SCC with ${String(scc.memberIds.length)} members`);
     }
     return {
-      id: scc.id,
-      type: 'group' as DependencyKind,
-      position: { x: 0, y: 0 },
+      group: 'nodes',
       data: {
+        id: scc.id,
         label: 'Cycle (' + String(scc.memberIds.length) + ')',
+        type: 'group' as DependencyKind,
       },
-      style: {
-        ...getNodeStyle('group'),
-      },
-      expandParent: true,
+      position: { x: 0, y: 0 },
+      selectable: true,
+      grabbable: true,
+      classes: 'group-node',
     };
   });
   logger.debug(`Created ${String(groupNodes.length)} SCC group nodes`);
@@ -148,14 +145,12 @@ export function collapseSccs(
   logger.debug('Remapping nodes to SCC parents...');
   let remappedCount = 0;
   const remappedNodes: DependencyNode[] = nodes.map((n) => {
-    const sccId = moduleIdToSccId.get(n.id);
+    const sccId = moduleIdToSccId.get(n.data.id);
     if (!sccId) return n;
     remappedCount++;
     return {
       ...n,
-      parentNode: sccId,
-      extent: 'parent',
-      data: { ...(n.data ?? {}), parentId: sccId },
+      data: { ...n.data, parent: sccId, parentId: sccId },
     } as DependencyNode;
   });
   logger.debug(`Remapped ${String(remappedCount)} nodes to SCC groups`);
@@ -166,12 +161,12 @@ export function collapseSccs(
   let remappedEdges = 0;
 
   edges.forEach((e) => {
-    const type = (e.data?.type as string | undefined) ?? 'dependency';
-    const srcScc = moduleIdToSccId.get(e.source);
-    const tgtScc = moduleIdToSccId.get(e.target);
+    const type = (e.data.type as string | undefined) ?? 'dependency';
+    const srcScc = moduleIdToSccId.get(e.data.source);
+    const tgtScc = moduleIdToSccId.get(e.data.target);
 
-    const mappedSource = srcScc ?? e.source;
-    const mappedTarget = tgtScc ?? e.target;
+    const mappedSource = srcScc ?? e.data.source;
+    const mappedTarget = tgtScc ?? e.data.target;
 
     if (mappedSource === mappedTarget) {
       droppedIntraEdges++;
@@ -182,11 +177,12 @@ export function collapseSccs(
     if (!edgeMap.has(key)) {
       edgeMap.set(key, {
         ...e,
-        id: key,
-        source: mappedSource,
-        target: mappedTarget,
-        hidden: false,
-        markerEnd: e.markerEnd ?? { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+        data: {
+          ...e.data,
+          id: key,
+          source: mappedSource,
+          target: mappedTarget,
+        },
       });
       remappedEdges++;
     }

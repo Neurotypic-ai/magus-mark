@@ -122,87 +122,13 @@ body {
   height: 100%;
 }
 
-/* VueFlow customization */
-.vue-flow__handle {
-  width: 12px !important;
-  height: 12px !important;
-  background-color: transparent !important;
-  border: none !important;
-  opacity: 0 !important;
-  transition: all 0.15s ease-out !important;
-}
+/* Cytoscape customization */
+/* Cytoscape uses canvas rendering, so styling is done via the stylesheet API */
+/* See cytoscapeTheme.ts for graph styling configuration */
 
-.vue-flow__handle:hover {
-  opacity: 0.3 !important;
-  background-color: var(--color-primary-main) !important;
-  border: 2px solid #fff !important;
-}
-
-.vue-flow__edge {
-  pointer-events: all;
-}
-
-.vue-flow__edge-path {
-  stroke: rgba(255, 255, 255, 0.3) !important;
-  stroke-width: 1.5px !important;
-  cursor: pointer;
-  transition: all 0.15s ease-out !important;
-}
-
-.vue-flow__edge:hover .vue-flow__edge-path {
-  stroke: var(--color-primary-main) !important;
-  stroke-width: 2.5px !important;
-}
-
-.vue-flow__edge-text {
-  font-size: 10px !important;
-  fill: var(--color-text-secondary) !important;
-}
-
-.vue-flow__edge.selected .vue-flow__edge-path {
-  stroke: var(--color-primary-main) !important;
-  stroke-width: 2.5px !important;
-}
-
-.vue-flow__controls {
-  background: var(--color-background-paper) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-  border: 1px solid var(--color-border-default) !important;
-}
-
-.vue-flow__controls button {
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid var(--color-border-default) !important;
-  color: var(--color-text-secondary) !important;
-  padding: 8px !important;
-  transition: all 0.15s ease-out !important;
-}
-
-.vue-flow__controls button:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: var(--color-text-primary) !important;
-}
-
-.vue-flow__controls button:last-child {
-  border-bottom: none !important;
-}
-
-.vue-flow__panel {
-  background-color: transparent !important;
-}
-
-/* Improve node dragging performance */
-/* .vue-flow__node {
-  transition: none !important;
-  padding: 0 !important;
-  border: none !important;
-  background-color: transparent !important;
-  border-radius: 0.5rem !important;
-  overflow: visible !important;
-} */
-
-.vue-flow__node.dragging {
-  cursor: grabbing !important;
+/* Container styles for the Cytoscape graph */
+#cy {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-background-default);
 }

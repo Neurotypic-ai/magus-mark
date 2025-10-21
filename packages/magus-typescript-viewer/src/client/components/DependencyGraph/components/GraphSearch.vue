@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-import { Panel } from '@vue-flow/core';
-
-import type { DependencyNode, SearchResult } from '../types';
-import type { GraphEdge } from '../types';
+import type { DependencyNode, GraphEdge, SearchResult } from '../types';
 
 interface GraphSearchProps {
   nodes: DependencyNode[];
@@ -28,8 +25,10 @@ const handleSearch = () => {
     node.data?.label.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 
-  const relatedEdges = props.edges.filter((edge) =>
-    matchingNodes.some((node) => node.id === edge.source || node.id === edge.target)
+  const matchingNodeIds = new Set(matchingNodes.map((n) => n.data.id));
+
+  const relatedEdges = props.edges.filter(
+    (edge) => matchingNodeIds.has(edge.data.source) || matchingNodeIds.has(edge.data.target)
   );
 
   emit('search-result', {
@@ -44,24 +43,37 @@ const handleKeyDown = (event: KeyboardEvent) => {
     handleSearch();
   }
 };
+
+const handleClear = () => {
+  searchQuery.value = '';
+  emit('search-result', { nodes: [], edges: [], path: [] });
+};
 </script>
 
 <template>
-  <Panel position="top-left" class="mt-24">
-    <div class="flex gap-2 bg-background-paper p-2 rounded-lg border border-gray-700 shadow-lg">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Search nodes..."
-        @keydown="handleKeyDown"
-        class="px-3 py-1 bg-gray-800 text-white rounded border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
-      />
-      <button
-        @click="handleSearch"
-        class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors border border-gray-600"
-      >
-        Search
-      </button>
-    </div>
-  </Panel>
+  <div class="flex gap-2 bg-background-paper p-2 rounded-lg border border-gray-700 shadow-lg">
+    <input
+      v-model="searchQuery"
+      type="text"
+      placeholder="Search nodes..."
+      @keydown="handleKeyDown"
+      class="px-3 py-1 bg-gray-800 text-white rounded border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
+      aria-label="Search graph nodes"
+    />
+    <button
+      @click="handleSearch"
+      class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors border border-gray-600"
+      aria-label="Execute search"
+    >
+      Search
+    </button>
+    <button
+      v-if="searchQuery"
+      @click="handleClear"
+      class="px-2 py-1 bg-red-700 text-white rounded hover:bg-red-600 transition-colors border border-red-600"
+      aria-label="Clear search"
+    >
+      ×
+    </button>
+  </div>
 </template>

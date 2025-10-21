@@ -3,15 +3,11 @@
  * This offloads CPU-intensive operations from the main thread
  */
 
-import * as dagre from '@dagrejs/dagre';
-
 import { createLogger } from '../../shared/utils/logger';
-import { applyDagreLayout } from '../layout/dagreLayoutEngine';
+import { applyElkLayout } from '../layout/elkLayoutEngine';
 
-import type { Edge } from '@vue-flow/core';
-
-import type { DependencyNode } from '../components/DependencyGraph/types';
-import type { DagreLayoutConfig } from '../layout/dagreLayoutEngine';
+import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/types';
+import type { ElkLayoutConfig } from '../layout/elkLayoutEngine';
 
 const logger = createLogger('GraphLayoutWorker');
 
@@ -20,20 +16,20 @@ interface WorkerMessage {
   type: 'process-layout';
   payload: {
     nodes: DependencyNode[];
-    edges: Edge[];
-    config: DagreLayoutConfig;
+    edges: GraphEdge[];
+    config: ElkLayoutConfig;
   };
 }
 
-// Handle messages from the main thread using dagre layout
-self.onmessage = (event: MessageEvent<WorkerMessage>) => {
+// Handle messages from the main thread using ELK layout
+self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const { nodes, edges, config } = event.data.payload;
 
   try {
     const startTime = performance.now();
 
-    // Use the shared dagre layout engine
-    const result = applyDagreLayout(nodes, edges, config, dagre);
+    // Use the shared ELK layout engine (async)
+    const result = await applyElkLayout(nodes, edges, config);
 
     const duration = performance.now() - startTime;
     logger.info(`Layout completed in ${duration.toFixed(2)}ms for ${String(nodes.length)} nodes`);
