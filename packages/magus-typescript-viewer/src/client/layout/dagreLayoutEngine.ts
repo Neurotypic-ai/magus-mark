@@ -2,12 +2,14 @@
  * Shared Dagre Layout Engine
  * Core layout logic used by both WebWorker and synchronous fallback
  */
+import { DEFAULT_STRATEGIES, MultiAlgorithmLayoutEngine } from './multiAlgorithmLayoutEngine';
 
 import type * as dagre from '@dagrejs/dagre';
 import type { Edge } from '@vue-flow/core';
 
 import type { DependencyNode } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
+import type { LayoutStrategy } from './multiAlgorithmLayoutEngine';
 
 export interface DagreLayoutConfig {
   direction: 'TB' | 'BT' | 'LR' | 'RL';
@@ -16,6 +18,19 @@ export interface DagreLayoutConfig {
   ranksep: number;
   theme: GraphTheme;
   animationDuration?: number;
+  // Enhanced layout options
+  useMultiAlgorithm?: boolean;
+  layoutStrategy?: LayoutStrategy;
+  forceDirected?: {
+    iterations: number;
+    strength: number;
+    distance: number;
+    damping: number;
+  };
+  grid?: {
+    cellSize: number;
+    padding: number;
+  };
 }
 
 export interface LayoutResult {
@@ -74,6 +89,31 @@ export function applyDagreLayout(
   config: DagreLayoutConfig,
   dagreLib: typeof dagre
 ): LayoutResult {
+  // Use multi-algorithm layout if enabled
+  if (config.useMultiAlgorithm) {
+    const strategy = config.layoutStrategy ?? DEFAULT_STRATEGIES.balanced;
+    const multiEngine = new MultiAlgorithmLayoutEngine({
+      direction: config.direction,
+      nodesep: config.nodesep,
+      edgesep: config.edgesep,
+      ranksep: config.ranksep,
+      theme: config.theme,
+      animationDuration: config.animationDuration ?? 300,
+      strategy,
+      forceDirected: config.forceDirected ?? {
+        iterations: 100,
+        strength: 0.1,
+        distance: 200,
+        damping: 0.8,
+      },
+      grid: config.grid ?? {
+        cellSize: 300,
+        padding: 50,
+      },
+    });
+
+    return multiEngine.applyLayout(nodes, edges, dagreLib);
+  }
   // Separate nodes by hierarchy level
   const packages = nodes.filter((n) => n.type === 'package');
   const modules = nodes.filter((n) => n.type === 'module');

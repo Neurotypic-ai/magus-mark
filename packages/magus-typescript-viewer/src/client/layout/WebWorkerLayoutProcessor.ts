@@ -12,6 +12,7 @@ import type { Edge } from '@vue-flow/core';
 import type { DependencyNode } from '../components/DependencyGraph/types';
 import type { GraphTheme } from '../theme/graphTheme';
 import type { DagreLayoutConfig, LayoutResult } from './dagreLayoutEngine';
+import type { LayoutStrategy } from './multiAlgorithmLayoutEngine';
 
 const logger = createLogger('WebWorkerLayoutProcessor');
 
@@ -46,6 +47,18 @@ export interface WebWorkerLayoutConfig {
   edgeSpacing?: number;
   theme?: GraphTheme;
   animationDuration?: number;
+  useMultiAlgorithm?: boolean;
+  layoutStrategy?: LayoutStrategy;
+  forceDirected?: {
+    iterations: number;
+    strength: number;
+    distance: number;
+    damping: number;
+  };
+  grid?: {
+    cellSize: number;
+    padding: number;
+  };
 }
 
 /**

@@ -17,6 +17,45 @@ interface PersistedSettings {
   nodeSpacing: number;
   rankSpacing: number;
   enabledRelationshipTypes: string[];
+  // Enhanced layout options
+  useMultiAlgorithm: boolean;
+  layoutStrategy: 'balanced' | 'performance' | 'detailed';
+  forceDirectedConfig: {
+    iterations: number;
+    strength: number;
+    distance: number;
+    damping: number;
+  };
+  gridConfig: {
+    cellSize: number;
+    padding: number;
+  };
+  // Smart clustering options
+  useSmartClustering: boolean;
+  clusteringOptions: {
+    dependencyBased: boolean;
+    complexityBased: boolean;
+    couplingBased: boolean;
+    temporalBased: boolean;
+    customMetrics: string[];
+  };
+  // Visual hierarchy options
+  useVisualHierarchy: boolean;
+  visualHierarchyConfig: {
+    sizeByComplexity: boolean;
+    sizeByCoupling: boolean;
+    sizeByImportance: boolean;
+    colorByComplexity: boolean;
+    colorByCoupling: boolean;
+    colorByHealth: boolean;
+    showComplexityBadge: boolean;
+    showCouplingIndicator: boolean;
+    showHealthIndicator: boolean;
+    showImportanceGlow: boolean;
+    sizeMultiplier: number;
+    colorIntensity: number;
+    indicatorSize: number;
+  };
 }
 
 function isPersistedSettings(value: unknown): value is PersistedSettings {
@@ -37,7 +76,13 @@ function isPersistedSettings(value: unknown): value is PersistedSettings {
     (obj['rankSpacing'] === undefined || typeof obj['rankSpacing'] === 'number') &&
     (obj['enabledRelationshipTypes'] === undefined ||
       (Array.isArray(obj['enabledRelationshipTypes']) &&
-        obj['enabledRelationshipTypes'].every((item) => typeof item === 'string')))
+        obj['enabledRelationshipTypes'].every((item) => typeof item === 'string'))) &&
+    (obj['useMultiAlgorithm'] === undefined || typeof obj['useMultiAlgorithm'] === 'boolean') &&
+    (obj['layoutStrategy'] === undefined || typeof obj['layoutStrategy'] === 'string') &&
+    (obj['forceDirectedConfig'] === undefined || typeof obj['forceDirectedConfig'] === 'object') &&
+    (obj['gridConfig'] === undefined || typeof obj['gridConfig'] === 'object') &&
+    (obj['useSmartClustering'] === undefined || typeof obj['useSmartClustering'] === 'boolean') &&
+    (obj['clusteringOptions'] === undefined || typeof obj['clusteringOptions'] === 'object')
   );
 }
 
@@ -73,6 +118,44 @@ function saveSettings(settings: {
   nodeSpacing: number;
   rankSpacing: number;
   enabledRelationshipTypes: string[];
+  useMultiAlgorithm: boolean;
+  layoutStrategy: 'balanced' | 'performance' | 'detailed';
+  forceDirectedConfig: {
+    iterations: number;
+    strength: number;
+    distance: number;
+    damping: number;
+  };
+  gridConfig: {
+    cellSize: number;
+    padding: number;
+  };
+  // Smart clustering options
+  useSmartClustering: boolean;
+  clusteringOptions: {
+    dependencyBased: boolean;
+    complexityBased: boolean;
+    couplingBased: boolean;
+    temporalBased: boolean;
+    customMetrics: string[];
+  };
+  // Visual hierarchy options
+  useVisualHierarchy: boolean;
+  visualHierarchyConfig: {
+    sizeByComplexity: boolean;
+    sizeByCoupling: boolean;
+    sizeByImportance: boolean;
+    colorByComplexity: boolean;
+    colorByCoupling: boolean;
+    colorByHealth: boolean;
+    showComplexityBadge: boolean;
+    showCouplingIndicator: boolean;
+    showHealthIndicator: boolean;
+    showImportanceGlow: boolean;
+    sizeMultiplier: number;
+    colorIntensity: number;
+    indicatorSize: number;
+  };
 }) {
   logger.debug('Saving settings to localStorage:', settings);
   try {
@@ -129,6 +212,54 @@ export const useGraphSettings = defineStore('graphSettings', () => {
   const enabledRelationshipTypes = ref<string[]>(persisted?.enabledRelationshipTypes ?? defaultRelationshipTypes);
   logger.debug('Initial enabled relationship types:', enabledRelationshipTypes.value);
 
+  // Enhanced layout options
+  const useMultiAlgorithm = ref<boolean>(persisted?.useMultiAlgorithm ?? false);
+  const layoutStrategy = ref<'balanced' | 'performance' | 'detailed'>(persisted?.layoutStrategy ?? 'balanced');
+  const forceDirectedConfig = ref({
+    iterations: persisted?.forceDirectedConfig.iterations ?? 100,
+    strength: persisted?.forceDirectedConfig.strength ?? 0.1,
+    distance: persisted?.forceDirectedConfig.distance ?? 200,
+    damping: persisted?.forceDirectedConfig.damping ?? 0.8,
+  });
+  const gridConfig = ref({
+    cellSize: persisted?.gridConfig.cellSize ?? 300,
+    padding: persisted?.gridConfig.padding ?? 50,
+  });
+
+  // Smart clustering options
+  const useSmartClustering = ref<boolean>(persisted?.useSmartClustering ?? false);
+  const clusteringOptions = ref({
+    dependencyBased: persisted?.clusteringOptions.dependencyBased ?? true,
+    complexityBased: persisted?.clusteringOptions.complexityBased ?? true,
+    couplingBased: persisted?.clusteringOptions.couplingBased ?? true,
+    temporalBased: persisted?.clusteringOptions.temporalBased ?? false,
+    customMetrics: persisted?.clusteringOptions.customMetrics ?? [],
+  });
+
+  // Visual hierarchy options
+  const useVisualHierarchy = ref<boolean>(persisted?.useVisualHierarchy ?? false);
+  const visualHierarchyConfig = ref({
+    sizeByComplexity: persisted?.visualHierarchyConfig.sizeByComplexity ?? true,
+    sizeByCoupling: persisted?.visualHierarchyConfig.sizeByCoupling ?? false,
+    sizeByImportance: persisted?.visualHierarchyConfig.sizeByImportance ?? true,
+    colorByComplexity: persisted?.visualHierarchyConfig.colorByComplexity ?? true,
+    colorByCoupling: persisted?.visualHierarchyConfig.colorByCoupling ?? false,
+    colorByHealth: persisted?.visualHierarchyConfig.colorByHealth ?? true,
+    showComplexityBadge: persisted?.visualHierarchyConfig.showComplexityBadge ?? true,
+    showCouplingIndicator: persisted?.visualHierarchyConfig.showCouplingIndicator ?? true,
+    showHealthIndicator: persisted?.visualHierarchyConfig.showHealthIndicator ?? true,
+    showImportanceGlow: persisted?.visualHierarchyConfig.showImportanceGlow ?? true,
+    sizeMultiplier: persisted?.visualHierarchyConfig.sizeMultiplier ?? 1.0,
+    colorIntensity: persisted?.visualHierarchyConfig.colorIntensity ?? 0.7,
+    indicatorSize: persisted?.visualHierarchyConfig.indicatorSize ?? 12,
+  });
+  logger.debug('Initial enhanced layout options:', {
+    useMultiAlgorithm: useMultiAlgorithm.value,
+    layoutStrategy: layoutStrategy.value,
+    forceDirectedConfig: forceDirectedConfig.value,
+    gridConfig: gridConfig.value,
+  });
+
   // Watch for changes and persist to localStorage
   watch(
     [
@@ -140,6 +271,14 @@ export const useGraphSettings = defineStore('graphSettings', () => {
       nodeSpacing,
       rankSpacing,
       enabledRelationshipTypes,
+      useMultiAlgorithm,
+      layoutStrategy,
+      forceDirectedConfig,
+      gridConfig,
+      useSmartClustering,
+      clusteringOptions,
+      useVisualHierarchy,
+      visualHierarchyConfig,
     ],
     () => {
       saveSettings({
@@ -151,6 +290,14 @@ export const useGraphSettings = defineStore('graphSettings', () => {
         nodeSpacing: nodeSpacing.value,
         rankSpacing: rankSpacing.value,
         enabledRelationshipTypes: enabledRelationshipTypes.value,
+        useMultiAlgorithm: useMultiAlgorithm.value,
+        layoutStrategy: layoutStrategy.value,
+        forceDirectedConfig: forceDirectedConfig.value,
+        gridConfig: gridConfig.value,
+        useSmartClustering: useSmartClustering.value,
+        clusteringOptions: clusteringOptions.value,
+        useVisualHierarchy: useVisualHierarchy.value,
+        visualHierarchyConfig: visualHierarchyConfig.value,
       });
     },
     { deep: true }
@@ -191,6 +338,14 @@ export const useGraphSettings = defineStore('graphSettings', () => {
       nodeSpacing: nodeSpacing.value,
       rankSpacing: rankSpacing.value,
       enabledRelationshipTypes: enabledRelationshipTypes.value,
+      useMultiAlgorithm: useMultiAlgorithm.value,
+      layoutStrategy: layoutStrategy.value,
+      forceDirectedConfig: forceDirectedConfig.value,
+      gridConfig: gridConfig.value,
+      useSmartClustering: useSmartClustering.value,
+      clusteringOptions: clusteringOptions.value,
+      useVisualHierarchy: useVisualHierarchy.value,
+      visualHierarchyConfig: visualHierarchyConfig.value,
     });
   }
 
@@ -228,6 +383,74 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     enabledRelationshipTypes.value = types;
   }
 
+  // Enhanced layout actions
+  function setUseMultiAlgorithm(value: boolean): void {
+    logger.debug(`setUseMultiAlgorithm: ${String(useMultiAlgorithm.value)} -> ${String(value)}`);
+    useMultiAlgorithm.value = value;
+  }
+
+  function setLayoutStrategy(value: 'balanced' | 'performance' | 'detailed'): void {
+    logger.debug(`setLayoutStrategy: ${layoutStrategy.value} -> ${value}`);
+    layoutStrategy.value = value;
+  }
+
+  function setForceDirectedConfig(config: {
+    iterations: number;
+    strength: number;
+    distance: number;
+    damping: number;
+  }): void {
+    logger.debug('setForceDirectedConfig:', config);
+    forceDirectedConfig.value = config;
+  }
+
+  function setGridConfig(config: { cellSize: number; padding: number }): void {
+    logger.debug('setGridConfig:', config);
+    gridConfig.value = config;
+  }
+
+  // Smart clustering actions
+  function setUseSmartClustering(value: boolean): void {
+    logger.debug(`setUseSmartClustering: ${String(useSmartClustering.value)} -> ${String(value)}`);
+    useSmartClustering.value = value;
+  }
+
+  function setClusteringOptions(options: {
+    dependencyBased: boolean;
+    complexityBased: boolean;
+    couplingBased: boolean;
+    temporalBased: boolean;
+    customMetrics: string[];
+  }): void {
+    logger.debug('setClusteringOptions:', options);
+    clusteringOptions.value = options;
+  }
+
+  // Visual hierarchy actions
+  function setUseVisualHierarchy(value: boolean): void {
+    logger.debug(`setUseVisualHierarchy: ${String(useVisualHierarchy.value)} -> ${String(value)}`);
+    useVisualHierarchy.value = value;
+  }
+
+  function setVisualHierarchyConfig(config: {
+    sizeByComplexity: boolean;
+    sizeByCoupling: boolean;
+    sizeByImportance: boolean;
+    colorByComplexity: boolean;
+    colorByCoupling: boolean;
+    colorByHealth: boolean;
+    showComplexityBadge: boolean;
+    showCouplingIndicator: boolean;
+    showHealthIndicator: boolean;
+    showImportanceGlow: boolean;
+    sizeMultiplier: number;
+    colorIntensity: number;
+    indicatorSize: number;
+  }): void {
+    logger.debug('setVisualHierarchyConfig:', config);
+    visualHierarchyConfig.value = config;
+  }
+
   return {
     // View option refs
     showPackages,
@@ -240,6 +463,17 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     rankSpacing,
     // Relationship filter refs
     enabledRelationshipTypes,
+    // Enhanced layout refs
+    useMultiAlgorithm,
+    layoutStrategy,
+    forceDirectedConfig,
+    gridConfig,
+    // Smart clustering refs
+    useSmartClustering,
+    clusteringOptions,
+    // Visual hierarchy refs
+    useVisualHierarchy,
+    visualHierarchyConfig,
     // View actions
     setShowPackages,
     setShowClasses,
@@ -253,5 +487,16 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     setRankSpacing,
     // Relationship filter actions
     setEnabledRelationshipTypes,
+    // Enhanced layout actions
+    setUseMultiAlgorithm,
+    setLayoutStrategy,
+    setForceDirectedConfig,
+    setGridConfig,
+    // Smart clustering actions
+    setUseSmartClustering,
+    setClusteringOptions,
+    // Visual hierarchy actions
+    setUseVisualHierarchy,
+    setVisualHierarchyConfig,
   };
 });

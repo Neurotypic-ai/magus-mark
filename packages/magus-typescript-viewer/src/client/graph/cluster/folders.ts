@@ -1,7 +1,14 @@
 import { createLogger } from '../../../shared/utils/logger';
 import { getNodeStyle } from '../../theme/graphTheme';
+import { DEFAULT_CLUSTERING_OPTIONS, SmartClusteringEngine } from './smartClustering';
 
-import type { DependencyKind, DependencyNode, GraphEdge } from '../../components/DependencyGraph/types';
+import type {
+  DependencyKind,
+  DependencyNode,
+  DependencyPackageGraph,
+  GraphEdge,
+} from '../../components/DependencyGraph/types';
+import type { ClusteringOptions } from './smartClustering';
 
 const logger = createLogger('clusterByFolder');
 
@@ -82,4 +89,30 @@ export function clusterByFolder(
   logger.debug(`Output: ${String(dirNodes.length + remappedNodes.length)} nodes, ${String(edges.length)} edges`);
 
   return { nodes: [...dirNodes, ...remappedNodes], edges };
+}
+
+/**
+ * Apply smart clustering to the graph using multiple algorithms
+ */
+export function applySmartClustering(
+  nodes: DependencyNode[],
+  edges: GraphEdge[],
+  data: DependencyPackageGraph,
+  options: ClusteringOptions = DEFAULT_CLUSTERING_OPTIONS
+): { nodes: DependencyNode[]; edges: GraphEdge[]; clusters: unknown[]; metrics: unknown } {
+  logger.info('Starting smart clustering');
+  logger.debug(`Input: ${String(nodes.length)} nodes, ${String(edges.length)} edges`);
+
+  const clusteringEngine = new SmartClusteringEngine(options);
+  const result = clusteringEngine.clusterGraph(nodes, edges, data);
+
+  logger.info(`Smart clustering complete: ${String(result.clusters.length)} clusters`);
+  logger.debug('Clustering metrics:', result.metrics);
+
+  return {
+    nodes: result.nodes,
+    edges: result.edges,
+    clusters: result.clusters,
+    metrics: result.metrics,
+  };
 }

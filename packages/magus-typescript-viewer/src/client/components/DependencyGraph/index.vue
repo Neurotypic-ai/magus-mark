@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
+import { DEFAULT_ANALYTICS_CONFIG } from '../../analytics/graphAnalytics';
 import { clusterByFolder } from '../../graph/cluster/folders';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
@@ -14,6 +15,9 @@ import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
 import { detectCycles } from '../../utils/graphCycles';
 import { measurePerformance } from '../../utils/performanceMonitoring';
+import { DEFAULT_EDGE_CONFIG, EdgeVisualizationEngine } from '../../visualization/edgeVisualization';
+import AnalyticsDashboard from '../AnalyticsDashboard.vue';
+import EnhancedEdge from '../EnhancedEdge.vue';
 import GraphControls from './components/GraphControls.vue';
 import GraphSearch from './components/GraphSearch.vue';
 import NodeDetails from './components/NodeDetails.vue';
@@ -53,6 +57,10 @@ const layoutProcessor = shallowRef<WebWorkerLayoutProcessor | null>(null);
 const isInitialLayout = ref(false);
 const hasAppliedMeasuredLayout = ref(false);
 const isLayoutRunning = ref(false);
+
+// Edge visualization engine
+const edgeVisualizationEngine = ref<EdgeVisualizationEngine | null>(null);
+const enhancedEdges = ref<EnhancedEdge[]>([]);
 
 // Shallow equality helpers to avoid redundant reactive writes
 function areNodesShallowEqual(a: DependencyNode[], b: DependencyNode[]): boolean {
@@ -175,6 +183,11 @@ const initializeLayoutProcessor = () => {
     edgeSpacing: layoutConfig.edgeSpacing,
     theme: graphTheme,
     animationDuration: 150,
+    // Enhanced layout options
+    useMultiAlgorithm: graphSettings.useMultiAlgorithm,
+    layoutStrategy: graphSettings.layoutStrategy,
+    forceDirected: graphSettings.forceDirectedConfig,
+    grid: graphSettings.gridConfig,
   });
 };
 
@@ -205,6 +218,9 @@ onMounted(() => {
   document.addEventListener('gesturechange', preventGestureZoom);
   document.addEventListener('gestureend', preventGestureZoom);
 
+  // Initialize edge visualization engine
+  edgeVisualizationEngine.value = new EdgeVisualizationEngine(DEFAULT_EDGE_CONFIG);
+
   // Store cleanup functions
   onUnmounted(() => {
     document.removeEventListener('wheel', preventBrowserZoom);
@@ -212,6 +228,11 @@ onMounted(() => {
     document.removeEventListener('gesturestart', preventGestureZoom);
     document.removeEventListener('gesturechange', preventGestureZoom);
     document.removeEventListener('gestureend', preventGestureZoom);
+
+    // Clean up edge visualization
+    if (edgeVisualizationEngine.value) {
+      edgeVisualizationEngine.value.stopAnimations();
+    }
   });
 });
 
@@ -374,12 +395,50 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
       approxTotalEdgeLength: Math.round(totalLen),
     });
 
-    // Update nodes/edges only if changed to avoid recursive reactivity loops
-    if (!areNodesShallowEqual(nodes.value, nodesWithCorrectHandles)) {
-      graphStore.setNodes(nodesWithCorrectHandles);
+    // Apply smart clustering if enabled
+    let finalNodes = nodesWithCorrectHandles;
+    let finalEdges = typedEdges;
+
+    if (graphSettings.useSmartClustering) {
+      try {
+        const { applySmartClustering } = await import('../../graph/cluster/folders');
+        const clusteringResult = applySmartClustering(
+          finalNodes,
+          finalEdges,
+          props.data,
+          graphSettings.clusteringOptions
+        );
+        finalNodes = clusteringResult.nodes;
+        finalEdges = clusteringResult.edges;
+        graphLogger.info('Applied smart clustering');
+      } catch (err) {
+        graphLogger.warn('Smart clustering failed:', err);
+      }
     }
-    if (!areEdgesShallowEqual(edges.value, typedEdges)) {
-      graphStore.setEdges(typedEdges);
+
+    // Apply visual hierarchy if enabled
+    if (graphSettings.useVisualHierarchy) {
+      try {
+        const { applyVisualHierarchy } = await import('../../theme/graphTheme');
+        finalNodes = applyVisualHierarchy(finalNodes, finalEdges, graphSettings.visualHierarchyConfig);
+        graphLogger.info('Applied visual hierarchy');
+      } catch (err) {
+        graphLogger.warn('Visual hierarchy failed:', err);
+      }
+    }
+
+    // Update nodes/edges only if changed to avoid recursive reactivity loops
+    if (!areNodesShallowEqual(nodes.value, finalNodes)) {
+      graphStore.setNodes(finalNodes);
+    }
+    if (!areEdgesShallowEqual(edges.value, finalEdges)) {
+      graphStore.setEdges(finalEdges);
+
+      // Apply edge visualization
+      if (edgeVisualizationEngine.value) {
+        enhancedEdges.value = edgeVisualizationEngine.value.visualizeEdges(finalNodes, finalEdges);
+        edgeVisualizationEngine.value.startAnimations();
+      }
     }
 
     // Debug: Verify store state
@@ -554,6 +613,39 @@ const initializeGraph = async () => {
 
 // Watch for data changes
 watch(() => props.data, initializeGraph, { immediate: true });
+
+// Watch for enhanced layout settings changes
+watch(
+  () => [
+    graphSettings.useMultiAlgorithm,
+    graphSettings.layoutStrategy,
+    graphSettings.forceDirectedConfig,
+    graphSettings.gridConfig,
+  ],
+  () => {
+    initializeLayoutProcessor();
+    void initializeGraph();
+  },
+  { deep: true }
+);
+
+// Watch for clustering settings changes
+watch(
+  () => [graphSettings.useSmartClustering, graphSettings.clusteringOptions],
+  () => {
+    void initializeGraph();
+  },
+  { deep: true }
+);
+
+// Watch for visual hierarchy settings changes
+watch(
+  () => [graphSettings.useVisualHierarchy, graphSettings.visualHierarchyConfig],
+  () => {
+    void initializeGraph();
+  },
+  { deep: true }
+);
 
 // Single click handler - highlight connected nodes
 const onNodeClick = ({ node }: { node: unknown }): void => {
@@ -1091,6 +1183,21 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
           @relationship-filter-change="handleRelationshipFilterChange"
           @layout-change="handleLayoutChange"
           @node-visibility-change="handleNodeVisibilityChange"
+          @enhanced-layout-change="
+            () => {
+              void initializeGraph();
+            }
+          "
+          @clustering-change="
+            () => {
+              void initializeGraph();
+            }
+          "
+          @visual-hierarchy-change="
+            () => {
+              void initializeGraph();
+            }
+          "
           @toggle-show-packages="
             (v: boolean) => {
               graphSettings.setShowPackages(v);
@@ -1112,6 +1219,9 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         />
         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />
+
+        <!-- Analytics Dashboard -->
+        <AnalyticsDashboard :nodes="nodes" :edges="edges" :config="DEFAULT_ANALYTICS_CONFIG" />
 
         <!-- Back to Full Graph button -->
         <Panel v-if="selectedNode" position="bottom-left">

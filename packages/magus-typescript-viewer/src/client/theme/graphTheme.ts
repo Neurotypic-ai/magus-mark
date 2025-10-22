@@ -1,4 +1,12 @@
-import type { DependencyEdgeKind, DependencyKind } from '../components/DependencyGraph/types';
+import { DEFAULT_VISUAL_CONFIG, VisualHierarchyEngine } from './visualHierarchy';
+
+import type {
+  DependencyEdgeKind,
+  DependencyKind,
+  DependencyNode,
+  GraphEdge,
+} from '../components/DependencyGraph/types';
+import type { VisualConfig } from './visualHierarchy';
 
 type CSSProperties = Record<string, string | number | undefined>;
 
@@ -79,6 +87,7 @@ export interface GraphTheme {
   nodes: NodeTheme;
   edges: EdgeTheme;
   layout: LayoutTheme;
+  visualHierarchy?: VisualConfig;
 }
 
 // Theme configuration
@@ -128,6 +137,7 @@ export const graphTheme: GraphTheme = {
       margin: 30, // Base margin around the graph
     },
   },
+  visualHierarchy: DEFAULT_VISUAL_CONFIG,
 };
 
 // Create a type-safe theme instance for use in helper functions
@@ -263,4 +273,17 @@ export function getEdgeColor(type: DependencyEdgeKind): string {
     default:
       return defaultTheme.edges.colors.default;
   }
+}
+
+// Visual Hierarchy Helper
+export function applyVisualHierarchy(
+  nodes: DependencyNode[],
+  edges: GraphEdge[],
+  config?: VisualConfig
+): DependencyNode[] {
+  const visualConfig = config ?? defaultTheme.visualHierarchy;
+  const hierarchyEngine = new VisualHierarchyEngine(visualConfig);
+
+  hierarchyEngine.calculateMetrics(nodes, edges);
+  return hierarchyEngine.applyVisualHierarchy(nodes);
 }
