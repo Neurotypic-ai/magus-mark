@@ -114,6 +114,36 @@ export class GraphAnalyticsEngine {
     logger.debug('Calculating graph analytics');
     const calculationStart = startTime ?? performance.now();
 
+    // Handle empty graph case
+    if (nodes.length === 0) {
+      logger.debug('No nodes provided for analytics calculation');
+      const emptyMetrics: AnalyticsMetrics = {
+        totalNodes: 0,
+        totalEdges: edges.length,
+        totalPackages: 0,
+        totalModules: 0,
+        totalClasses: 0,
+        totalInterfaces: 0,
+        averageComplexity: 0,
+        maxComplexity: 0,
+        complexityDistribution: { low: 0, medium: 0, high: 0 },
+        averageCoupling: 0,
+        maxCoupling: 0,
+        couplingDistribution: { low: 0, medium: 0, high: 0 },
+        averageHealth: 0,
+        unhealthyNodes: 0,
+        healthDistribution: { excellent: 0, good: 0, moderate: 0, poor: 0 },
+        circularDependencies: 0,
+        dependencyDepth: 0,
+        dependencyBreadth: 0,
+        layoutTime: performance.now() - calculationStart,
+        renderTime: 0,
+        memoryUsage: 0,
+      };
+      this.metrics = emptyMetrics;
+      return emptyMetrics;
+    }
+
     // Calculate node analytics
     this.calculateNodeAnalytics(nodes, edges);
 
@@ -210,6 +240,29 @@ export class GraphAnalyticsEngine {
   }
 
   /**
+   * Get disconnected graph alerts
+   */
+  public getDisconnectedGraphAlerts(): string[] {
+    if (!this.metrics) return [];
+
+    const alerts: string[] = [];
+
+    // Check for completely disconnected graphs
+    if (this.metrics.totalNodes > 0 && this.metrics.totalEdges === 0) {
+      alerts.push(`🔗 Graph contains ${String(this.metrics.totalNodes)} disconnected nodes with no connections`);
+    }
+
+    // Check for graphs with very low connectivity
+    if (this.metrics.totalNodes > 1 && this.metrics.totalEdges < this.metrics.totalNodes - 1) {
+      alerts.push(
+        `🔗 Graph has low connectivity (${String(this.metrics.totalEdges)} edges for ${String(this.metrics.totalNodes)} nodes)`
+      );
+    }
+
+    return alerts;
+  }
+
+  /**
    * Start real-time analytics updates
    */
   public startRealTimeUpdates(
@@ -241,10 +294,13 @@ export class GraphAnalyticsEngine {
   private calculateNodeAnalytics(nodes: DependencyNode[], edges: GraphEdge[]): void {
     this.nodeAnalytics.clear();
 
+    // Handle case where there are no edges (disconnected nodes)
+    const safeEdges = edges;
+
     nodes.forEach((node) => {
-      const connections = edges.filter((e) => e.source === node.id || e.target === node.id);
-      const dependencies = edges.filter((e) => e.target === node.id).map((e) => e.source);
-      const dependents = edges.filter((e) => e.source === node.id).map((e) => e.target);
+      const connections = safeEdges.filter((e) => e.source === node.id || e.target === node.id);
+      const dependencies = safeEdges.filter((e) => e.target === node.id).map((e) => e.source);
+      const dependents = safeEdges.filter((e) => e.source === node.id).map((e) => e.target);
 
       const complexity = this.calculateNodeComplexity(node);
       const coupling = connections.length;
@@ -271,7 +327,10 @@ export class GraphAnalyticsEngine {
   private calculateEdgeAnalytics(_nodes: DependencyNode[], edges: GraphEdge[]): void {
     this.edgeAnalytics.clear();
 
-    edges.forEach((edge) => {
+    // Handle case where there are no edges
+    const safeEdges = edges;
+
+    safeEdges.forEach((edge) => {
       const sourceNode = this.nodeAnalytics.get(edge.source);
       const targetNode = this.nodeAnalytics.get(edge.target);
 
@@ -317,15 +376,18 @@ export class GraphAnalyticsEngine {
    * Count nodes by type
    */
   private countNodesByType(nodes: DependencyNode[]) {
+    // Handle empty nodes array
+    const safeNodes = nodes;
+
     const counts = {
-      totalNodes: nodes.length,
+      totalNodes: safeNodes.length,
       totalPackages: 0,
       totalModules: 0,
       totalClasses: 0,
       totalInterfaces: 0,
     };
 
-    nodes.forEach((node) => {
+    safeNodes.forEach((node) => {
       switch (node.type) {
         case 'package':
           counts.totalPackages++;
@@ -350,6 +412,16 @@ export class GraphAnalyticsEngine {
    */
   private calculateComplexityMetrics() {
     const complexities = Array.from(this.nodeAnalytics.values()).map((n) => n.complexity);
+
+    // Handle empty node set
+    if (complexities.length === 0) {
+      return {
+        averageComplexity: 0,
+        maxComplexity: 0,
+        complexityDistribution: { low: 0, medium: 0, high: 0 },
+      };
+    }
+
     const averageComplexity = complexities.reduce((sum, c) => sum + c, 0) / complexities.length;
     const maxComplexity = Math.max(...complexities);
 
@@ -367,6 +439,16 @@ export class GraphAnalyticsEngine {
    */
   private calculateCouplingMetrics() {
     const couplings = Array.from(this.nodeAnalytics.values()).map((n) => n.coupling);
+
+    // Handle empty node set
+    if (couplings.length === 0) {
+      return {
+        averageCoupling: 0,
+        maxCoupling: 0,
+        couplingDistribution: { low: 0, medium: 0, high: 0 },
+      };
+    }
+
     const averageCoupling = couplings.reduce((sum, c) => sum + c, 0) / couplings.length;
     const maxCoupling = Math.max(...couplings);
 
@@ -384,6 +466,16 @@ export class GraphAnalyticsEngine {
    */
   private calculateHealthMetrics() {
     const healths = Array.from(this.nodeAnalytics.values()).map((n) => n.health);
+
+    // Handle empty node set
+    if (healths.length === 0) {
+      return {
+        averageHealth: 0,
+        unhealthyNodes: 0,
+        healthDistribution: { excellent: 0, good: 0, moderate: 0, poor: 0 },
+      };
+    }
+
     const averageHealth = healths.reduce((sum, h) => sum + h, 0) / healths.length;
     const unhealthyNodes = healths.filter((h) => h < 4).length;
 

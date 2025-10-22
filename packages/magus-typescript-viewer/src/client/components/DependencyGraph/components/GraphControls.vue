@@ -33,9 +33,13 @@ const rankSpacing = computed({
   set: (value: number) => graphSettings.setRankSpacing(value),
 });
 
-// View options - use computed to reference the store's reactive refs
+// Node type visibility - use computed to reference the store's reactive refs
 const showPackages = computed(() => graphSettings.showPackages);
+const showModules = computed(() => graphSettings.showModules);
 const showClasses = computed(() => graphSettings.showClasses);
+const showInterfaces = computed(() => graphSettings.showInterfaces);
+const showTypes = computed(() => graphSettings.showTypes);
+const showEnums = computed(() => graphSettings.showEnums);
 const clusterByFolder = computed(() => graphSettings.clusterByFolder);
 
 // Relationship filters - use computed to reference the store's reactive refs
@@ -135,9 +139,29 @@ const handleShowPackagesToggle = (checked: boolean) => {
   emit('toggle-show-packages', checked);
 };
 
+const handleShowModulesToggle = (checked: boolean) => {
+  graphSettings.setShowModules(checked);
+  emit('toggle-show-modules', checked);
+};
+
 const handleShowClassesToggle = (checked: boolean) => {
   graphSettings.setShowClasses(checked);
   emit('toggle-show-classes', checked);
+};
+
+const handleShowInterfacesToggle = (checked: boolean) => {
+  graphSettings.setShowInterfaces(checked);
+  emit('toggle-show-interfaces', checked);
+};
+
+const handleShowTypesToggle = (checked: boolean) => {
+  graphSettings.setShowTypes(checked);
+  emit('toggle-show-types', checked);
+};
+
+const handleShowEnumsToggle = (checked: boolean) => {
+  graphSettings.setShowEnums(checked);
+  emit('toggle-show-enums', checked);
 };
 
 const handleClusterByFolderToggle = (checked: boolean) => {
@@ -301,9 +325,9 @@ const handleVisualHierarchyConfigChange = (config: {
         </div>
       </div>
 
-      <!-- View Options -->
+      <!-- Node Types Control -->
       <div class="mt-4 pt-4 border-t border-border-default">
-        <h4 class="text-sm font-semibold text-text-primary mb-2">View Options</h4>
+        <h4 class="text-sm font-semibold text-text-primary mb-2">Node Types</h4>
         <div class="flex flex-col gap-2">
           <label
             class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
@@ -314,7 +338,18 @@ const handleVisualHierarchyConfigChange = (config: {
               @change="(e) => handleShowPackagesToggle((e.target as HTMLInputElement).checked)"
               class="cursor-pointer accent-primary-main"
             />
-            <span class="text-xs">Show package nodes</span>
+            <span class="text-xs">Package</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              :checked="showModules"
+              @change="(e) => handleShowModulesToggle((e.target as HTMLInputElement).checked)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs">Module</span>
           </label>
           <label
             class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
@@ -325,7 +360,40 @@ const handleVisualHierarchyConfigChange = (config: {
               @change="(e) => handleShowClassesToggle((e.target as HTMLInputElement).checked)"
               class="cursor-pointer accent-primary-main"
             />
-            <span class="text-xs">Show class details</span>
+            <span class="text-xs">Class</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              :checked="showInterfaces"
+              @change="(e) => handleShowInterfacesToggle((e.target as HTMLInputElement).checked)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs">Interface</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              :checked="showTypes"
+              @change="(e) => handleShowTypesToggle((e.target as HTMLInputElement).checked)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs">Type</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
+              :checked="showEnums"
+              @change="(e) => handleShowEnumsToggle((e.target as HTMLInputElement).checked)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs">Enum</span>
           </label>
           <label
             class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"

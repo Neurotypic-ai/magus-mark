@@ -328,10 +328,14 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
   if (isLayoutRunning.value) return;
   isLayoutRunning.value = true;
 
-  try {
-    // Start performance measurement
-    performance.mark('layout-start');
+  // Use unique mark names to avoid conflicts with multiple calls
+  const timestamp = Date.now();
+  const startMark = `layout-start-${timestamp}`;
+  const endMark = `layout-end-${timestamp}`;
 
+  performance.mark(startMark);
+
+  try {
     // Process layout using the web worker
     const result = await layoutProcessor.value.processLayout(graphData);
 
@@ -447,168 +451,297 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     // Fit view after layout with faster animation (schedule microtask to avoid sync reactivity loop)
     await Promise.resolve();
     await fitView({ duration: 150, padding: 0.1 });
-
-    // End performance measurement
-    performance.mark('layout-end');
-    measurePerformance('graph-layout', 'layout-start', 'layout-end');
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Unknown error during layout processing');
     graphLogger.error('Layout processing failed:', error);
     // Potentially update UI to show error state to the user
   } finally {
+    // End performance measurement - always executed
+    performance.mark(endMark);
+    measurePerformance('graph-layout', startMark, endMark);
     isLayoutRunning.value = false;
   }
 };
 
-// Initialize graph
+// Progressive rendering phases
+// Note: Classes/interfaces/types/enums can render independently of modules
+// They will appear even if modules are disabled, but they still need modules
+// to exist in the data structure for proper parent-child relationships
+const RENDERING_PHASES = [
+  { name: 'packages', level: 0, types: ['package'] },
+  { name: 'modules', level: 1, types: ['module'] },
+  { name: 'classes', level: 2, types: ['class', 'interface', 'type', 'enum'] },
+] as const;
+
+// Progressive graph initialization
 const initializeGraph = async () => {
-  performance.mark('graph-init-start');
+  // Use unique mark names to avoid conflicts with multiple calls
+  const timestamp = Date.now();
+  const startMark = `graph-init-start-${timestamp}`;
+  const endMark = `graph-init-end-${timestamp}`;
 
-  // Debug: Check if we have data
-  graphLogger.info('Initializing graph with data:', {
-    packageCount: props.data?.packages?.length ?? 0,
-    packages: props.data?.packages?.map((p) => ({ id: p.id, name: p.name })) ?? [],
-  });
+  performance.mark(startMark);
 
-  // Early return if no data
-  if (!props.data || !props.data.packages || props.data.packages.length === 0) {
-    graphLogger.warn('No data available to create graph');
+  try {
+    // Debug: Check if we have data
+    graphLogger.info('Initializing graph with data:', {
+      packageCount: props.data?.packages?.length ?? 0,
+      packages: props.data?.packages?.map((p) => ({ id: p.id, name: p.name })) ?? [],
+    });
+
+    // Early return if no data
+    if (!props.data || !props.data.packages || props.data.packages.length === 0) {
+      graphLogger.warn('No data available to create graph');
+      graphStore.setNodes([]);
+      graphStore.setEdges([]);
+      return;
+    }
+
+    // Initialize layout processor
+    initializeLayoutProcessor();
+
+    // Clear existing graph
     graphStore.setNodes([]);
     graphStore.setEdges([]);
-    return;
+
+    // Progressive rendering: Add nodes in phases
+    await renderGraphProgressively();
+  } finally {
+    // End performance measurement - always executed
+    performance.mark(endMark);
+    measurePerformance('graph-initialization', startMark, endMark);
+  }
+};
+
+// Progressive rendering implementation
+const renderGraphProgressively = async () => {
+  const { addNodes, addEdges, fitView } = useVueFlow();
+
+  for (const phase of RENDERING_PHASES) {
+    graphLogger.info(`Starting rendering phase: ${phase.name}`);
+
+    // Create nodes for this phase
+    const phaseNodes = await createNodesForPhase(phase);
+    const phaseEdges = await createEdgesForPhase(phase);
+
+    if (phaseNodes.length > 0) {
+      // Add nodes to VueFlow
+      addNodes(phaseNodes);
+
+      // Add edges if any
+      if (phaseEdges.length > 0) {
+        addEdges(phaseEdges);
+      }
+
+      // Apply layout for this phase
+      await applyLayoutForPhase(phase, phaseNodes, phaseEdges);
+
+      // Fit view to show new nodes
+      await fitView({ duration: 300, padding: 0.1 });
+
+      // Wait for animations to complete
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    graphLogger.info(`Completed rendering phase: ${phase.name} (${String(phaseNodes.length)} nodes)`);
   }
 
-  // Initialize layout processor
-  initializeLayoutProcessor();
+  // Apply final enhancements
+  await applyFinalEnhancements();
+};
 
-  // Create nodes and edges using extracted utilities
-  // includePackages and includeClasses control whether to create these node types at all
-  // These are controlled by the "Show package nodes" and "Show class details" toggles
-  const includePackages = graphSettings.showPackages;
-  const includeClasses = graphSettings.showClasses;
+// Create nodes for a specific phase
+const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise<DependencyNode[]> => {
+  const nodes: DependencyNode[] = [];
 
-  const graphNodes = createGraphNodes(props.data, {
-    includePackages,
-    includeClasses,
-    direction: layoutConfig.direction,
-    visibleNodeTypes: graphSettings.visibleNodeTypes,
+  // Check if this phase should be rendered based on settings
+  const shouldRenderPhase = phase.types.some((type) => {
+    switch (type) {
+      case 'package':
+        return graphSettings.showPackages;
+      case 'module':
+        return graphSettings.showModules;
+      case 'class':
+        return graphSettings.showClasses;
+      case 'interface':
+        return graphSettings.showInterfaces;
+      case 'type':
+        return graphSettings.showTypes;
+      case 'enum':
+        return graphSettings.showEnums;
+      default:
+        return false;
+    }
   });
 
-  // Debug: Log node creation details
-  graphLogger.info('Node creation details:', {
-    includePackages,
-    includeClasses,
-    totalNodesCreated: graphNodes.length,
-    nodeTypes: graphNodes.reduce(
-      (acc, n) => {
-        acc[n.type] = (acc[n.type] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    ),
-  });
+  if (!shouldRenderPhase) {
+    return nodes;
+  }
 
-  let graphEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
-
-  // CRITICAL: Filter edges to only include those connecting visible nodes
-  // This prevents "Edge source or target is missing" errors from VueFlow
-  // Use computed Set for better performance
-  const nodeIdsLocal = new Set(graphNodes.map((n) => n.id));
-  const edgesBeforeFilter = graphEdges.length;
-  graphEdges = graphEdges.filter((e) => nodeIdsLocal.has(e.source) && nodeIdsLocal.has(e.target));
-
-  // Debug: Log edge creation
-  graphLogger.info(
-    `Created ${graphNodes.length} nodes and ${graphEdges.length} edges (filtered from ${edgesBeforeFilter})`
-  );
-  if (graphEdges.length > 0) {
-    graphLogger.info('Sample edges:', graphEdges.slice(0, 3));
-    graphLogger.info('First edge FULL object:', JSON.stringify(graphEdges[0], null, 2));
-    const edgeTypes = [...new Set(graphEdges.map((e) => e.data?.type))];
-    graphLogger.info('Edge types:', edgeTypes);
-
-    // Count edges by type
-    const edgeTypeCounts: Record<string, number> = {};
-    graphEdges.forEach((e) => {
-      const type = e.data?.type ?? 'unknown';
-      edgeTypeCounts[type] = (edgeTypeCounts[type] ?? 0) + 1;
+  // Create nodes based on phase
+  if (phase.name === 'packages') {
+    const graphNodes = createGraphNodes(props.data!, {
+      includePackages: true,
+      includeClasses: false,
+      direction: layoutConfig.direction,
+      visibleNodeTypes: [],
     });
-    graphLogger.info('Edge counts by type:', edgeTypeCounts);
+    nodes.push(...graphNodes.filter((node) => node.type === 'package'));
+  } else if (phase.name === 'modules') {
+    const graphNodes = createGraphNodes(props.data!, {
+      includePackages: false,
+      includeClasses: false,
+      direction: layoutConfig.direction,
+      visibleNodeTypes: new Set(['module']),
+    });
+    nodes.push(...graphNodes.filter((node) => node.type === 'module'));
+  } else if (phase.name === 'classes') {
+    // For classes/interfaces/types/enums, we conditionally include modules
+    // based on whether modules are enabled in the settings
+    const visibleTypes = new Set([...Array.from(graphSettings.visibleNodeTypes)]);
+    if (graphSettings.showModules) {
+      visibleTypes.add('module');
+    }
 
-    graphLogger.info(
-      'All edges have hidden=false:',
-      graphEdges.every((e) => e.hidden === false)
+    const graphNodes = createGraphNodes(props.data!, {
+      includePackages: false,
+      includeClasses: true,
+      direction: layoutConfig.direction,
+      visibleNodeTypes: visibleTypes,
+    });
+
+    // Handle module nodes based on whether modules are enabled
+    let moduleNodes: DependencyNode[] = [];
+
+    if (graphSettings.showModules) {
+      // Include module nodes normally when modules are enabled
+      moduleNodes = graphNodes.filter((node) => node.type === 'module');
+    } else {
+      // When modules are disabled, don't include module nodes at all
+      // and remove parent relationships from child nodes
+      moduleNodes = [];
+    }
+
+    // Filter to only show the requested symbol types
+    const requestedTypes = [];
+    if (graphSettings.showClasses) requestedTypes.push('class');
+    if (graphSettings.showInterfaces) requestedTypes.push('interface');
+    if (graphSettings.showTypes) requestedTypes.push('type');
+    if (graphSettings.showEnums) requestedTypes.push('enum');
+
+    let symbolNodes = graphNodes.filter((node) => requestedTypes.includes(node.type));
+
+    // If modules are disabled, remove parent relationships from symbol nodes
+    if (!graphSettings.showModules) {
+      symbolNodes = symbolNodes.map((node) => ({
+        ...node,
+        parentNode: undefined, // Remove parent relationship
+      }));
+    }
+
+    // Add both module nodes and symbol nodes
+    nodes.push(...moduleNodes, ...symbolNodes);
+  }
+
+  return nodes;
+};
+
+// Create edges for a specific phase
+const createEdgesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise<GraphEdge[]> => {
+  const edges: GraphEdge[] = [];
+
+  // Create edges for classes phase, but filter them based on visible nodes
+  if (phase.name === 'classes') {
+    const graphEdges = createGraphEdges(props.data!) as unknown as GraphEdge[];
+
+    // Get all currently visible node IDs from the graph store
+    const visibleNodeIds = new Set(graphStore.nodes.map((node) => node.id));
+
+    // Filter edges to only include those connecting visible nodes
+    const filteredEdges = graphEdges.filter(
+      (edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
     );
 
-    // Validate edge connections (reuse nodeIdsLocal from above)
-    const invalidEdges = graphEdges.filter((e) => !nodeIdsLocal.has(e.source) || !nodeIdsLocal.has(e.target));
-    if (invalidEdges.length > 0) {
-      graphLogger.warn(`Found ${invalidEdges.length} edges with invalid source/target IDs:`, invalidEdges.slice(0, 3));
-    } else {
-      graphLogger.info('All edge connections are valid');
-    }
-  } else {
-    graphLogger.warn('No edges created! Check data structure.');
+    edges.push(...filteredEdges);
   }
 
-  // Optional transforms: SCC collapse then folder clustering
-  let nodesToLayout = graphNodes as DependencyNode[];
-  let edgesToLayout = graphEdges as GraphEdge[];
-  if (graphSettings.clusterByFolder) {
-    const clustered = clusterByFolder(nodesToLayout, edgesToLayout);
-    nodesToLayout = clustered.nodes as DependencyNode[];
-    edgesToLayout = clustered.edges as GraphEdge[];
-    // Re-filter edges after folder clustering
-    const clusterNodeIds = new Set(nodesToLayout.map((n) => n.id));
-    edgesToLayout = edgesToLayout.filter((e) => clusterNodeIds.has(e.source) && clusterNodeIds.has(e.target));
+  return edges;
+};
+
+// Apply layout for a specific phase
+const applyLayoutForPhase = async (
+  phase: (typeof RENDERING_PHASES)[0],
+  nodes: DependencyNode[],
+  edges: GraphEdge[]
+) => {
+  if (nodes.length === 0) return;
+
+  // Use different layout strategies based on phase
+  let layoutConfig = {
+    direction: graphSettings.layoutDirection,
+    nodeSpacing: graphSettings.nodeSpacing,
+    rankSpacing: graphSettings.rankSpacing,
+    edgeSpacing: 50,
+  };
+
+  // Adjust layout based on phase
+  if (phase.name === 'packages') {
+    // Use hierarchical layout for packages
+    layoutConfig.rankSpacing = 300;
+  } else if (phase.name === 'modules') {
+    // Use tighter spacing for modules
+    layoutConfig.nodeSpacing = 100;
+    layoutConfig.rankSpacing = 200;
+  } else if (phase.name === 'classes') {
+    // Use grid layout for classes
+    layoutConfig.nodeSpacing = 80;
+    layoutConfig.rankSpacing = 150;
   }
 
-  // Detect cycles on the current working subgraph (default: import edges)
-  try {
-    const cycles = detectCycles(nodesToLayout, edgesToLayout, { edgeTypes: ['import'] });
-    if (cycles.nodeIdsInCycles.size > 0) {
-      graphLogger.info(`Detected ${cycles.sccs.filter((c) => c.length > 1).length} cycle components`);
-      // Highlight cycle nodes and edges subtly for visibility
-      const cycleNodeIds = cycles.nodeIdsInCycles;
-      const cycleEdgeIds = cycles.edgeIdsInCycles;
+  // Apply layout using web worker
+  await processGraphLayout({ nodes, edges });
+};
 
-      nodesToLayout = nodesToLayout.map((n) =>
-        cycleNodeIds.has(n.id)
-          ? {
-              ...n,
-              style: { ...n.style, outline: '2px solid #ff6b6b', outlineOffset: '2px' },
-            }
-          : n
+// Apply final enhancements
+const applyFinalEnhancements = async () => {
+  const currentNodes = graphStore.nodes;
+  const currentEdges = graphStore.edges;
+
+  if (currentNodes.length === 0) return;
+
+  // Apply smart clustering if enabled
+  if (graphSettings.useSmartClustering) {
+    try {
+      const { applySmartClustering } = await import('../../graph/cluster/folders');
+      const clusteringResult = applySmartClustering(
+        currentNodes,
+        currentEdges,
+        props.data!,
+        graphSettings.clusteringOptions
       );
-      edgesToLayout = edgesToLayout.map((e) =>
-        cycleEdgeIds.has(e.id)
-          ? {
-              ...e,
-              style: { ...e.style, stroke: '#ff6b6b', strokeWidth: 3 },
-            }
-          : e
-      );
-    } else {
-      graphLogger.info('No cycles detected');
+      graphStore.setNodes(clusteringResult.nodes);
+      graphStore.setEdges(clusteringResult.edges);
+      graphLogger.info('Applied smart clustering');
+    } catch (err) {
+      graphLogger.warn('Smart clustering failed:', err);
     }
-  } catch (err) {
-    graphLogger.warn('Cycle detection failed', err);
   }
 
-  // Set flags for initial layout with measurement
-  isInitialLayout.value = true;
-  hasAppliedMeasuredLayout.value = false;
-  measuredDimensions.value.clear(); // Clear any previous measurements
-
-  // Guard against re-entrancy while a layout is already running
-  if (!isLayoutRunning.value) {
-    await processGraphLayout({ nodes: nodesToLayout, edges: edgesToLayout });
-  } else {
-    graphLogger.debug('Skipped initialize layout because a layout is already running');
+  // Apply visual hierarchy if enabled
+  if (graphSettings.useVisualHierarchy) {
+    try {
+      const { applyVisualHierarchy } = await import('../../theme/graphTheme');
+      const enhancedNodes = applyVisualHierarchy(
+        graphStore.nodes,
+        graphStore.edges,
+        graphSettings.visualHierarchyConfig
+      );
+      graphStore.setNodes(enhancedNodes);
+      graphLogger.info('Applied visual hierarchy');
+    } catch (err) {
+      graphLogger.warn('Visual hierarchy failed:', err);
+    }
   }
-
-  performance.mark('graph-init-end');
-  measurePerformance('graph-initialization', 'graph-init-start', 'graph-init-end');
 };
 
 // Watch for data changes
@@ -1204,9 +1337,33 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
               void initializeGraph();
             }
           "
+          @toggle-show-modules="
+            (v: boolean) => {
+              graphSettings.setShowModules(v);
+              void initializeGraph();
+            }
+          "
           @toggle-show-classes="
             (v: boolean) => {
               graphSettings.setShowClasses(v);
+              void initializeGraph();
+            }
+          "
+          @toggle-show-interfaces="
+            (v: boolean) => {
+              graphSettings.setShowInterfaces(v);
+              void initializeGraph();
+            }
+          "
+          @toggle-show-types="
+            (v: boolean) => {
+              graphSettings.setShowTypes(v);
+              void initializeGraph();
+            }
+          "
+          @toggle-show-enums="
+            (v: boolean) => {
+              graphSettings.setShowEnums(v);
               void initializeGraph();
             }
           "

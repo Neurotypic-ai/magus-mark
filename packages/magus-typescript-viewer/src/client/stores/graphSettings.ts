@@ -10,7 +10,11 @@ const STORAGE_KEY = 'magus-graph-settings';
 
 interface PersistedSettings {
   showPackages: boolean;
+  showModules: boolean;
   showClasses: boolean;
+  showInterfaces: boolean;
+  showTypes: boolean;
+  showEnums: boolean;
   clusterByFolder: boolean;
   visibleNodeTypes: string[];
   layoutDirection: 'LR' | 'RL' | 'TB' | 'BT';
@@ -63,7 +67,11 @@ function isPersistedSettings(value: unknown): value is PersistedSettings {
   const obj = value as Record<string, unknown>;
   return (
     typeof obj['showPackages'] === 'boolean' &&
+    (obj['showModules'] === undefined || typeof obj['showModules'] === 'boolean') &&
     typeof obj['showClasses'] === 'boolean' &&
+    (obj['showInterfaces'] === undefined || typeof obj['showInterfaces'] === 'boolean') &&
+    (obj['showTypes'] === undefined || typeof obj['showTypes'] === 'boolean') &&
+    (obj['showEnums'] === undefined || typeof obj['showEnums'] === 'boolean') &&
     typeof obj['clusterByFolder'] === 'boolean' &&
     Array.isArray(obj['visibleNodeTypes']) &&
     obj['visibleNodeTypes'].every((item) => typeof item === 'string') &&
@@ -111,7 +119,11 @@ function loadSettings(): PersistedSettings | null {
 // Save settings to localStorage
 function saveSettings(settings: {
   showPackages: boolean;
+  showModules: boolean;
   showClasses: boolean;
+  showInterfaces: boolean;
+  showTypes: boolean;
+  showEnums: boolean;
   clusterByFolder: boolean;
   visibleNodeTypes: string[];
   layoutDirection: 'LR' | 'RL' | 'TB' | 'BT';
@@ -173,9 +185,13 @@ export const useGraphSettings = defineStore('graphSettings', () => {
 
   // View options - what level of detail to show
   const showPackages = ref<boolean>(persisted?.showPackages ?? false);
+  const showModules = ref<boolean>(persisted?.showModules ?? false);
   const showClasses = ref<boolean>(persisted?.showClasses ?? false);
+  const showInterfaces = ref<boolean>(persisted?.showInterfaces ?? false);
+  const showTypes = ref<boolean>(persisted?.showTypes ?? false);
+  const showEnums = ref<boolean>(persisted?.showEnums ?? false);
   logger.debug(
-    `Initial view options - showPackages: ${String(showPackages.value)}, showClasses: ${String(showClasses.value)}`
+    `Initial view options - showPackages: ${String(showPackages.value)}, showModules: ${String(showModules.value)}, showClasses: ${String(showClasses.value)}`
   );
 
   // Clustering options
@@ -264,7 +280,11 @@ export const useGraphSettings = defineStore('graphSettings', () => {
   watch(
     [
       showPackages,
+      showModules,
       showClasses,
+      showInterfaces,
+      showTypes,
+      showEnums,
       clusterByFolder,
       visibleNodeTypes,
       layoutDirection,
@@ -283,7 +303,11 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     () => {
       saveSettings({
         showPackages: showPackages.value,
+        showModules: showModules.value,
         showClasses: showClasses.value,
+        showInterfaces: showInterfaces.value,
+        showTypes: showTypes.value,
+        showEnums: showEnums.value,
         clusterByFolder: clusterByFolder.value,
         visibleNodeTypes: Array.from(visibleNodeTypes.value),
         layoutDirection: layoutDirection.value,
@@ -308,9 +332,29 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     showPackages.value = value;
   }
 
+  function setShowModules(value: boolean): void {
+    logger.debug(`setShowModules: ${String(showModules.value)} -> ${String(value)}`);
+    showModules.value = value;
+  }
+
   function setShowClasses(value: boolean): void {
     logger.debug(`setShowClasses: ${String(showClasses.value)} -> ${String(value)}`);
     showClasses.value = value;
+  }
+
+  function setShowInterfaces(value: boolean): void {
+    logger.debug(`setShowInterfaces: ${String(showInterfaces.value)} -> ${String(value)}`);
+    showInterfaces.value = value;
+  }
+
+  function setShowTypes(value: boolean): void {
+    logger.debug(`setShowTypes: ${String(showTypes.value)} -> ${String(value)}`);
+    showTypes.value = value;
+  }
+
+  function setShowEnums(value: boolean): void {
+    logger.debug(`setShowEnums: ${String(showEnums.value)} -> ${String(value)}`);
+    showEnums.value = value;
   }
 
   function setClusterByFolder(value: boolean): void {
@@ -331,7 +375,11 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     // Manually persist since Set changes may not trigger watcher reliably
     saveSettings({
       showPackages: showPackages.value,
+      showModules: showModules.value,
       showClasses: showClasses.value,
+      showInterfaces: showInterfaces.value,
+      showTypes: showTypes.value,
+      showEnums: showEnums.value,
       clusterByFolder: clusterByFolder.value,
       visibleNodeTypes: Array.from(visibleNodeTypes.value),
       layoutDirection: layoutDirection.value,
@@ -454,7 +502,11 @@ export const useGraphSettings = defineStore('graphSettings', () => {
   return {
     // View option refs
     showPackages,
+    showModules,
     showClasses,
+    showInterfaces,
+    showTypes,
+    showEnums,
     clusterByFolder,
     visibleNodeTypes,
     // Layout configuration refs
@@ -476,7 +528,11 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     visualHierarchyConfig,
     // View actions
     setShowPackages,
+    setShowModules,
     setShowClasses,
+    setShowInterfaces,
+    setShowTypes,
+    setShowEnums,
     setClusterByFolder,
     setNodeTypeVisibility,
     isNodeTypeVisible,
