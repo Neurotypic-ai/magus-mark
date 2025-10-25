@@ -77,7 +77,7 @@ export class TimeTravelDebugger extends EventEmitter {
     );
 
     this.emit('session:ended', this.currentSession);
-    this.currentSession = undefined;
+    delete this.currentSession;
   }
 
   captureSnapshot(
@@ -102,7 +102,7 @@ export class TimeTravelDebugger extends EventEmitter {
       state: this.deepClone(state),
       input: this.deepClone(input),
       output: this.deepClone(output),
-      error,
+      ...(error !== undefined && { error }),
       duration,
       metadata,
     };
@@ -286,7 +286,6 @@ export class TimeTravelDebugger extends EventEmitter {
   cleanup(): void {
     this.endSession();
     this.sessions.clear();
-    this.lastResults.clear();
     this.emit('cleanup');
   }
 }

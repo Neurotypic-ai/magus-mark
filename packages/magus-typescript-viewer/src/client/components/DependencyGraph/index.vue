@@ -2,22 +2,20 @@
 import { Background } from '@vue-flow/background';
 import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { storeToRefs } from 'pinia';
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
 import { DEFAULT_ANALYTICS_CONFIG } from '../../analytics/graphAnalytics';
-import { clusterByFolder } from '../../graph/cluster/folders';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
+import { calculateParentNodeBounds } from '../../utils/calculateParentBounds';
 import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
-import { detectCycles } from '../../utils/graphCycles';
 import { measurePerformance } from '../../utils/performanceMonitoring';
 import { DEFAULT_EDGE_CONFIG, EdgeVisualizationEngine } from '../../visualization/edgeVisualization';
 import AnalyticsDashboard from '../AnalyticsDashboard.vue';
-import EnhancedEdge from '../EnhancedEdge.vue';
 import GraphControls from './components/GraphControls.vue';
 import GraphSearch from './components/GraphSearch.vue';
 import NodeDetails from './components/NodeDetails.vue';
@@ -48,7 +46,7 @@ const graphStore = useGraphStore();
 const graphSettings = useGraphSettings();
 const { nodes, edges, selectedNode } = storeToRefs(graphStore);
 
-const { fitView, getNodes } = useVueFlow();
+const { fitView, getNodes, updateNodeInternals, updateNode } = useVueFlow();
 
 // Keep a reference to the layout processor for cleanup
 const layoutProcessor = shallowRef<WebWorkerLayoutProcessor | null>(null);
@@ -60,7 +58,7 @@ const isLayoutRunning = ref(false);
 
 // Edge visualization engine
 const edgeVisualizationEngine = ref<EdgeVisualizationEngine | null>(null);
-const enhancedEdges = ref<EnhancedEdge[]>([]);
+const enhancedEdges = ref<any[]>([]);
 
 // Shallow equality helpers to avoid redundant reactive writes
 function areNodesShallowEqual(a: DependencyNode[], b: DependencyNode[]): boolean {
@@ -324,8 +322,17 @@ const onNodesInitialized = async () => {
 
 // Process graph layout using web worker
 const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: GraphEdge[] }) => {
-  if (!layoutProcessor.value) return;
-  if (isLayoutRunning.value) return;
+  if (!layoutProcessor.value) {
+    graphLogger.error('Layout processor is null - cannot run layout');
+    return;
+  }
+
+  if (isLayoutRunning.value) {
+    graphLogger.warn('Layout already running - skipping duplicate layout request');
+    return;
+  }
+
+  graphLogger.info(`Starting layout with ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
   isLayoutRunning.value = true;
 
   // Use unique mark names to avoid conflicts with multiple calls
@@ -337,11 +344,15 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
 
   try {
     // Process layout using the web worker
+    graphLogger.debug('Calling web worker for layout processing...');
     const result = await layoutProcessor.value.processLayout(graphData);
+    graphLogger.debug('Web worker layout processing complete');
 
     // Force the correct types for nodes and edges
     const typedNodes = result.nodes as unknown as DependencyNode[];
     const typedEdges = result.edges as unknown as GraphEdge[];
+
+    graphLogger.debug(`Layout result: ${typedNodes.length} nodes, ${typedEdges.length} edges`);
 
     // Explicitly update handle positions based on current layout direction
     // This ensures handles are correctly positioned even after worker processing
@@ -431,26 +442,49 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
       }
     }
 
+    graphLogger.debug('Checking if nodes/edges changed...');
+
     // Update nodes/edges only if changed to avoid recursive reactivity loops
     if (!areNodesShallowEqual(nodes.value, finalNodes)) {
+      graphLogger.debug(`Nodes changed, updating store with ${finalNodes.length} nodes`);
       graphStore.setNodes(finalNodes);
+
+      // Log sample positions to verify layout calculation
+      const sampleSize = Math.min(5, finalNodes.length);
+      const samplePositions = finalNodes.slice(0, sampleSize).map((n) => ({
+        id: n.id.substring(0, 8),
+        x: Math.round(n.position.x),
+        y: Math.round(n.position.y),
+      }));
+      graphLogger.info('Sample node positions after layout:', samplePositions);
+    } else {
+      graphLogger.debug('Nodes unchanged, skipping update');
     }
+
     if (!areEdgesShallowEqual(edges.value, finalEdges)) {
+      graphLogger.debug(`Edges changed, updating store with ${finalEdges.length} edges`);
       graphStore.setEdges(finalEdges);
 
       // Apply edge visualization
       if (edgeVisualizationEngine.value) {
+        graphLogger.debug('Applying edge visualization...');
         enhancedEdges.value = edgeVisualizationEngine.value.visualizeEdges(finalNodes, finalEdges);
         edgeVisualizationEngine.value.startAnimations();
+        graphLogger.debug('Edge visualization complete');
       }
+    } else {
+      graphLogger.debug('Edges unchanged, skipping update');
     }
 
     // Debug: Verify store state
-    graphLogger.info('Store edges count:', edges.value.length);
+    graphLogger.debug('Store state after update:', { nodes: nodes.value.length, edges: edges.value.length });
 
     // Fit view after layout with faster animation (schedule microtask to avoid sync reactivity loop)
+    graphLogger.debug('Scheduling fitView...');
     await Promise.resolve();
+    graphLogger.debug('Calling fitView...');
     await fitView({ duration: 150, padding: 0.1 });
+    graphLogger.debug('fitView complete');
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Unknown error during layout processing');
     graphLogger.error('Layout processing failed:', error);
@@ -468,9 +502,9 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
 // They will appear even if modules are disabled, but they still need modules
 // to exist in the data structure for proper parent-child relationships
 const RENDERING_PHASES = [
-  { name: 'packages', level: 0, types: ['package'] },
-  { name: 'modules', level: 1, types: ['module'] },
   { name: 'classes', level: 2, types: ['class', 'interface', 'type', 'enum', 'function'] },
+  { name: 'modules', level: 1, types: ['module'] },
+  { name: 'packages', level: 0, types: ['package'] },
 ] as const;
 
 // Progressive graph initialization
@@ -504,6 +538,10 @@ const initializeGraph = async () => {
     graphStore.setNodes([]);
     graphStore.setEdges([]);
 
+    // Enable measured dimension feedback for initial layout
+    isInitialLayout.value = true;
+    hasAppliedMeasuredLayout.value = false;
+
     // Progressive rendering: Add nodes in phases
     await renderGraphProgressively();
   } finally {
@@ -515,45 +553,28 @@ const initializeGraph = async () => {
 
 // Progressive rendering implementation
 const renderGraphProgressively = async () => {
-  const { addNodes, addEdges, fitView } = useVueFlow();
-
   for (const phase of RENDERING_PHASES) {
     graphLogger.info(`Starting rendering phase: ${phase.name}`);
 
     // Create nodes for this phase
     const phaseNodes = await createNodesForPhase(phase);
-    const phaseEdges = await createEdgesForPhase(phase);
 
     if (phaseNodes.length > 0) {
-      // Add nodes to VueFlow
-      addNodes(phaseNodes);
-
-      // Update the Pinia store for analytics
+      // Update the Pinia store (single source of truth)
       graphStore.addNodes(phaseNodes);
 
-      // Add edges if any
-      if (phaseEdges.length > 0) {
-        addEdges(phaseEdges);
-        graphStore.addEdges(phaseEdges);
-      }
+      // Wait for Vue to render the nodes in the DOM
+      await nextTick();
 
-      // Run layout after each phase for proper progressive rendering
-      await processGraphLayout({
-        nodes: graphStore.nodes,
-        edges: graphStore.edges,
-      });
-
-      // Fit view to show new nodes
-      await fitView({ duration: 300, padding: 0.1 });
-
-      // Wait for animations to complete
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Note: We don't run layout during progressive phases because dagre
+      // needs edges to properly position nodes. Layout will be run once
+      // in applyFinalEnhancements when all nodes and edges are ready.
     }
 
     graphLogger.info(`Completed rendering phase: ${phase.name} (${String(phaseNodes.length)} nodes)`);
   }
 
-  // Apply final enhancements
+  // Apply final enhancements (including edge creation and layout)
   await applyFinalEnhancements();
 };
 
@@ -561,12 +582,21 @@ const renderGraphProgressively = async () => {
 const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise<DependencyNode[]> => {
   const nodes: DependencyNode[] = [];
 
+  graphLogger.debug(`Phase ${phase.name}: checking if should render...`);
+  graphLogger.debug(`visibleNodeTypes has:`, Array.from(graphSettings.visibleNodeTypes));
+  graphLogger.debug(`phase.types:`, phase.types);
+
   // Check if this phase should be rendered based on settings
   const shouldRenderPhase = phase.types.some((type) => {
-    return graphSettings.visibleNodeTypes.has(type as DependencyKind);
+    const hasType = graphSettings.visibleNodeTypes.has(type as DependencyKind);
+    graphLogger.debug(`  - checking type '${type}': ${hasType}`);
+    return hasType;
   });
 
+  graphLogger.debug(`Phase ${phase.name}: shouldRenderPhase = ${shouldRenderPhase}`);
+
   if (!shouldRenderPhase) {
+    graphLogger.warn(`Skipping phase ${phase.name} - no matching types in visibleNodeTypes`);
     return nodes;
   }
 
@@ -576,7 +606,6 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
       includePackages: true,
       includeClasses: false,
       direction: layoutConfig.direction,
-      visibleNodeTypes: undefined,
     });
     nodes.push(...graphNodes.filter((node) => node.type === 'package'));
   } else if (phase.name === 'modules') {
@@ -617,20 +646,25 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
   return nodes;
 };
 
-// Create edges for a specific phase
-const createEdgesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise<GraphEdge[]> => {
-  const edges: GraphEdge[] = [];
+// Apply final enhancements
+const applyFinalEnhancements = async () => {
+  const currentNodes = graphStore.nodes;
 
-  // Create ALL edges (we'll filter by phase type and visible nodes)
+  if (currentNodes.length === 0) return;
+
+  graphLogger.info('Applying final enhancements...');
+
+  // Create ALL edges now that all nodes are visible
+  graphLogger.info('Creating edges for all visible nodes...');
   const allGraphEdges = createGraphEdges(props.data!) as unknown as GraphEdge[];
 
-  // Get all currently visible node IDs from the graph store
-  const visibleNodeIds = new Set(graphStore.nodes.map((node) => node.id));
+  // Get all currently visible node IDs
+  const visibleNodeIds = new Set(currentNodes.map((node) => node.id));
 
   // Get enabled relationship types for filtering
   const enabledTypes = new Set(graphSettings.enabledRelationshipTypes);
 
-  // Filter edges based on phase, visible nodes, and relationship types
+  // Filter edges to only include those connecting visible nodes with enabled relationship types
   const filteredEdges = allGraphEdges.filter((edge) => {
     // Check if both nodes are visible
     const bothNodesVisible = visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target);
@@ -639,81 +673,27 @@ const createEdgesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
     // Check if relationship type is enabled
     const edgeType = edge.data?.type ?? 'dependency';
     const typeEnabled = enabledTypes.has(edgeType);
-    if (!typeEnabled) return false;
-
-    // Phase-specific filtering
-    if (phase.name === 'packages') {
-      // Only include package dependency edges
-      return edgeType === 'dependency' || edgeType === 'devDependency' || edgeType === 'peerDependency';
-    } else if (phase.name === 'modules') {
-      // Only include module import/export edges
-      return edgeType === 'import' || edgeType === 'export';
-    } else if (phase.name === 'classes') {
-      // Include class/interface relationship edges
-      return edgeType === 'inheritance' || edgeType === 'implements' || edgeType === 'extends';
-    }
-
-    return false;
+    return typeEnabled;
   });
 
-  edges.push(...filteredEdges);
+  graphLogger.info(`Created ${filteredEdges.length} edges (filtered from ${allGraphEdges.length} total)`);
 
-  return edges;
-};
-
-// Apply layout for a specific phase
-const applyLayoutForPhase = async (
-  phase: (typeof RENDERING_PHASES)[0],
-  nodes: DependencyNode[],
-  edges: GraphEdge[]
-) => {
-  if (nodes.length === 0) return;
-
-  // Use different layout strategies based on phase
-  let layoutConfig = {
-    direction: graphSettings.layoutDirection,
-    nodeSpacing: graphSettings.nodeSpacing,
-    rankSpacing: graphSettings.rankSpacing,
-    edgeSpacing: 50,
-  };
-
-  // Adjust layout based on phase
-  if (phase.name === 'packages') {
-    // Use hierarchical layout for packages
-    layoutConfig.rankSpacing = 300;
-  } else if (phase.name === 'modules') {
-    // Use tighter spacing for modules
-    layoutConfig.nodeSpacing = 100;
-    layoutConfig.rankSpacing = 200;
-  } else if (phase.name === 'classes') {
-    // Use grid layout for classes
-    layoutConfig.nodeSpacing = 80;
-    layoutConfig.rankSpacing = 150;
-  }
-
-  // Apply layout using web worker
-  await processGraphLayout({ nodes, edges });
-};
-
-// Apply final enhancements
-const applyFinalEnhancements = async () => {
-  const currentNodes = graphStore.nodes;
-  const currentEdges = graphStore.edges;
-
-  if (currentNodes.length === 0) return;
+  // Track processed nodes and edges through enhancement pipeline
+  let processedNodes = currentNodes;
+  let processedEdges = filteredEdges;
 
   // Apply smart clustering if enabled
   if (graphSettings.useSmartClustering) {
     try {
       const { applySmartClustering } = await import('../../graph/cluster/folders');
       const clusteringResult = applySmartClustering(
-        currentNodes,
-        currentEdges,
+        processedNodes,
+        processedEdges,
         props.data!,
         graphSettings.clusteringOptions
       );
-      graphStore.setNodes(clusteringResult.nodes);
-      graphStore.setEdges(clusteringResult.edges);
+      processedNodes = clusteringResult.nodes;
+      processedEdges = clusteringResult.edges;
       graphLogger.info('Applied smart clustering');
     } catch (err) {
       graphLogger.warn('Smart clustering failed:', err);
@@ -724,17 +704,28 @@ const applyFinalEnhancements = async () => {
   if (graphSettings.useVisualHierarchy) {
     try {
       const { applyVisualHierarchy } = await import('../../theme/graphTheme');
-      const enhancedNodes = applyVisualHierarchy(
-        graphStore.nodes,
-        graphStore.edges,
+      processedNodes = applyVisualHierarchy(
+        processedNodes,
+        processedEdges,
         graphSettings.visualHierarchyConfig
       );
-      graphStore.setNodes(enhancedNodes);
       graphLogger.info('Applied visual hierarchy');
     } catch (err) {
       graphLogger.warn('Visual hierarchy failed:', err);
     }
   }
+
+  // Run final layout with edges - this will add nodes THEN edges to the store
+  graphLogger.info('Running final layout with edges...');
+  await processGraphLayout({
+    nodes: processedNodes,
+    edges: processedEdges,
+  });
+
+  // Fit view to final graph
+  await fitView({ duration: 300, padding: 0.1 });
+
+  graphLogger.info('Final enhancements complete');
 };
 
 // Watch for data changes
@@ -1129,6 +1120,53 @@ const onPaneClick = (): void => {
   );
 };
 
+// Node drag handler - resize parent nodes when children are moved
+const onNodeDrag = ({ node }: { node: unknown }): void => {
+  const draggedNode = node as DependencyNode;
+
+  // Check if the dragged node has a parent
+  if (!draggedNode.parentNode) {
+    return;
+  }
+
+  graphLogger.debug(`Node dragged: ${draggedNode.id}, parent: ${draggedNode.parentNode}`);
+
+  // Calculate new bounds for the parent
+  const newBounds = calculateParentNodeBounds(draggedNode.parentNode, nodes.value, 20);
+
+  if (!newBounds) {
+    return;
+  }
+
+  // Find the parent node
+  const parentNode = nodes.value.find((n) => n.id === draggedNode.parentNode);
+  if (!parentNode) {
+    return;
+  }
+
+  // Check if the parent actually needs to be resized
+  const currentWidth = typeof parentNode.width === 'number' ? parentNode.width : 0;
+  const currentHeight = typeof parentNode.height === 'number' ? parentNode.height : 0;
+
+  if (Math.abs(currentWidth - newBounds.width) < 1 && Math.abs(currentHeight - newBounds.height) < 1) {
+    // No significant change, skip update
+    return;
+  }
+
+  graphLogger.debug(
+    `Resizing parent ${draggedNode.parentNode}: ${currentWidth}x${currentHeight} -> ${newBounds.width}x${newBounds.height}`
+  );
+
+  // Update the parent node's dimensions
+  updateNode(draggedNode.parentNode, {
+    width: newBounds.width,
+    height: newBounds.height,
+  });
+
+  // Trigger VueFlow to recalculate internals
+  updateNodeInternals(draggedNode.parentNode);
+};
+
 // Filter handler for relationship types
 const handleRelationshipFilterChange = async (_types: string[]) => {
   // Relationship types are already updated in graphSettings by GraphControls
@@ -1298,6 +1336,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         }"
         @node-click="onNodeClick"
         @node-double-click="onNodeDoubleClick"
+        @node-drag="onNodeDrag"
         @pane-click="onPaneClick"
         @nodes-initialized="onNodesInitialized"
       >

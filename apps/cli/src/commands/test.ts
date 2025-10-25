@@ -380,7 +380,7 @@ Accuracy: ${(results.accuracy * 100).toFixed(2)}%
 /**
  * Run integration tests
  */
-async function runIntegrationTestsCommand(models: AIModel[], options: TestOptions): Promise<void> {
+async function runIntegrationTestsCommand(models: AIModel[], _options: TestOptions): Promise<void> {
   logger.info(chalk.bold('Running integration tests'));
   logger.info(`Models: ${models.join(', ')}`);
 

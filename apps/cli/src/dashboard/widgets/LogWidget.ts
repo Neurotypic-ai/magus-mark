@@ -12,11 +12,9 @@ export interface LogWidgetData {
 
 export class LogWidget {
   private widget: blessed.Widgets.BoxElement;
-  private config: WidgetConfig;
   private maxLines = 1000;
 
   constructor(config: WidgetConfig, grid: contrib.grid) {
-    this.config = config;
     const { x, y, width, height } = config.position;
 
     this.widget = grid.set(y, x, height, width, contrib.log, {

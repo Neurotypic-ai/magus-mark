@@ -2,16 +2,6 @@
   "extends": "@magus-mark/typescript-config/config/app/tsconfig.json",
   "compilerOptions": {
     "types": ["node", "vite/client"],
-    "jsxImportSource": "vue",
     "isolatedDeclarations": false
-  },
-  "initializationOptions": {
-    "plugins": [
-      {
-        "name": "@vue/typescript-plugin",
-        "location": "../../../node_modules/@vue/language-server",
-        "languages": ["vue"]
-      }
-    ]
   }
 }

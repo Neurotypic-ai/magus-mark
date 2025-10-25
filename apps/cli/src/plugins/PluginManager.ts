@@ -139,7 +139,9 @@ export abstract class PluginBase {
 }
 
 // Type guard for PluginBase
-function isPluginBase(value: unknown): value is typeof PluginBase {
+type PluginConstructor = new () => PluginBase;
+
+function isPluginBase(value: unknown): value is PluginConstructor {
   return (
     typeof value === 'function' &&
     value.prototype &&
@@ -239,12 +241,12 @@ export class PluginManager extends EventEmitter {
 
   private extractPluginClass(module: Record<string, unknown>): unknown {
     // Try common export patterns
-    if (module.default) return module.default;
-    if (module.Plugin) return module.Plugin;
+    if (module['default']) return module['default'];
+    if (module['Plugin']) return module['Plugin'];
 
     // Find first export that looks like a class
     const keys = Object.keys(module);
-    if (keys.length > 0) {
+    if (keys.length > 0 && keys[0]) {
       return module[keys[0]];
     }
 

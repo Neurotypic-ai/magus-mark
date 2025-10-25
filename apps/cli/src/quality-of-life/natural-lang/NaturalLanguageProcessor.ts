@@ -104,11 +104,11 @@ export class NaturalLanguageProcessor {
     switch (intent) {
       case 'tag_files':
         if (match[1]) {
-          entities.path = match[1].trim();
+          entities['path'] = match[1].trim();
         }
         // Extract model if mentioned
-        if (input.includes('gpt-4')) entities.model = 'gpt-4';
-        if (input.includes('gpt-3.5')) entities.model = 'gpt-3.5-turbo';
+        if (input.includes('gpt-4')) entities['model'] = 'gpt-4';
+        if (input.includes('gpt-3.5')) entities['model'] = 'gpt-3.5-turbo';
         break;
 
       case 'configure':
@@ -116,26 +116,26 @@ export class NaturalLanguageProcessor {
           const configPart = match[1].trim();
           // Extract key-value pairs
           const kvMatch = /(\w+)\s+(?:to\s+)?(.+)/i.exec(configPart);
-          if (kvMatch) {
-            entities.key = kvMatch[1];
-            entities.value = kvMatch[2];
+          if (kvMatch && kvMatch[1] && kvMatch[2]) {
+            entities['key'] = kvMatch[1];
+            entities['value'] = kvMatch[2];
           }
         }
         break;
 
       case 'show_stats':
-        if (input.includes('week')) entities.period = 'week';
-        if (input.includes('month')) entities.period = 'month';
-        if (input.includes('day')) entities.period = 'day';
-        if (input.includes('cost')) entities.type = 'cost';
-        if (input.includes('usage')) entities.type = 'usage';
+        if (input.includes('week')) entities['period'] = 'week';
+        if (input.includes('month')) entities['period'] = 'month';
+        if (input.includes('day')) entities['period'] = 'day';
+        if (input.includes('cost')) entities['type'] = 'cost';
+        if (input.includes('usage')) entities['type'] = 'usage';
         break;
     }
 
     return entities;
   }
 
-  private calculateConfidence(intent: string, match: RegExpExecArray): number {
+  private calculateConfidence(_intent: string, match: RegExpExecArray): number {
     // Base confidence on pattern match quality
     let confidence = 0.7;
 
@@ -153,8 +153,8 @@ export class NaturalLanguageProcessor {
   }
 
   private async handleTagFiles(command: NLCommand): Promise<NLResponse> {
-    const path = (command.entities.path as string) || '.';
-    const model = (command.entities.model as string) || 'gpt-4o';
+    const path = (command.entities['path'] as string) || '.';
+    const model = (command.entities['model'] as string) || 'gpt-4o';
 
     return {
       success: true,
@@ -165,8 +165,8 @@ export class NaturalLanguageProcessor {
   }
 
   private async handleShowStats(command: NLCommand): Promise<NLResponse> {
-    const period = (command.entities.period as string) || 'all';
-    const type = (command.entities.type as string) || 'all';
+    const period = (command.entities['period'] as string) || 'all';
+    const type = (command.entities['type'] as string) || 'all';
 
     return {
       success: true,
@@ -177,8 +177,8 @@ export class NaturalLanguageProcessor {
   }
 
   private async handleConfigure(command: NLCommand): Promise<NLResponse> {
-    const key = command.entities.key as string;
-    const value = command.entities.value as string;
+    const key = command.entities['key'] as string;
+    const value = command.entities['value'] as string;
 
     if (key && value) {
       return {
@@ -197,7 +197,7 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleDashboard(command: NLCommand): Promise<NLResponse> {
+  private async handleDashboard(_command: NLCommand): Promise<NLResponse> {
     return {
       success: true,
       message: 'Launching the God Tier dashboard experience!',
@@ -206,7 +206,7 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleTestModels(command: NLCommand): Promise<NLResponse> {
+  private async handleTestModels(_command: NLCommand): Promise<NLResponse> {
     return {
       success: true,
       message: "I'll run model benchmarks to find the best performance",
@@ -215,7 +215,7 @@ export class NaturalLanguageProcessor {
     };
   }
 
-  private async handleHelp(command: NLCommand): Promise<NLResponse> {
+  private async handleHelp(_command: NLCommand): Promise<NLResponse> {
     const helpMessage = `
 🔥 Magus Mark CLI - Natural Language Interface
 

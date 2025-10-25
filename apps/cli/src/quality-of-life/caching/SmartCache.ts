@@ -62,7 +62,7 @@ export class SmartCache<T> extends EventEmitter {
       timestamp: Date.now(),
       accessCount: 0,
       lastAccessed: Date.now(),
-      semanticHash,
+      ...(semanticHash !== undefined && { semanticHash }),
       contentHash,
       size,
     };

@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { promises as fs } from 'fs';
+import * as fs from 'fs';
+import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 
 import { Logger } from '@magus-mark/core/utils/Logger';
@@ -94,7 +95,7 @@ export class DaemonService extends EventEmitter {
     await this.removePidFile();
 
     this.status.running = false;
-    this.status.pid = undefined;
+    delete this.status.pid;
 
     this.logger.info(`Daemon ${this.config.name} stopped`);
     this.emit('daemon:stopped');
@@ -112,15 +113,9 @@ export class DaemonService extends EventEmitter {
 
   async isRunning(): Promise<boolean> {
     try {
-      const pidExists = await fs
-        .access(this.config.pidFile)
-        .then(() => true)
-        .catch(() => false);
-      if (!pidExists) {
-        return false;
-      }
+      await fsPromises.access(this.config.pidFile);
 
-      const pidContent = await fs.readFile(this.config.pidFile, 'utf-8');
+      const pidContent = await fsPromises.readFile(this.config.pidFile, 'utf-8');
       const pid = parseInt(pidContent.trim(), 10);
 
       // Check if process with this PID is still running
@@ -139,13 +134,13 @@ export class DaemonService extends EventEmitter {
 
   private async writePidFile(): Promise<void> {
     const pidDir = path.dirname(this.config.pidFile);
-    await fs.mkdir(pidDir, { recursive: true });
-    await fs.writeFile(this.config.pidFile, process.pid.toString());
+    await fsPromises.mkdir(pidDir, { recursive: true });
+    await fsPromises.writeFile(this.config.pidFile, process.pid.toString());
   }
 
   private async removePidFile(): Promise<void> {
     try {
-      await fs.unlink(this.config.pidFile);
+      await fsPromises.unlink(this.config.pidFile);
     } catch {
       // Ignore errors when removing PID file
     }
@@ -154,7 +149,8 @@ export class DaemonService extends EventEmitter {
   private async setupWatchers(): Promise<void> {
     for (const directory of this.config.watchDirectories) {
       try {
-        const watcher = fs.watch(directory, { recursive: true }, (eventType, filename) => {
+        const watcher = fs.watch(directory, { recursive: true });
+        watcher.on('change', (eventType: string, filename: string | null) => {
           if (filename) {
             this.handleFileChange(eventType, path.join(directory, filename));
           }

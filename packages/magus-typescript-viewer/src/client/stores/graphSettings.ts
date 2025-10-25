@@ -329,14 +329,36 @@ export const useGraphSettings = defineStore('graphSettings', () => {
 
   // Initialize visibleNodeTypes from boolean flags to ensure consistency
   const initialVisibleTypes = new Set<DependencyKind>();
-  if (persisted.showPackages) initialVisibleTypes.add('package');
-  if (persisted.showModules) initialVisibleTypes.add('module');
-  if (persisted.showClasses) initialVisibleTypes.add('class');
-  if (persisted.showInterfaces) initialVisibleTypes.add('interface');
-  if (persisted.showTypes) initialVisibleTypes.add('type');
-  if (persisted.showEnums) initialVisibleTypes.add('enum');
-  if (persisted.showFunctions) initialVisibleTypes.add('function');
+  if (persisted.showPackages) {
+    initialVisibleTypes.add('package');
+    logger.debug('Adding package to initialVisibleTypes');
+  }
+  if (persisted.showModules) {
+    initialVisibleTypes.add('module');
+    logger.debug('Adding module to initialVisibleTypes');
+  }
+  if (persisted.showClasses) {
+    initialVisibleTypes.add('class');
+    logger.debug('Adding class to initialVisibleTypes');
+  }
+  if (persisted.showInterfaces) {
+    initialVisibleTypes.add('interface');
+    logger.debug('Adding interface to initialVisibleTypes');
+  }
+  if (persisted.showTypes) {
+    initialVisibleTypes.add('type');
+    logger.debug('Adding type to initialVisibleTypes');
+  }
+  if (persisted.showEnums) {
+    initialVisibleTypes.add('enum');
+    logger.debug('Adding enum to initialVisibleTypes');
+  }
+  if (persisted.showFunctions) {
+    initialVisibleTypes.add('function');
+    logger.debug('Adding function to initialVisibleTypes');
+  }
 
+  logger.debug('Initial visibleNodeTypes:', Array.from(initialVisibleTypes));
   const visibleNodeTypes = ref<Set<DependencyKind>>(initialVisibleTypes);
 
   const layoutDirection = ref<LayoutDirection>(persisted.layoutDirection);

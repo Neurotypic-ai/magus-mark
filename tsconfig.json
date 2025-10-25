@@ -1,0 +1,15 @@
+{
+  "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./"
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [
+    { "path": "apps/cli/tsconfig.json" },
+    { "path": "apps/vscode/tsconfig.json" },
+    { "path": "apps/obsidian-plugin/tsconfig.json" },
+    { "path": "packages/core/tsconfig.json" },
+    { "path": "packages/magus-typescript-viewer/tsconfig.json" }
+  ]
+}

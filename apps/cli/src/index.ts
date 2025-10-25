@@ -65,7 +65,7 @@ async function initializeGodTierSystems(): Promise<void> {
 
     logger.debug('🚀 God Tier systems ready!');
   } catch (error) {
-    logger.warn('⚠️  Some God Tier systems failed to initialize:', error);
+    logger.warn(`⚠️  Some God Tier systems failed to initialize: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -119,16 +119,16 @@ const cli = yargs(hideBin(process.argv))
           // });
         })
         .command('enable <name>', '⚡ Enable a plugin', {}, async (argv) => {
-          // await pluginManager.enablePlugin(argv.name as string);
-          console.log(`✅ Plugin '${argv.name}' enabled`);
+          // await pluginManager.enablePlugin(argv['name'] as string);
+          console.log(`✅ Plugin '${argv['name']}' enabled`);
         })
         .command('disable <name>', '🚫 Disable a plugin', {}, async (argv) => {
-          // await pluginManager.disablePlugin(argv.name as string);
-          console.log(`❌ Plugin '${argv.name}' disabled`);
+          // await pluginManager.disablePlugin(argv['name'] as string);
+          console.log(`❌ Plugin '${argv['name']}' disabled`);
         })
         .command('install <name>', '📦 Install a new plugin', {}, async (argv) => {
-          // await pluginManager.installPlugin(argv.name as string);
-          console.log(`🎉 Plugin '${argv.name}' installed successfully`);
+          // await pluginManager.installPlugin(argv['name'] as string);
+          console.log(`🎉 Plugin '${argv['name']}' installed successfully`);
         })
         .demandCommand(1, 'You must provide a plugin subcommand');
     },

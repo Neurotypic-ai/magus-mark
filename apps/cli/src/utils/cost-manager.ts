@@ -350,8 +350,5 @@ class CostManager {
   }
 }
 
-// Initialize singleton instance
-CostManager.instance = new CostManager();
-
 // Export singleton instance
 export const costManager: CostManager = CostManager.getInstance();

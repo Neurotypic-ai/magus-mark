@@ -9,6 +9,7 @@ interface LoggerMockInstance {
   debug: Mock;
   box: Mock;
   configure: Mock;
+  formatCost: Mock;
 }
 
 /**
@@ -21,6 +22,7 @@ export const mockLoggerInstance: LoggerMockInstance = {
   debug: vi.fn(),
   box: vi.fn(),
   configure: vi.fn(),
+  formatCost: vi.fn((cost: number) => `$${cost.toString()}`),
 };
 
 // Track if setup has already been called
@@ -61,6 +63,9 @@ export function resetLoggerMock(): void {
   mockLoggerInstance.debug.mockReset();
   mockLoggerInstance.box.mockReset();
   mockLoggerInstance.configure.mockReset();
+  mockLoggerInstance.formatCost.mockReset();
+  // Re-implement formatCost after reset
+  mockLoggerInstance.formatCost.mockImplementation((cost: number) => `$${cost.toString()}`);
 }
 
 /**

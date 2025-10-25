@@ -110,7 +110,7 @@ export class BatchPipeline<TInput, TOutput> extends EventEmitter {
       });
 
       const chunkResults = await Promise.all(chunkPromises);
-      results.push(...chunkResults.filter((result): result is TOutput => result !== null));
+      results.push(...chunkResults.filter((result): result is Awaited<TOutput> => result !== null) as TOutput[]);
     }
 
     // Calculate final stats

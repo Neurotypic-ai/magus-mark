@@ -175,7 +175,7 @@ export class TaskQueue<T, R> extends EventEmitter {
       if (task.retryCount < task.maxRetries) {
         // Retry the task
         task.status = 'pending';
-        task.startedAt = undefined;
+        delete task.startedAt;
         this.logger.debug(`Retrying task ${task.id} (${task.retryCount}/${task.maxRetries})`);
         this.emit('task:retry', task);
 
@@ -207,8 +207,32 @@ export class TaskQueue<T, R> extends EventEmitter {
   }
 
   getStats(): PipelineStats & { queueLength: number; processing: number } {
+    const completedTasks = this.queue.filter((t) => t.status === 'completed');
+    const failedTasks = this.queue.filter((t) => t.status === 'failed');
+    const totalRetries = this.queue.reduce((sum, t) => sum + t.retryCount, 0);
+
+    const processingTimes = completedTasks
+      .map((t) => {
+        if (t.startedAt && t.completedAt) {
+          return t.completedAt.getTime() - t.startedAt.getTime();
+        }
+        return 0;
+      })
+      .filter((time) => time > 0);
+
+    const avgProcessingTime =
+      processingTimes.length > 0 ? processingTimes.reduce((sum, t) => sum + t, 0) / processingTimes.length : 0;
+
+    const startTimes = this.queue.map((t) => t.createdAt.getTime());
+    const earliestStart = startTimes.length > 0 ? Math.min(...startTimes) : Date.now();
+
     return {
-      ...this.stats,
+      processed: completedTasks.length + failedTasks.length,
+      successful: completedTasks.length,
+      failed: failedTasks.length,
+      retries: totalRetries,
+      averageProcessingTime: avgProcessingTime,
+      startTime: new Date(earliestStart),
       queueLength: this.queue.length,
       processing: this.processing.size,
     };

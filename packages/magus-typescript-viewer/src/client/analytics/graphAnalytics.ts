@@ -111,12 +111,12 @@ export class GraphAnalyticsEngine {
    * Calculate comprehensive analytics for the graph
    */
   public calculateAnalytics(nodes: DependencyNode[], edges: GraphEdge[], startTime?: number): AnalyticsMetrics {
-    logger.debug('Calculating graph analytics');
+    // logger.debug('Calculating graph analytics');
     const calculationStart = startTime ?? performance.now();
 
     // Handle empty graph case
     if (nodes.length === 0) {
-      logger.debug('No nodes provided for analytics calculation');
+      // logger.debug('No nodes provided for analytics calculation');
       const emptyMetrics: AnalyticsMetrics = {
         totalNodes: 0,
         totalEdges: edges.length,
@@ -154,7 +154,7 @@ export class GraphAnalyticsEngine {
     const metrics = this.calculateOverallMetrics(nodes, edges, calculationStart);
 
     this.metrics = metrics;
-    logger.debug('Analytics calculation complete', metrics);
+    // logger.debug('Analytics calculation complete', metrics);
 
     return metrics;
   }
