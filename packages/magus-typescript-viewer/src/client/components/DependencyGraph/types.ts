@@ -1,5 +1,12 @@
 import type { Edge, Node, Position } from '@vue-flow/core';
 
+import type { Class } from '../../../shared/types/Class';
+import type { Enum } from '../../../shared/types/Enum';
+import type { Interface } from '../../../shared/types/Interface';
+import type { Module } from '../../../shared/types/Module';
+import type { Package } from '../../../shared/types/Package';
+import type { TypeAlias } from '../../../shared/types/TypeAlias';
+
 /**
  * Dependency kinds (node types)
  */
@@ -96,94 +103,15 @@ export interface DependencyGraph {
 }
 
 /**
- * Dependency structure for a package
- */
-export interface DependencyRef {
-  id: string;
-  name?: string;
-  version?: string;
-}
-
-/**
- * Import structure
- */
-export interface ImportRef {
-  uuid: string;
-  name?: string;
-  path?: string;
-}
-
-/**
- * Interface reference structure
- */
-export interface InterfaceRef {
-  id: string;
-  name?: string;
-}
-
-/**
- * Module structure
- */
-export interface ModuleStructure {
-  id: string;
-  name: string;
-  package_id: string;
-  source: {
-    relativePath: string;
-    [key: string]: unknown;
-  };
-  imports?: Record<string, ImportRef>;
-  classes?: Record<string, ClassStructure>;
-  interfaces?: Record<string, InterfaceStructure>;
-  [key: string]: unknown;
-}
-
-/**
- * Class structure
- */
-export interface ClassStructure {
-  id: string;
-  name: string;
-  extends_id?: string;
-  implemented_interfaces?: Record<string, InterfaceRef>;
-  methods?: NodeMethod[];
-  properties?: NodeProperty[];
-  [key: string]: unknown;
-}
-
-/**
- * Interface structure
- */
-export interface InterfaceStructure {
-  id: string;
-  name: string;
-  extended_interfaces?: Record<string, InterfaceRef>;
-  methods?: NodeMethod[];
-  properties?: NodeProperty[];
-  [key: string]: unknown;
-}
-
-/**
- * Package structure for graph visualization
- */
-export interface PackageStructure {
-  id: string;
-  name: string;
-  version: string;
-  path: string;
-  created_at: string;
-  dependencies?: Record<string, DependencyRef>;
-  devDependencies?: Record<string, DependencyRef>;
-  peerDependencies?: Record<string, DependencyRef>;
-  modules?: Record<string, ModuleStructure>;
-  [key: string]: unknown;
-}
-
-/**
- * Package graph structure
+ * Normalized graph structure with flat Maps for all entity types
  */
 export interface DependencyPackageGraph {
-  packages: PackageStructure[];
+  packages: Map<string, Package>;
+  modules: Map<string, Module>;
+  classes: Map<string, Class>;
+  interfaces: Map<string, Interface>;
+  types: Map<string, TypeAlias>;
+  enums: Map<string, Enum>;
 }
 
 /**

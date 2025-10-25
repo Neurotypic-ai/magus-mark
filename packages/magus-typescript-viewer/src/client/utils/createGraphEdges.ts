@@ -1,18 +1,15 @@
 import { MarkerType } from '@vue-flow/core';
 
 import { createLogger } from '../../shared/utils/logger';
-import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getEdgeStyle } from '../theme/graphTheme';
+import { typeCollectionToArray } from './typeCollectionHelpers';
 
-import type {
-  ClassStructure,
-  DependencyEdgeKind,
-  DependencyPackageGraph,
-  GraphEdge,
-  InterfaceStructure,
-  ModuleStructure,
-  PackageStructure,
-} from '../components/DependencyGraph/types';
+import type { Class } from '../../shared/types/Class';
+import type { Import } from '../../shared/types/Import';
+import type { Interface } from '../../shared/types/Interface';
+import type { Module } from '../../shared/types/Module';
+import type { Package } from '../../shared/types/Package';
+import type { DependencyEdgeKind, DependencyPackageGraph, GraphEdge } from '../components/DependencyGraph/types';
 
 const logger = createLogger('createGraphEdges');
 
@@ -77,19 +74,16 @@ function joinPaths(...segments: string[]): string {
 function buildModulePathMap(data: DependencyPackageGraph): Map<string, string> {
   const pathMap = new Map<string, string>();
 
-  data.packages.forEach((pkg) => {
-    if (pkg.modules) {
-      mapTypeCollection(pkg.modules, (module) => {
-        // Normalize the path to handle different separators
-        const normalizedPath = normalizePath(module.source.relativePath);
-        pathMap.set(normalizedPath, module.id);
+  // Iterate through all modules in the normalized structure
+  for (const [_id, module] of data.modules) {
+    // Normalize the path to handle different separators
+    const normalizedPath = normalizePath(module.source.relativePath);
+    pathMap.set(normalizedPath, module.id);
 
-        // Also add without extension for matching flexibility
-        const withoutExt = normalizedPath.replace(/\.(ts|tsx|js|jsx)$/, '');
-        pathMap.set(withoutExt, module.id);
-      });
-    }
-  });
+    // Also add without extension for matching flexibility
+    const withoutExt = normalizedPath.replace(/\.(ts|tsx|js|jsx)$/, '');
+    pathMap.set(withoutExt, module.id);
+  }
 
   return pathMap;
 }
@@ -127,38 +121,32 @@ function createEdge(id: string, source: string, target: string, edgeType: Depend
 
 /**
  * Creates package dependency edges for a package (dependency, devDependency, peerDependency)
- * @param pkg The package structure
+ * @param pkg The package from shared types
  * @returns Array of dependency edges
  */
-function createPackageDependencyEdges(pkg: PackageStructure): GraphEdge[] {
+function createPackageDependencyEdges(pkg: Package): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
   // Regular dependencies
-  if (pkg.dependencies && Object.keys(pkg.dependencies).length > 0) {
-    mapTypeCollection(pkg.dependencies, (dep) => {
-      if (dep.id) {
-        edges.push(createEdge(`${pkg.id}-${dep.id}-dependency`, pkg.id, dep.id, 'dependency'));
-      }
-    });
-  }
+  typeCollectionToArray(pkg.dependencies).forEach((dep: Package) => {
+    if (dep.id) {
+      edges.push(createEdge(`${pkg.id}-${dep.id}-dependency`, pkg.id, dep.id, 'dependency'));
+    }
+  });
 
   // Dev dependencies
-  if (pkg.devDependencies && Object.keys(pkg.devDependencies).length > 0) {
-    mapTypeCollection(pkg.devDependencies, (dep) => {
-      if (dep.id) {
-        edges.push(createEdge(`${pkg.id}-${dep.id}-devDependency`, pkg.id, dep.id, 'devDependency'));
-      }
-    });
-  }
+  typeCollectionToArray(pkg.devDependencies).forEach((dep: Package) => {
+    if (dep.id) {
+      edges.push(createEdge(`${pkg.id}-${dep.id}-devDependency`, pkg.id, dep.id, 'devDependency'));
+    }
+  });
 
   // Peer dependencies
-  if (pkg.peerDependencies && Object.keys(pkg.peerDependencies).length > 0) {
-    mapTypeCollection(pkg.peerDependencies, (dep) => {
-      if (dep.id) {
-        edges.push(createEdge(`${pkg.id}-${dep.id}-peerDependency`, pkg.id, dep.id, 'peerDependency'));
-      }
-    });
-  }
+  typeCollectionToArray(pkg.peerDependencies).forEach((dep: Package) => {
+    if (dep.id) {
+      edges.push(createEdge(`${pkg.id}-${dep.id}-peerDependency`, pkg.id, dep.id, 'peerDependency'));
+    }
+  });
 
   return edges;
 }
@@ -166,30 +154,28 @@ function createPackageDependencyEdges(pkg: PackageStructure): GraphEdge[] {
 /**
  * Creates import edges for a module
  * Arrow points FROM imported module TO importing module (shows "is used by" relationship)
- * @param module The module structure
+ * @param module The module from shared types
  * @param modulePathMap Map of paths to module IDs
  * @returns Array of import edges
  */
-function createModuleImportEdges(module: ModuleStructure, modulePathMap: Map<string, string>): GraphEdge[] {
+function createModuleImportEdges(module: Module, modulePathMap: Map<string, string>): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
-  if (module.imports && Object.keys(module.imports).length > 0) {
-    mapTypeCollection(module.imports, (imp) => {
-      if (!imp.path) return; // Skip imports without paths (e.g., external npm packages)
+  typeCollectionToArray(module.imports).forEach((imp: Import) => {
+    if (!imp.relativePath) return; // Skip imports without paths (e.g., external npm packages)
 
-      // Resolve the import path relative to the current module
-      const resolvedPath = resolveImportPath(module.source.relativePath, imp.path);
+    // Resolve the import path relative to the current module
+    const resolvedPath = resolveImportPath(module.source.relativePath, imp.relativePath);
 
-      // Look up the target module ID
-      const targetModuleId =
-        modulePathMap.get(resolvedPath) ?? modulePathMap.get(resolvedPath.replace(/\.(ts|tsx|js|jsx)$/, ''));
+    // Look up the target module ID
+    const targetModuleId =
+      modulePathMap.get(resolvedPath) ?? modulePathMap.get(resolvedPath.replace(/\.(ts|tsx|js|jsx)$/, ''));
 
-      if (targetModuleId && targetModuleId !== module.id) {
-        // Arrow points FROM imported module TO importing module
-        edges.push(createEdge(`${targetModuleId}-${module.id}-import`, targetModuleId, module.id, 'import'));
-      }
-    });
-  }
+    if (targetModuleId && targetModuleId !== module.id) {
+      // Arrow points FROM imported module TO importing module
+      edges.push(createEdge(`${targetModuleId}-${module.id}-import`, targetModuleId, module.id, 'import'));
+    }
+  });
 
   return edges;
 }
@@ -197,44 +183,26 @@ function createModuleImportEdges(module: ModuleStructure, modulePathMap: Map<str
 /**
  * Creates export edges for a module
  * Arrow points FROM exporting module TO exported module (shows "exports from" relationship)
- * @param module The module structure
+ * @param module The module from shared types
  * @param modulePathMap Map of paths to module IDs
  * @returns Array of export edges
  */
-function createModuleExportEdges(module: ModuleStructure, modulePathMap: Map<string, string>): GraphEdge[] {
+function createModuleExportEdges(_module: Module, _modulePathMap: Map<string, string>): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
-  // Check if module has exports property
-  const moduleWithExports = module as unknown as {
-    exports?: Record<string, { uuid: string; name?: string; path?: string }>;
-  };
-
-  if (moduleWithExports.exports && Object.keys(moduleWithExports.exports).length > 0) {
-    mapTypeCollection(moduleWithExports.exports, (exp) => {
-      if (!exp.path) return; // Skip exports without paths
-
-      // Resolve the export path relative to the current module
-      const resolvedPath = resolveImportPath(module.source.relativePath, exp.path);
-
-      // Look up the target module ID
-      const targetModuleId =
-        modulePathMap.get(resolvedPath) ?? modulePathMap.get(resolvedPath.replace(/\.(ts|tsx|js|jsx)$/, ''));
-
-      if (targetModuleId && targetModuleId !== module.id) {
-        edges.push(createEdge(`${module.id}-${targetModuleId}-export`, module.id, targetModuleId, 'export'));
-      }
-    });
-  }
+  // Note: Export edges are not implemented as Export type doesn't have path information
+  // The Export type only contains metadata about what is exported, not where it's exported to
+  // This would require a different approach to track re-exports
 
   return edges;
 }
 
 /**
  * Creates class relationship edges (inheritance and implements)
- * @param cls The class structure
+ * @param cls The class from shared types
  * @returns Array of class relationship edges
  */
-function createClassRelationshipEdges(cls: ClassStructure): GraphEdge[] {
+function createClassRelationshipEdges(cls: Class): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
   // Handle class inheritance
@@ -243,32 +211,28 @@ function createClassRelationshipEdges(cls: ClassStructure): GraphEdge[] {
   }
 
   // Handle interface implementations
-  if (cls.implemented_interfaces && Object.keys(cls.implemented_interfaces).length > 0) {
-    mapTypeCollection(cls.implemented_interfaces, (iface) => {
-      if (iface.id) {
-        edges.push(createEdge(`${cls.id}-${iface.id}-implements`, cls.id, iface.id, 'implements'));
-      }
-    });
-  }
+  typeCollectionToArray(cls.implemented_interfaces).forEach((iface: Interface) => {
+    if (iface.id) {
+      edges.push(createEdge(`${cls.id}-${iface.id}-implements`, cls.id, iface.id, 'implements'));
+    }
+  });
 
   return edges;
 }
 
 /**
  * Creates interface inheritance edges
- * @param iface The interface structure
+ * @param iface The interface from shared types
  * @returns Array of interface inheritance edges
  */
-function createInterfaceInheritanceEdges(iface: InterfaceStructure): GraphEdge[] {
+function createInterfaceInheritanceEdges(iface: Interface): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
-  if (iface.extended_interfaces && Object.keys(iface.extended_interfaces).length > 0) {
-    mapTypeCollection(iface.extended_interfaces, (extended) => {
-      if (extended.id) {
-        edges.push(createEdge(`${iface.id}-${extended.id}-inheritance`, iface.id, extended.id, 'inheritance'));
-      }
-    });
-  }
+  typeCollectionToArray(iface.extended_interfaces).forEach((extended: Interface) => {
+    if (extended.id) {
+      edges.push(createEdge(`${iface.id}-${extended.id}-inheritance`, iface.id, extended.id, 'inheritance'));
+    }
+  });
 
   return edges;
 }
@@ -280,7 +244,7 @@ function createInterfaceInheritanceEdges(iface: InterfaceStructure): GraphEdge[]
  */
 export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   logger.info('Starting edge creation');
-  logger.debug(`Input: ${String(data.packages.length)} packages`);
+  logger.debug(`Input: ${String(data.packages.size)} packages`);
   const edges: GraphEdge[] = [];
 
   // Build module path lookup for import resolution
@@ -296,45 +260,39 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   let classEdges = 0;
   let interfaceEdges = 0;
 
-  data.packages.forEach((pkg, pkgIndex) => {
-    // Create package dependency edges
+  // Create package dependency edges
+  for (const [_id, pkg] of data.packages) {
     const pkgEdges = createPackageDependencyEdges(pkg);
     edges.push(...pkgEdges);
     packageDepEdges += pkgEdges.length;
-    if (pkgIndex < 2 && pkgEdges.length > 0) {
+    if (packageDepEdges <= 10 && pkgEdges.length > 0) {
       logger.debug(`Package ${pkg.name} has ${String(pkgEdges.length)} dependency edges`);
     }
+  }
 
-    // Process modules within the package
-    if (pkg.modules && Object.keys(pkg.modules).length > 0) {
-      mapTypeCollection(pkg.modules, (module) => {
-        // Create module import and export edges
-        const modImportEdges = createModuleImportEdges(module, modulePathMap);
-        const modExportEdges = createModuleExportEdges(module, modulePathMap);
-        edges.push(...modImportEdges, ...modExportEdges);
-        importEdges += modImportEdges.length;
-        exportEdges += modExportEdges.length;
+  // Process all modules
+  for (const [_id, module] of data.modules) {
+    // Create module import and export edges
+    const modImportEdges = createModuleImportEdges(module, modulePathMap);
+    const modExportEdges = createModuleExportEdges(module, modulePathMap);
+    edges.push(...modImportEdges, ...modExportEdges);
+    importEdges += modImportEdges.length;
+    exportEdges += modExportEdges.length;
+  }
 
-        // Create class relationship edges
-        if (module.classes && Object.keys(module.classes).length > 0) {
-          mapTypeCollection(module.classes, (cls) => {
-            const clsEdges = createClassRelationshipEdges(cls);
-            edges.push(...clsEdges);
-            classEdges += clsEdges.length;
-          });
-        }
+  // Create class relationship edges
+  for (const [_id, cls] of data.classes) {
+    const clsEdges = createClassRelationshipEdges(cls);
+    edges.push(...clsEdges);
+    classEdges += clsEdges.length;
+  }
 
-        // Create interface inheritance edges
-        if (module.interfaces && Object.keys(module.interfaces).length > 0) {
-          mapTypeCollection(module.interfaces, (iface) => {
-            const ifaceEdges = createInterfaceInheritanceEdges(iface);
-            edges.push(...ifaceEdges);
-            interfaceEdges += ifaceEdges.length;
-          });
-        }
-      });
-    }
-  });
+  // Create interface inheritance edges
+  for (const [_id, iface] of data.interfaces) {
+    const ifaceEdges = createInterfaceInheritanceEdges(iface);
+    edges.push(...ifaceEdges);
+    interfaceEdges += ifaceEdges.length;
+  }
 
   logger.info(`Edge creation complete:`);
   logger.info(`  - Package dependencies: ${String(packageDepEdges)}`);

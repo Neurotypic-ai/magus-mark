@@ -1,22 +1,9 @@
 import { createLogger } from '../../shared/utils/logger';
+import { typeCollectionToArray } from '../utils/typeCollectionHelpers';
 
-import type { Class } from '../../shared/types/Class';
-import type { Interface as SharedInterface } from '../../shared/types/Interface';
-import type { Method } from '../../shared/types/Method';
 import type { Module } from '../../shared/types/Module';
 import type { Package } from '../../shared/types/Package';
-import type { Property as SharedProperty } from '../../shared/types/Property';
-import type { TypeCollection } from '../../shared/types/TypeCollection';
-import type {
-  ClassStructure,
-  DependencyPackageGraph,
-  DependencyRef,
-  ImportRef,
-  InterfaceStructure,
-  ModuleStructure,
-  NodeMethod,
-  NodeProperty,
-} from '../components/DependencyGraph/types';
+import type { DependencyPackageGraph } from '../components/DependencyGraph/types';
 
 // Define the missing structures that are used in the class but not externally defined
 // These were previously used but now NodeProperty/NodeMethod are used more directly
@@ -89,25 +76,56 @@ export class GraphDataAssembler {
   }
 
   /**
-   * Creates the final graph data structure with proper typings
-   * @param packages The transformed packages
-   * @returns A DependencyPackageGraph object
+   * Creates the normalized graph data structure with flat Maps
+   * @param packages The packages from API
+   * @param modules The modules from API
+   * @returns A normalized DependencyPackageGraph object
    */
-  private createGraphData(
-    packages: {
-      id: string;
-      name: string;
-      version: string;
-      path: string;
-      created_at: string;
-      dependencies?: Record<string, DependencyRef>;
-      devDependencies?: Record<string, DependencyRef>;
-      peerDependencies?: Record<string, DependencyRef>;
-      modules?: Record<string, ModuleStructure>;
-    }[]
-  ): DependencyPackageGraph {
-    // Create a properly typed object
-    return { packages };
+  private createGraphData(packages: Package[], modules: Module[]): DependencyPackageGraph {
+    const graph: DependencyPackageGraph = {
+      packages: new Map(),
+      modules: new Map(),
+      classes: new Map(),
+      interfaces: new Map(),
+      types: new Map(),
+      enums: new Map(),
+    };
+
+    // Populate packages Map
+    for (const pkg of packages) {
+      graph.packages.set(pkg.id, pkg);
+    }
+
+    // Populate modules Map and extract nested entities
+    for (const module of modules) {
+      graph.modules.set(module.id, module);
+
+      // Extract and flatten classes
+      const classesArray = typeCollectionToArray(module.classes);
+      for (const cls of classesArray) {
+        graph.classes.set(cls.id, cls);
+      }
+
+      // Extract and flatten interfaces
+      const interfacesArray = typeCollectionToArray(module.interfaces);
+      for (const iface of interfacesArray) {
+        graph.interfaces.set(iface.id, iface);
+      }
+
+      // Extract and flatten type aliases
+      const typesArray = typeCollectionToArray(module.typeAliases);
+      for (const type of typesArray) {
+        graph.types.set(type.uuid, type);
+      }
+
+      // Extract and flatten enums
+      const enumsArray = typeCollectionToArray(module.enums);
+      for (const enumItem of enumsArray) {
+        graph.enums.set(enumItem.id, enumItem);
+      }
+    }
+
+    return graph;
   }
 
   /**
@@ -124,7 +142,7 @@ export class GraphDataAssembler {
       const cachedData = this.cache.get(cacheKey);
       if (cachedData) {
         assemblerLogger.info('Cache hit! Returning cached data');
-        assemblerLogger.debug(`Cached data has ${String(cachedData.packages.length)} packages`);
+        assemblerLogger.debug(`Cached data has ${String(cachedData.packages.size)} packages`);
         return cachedData;
       }
       assemblerLogger.debug('Cache miss. Fetching fresh data...');
@@ -138,37 +156,27 @@ export class GraphDataAssembler {
       const packages = (await packagesResponse.json()) as Package[];
       assemblerLogger.info(`Fetched ${String(packages.length)} packages`);
 
-      // Fetch modules and their dependencies for each package
-      assemblerLogger.debug('Fetching modules for each package...');
-      const enrichedPackages = await Promise.all(
-        packages.map(async (pkg, index) => {
-          assemblerLogger.debug(
-            `[${String(index + 1)}/${String(packages.length)}] Fetching modules for package: ${pkg.name}`
-          );
-          const modulesResponse = await fetch(`${this.baseUrl}/modules?packageId=${pkg.id}`, signal ? { signal } : {});
-          if (!modulesResponse.ok) {
-            assemblerLogger.error(`Failed to fetch modules for ${pkg.name}: ${String(modulesResponse.status)}`);
-            throw new Error(`HTTP error! status: ${modulesResponse.status.toString()}`);
-          }
-          const modules = (await modulesResponse.json()) as Module[];
-          assemblerLogger.debug(`Fetched ${String(modules.length)} modules for package: ${pkg.name}`);
+      // Fetch modules for all packages
+      assemblerLogger.debug('Fetching modules for all packages...');
+      const allModules: Module[] = [];
 
-          // Transform the module data
-          assemblerLogger.debug(`Transforming ${String(modules.length)} modules...`);
-          const enrichedModules = this.transformModules(modules);
-          assemblerLogger.debug(`Transformed ${String(enrichedModules.length)} modules`);
+      for (const pkg of packages) {
+        assemblerLogger.debug(`Fetching modules for package: ${pkg.name}`);
+        const modulesResponse = await fetch(`${this.baseUrl}/modules?packageId=${pkg.id}`, signal ? { signal } : {});
+        if (!modulesResponse.ok) {
+          assemblerLogger.error(`Failed to fetch modules for ${pkg.name}: ${String(modulesResponse.status)}`);
+          throw new Error(`HTTP error! status: ${modulesResponse.status.toString()}`);
+        }
+        const modules = (await modulesResponse.json()) as Module[];
+        assemblerLogger.debug(`Fetched ${String(modules.length)} modules for package: ${pkg.name}`);
+        allModules.push(...modules);
+      }
 
-          // Transform the package data and include modules
-          return {
-            ...this.transformPackage(pkg),
-            modules: Object.fromEntries(enrichedModules.map((m) => [m.id, m])),
-          };
-        })
+      // Create the normalized graph data
+      assemblerLogger.debug(
+        `Creating normalized graph data with ${String(packages.length)} packages and ${String(allModules.length)} modules`
       );
-
-      // Create the final graph data
-      assemblerLogger.debug(`Creating final graph data with ${String(enrichedPackages.length)} enriched packages`);
-      const graphData = this.createGraphData(enrichedPackages);
+      const graphData = this.createGraphData(packages, allModules);
       assemblerLogger.debug('Graph data created successfully');
 
       // Store in cache
@@ -185,191 +193,6 @@ export class GraphDataAssembler {
       }
       throw new Error('An unknown error occurred while assembling graph data');
     }
-  }
-
-  /**
-   * Transforms modules data for the graph
-   * @param modules The modules to transform
-   * @returns The transformed modules as ModuleStructure[]
-   */
-  private transformModules(modules: Module[]): ModuleStructure[] {
-    assemblerLogger.debug(`transformModules: Processing ${String(modules.length)} modules`);
-    // Use type assertion to convert array elements
-    return modules.map((module, index) => {
-      assemblerLogger.debug(`Transforming module [${String(index)}]: ${module.name}`);
-      const relativePath = module.source.relativePath;
-      // Simple module transformation that meets ModuleStructure requirements
-      const moduleStructure: ModuleStructure = {
-        id: module.id,
-        package_id: module.package_id,
-        name: module.name,
-        source: {
-          relativePath,
-        },
-        imports: this.transformImportCollection(this.typeCollectionToArray(module.imports)),
-        classes: this.transformClassCollection(this.typeCollectionToArray(module.classes)),
-        interfaces: this.transformInterfaceCollection(this.typeCollectionToArray(module.interfaces)),
-        created_at: typeof module.created_at === 'string' ? module.created_at : module.created_at.toISOString(),
-      };
-
-      return moduleStructure;
-    });
-  }
-
-  /**
-   * Converts a TypeCollection to an array
-   * @param collection The collection to convert
-   * @returns An array of items from the collection
-   */
-  private typeCollectionToArray<T>(collection: TypeCollection<T> | undefined): T[] {
-    if (!collection) return [];
-    if (Array.isArray(collection)) return collection;
-    if (collection instanceof Map) return Array.from(collection.values());
-    return Object.values(collection);
-  }
-
-  /**
-   * Transforms class collection to Record format
-   * @param classes Array of classes
-   * @returns Record of classes
-   */
-  private transformClassCollection(classes: Class[]): Record<string, ClassStructure> {
-    const result: Record<string, ClassStructure> = {};
-
-    classes.forEach((cls) => {
-      const classObj: ClassStructure = {
-        id: cls.id,
-        name: cls.name,
-        implemented_interfaces: this.transformInterfaceRefs(this.typeCollectionToArray(cls.implemented_interfaces)),
-        properties: this.transformPropertyCollection(this.typeCollectionToArray(cls.properties)),
-        methods: this.transformMethodCollection(this.typeCollectionToArray(cls.methods)),
-        created_at: typeof cls.created_at === 'string' ? cls.created_at : cls.created_at.toISOString(),
-      } as unknown as ClassStructure;
-
-      if (cls.extends_id) {
-        (classObj as { extends_id?: string }).extends_id = cls.extends_id;
-      }
-
-      result[cls.name] = classObj;
-    });
-
-    return result;
-  }
-
-  /**
-   * Transforms interface collection to Record format
-   * @param interfaces Array of interfaces
-   * @returns Record of interfaces
-   */
-  private transformInterfaceCollection(interfaces: SharedInterface[]): Record<string, InterfaceStructure> {
-    const result: Record<string, InterfaceStructure> = {};
-
-    interfaces.forEach((intf) => {
-      result[intf.name] = {
-        id: intf.id,
-        name: intf.name,
-        extended_interfaces: this.transformInterfaceRefs(this.typeCollectionToArray(intf.extended_interfaces)),
-        properties: this.transformPropertyCollection(this.typeCollectionToArray(intf.properties)),
-        methods: this.transformMethodCollection(this.typeCollectionToArray(intf.methods)),
-        created_at: typeof intf.created_at === 'string' ? intf.created_at : intf.created_at.toISOString(),
-      };
-    });
-
-    return result;
-  }
-
-  /**
-   * Transforms property collection to Record format
-   * @param properties Array of properties
-   * @returns Record of properties
-   */
-  private transformPropertyCollection(properties: SharedProperty[]): NodeProperty[] {
-    return properties.map((prop) => ({
-      name: prop.name,
-      type: prop.type,
-      visibility: prop.visibility,
-      // Note: is_static, default_value from SharedProperty are not in NodeProperty
-      // id and created_at are also not directly part of NodeProperty display type
-    }));
-  }
-
-  /**
-   * Transforms method collection to Record format
-   * @param methods Array of methods
-   * @returns Record of methods
-   */
-  private transformMethodCollection(methods: Method[]): NodeMethod[] {
-    return methods.map((method) => {
-      const parameters = this.typeCollectionToArray(method.parameters);
-      return {
-        name: method.name,
-        returnType: method.return_type,
-        visibility: method.visibility,
-        signature: parameters.map((p) => `${p.name}: ${p.type}`).join(', '),
-        // Note: is_static, is_async from SharedMethod are not in NodeMethod display type
-        // id and created_at are also not directly part of NodeMethod display type
-      };
-    });
-  }
-
-  /**
-   * Transforms package data for the graph
-   * @param pkg The package to transform
-   * @returns The transformed package data
-   */
-  private transformPackage(pkg: Package) {
-    return {
-      id: pkg.id,
-      name: pkg.name,
-      version: pkg.version,
-      path: pkg.path,
-      created_at: typeof pkg.created_at === 'string' ? pkg.created_at : pkg.created_at.toISOString(),
-      dependencies: this.transformDependencyCollection(this.typeCollectionToArray(pkg.dependencies)),
-      devDependencies: this.transformDependencyCollection(this.typeCollectionToArray(pkg.devDependencies)),
-      peerDependencies: this.transformDependencyCollection(this.typeCollectionToArray(pkg.peerDependencies)),
-    };
-  }
-
-  /**
-   * Transforms a collection of interfaces into a record of InterfaceRefs keyed by id
-   */
-  private transformInterfaceRefs(interfaces: SharedInterface[]): Record<string, { id: string; name?: string }> {
-    const result: Record<string, { id: string; name?: string }> = {};
-    interfaces.forEach((intf) => {
-      result[intf.id] = { id: intf.id, name: intf.name };
-    });
-    return result;
-  }
-
-  /**
-   * Transforms a collection of imports into a record of ImportRef keyed by uuid
-   */
-  private transformImportCollection(
-    imports: { uuid: string; name?: string; relativePath?: string }[]
-  ): Record<string, ImportRef> {
-    const result: Record<string, ImportRef> = {};
-    imports.forEach((imp) => {
-      const ref: ImportRef = { uuid: imp.uuid } as ImportRef;
-      if (imp.name !== undefined) {
-        (ref as { name?: string }).name = imp.name;
-      }
-      if (imp.relativePath !== undefined) {
-        (ref as { path?: string }).path = imp.relativePath;
-      }
-      result[imp.uuid] = ref;
-    });
-    return result;
-  }
-
-  /**
-   * Transforms a collection of packages into a record of DependencyRef keyed by id
-   */
-  private transformDependencyCollection(packages: Package[]): Record<string, DependencyRef> {
-    const result: Record<string, DependencyRef> = {};
-    packages.forEach((p) => {
-      result[p.id] = { id: p.id, name: p.name, version: p.version } as DependencyRef;
-    });
-    return result;
   }
 
   /**

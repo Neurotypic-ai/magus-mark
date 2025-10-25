@@ -464,13 +464,13 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
 };
 
 // Progressive rendering phases
-// Note: Classes/interfaces/types/enums can render independently of modules
+// Note: All symbol types can render independently of modules
 // They will appear even if modules are disabled, but they still need modules
 // to exist in the data structure for proper parent-child relationships
 const RENDERING_PHASES = [
   { name: 'packages', level: 0, types: ['package'] },
   { name: 'modules', level: 1, types: ['module'] },
-  { name: 'classes', level: 2, types: ['class', 'interface', 'type', 'enum'] },
+  { name: 'classes', level: 2, types: ['class', 'interface', 'type', 'enum', 'function'] },
 ] as const;
 
 // Progressive graph initialization
@@ -485,12 +485,12 @@ const initializeGraph = async () => {
   try {
     // Debug: Check if we have data
     graphLogger.info('Initializing graph with data:', {
-      packageCount: props.data?.packages?.length ?? 0,
-      packages: props.data?.packages?.map((p) => ({ id: p.id, name: p.name })) ?? [],
+      packageCount: props.data?.packages?.size ?? 0,
+      packages: Array.from(props.data?.packages?.values() ?? []).map((p) => ({ id: p.id, name: p.name })),
     });
 
     // Early return if no data
-    if (!props.data || !props.data.packages || props.data.packages.length === 0) {
+    if (!props.data || !props.data.packages || props.data.packages.size === 0) {
       graphLogger.warn('No data available to create graph');
       graphStore.setNodes([]);
       graphStore.setEdges([]);
@@ -528,13 +528,20 @@ const renderGraphProgressively = async () => {
       // Add nodes to VueFlow
       addNodes(phaseNodes);
 
+      // Update the Pinia store for analytics
+      graphStore.addNodes(phaseNodes);
+
       // Add edges if any
       if (phaseEdges.length > 0) {
         addEdges(phaseEdges);
+        graphStore.addEdges(phaseEdges);
       }
 
-      // Apply layout for this phase
-      await applyLayoutForPhase(phase, phaseNodes, phaseEdges);
+      // Run layout after each phase for proper progressive rendering
+      await processGraphLayout({
+        nodes: graphStore.nodes,
+        edges: graphStore.edges,
+      });
 
       // Fit view to show new nodes
       await fitView({ duration: 300, padding: 0.1 });
@@ -556,22 +563,7 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
 
   // Check if this phase should be rendered based on settings
   const shouldRenderPhase = phase.types.some((type) => {
-    switch (type) {
-      case 'package':
-        return graphSettings.showPackages;
-      case 'module':
-        return graphSettings.showModules;
-      case 'class':
-        return graphSettings.showClasses;
-      case 'interface':
-        return graphSettings.showInterfaces;
-      case 'type':
-        return graphSettings.showTypes;
-      case 'enum':
-        return graphSettings.showEnums;
-      default:
-        return false;
-    }
+    return graphSettings.visibleNodeTypes.has(type as DependencyKind);
   });
 
   if (!shouldRenderPhase) {
@@ -584,7 +576,7 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
       includePackages: true,
       includeClasses: false,
       direction: layoutConfig.direction,
-      visibleNodeTypes: [],
+      visibleNodeTypes: undefined,
     });
     nodes.push(...graphNodes.filter((node) => node.type === 'package'));
   } else if (phase.name === 'modules') {
@@ -598,7 +590,7 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
   } else if (phase.name === 'classes') {
     // For classes/interfaces/types/enums, we conditionally include modules
     // based on whether modules are enabled in the settings
-    const visibleTypes = new Set([...Array.from(graphSettings.visibleNodeTypes)]);
+    const visibleTypes = new Set(graphSettings.visibleNodeTypes);
     if (graphSettings.showModules) {
       visibleTypes.add('module');
     }
@@ -610,37 +602,16 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
       visibleNodeTypes: visibleTypes,
     });
 
-    // Handle module nodes based on whether modules are enabled
-    let moduleNodes: DependencyNode[] = [];
+    // Filter nodes based on visible types
+    const classNodes = graphNodes.filter((node) => node.type === 'class');
+    const interfaceNodes = graphNodes.filter((node) => node.type === 'interface');
+    const typeNodes = graphNodes.filter((node) => node.type === 'type');
+    const enumNodes = graphNodes.filter((node) => node.type === 'enum');
+    const functionNodes = graphNodes.filter((node) => node.type === 'function');
+    const moduleNodes = graphNodes.filter((node) => node.type === 'module');
 
-    if (graphSettings.showModules) {
-      // Include module nodes normally when modules are enabled
-      moduleNodes = graphNodes.filter((node) => node.type === 'module');
-    } else {
-      // When modules are disabled, don't include module nodes at all
-      // and remove parent relationships from child nodes
-      moduleNodes = [];
-    }
-
-    // Filter to only show the requested symbol types
-    const requestedTypes = [];
-    if (graphSettings.showClasses) requestedTypes.push('class');
-    if (graphSettings.showInterfaces) requestedTypes.push('interface');
-    if (graphSettings.showTypes) requestedTypes.push('type');
-    if (graphSettings.showEnums) requestedTypes.push('enum');
-
-    let symbolNodes = graphNodes.filter((node) => requestedTypes.includes(node.type));
-
-    // If modules are disabled, remove parent relationships from symbol nodes
-    if (!graphSettings.showModules) {
-      symbolNodes = symbolNodes.map((node) => ({
-        ...node,
-        parentNode: undefined, // Remove parent relationship
-      }));
-    }
-
-    // Add both module nodes and symbol nodes
-    nodes.push(...moduleNodes, ...symbolNodes);
+    // Combine all nodes for this phase
+    nodes.push(...moduleNodes, ...classNodes, ...interfaceNodes, ...typeNodes, ...enumNodes, ...functionNodes);
   }
 
   return nodes;
@@ -650,20 +621,42 @@ const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise
 const createEdgesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise<GraphEdge[]> => {
   const edges: GraphEdge[] = [];
 
-  // Create edges for classes phase, but filter them based on visible nodes
-  if (phase.name === 'classes') {
-    const graphEdges = createGraphEdges(props.data!) as unknown as GraphEdge[];
+  // Create ALL edges (we'll filter by phase type and visible nodes)
+  const allGraphEdges = createGraphEdges(props.data!) as unknown as GraphEdge[];
 
-    // Get all currently visible node IDs from the graph store
-    const visibleNodeIds = new Set(graphStore.nodes.map((node) => node.id));
+  // Get all currently visible node IDs from the graph store
+  const visibleNodeIds = new Set(graphStore.nodes.map((node) => node.id));
 
-    // Filter edges to only include those connecting visible nodes
-    const filteredEdges = graphEdges.filter(
-      (edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
-    );
+  // Get enabled relationship types for filtering
+  const enabledTypes = new Set(graphSettings.enabledRelationshipTypes);
 
-    edges.push(...filteredEdges);
-  }
+  // Filter edges based on phase, visible nodes, and relationship types
+  const filteredEdges = allGraphEdges.filter((edge) => {
+    // Check if both nodes are visible
+    const bothNodesVisible = visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target);
+    if (!bothNodesVisible) return false;
+
+    // Check if relationship type is enabled
+    const edgeType = edge.data?.type ?? 'dependency';
+    const typeEnabled = enabledTypes.has(edgeType);
+    if (!typeEnabled) return false;
+
+    // Phase-specific filtering
+    if (phase.name === 'packages') {
+      // Only include package dependency edges
+      return edgeType === 'dependency' || edgeType === 'devDependency' || edgeType === 'peerDependency';
+    } else if (phase.name === 'modules') {
+      // Only include module import/export edges
+      return edgeType === 'import' || edgeType === 'export';
+    } else if (phase.name === 'classes') {
+      // Include class/interface relationship edges
+      return edgeType === 'inheritance' || edgeType === 'implements' || edgeType === 'extends';
+    }
+
+    return false;
+  });
+
+  edges.push(...filteredEdges);
 
   return edges;
 };
@@ -1137,13 +1130,10 @@ const onPaneClick = (): void => {
 };
 
 // Filter handler for relationship types
-const handleRelationshipFilterChange = (types: string[]) => {
-  graphStore.setEdges(
-    edges.value.map((edge: GraphEdge) => ({
-      ...edge,
-      hidden: !types.includes(edge.data?.type ?? 'default'),
-    }))
-  );
+const handleRelationshipFilterChange = async (_types: string[]) => {
+  // Relationship types are already updated in graphSettings by GraphControls
+  // Reinitialize the graph to apply the new filters
+  await initializeGraph();
 };
 
 // Layout change handler
@@ -1331,48 +1321,14 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
               void initializeGraph();
             }
           "
-          @toggle-show-packages="
-            (v: boolean) => {
-              graphSettings.setShowPackages(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-show-modules="
-            (v: boolean) => {
-              graphSettings.setShowModules(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-show-classes="
-            (v: boolean) => {
-              graphSettings.setShowClasses(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-show-interfaces="
-            (v: boolean) => {
-              graphSettings.setShowInterfaces(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-show-types="
-            (v: boolean) => {
-              graphSettings.setShowTypes(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-show-enums="
-            (v: boolean) => {
-              graphSettings.setShowEnums(v);
-              void initializeGraph();
-            }
-          "
-          @toggle-cluster-folder="
-            (v: boolean) => {
-              graphSettings.setClusterByFolder(v);
-              void initializeGraph();
-            }
-          "
+          @toggle-show-packages="() => void initializeGraph()"
+          @toggle-show-modules="() => void initializeGraph()"
+          @toggle-show-classes="() => void initializeGraph()"
+          @toggle-show-interfaces="() => void initializeGraph()"
+          @toggle-show-types="() => void initializeGraph()"
+          @toggle-show-enums="() => void initializeGraph()"
+          @toggle-show-functions="() => void initializeGraph()"
+          @toggle-cluster-folder="() => void initializeGraph()"
         />
         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />

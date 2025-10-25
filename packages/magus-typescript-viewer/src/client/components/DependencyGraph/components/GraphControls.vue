@@ -12,7 +12,12 @@ const emit = defineEmits<{
   'layout-change': [config: { direction?: string; nodeSpacing?: number; rankSpacing?: number }];
   'toggle-cluster-folder': [value: boolean];
   'toggle-show-packages': [value: boolean];
+  'toggle-show-modules': [value: boolean];
   'toggle-show-classes': [value: boolean];
+  'toggle-show-interfaces': [value: boolean];
+  'toggle-show-types': [value: boolean];
+  'toggle-show-enums': [value: boolean];
+  'toggle-show-functions': [value: boolean];
   'node-visibility-change': [];
   'enhanced-layout-change': [];
   'clustering-change': [];
@@ -40,6 +45,7 @@ const showClasses = computed(() => graphSettings.showClasses);
 const showInterfaces = computed(() => graphSettings.showInterfaces);
 const showTypes = computed(() => graphSettings.showTypes);
 const showEnums = computed(() => graphSettings.showEnums);
+const showFunctions = computed(() => graphSettings.showFunctions);
 const clusterByFolder = computed(() => graphSettings.clusterByFolder);
 
 // Relationship filters - use computed to reference the store's reactive refs
@@ -162,6 +168,11 @@ const handleShowTypesToggle = (checked: boolean) => {
 const handleShowEnumsToggle = (checked: boolean) => {
   graphSettings.setShowEnums(checked);
   emit('toggle-show-enums', checked);
+};
+
+const handleShowFunctionsToggle = (checked: boolean) => {
+  graphSettings.setShowFunctions(checked);
+  emit('toggle-show-functions', checked);
 };
 
 const handleClusterByFolderToggle = (checked: boolean) => {
@@ -400,31 +411,22 @@ const handleVisualHierarchyConfigChange = (config: {
           >
             <input
               type="checkbox"
+              :checked="showFunctions"
+              @change="(e) => handleShowFunctionsToggle((e.target as HTMLInputElement).checked)"
+              class="cursor-pointer accent-primary-main"
+            />
+            <span class="text-xs">Function</span>
+          </label>
+          <label
+            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
+          >
+            <input
+              type="checkbox"
               :checked="clusterByFolder"
               @change="(e) => handleClusterByFolderToggle((e.target as HTMLInputElement).checked)"
               class="cursor-pointer accent-primary-main"
             />
             <span class="text-xs">Group by folder</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Symbol Type Filters (only shown when class details are visible) -->
-      <div v-if="showClasses" class="mt-4 pt-4 border-t border-border-default">
-        <h4 class="text-sm font-semibold text-text-primary mb-2">Symbol Types</h4>
-        <div class="flex flex-col gap-1.5">
-          <label
-            v-for="nodeType in nodeTypes"
-            :key="nodeType"
-            class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast"
-          >
-            <input
-              type="checkbox"
-              :checked="isNodeTypeVisible(nodeType)"
-              @change="handleNodeTypeToggle(nodeType)"
-              class="cursor-pointer accent-primary-main"
-            />
-            <span class="text-xs capitalize">{{ nodeTypeLabels[nodeType] }}</span>
           </label>
         </div>
       </div>

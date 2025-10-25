@@ -1,19 +1,21 @@
 import { Position } from '@vue-flow/core';
 
 import { createLogger } from '../../shared/utils/logger';
-import { mapTypeCollection } from '../components/DependencyGraph/mapTypeCollection';
 import { getNodeStyle } from '../theme/graphTheme';
+import { typeCollectionToArray } from './typeCollectionHelpers';
 
+import type { Class } from '../../shared/types/Class';
+import type { Interface } from '../../shared/types/Interface';
+import type { Method } from '../../shared/types/Method';
+import type { Module } from '../../shared/types/Module';
+import type { Package } from '../../shared/types/Package';
+import type { Property } from '../../shared/types/Property';
 import type {
-  ClassStructure,
   DependencyKind,
   DependencyNode,
   DependencyPackageGraph,
-  InterfaceStructure,
-  ModuleStructure,
   NodeMethod,
   NodeProperty,
-  PackageStructure,
 } from '../components/DependencyGraph/types';
 
 const logger = createLogger('createGraphNodes');
@@ -70,15 +72,12 @@ function shouldIncludeNodeType(nodeType: DependencyKind, visibleNodeTypes?: Set<
 }
 
 /**
- * Converts properties from a class or interface structure to node properties
- * @param properties The raw properties object
+ * Converts properties from a shared type to node properties for display
+ * @param properties The TypeCollection of properties
  * @returns Array of formatted node properties
  */
-function convertPropertiesToNodeProperties(
-  properties: Record<string, { name: string; type: string; visibility: string }> | NodeProperty[] | undefined
-): NodeProperty[] {
-  if (!properties) return [];
-  return mapTypeCollection(properties, (prop) => ({
+function convertPropertiesToNodeProperties(properties: Property[]): NodeProperty[] {
+  return typeCollectionToArray(properties).map((prop: Property) => ({
     name: prop.name,
     type: prop.type,
     visibility: prop.visibility,
@@ -86,34 +85,28 @@ function convertPropertiesToNodeProperties(
 }
 
 /**
- * Converts methods from a class or interface structure to node methods
- * @param methods The raw methods object
+ * Converts methods from a shared type to node methods for display
+ * @param methods The TypeCollection of methods
  * @returns Array of formatted node methods
  */
-function convertMethodsToNodeMethods(
-  methods: Record<string, { name: string; returnType?: string; visibility: string }> | NodeMethod[] | undefined
-): NodeMethod[] {
-  if (!methods) return [];
-  return mapTypeCollection(methods, (method) => {
-    const returnType = method.returnType ?? 'void';
-    const methodName = method.name;
-    const visibility = method.visibility;
+function convertMethodsToNodeMethods(methods: Method[]): NodeMethod[] {
+  return typeCollectionToArray(methods).map((method: Method) => {
     return {
-      name: methodName,
-      returnType,
-      visibility,
-      signature: `${methodName}(): ${returnType}`,
+      name: method.name,
+      returnType: method.return_type,
+      visibility: method.visibility,
+      signature: `${method.name}(): ${method.return_type}`,
     };
   });
 }
 
 /**
  * Creates a package node
- * @param pkg The package structure
+ * @param pkg The package from shared types
  * @param positions Handle positions for the node
  * @returns A dependency node representing the package
  */
-function createPackageNode(pkg: PackageStructure, positions: HandlePositions): DependencyNode {
+function createPackageNode(pkg: Package, positions: HandlePositions): DependencyNode {
   return {
     id: pkg.id,
     type: 'package' as DependencyKind,
@@ -132,15 +125,15 @@ function createPackageNode(pkg: PackageStructure, positions: HandlePositions): D
 
 /**
  * Creates a module node
- * @param module The module structure
+ * @param module The module from shared types
  * @param pkg The parent package
  * @param positions Handle positions for the node
  * @param includePackages Whether to include package parent relationships
  * @returns A dependency node representing the module
  */
 function createModuleNode(
-  module: ModuleStructure,
-  pkg: PackageStructure,
+  module: Module,
+  pkg: Package,
   positions: HandlePositions,
   includePackages: boolean
 ): DependencyNode {
@@ -175,14 +168,14 @@ function createModuleNode(
 
 /**
  * Creates a class node
- * @param cls The class structure
- * @param moduleId The parent module ID
+ * @param cls The class from shared types
+ * @param module The parent module
  * @param positions Handle positions for the node
  * @returns A dependency node representing the class
  */
-function createClassNode(cls: ClassStructure, moduleId: string, positions: HandlePositions): DependencyNode {
-  const properties = convertPropertiesToNodeProperties(cls.properties);
-  const methods = convertMethodsToNodeMethods(cls.methods);
+function createClassNode(cls: Class, module: Module, positions: HandlePositions): DependencyNode {
+  const properties = convertPropertiesToNodeProperties(typeCollectionToArray(cls.properties));
+  const methods = convertMethodsToNodeMethods(typeCollectionToArray(cls.methods));
 
   return {
     id: cls.id,
@@ -190,11 +183,11 @@ function createClassNode(cls: ClassStructure, moduleId: string, positions: Handl
     position: { x: 0, y: 0 },
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
-    parentNode: moduleId,
+    parentNode: module.id,
     extent: 'parent' as const,
     expandParent: true,
     data: {
-      parentId: moduleId,
+      parentId: module.id,
       label: cls.name,
       properties,
       methods,
@@ -207,26 +200,25 @@ function createClassNode(cls: ClassStructure, moduleId: string, positions: Handl
 
 /**
  * Creates an interface node
- * @param iface The interface structure
+ * @param iface The interface from shared types
  * @param moduleId The parent module ID
  * @param positions Handle positions for the node
  * @returns A dependency node representing the interface
  */
-function createInterfaceNode(iface: InterfaceStructure, moduleId: string, positions: HandlePositions): DependencyNode {
-  const properties = convertPropertiesToNodeProperties(iface.properties);
-  const methods = convertMethodsToNodeMethods(iface.methods);
-
+function createInterfaceNode(iface: Interface, module: Module, positions: HandlePositions): DependencyNode {
+  const properties = convertPropertiesToNodeProperties(typeCollectionToArray(iface.properties));
+  const methods = convertMethodsToNodeMethods(typeCollectionToArray(iface.methods));
   return {
     id: iface.id,
-    type: 'interface' as DependencyKind,
+    type: 'interface',
     position: { x: 0, y: 0 },
     sourcePosition: positions.sourcePosition,
     targetPosition: positions.targetPosition,
-    parentNode: moduleId,
+    parentNode: module.id,
     extent: 'parent' as const,
     expandParent: true,
     data: {
-      parentId: moduleId,
+      parentId: module.id,
       label: iface.name,
       properties,
       methods,
@@ -248,7 +240,7 @@ export function createGraphNodes(
   options: CreateGraphNodesOptions = {}
 ): DependencyNode[] {
   logger.info('Starting node creation');
-  logger.debug(`Input: ${String(data.packages.length)} packages`);
+  logger.debug(`Input: ${String(data.packages.size)} packages`);
   const { includePackages = false, includeClasses = false, direction = 'LR', visibleNodeTypes } = options;
   logger.debug('Options:', {
     includePackages,
@@ -264,69 +256,68 @@ export function createGraphNodes(
 
   // Create package nodes if requested
   if (includePackages && shouldIncludeNodeType('package', visibleNodeTypes)) {
-    logger.debug(`Creating ${String(data.packages.length)} package nodes`);
-    data.packages.forEach((pkg, index) => {
+    logger.debug(`Creating ${String(data.packages.size)} package nodes`);
+    let index = 0;
+    for (const [_id, pkg] of data.packages) {
       if (index < 3) {
         logger.debug(`Creating package node [${String(index)}]: ${pkg.name}`);
       }
       graphNodes.push(createPackageNode(pkg, positions));
-    });
-    logger.debug(`Created ${String(data.packages.length)} package nodes`);
+      index++;
+    }
+    logger.debug(`Created ${String(data.packages.size)} package nodes`);
   } else {
     logger.debug('Skipping package nodes (includePackages=false or filtered out)');
   }
 
-  // Create module, class, and interface nodes
-  logger.debug('Processing modules, classes, and interfaces...');
+  // Create module nodes
+  logger.debug('Processing modules...');
   let moduleCount = 0;
-  let classCount = 0;
-  let interfaceCount = 0;
 
-  data.packages.forEach((pkg, pkgIndex) => {
-    if (pkg.modules && shouldIncludeNodeType('module', visibleNodeTypes)) {
-      const modules = mapTypeCollection(pkg.modules, (module) => {
-        // Add module node
+  for (const [_id, module] of data.modules) {
+    if (shouldIncludeNodeType('module', visibleNodeTypes)) {
+      const pkg = data.packages.get(module.package_id);
+      if (pkg) {
         graphNodes.push(createModuleNode(module, pkg, positions, includePackages));
         moduleCount++;
-
-        // Optionally add class and interface nodes
-        if (includeClasses) {
-          // Add class nodes
-          if (module.classes && shouldIncludeNodeType('class', visibleNodeTypes)) {
-            const classesAdded = mapTypeCollection(module.classes, (cls) => {
-              graphNodes.push(createClassNode(cls, module.id, positions));
-              classCount++;
-              return cls;
-            }).length;
-            if (classesAdded > 0 && classCount <= 5) {
-              logger.debug(`Added ${String(classesAdded)} class nodes from module ${module.name}`);
-            }
-          }
-
-          // Add interface nodes
-          if (module.interfaces && shouldIncludeNodeType('interface', visibleNodeTypes)) {
-            const interfacesAdded = mapTypeCollection(module.interfaces, (iface) => {
-              graphNodes.push(createInterfaceNode(iface, module.id, positions));
-              interfaceCount++;
-              return iface;
-            }).length;
-            if (interfacesAdded > 0 && interfaceCount <= 5) {
-              logger.debug(`Added ${String(interfacesAdded)} interface nodes from module ${module.name}`);
-            }
-          }
-        }
-        return module;
-      });
-      if (pkgIndex === 0) {
-        logger.debug(`Package ${pkg.name} has ${String(modules.length)} modules`);
       }
     }
-  });
+  }
+
+  // Create class nodes if requested
+  if (includeClasses && shouldIncludeNodeType('class', visibleNodeTypes)) {
+    logger.debug('Processing classes...');
+    let classCount = 0;
+
+    for (const [_id, cls] of data.classes) {
+      const module = data.modules.get(cls.module_id);
+      if (module) {
+        graphNodes.push(createClassNode(cls, module, positions));
+        classCount++;
+      }
+    }
+    logger.debug(`Created ${String(classCount)} class nodes`);
+  }
+
+  // Create interface nodes if requested
+  if (includeClasses && shouldIncludeNodeType('interface', visibleNodeTypes)) {
+    logger.debug('Processing interfaces...');
+    let interfaceCount = 0;
+
+    for (const [_id, iface] of data.interfaces) {
+      const module = data.modules.get(iface.module_id);
+      if (module) {
+        graphNodes.push(createInterfaceNode(iface, module, positions));
+        interfaceCount++;
+      }
+    }
+    logger.debug(`Created ${String(interfaceCount)} interface nodes`);
+  }
 
   logger.info(`Node creation complete:`);
   logger.info(`  - Modules: ${String(moduleCount)}`);
-  logger.info(`  - Classes: ${String(classCount)}`);
-  logger.info(`  - Interfaces: ${String(interfaceCount)}`);
+  logger.info(`  - Classes: ${String(data.classes.size)}`);
+  logger.info(`  - Interfaces: ${String(data.interfaces.size)}`);
   logger.info(`  - Total nodes: ${String(graphNodes.length)}`);
 
   return graphNodes;

@@ -22,6 +22,8 @@ interface GraphStoreReturn {
   // Actions
   setNodes: (newNodes: DependencyNode[]) => void;
   setEdges: (newEdges: GraphEdge[]) => void;
+  addNodes: (newNodes: DependencyNode[]) => void;
+  addEdges: (newEdges: GraphEdge[]) => void;
   setSelectedNode: (node: DependencyNode | null) => void;
   setCacheKey: (key: string | null) => void;
   clearCache: () => void;
@@ -85,6 +87,14 @@ export const useGraphStore = defineStore('graph', (): GraphStoreReturn => {
     edges.value = newEdges;
   };
 
+  const addNodes = (newNodes: DependencyNode[]) => {
+    nodes.value = [...nodes.value, ...newNodes];
+  };
+
+  const addEdges = (newEdges: GraphEdge[]) => {
+    edges.value = [...edges.value, ...newEdges];
+  };
+
   const setSelectedNode = (node: DependencyNode | null) => {
     selectedNode.value = node;
   };
@@ -118,6 +128,8 @@ export const useGraphStore = defineStore('graph', (): GraphStoreReturn => {
     // Actions
     setNodes,
     setEdges,
+    addNodes,
+    addEdges,
     setSelectedNode,
     setCacheKey,
     clearCache,
