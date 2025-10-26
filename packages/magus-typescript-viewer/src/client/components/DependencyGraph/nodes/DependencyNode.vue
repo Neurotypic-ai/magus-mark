@@ -68,7 +68,7 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </template>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 /* Node Content */
 .node-content {

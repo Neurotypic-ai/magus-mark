@@ -11,7 +11,14 @@ const nodeData = computed(() => props.data);
 </script>
 
 <template>
-  <BaseNode v-bind="props" badge-text="PACKAGE" :z-index="0" badge-class="package-badge">
+  <BaseNode
+    v-bind="props"
+    badge-text="PACKAGE"
+    :z-index="0"
+    badge-class="package-badge"
+    background-color="var(--background-node-package)"
+    border-color="var(--border-node-package)"
+  >
     <template #content>
       <!-- Package Metadata -->
       <div v-if="nodeData.properties && nodeData.properties.length > 0" class="package-metadata">
@@ -25,11 +32,11 @@ const nodeData = computed(() => props.data);
 </template>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 /* Package-specific badge styling */
 .package-badge {
-  background-color: var(--background-node-package);
+  background-color: rgba(45, 45, 45, 0.5);
 }
 
 /* Package Metadata */

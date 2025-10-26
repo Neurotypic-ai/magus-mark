@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useVueFlow } from '@vue-flow/core';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, inject, nextTick, onMounted, ref } from 'vue';
+
+import type { Ref } from 'vue';
 
 import BaseNode from './BaseNode.vue';
 
@@ -10,10 +12,18 @@ const props = defineProps<DependencyProps>();
 
 const nodeData = computed(() => props.data);
 
+// Inject flag from parent to check if we're in progressive rendering mode
+const isProgressiveRendering = inject<Ref<boolean>>('isProgressiveRendering', ref(false));
+
 // Ask VueFlow to recompute node dimensions when content changes
 const { updateNodeInternals } = useVueFlow();
 
 onMounted(async () => {
+  // Skip dimension updates during progressive rendering to prevent recursion
+  if (isProgressiveRendering.value) {
+    return;
+  }
+
   await nextTick();
   updateNodeInternals([props.id]);
   // Also trigger parent update if this is a child node
@@ -37,7 +47,14 @@ const toggleMetadata = async () => {
 </script>
 
 <template>
-  <BaseNode v-bind="props" badge-text="MODULE">
+  <BaseNode
+    v-bind="props"
+    badge-text="MODULE"
+    :z-index="5"
+    badge-class="module-badge"
+    background-color="var(--background-node-module)"
+    border-color="var(--border-node-module)"
+  >
     <template #content>
       <!-- Module Metadata Section -->
       <div v-if="nodeData.properties && nodeData.properties.length > 0" class="metadata-section">
@@ -81,7 +98,12 @@ const toggleMetadata = async () => {
 </template>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
+
+/* Module-specific badge styling */
+.module-badge {
+  @apply bg-slate-500/30 text-slate-200;
+}
 
 /* Metadata Section */
 .metadata-section {

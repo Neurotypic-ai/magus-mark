@@ -5,13 +5,18 @@
   --color-background-default: #0a0e27;
   --color-background-paper: #1a1f3a;
   --color-background-node: #1a1a1a;
-  --color-background-node-package: #2d2d2d;
+  --color-background-node-package: #1a1a1a;
+  --color-background-node-module: #2a2a2a;
+  --color-background-node-symbol: #3a3a3a;
 
   --color-text-primary: rgba(255, 255, 255, 0.87);
   --color-text-secondary: rgba(255, 255, 255, 0.6);
   --color-text-muted: rgba(255, 255, 255, 0.38);
 
   --color-border-default: #404040;
+  --color-border-node-package: #404040;
+  --color-border-node-module: #606060;
+  --color-border-node-symbol: #808080;
   --color-border-hover: #606060;
   --color-border-focus: #90caf9;
 
@@ -58,12 +63,17 @@
   --background-paper: var(--color-background-paper);
   --background-node: var(--color-background-node);
   --background-node-package: var(--color-background-node-package);
+  --background-node-module: var(--color-background-node-module);
+  --background-node-symbol: var(--color-background-node-symbol);
 
   --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
   --text-muted: var(--color-text-muted);
 
   --border-default: var(--color-border-default);
+  --border-node-package: var(--color-border-node-package);
+  --border-node-module: var(--color-border-node-module);
+  --border-node-symbol: var(--color-border-node-symbol);
   --border-hover: var(--color-border-hover);
   --border-focus: var(--color-border-focus);
   --border-default-rgb: 64, 64, 64;
@@ -140,6 +150,7 @@ body {
 
 .vue-flow__edge {
   pointer-events: all;
+  z-index: 1000 !important;
 }
 
 .vue-flow__edge-path {
@@ -194,15 +205,17 @@ body {
 }
 
 /* Improve node dragging performance */
-/* .vue-flow__node {
-  transition: none !important;
+.vue-flow__node {
+  z-index: 1 !important;
+  /* transition: none !important;
   padding: 0 !important;
   border: none !important;
   background-color: transparent !important;
   border-radius: 0.5rem !important;
-  overflow: visible !important;
-} */
+  overflow: visible !important; */
+}
 
 .vue-flow__node.dragging {
   cursor: grabbing !important;
+  z-index: 999 !important;
 }

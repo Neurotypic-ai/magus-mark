@@ -271,7 +271,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 .enhanced-edge {
   @apply cursor-pointer transition-all duration-300;

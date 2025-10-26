@@ -147,7 +147,7 @@ const defaultTheme = graphTheme as Required<GraphTheme>;
 export function getNodeStyle(type: DependencyKind): CSSProperties {
   const baseStyle: CSSProperties = {
     padding: `${String(defaultTheme.nodes.padding.header)}px ${String(defaultTheme.nodes.padding.content)}px`,
-    borderRadius: defaultTheme.nodes.borderRadius,
+    borderRadius: `${String(defaultTheme.nodes.borderRadius)}px`,
     border: `1px solid ${defaultTheme.nodes.colors.border}`,
     backgroundColor: defaultTheme.nodes.colors.background.default,
   };
@@ -157,7 +157,7 @@ export function getNodeStyle(type: DependencyKind): CSSProperties {
       return {
         ...baseStyle,
         backgroundColor: defaultTheme.nodes.colors.background.package,
-        borderRadius: defaultTheme.nodes.borderRadius * 2,
+        borderRadius: `${String(defaultTheme.nodes.borderRadius * 2)}px`,
         padding: '20px',
       };
     case 'module':

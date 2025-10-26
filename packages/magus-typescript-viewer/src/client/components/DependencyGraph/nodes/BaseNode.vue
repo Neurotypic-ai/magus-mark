@@ -15,6 +15,8 @@ interface BaseNodeProps {
   readonly zIndex?: number;
   readonly badgeText: string;
   readonly badgeClass?: string;
+  readonly backgroundColor?: string;
+  readonly borderColor?: string;
 }
 
 const props = withDefaults(defineProps<BaseNodeProps>(), {
@@ -36,6 +38,14 @@ const containerStyle = computed(() => {
     zIndex: props.zIndex,
     minWidth: props.minWidth,
   };
+
+  if (props.backgroundColor) {
+    style['backgroundColor'] = props.backgroundColor;
+  }
+
+  if (props.borderColor) {
+    style['borderColor'] = props.borderColor;
+  }
 
   return style;
 });
@@ -68,7 +78,7 @@ const containerStyle = computed(() => {
 </template>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 /* Base Node Container */
 .base-node-container {

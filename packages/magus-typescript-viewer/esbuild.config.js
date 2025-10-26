@@ -14,7 +14,8 @@ const common = {
   bundle: true,
   platform: 'node',
   target: 'node22',
-  sourcemap: !production,
+  sourcemap: true,
+  sourcesContent: !production,
   minify: production,
   tsconfig: path.join(__dirname, 'tsconfig.json'),
   external: [

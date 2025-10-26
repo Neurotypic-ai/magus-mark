@@ -26,8 +26,8 @@ async function main() {
     bundle: true,
     format: 'cjs',
     minify: production,
-    sourcemap: !production,
-    sourcesContent: false,
+    sourcemap: true,
+    sourcesContent: !production,
     platform: 'node', // For the nodejs runtime
     outfile: 'dist/extension.cjs',
     external: ['vscode'],

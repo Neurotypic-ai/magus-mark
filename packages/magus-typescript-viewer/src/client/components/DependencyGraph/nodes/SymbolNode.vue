@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useVueFlow } from '@vue-flow/core';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, inject, nextTick, onMounted, ref } from 'vue';
+
+import type { Ref } from 'vue';
 
 import BaseNode from './BaseNode.vue';
 
@@ -11,10 +13,18 @@ const props = defineProps<DependencyProps>();
 const nodeData = computed(() => props.data);
 const nodeType = computed(() => props.type);
 
+// Inject flag from parent to check if we're in progressive rendering mode
+const isProgressiveRendering = inject<Ref<boolean>>('isProgressiveRendering', ref(false));
+
 // Ask VueFlow to recompute node dimensions when content changes
 const { updateNodeInternals } = useVueFlow();
 
 onMounted(async () => {
+  // Skip dimension updates during progressive rendering to prevent recursion
+  if (isProgressiveRendering.value) {
+    return;
+  }
+
   await nextTick();
   updateNodeInternals([props.id]);
 });
@@ -75,7 +85,15 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </script>
 
 <template>
-  <BaseNode v-bind="props" :badge-text="badgeText" :badge-class="getTypeColor" :z-index="2" min-width="280px">
+  <BaseNode
+    v-bind="props"
+    :badge-text="badgeText"
+    :badge-class="getTypeColor"
+    :z-index="10"
+    min-width="280px"
+    background-color="var(--background-node-symbol)"
+    border-color="var(--border-node-symbol)"
+  >
     <template #content>
       <!-- Node Content -->
       <div v-if="hasContent" class="symbol-content">
@@ -180,23 +198,27 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </template>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 /* Type-specific Badge Colors */
 .type-class {
-  @apply bg-blue-500/20 text-blue-300;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
 }
 
 .type-interface {
-  @apply bg-purple-500/20 text-purple-300;
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
 }
 
 .type-enum {
-  @apply bg-orange-500/20 text-orange-300;
+  background-color: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
 }
 
 .type-type {
-  @apply bg-teal-500/20 text-teal-300;
+  background-color: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
 }
 
 .type-default {
@@ -279,16 +301,16 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
   @apply w-2 h-2 rounded-full shrink-0 mt-1;
 }
 
-.visibility-public-symbol {
-  @apply bg-green-500;
+.visibility-dot.visibility-public-symbol {
+  background-color: var(--visibility-public);
 }
 
-.visibility-protected-symbol {
-  @apply bg-yellow-500;
+.visibility-dot.visibility-protected-symbol {
+  background-color: var(--visibility-protected);
 }
 
-.visibility-private-symbol {
-  @apply bg-red-500;
+.visibility-dot.visibility-private-symbol {
+  background-color: var(--visibility-private);
 }
 
 .visibility-symbol {
@@ -310,11 +332,11 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 }
 
 .member-type-property {
-  @apply text-blue-300;
+  color: #93c5fd;
 }
 
 .member-type-method {
-  @apply text-green-300;
+  color: #86efac;
 }
 
 /* Empty State */

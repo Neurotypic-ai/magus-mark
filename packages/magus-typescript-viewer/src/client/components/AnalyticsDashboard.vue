@@ -191,7 +191,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 .analytics-dashboard {
   @apply fixed top-5 right-5 w-80 rounded-lg shadow-xl z-1000 transition-all duration-300;

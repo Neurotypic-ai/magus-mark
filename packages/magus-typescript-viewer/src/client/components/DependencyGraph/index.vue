@@ -2,7 +2,7 @@
 import { Background } from '@vue-flow/background';
 import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
 import type { Class } from '../../../shared/types/Class';
@@ -58,6 +58,18 @@ const isInitialLayout = ref(false);
 const hasAppliedMeasuredLayout = ref(false);
 const isLayoutRunning = ref(false);
 
+// Re-entry detection for debugging
+const onNodesInitializedCallCount = ref(0);
+
+// Track progressive rendering state to prevent dimension updates during initial render
+const isProgressiveRendering = ref(false);
+
+// Track when graph data is ready for VueFlow to mount (prevents ResizeObserver recursion)
+const isGraphReady = ref(false);
+
+// Provide flag to child node components so they can skip updateNodeInternals during progressive rendering
+provide('isProgressiveRendering', isProgressiveRendering);
+
 // Edge visualization engine
 const edgeVisualizationEngine = ref<EdgeVisualizationEngine | null>(null);
 const enhancedEdges = ref<any[]>([]);
@@ -94,6 +106,21 @@ const measuredDimensions = shallowRef<Map<string, { width: number; height: numbe
 
 // Computed: Dynamic graph extents based on actual node positions + padding
 const graphExtents = computed((): { translate: [[number, number], [number, number]]; node: [[number, number], [number, number]] } => {
+  // CRITICAL: Return static extents during progressive rendering to prevent VueFlow's
+  // watchNodeExtent from triggering updateNodeInternals which causes recursive updates
+  if (isProgressiveRendering.value) {
+    return {
+      translate: [
+        [-5000, -5000],
+        [5000, 5000],
+      ],
+      node: [
+        [-5000, -5000],
+        [5000, 5000],
+      ],
+    };
+  }
+
   if (nodes.value.length === 0) {
     // Default extents if no nodes
     return {
@@ -249,12 +276,24 @@ onUnmounted(() => {
 
 // Handler for when VueFlow nodes are initialized and measured
 const onNodesInitialized = async () => {
+  // Track re-entry for debugging
+  onNodesInitializedCallCount.value++;
+  const callNumber = onNodesInitializedCallCount.value;
+
+  graphLogger.debug(`onNodesInitialized called (call #${callNumber})`);
+
   // Only run on initial layout, and only once
   if (!isInitialLayout.value || hasAppliedMeasuredLayout.value) {
+    graphLogger.debug(`onNodesInitialized skipped (call #${callNumber}): isInitialLayout=${isInitialLayout.value}, hasAppliedMeasuredLayout=${hasAppliedMeasuredLayout.value}`);
     return;
   }
 
-  graphLogger.info('Nodes initialized, collecting measured dimensions...');
+  // CRITICAL: Set flags IMMEDIATELY to prevent re-entry during reactive updates
+  // This must happen BEFORE any reactive mutations (like graphStore.setNodes)
+  hasAppliedMeasuredLayout.value = true;
+  isInitialLayout.value = false;
+
+  graphLogger.info(`Nodes initialized (call #${callNumber}), collecting measured dimensions...`);
 
   // Get measured dimensions from VueFlow - use shallow access for performance
   const vueFlowNodes = getNodes.value;
@@ -285,8 +324,6 @@ const onNodesInitialized = async () => {
   // Only proceed if we have new dimensions
   if (!hasNewDimensions && measuredDimensions.value.size > 0) {
     graphLogger.info('No dimension changes, skipping re-layout');
-    hasAppliedMeasuredLayout.value = true;
-    isInitialLayout.value = false;
     return;
   }
 
@@ -296,10 +333,6 @@ const onNodesInitialized = async () => {
 
   // Now re-run layout with measured dimensions
   if (newDimensions.size > 0) {
-    // Mark that we're applying measured layout to prevent infinite loop
-    hasAppliedMeasuredLayout.value = true;
-    isInitialLayout.value = false;
-
     // Store memoized dimensions
     measuredDimensions.value = newDimensions;
 
@@ -509,12 +542,16 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     // Debug: Verify store state
     graphLogger.debug('Store state after update:', { nodes: nodes.value.length, edges: edges.value.length });
 
-    // Fit view after layout with faster animation (schedule microtask to avoid sync reactivity loop)
-    graphLogger.debug('Scheduling fitView...');
-    await Promise.resolve();
-    graphLogger.debug('Calling fitView...');
-    await fitView({ duration: 150, padding: 0.1 });
-    graphLogger.debug('fitView complete');
+    // Fit view after layout (only if VueFlow is mounted)
+    if (isGraphReady.value) {
+      graphLogger.debug('Scheduling fitView...');
+      await Promise.resolve();
+      graphLogger.debug('Calling fitView...');
+      await fitView({ duration: 150, padding: 0.1 });
+      graphLogger.debug('fitView complete');
+    } else {
+      graphLogger.debug('Skipping fitView - VueFlow not mounted yet');
+    }
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Unknown error during layout processing');
     graphLogger.error('Layout processing failed:', error);
@@ -564,13 +601,24 @@ const initializeGraph = async () => {
     // Initialize layout processor
     initializeLayoutProcessor();
 
-    // Clear existing graph
-    graphStore.setNodes([]);
-    graphStore.setEdges([]);
+    // CRITICAL: Unmount VueFlow during initialization to prevent ResizeObserver loops
+    // VueFlow will be remounted only after all data is ready
+    isGraphReady.value = false;
+
+    // CRITICAL: Set progressive rendering flag BEFORE any node/edge mutations
+    // This prevents VueFlow's ResizeObserver from triggering recursive updates
+    isProgressiveRendering.value = true;
 
     // Enable measured dimension feedback for initial layout
     isInitialLayout.value = true;
     hasAppliedMeasuredLayout.value = false;
+
+    // Reset re-entry counter for new initialization
+    onNodesInitializedCallCount.value = 0;
+
+    // Clear existing graph (now protected by isProgressiveRendering flag)
+    graphStore.setNodes([]);
+    graphStore.setEdges([]);
 
     // Progressive rendering: Add nodes in phases
     await renderGraphProgressively();
@@ -583,29 +631,58 @@ const initializeGraph = async () => {
 
 // Progressive rendering implementation
 const renderGraphProgressively = async () => {
-  for (const phase of RENDERING_PHASES) {
-    graphLogger.info(`Starting rendering phase: ${phase.name}`);
+  // Note: isProgressiveRendering flag is already set by initializeGraph
+  // We just need to handle cleanup in the finally block
+  try {
+    // OPTIMIZATION: Instead of adding nodes in phases (which triggers multiple reactive cycles),
+    // collect all nodes first, then add them in a single batch to avoid ResizeObserver recursion
+    const allNodes: DependencyNode[] = [];
 
-    // Create nodes for this phase
-    const phaseNodes = await createNodesForPhase(phase);
+    for (const phase of RENDERING_PHASES) {
+      graphLogger.info(`Collecting nodes for phase: ${phase.name}`);
 
-    if (phaseNodes.length > 0) {
-      // Update the Pinia store (single source of truth)
-      graphStore.addNodes(phaseNodes);
+      // Create nodes for this phase
+      const phaseNodes = await createNodesForPhase(phase);
 
-      // Wait for Vue to render the nodes in the DOM
-      await nextTick();
-
-      // Note: We don't run layout during progressive phases because dagre
-      // needs edges to properly position nodes. Layout will be run once
-      // in applyFinalEnhancements when all nodes and edges are ready.
+      if (phaseNodes.length > 0) {
+        allNodes.push(...phaseNodes);
+        graphLogger.info(`Collected ${String(phaseNodes.length)} nodes for phase: ${phase.name}`);
+      }
     }
 
-    graphLogger.info(`Completed rendering phase: ${phase.name} (${String(phaseNodes.length)} nodes)`);
-  }
+    // Add ALL nodes in a single batch to avoid multiple reactive update cycles
+    if (allNodes.length > 0) {
+      graphLogger.info(`Adding all ${String(allNodes.length)} nodes in single batch`);
+      graphStore.addNodes(allNodes);
 
-  // Apply final enhancements (including edge creation and layout)
-  await applyFinalEnhancements();
+      // Wait for Vue to render all nodes
+      await nextTick();
+    }
+
+    // Apply final enhancements (including edge creation and layout)
+    await applyFinalEnhancements();
+  } finally {
+    // Re-enable dimension updates after progressive rendering completes
+    isProgressiveRendering.value = false;
+    graphLogger.debug('Progressive rendering complete, dimension updates re-enabled');
+
+    // Mount VueFlow now that all data is ready
+    isGraphReady.value = true;
+    graphLogger.info('Graph data ready, mounting VueFlow component');
+
+    // Wait for VueFlow to fully mount and initialize viewport, then fit view
+    await nextTick();
+    await nextTick(); // Double nextTick ensures VueFlow viewport is initialized
+
+    try {
+      graphLogger.debug('VueFlow mounted, calling initial fitView...');
+      await fitView({ duration: 300, padding: 0.1 });
+      graphLogger.debug('Initial fitView complete');
+    } catch (error) {
+      graphLogger.warn('Initial fitView failed:', error);
+      // Non-fatal - view just won't auto-fit
+    }
+  }
 };
 
 // Create nodes for a specific phase
@@ -748,8 +825,13 @@ const applyFinalEnhancements = async () => {
     edges: processedEdges,
   });
 
-  // Fit view to final graph
-  await fitView({ duration: 300, padding: 0.1 });
+  // Fit view to final graph (only if VueFlow is mounted)
+  if (isGraphReady.value) {
+    await fitView({ duration: 300, padding: 0.1 });
+    graphLogger.debug('Final fitView complete');
+  } else {
+    graphLogger.debug('Skipping final fitView - will be called after VueFlow mounts');
+  }
 
   graphLogger.info('Final enhancements complete');
 };
@@ -927,7 +1009,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
             hidden: false,
             data: { type: 'inheritance' as DependencyEdgeKind },
             style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
-            markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+            markerEnd: { type: MarkerType.ArrowClosed },
           } as GraphEdge);
         }
 
@@ -942,7 +1024,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
                 hidden: false,
                 data: { type: 'implements' as DependencyEdgeKind },
                 style: { ...getEdgeStyle('implements'), strokeWidth: 3 },
-                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+                markerEnd: { type: MarkerType.ArrowClosed },
               } as GraphEdge);
             }
           });
@@ -998,7 +1080,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
                 hidden: false,
                 data: { type: 'inheritance' as DependencyEdgeKind },
                 style: { ...getEdgeStyle('inheritance'), strokeWidth: 3 },
-                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+                markerEnd: { type: MarkerType.ArrowClosed },
               } as GraphEdge);
             }
           });
@@ -1338,6 +1420,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
     >
       <!-- The actual graph -->
       <VueFlow
+        v-if="isGraphReady"
         :nodes="nodes"
         :edges="edges"
         :node-types="nodeTypes as any"
@@ -1357,14 +1440,13 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         :elevate-edges-on-select="true"
         :default-edge-options="{
           style: { stroke: '#61dafb', strokeWidth: 3 },
-          markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+          markerEnd: { type: MarkerType.ArrowClosed },
           type: 'step',
         }"
         @node-click="onNodeClick"
         @node-double-click="onNodeDoubleClick"
         @node-drag="onNodeDrag"
         @pane-click="onPaneClick"
-        @nodes-initialized="onNodesInitialized"
       >
         <Background />
         <GraphControls
@@ -1417,7 +1499,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 </template>
 
 <style scoped>
-@import 'tailwindcss' reference;
+@import 'tailwindcss';
 
 /* Prevent browser zoom on pinch gestures - let VueFlow handle it */
 .graph-container {

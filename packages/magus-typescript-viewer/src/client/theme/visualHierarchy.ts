@@ -101,11 +101,11 @@ export class VisualHierarchyEngine {
         ...node,
         style: {
           ...(node.style && typeof node.style === 'object' ? node.style : {}),
-          width: enhancedStyle.width,
-          height: enhancedStyle.height,
+          // Note: Do not set width/height here - VueFlow manages these internally
+          // Setting them causes recursive update loops
           backgroundColor: enhancedStyle.backgroundColor,
           borderColor: enhancedStyle.borderColor,
-          borderWidth: enhancedStyle.borderWidth,
+          borderWidth: `${String(enhancedStyle.borderWidth)}px`,
           boxShadow: enhancedStyle.boxShadow,
           opacity: enhancedStyle.opacity,
         },
