@@ -25,6 +25,8 @@ const nodeData = computed(() => props.data);
 </template>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 /* Package-specific badge styling */
 .package-badge {
   background-color: var(--background-node-package);
@@ -32,23 +34,16 @@ const nodeData = computed(() => props.data);
 
 /* Package Metadata */
 .package-metadata {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
+  @apply flex flex-col gap-1 px-4 py-3;
 }
 
 .metadata-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  @apply flex items-center gap-2 text-xs leading-4;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  line-height: 1rem;
 }
 
 .metadata-name {
-  font-weight: 600;
+  @apply font-semibold;
 }
 
 .metadata-value {

@@ -1,11 +1,11 @@
 {
-  "extends": "@magus-mark/typescript-config/config/base/tsconfig.json",
+  "extends": "../base/tsconfig.json",
   "compilerOptions": {
     "outDir": "${configDir}/dist",
     "rootDir": "${configDir}/src",
     "tsBuildInfoFile": "${configDir}/dist/build.tsbuildinfo"
   },
-  "include": ["${configDir}/src/**/!(*.test|*.spec).{ts,tsx,vue}"],
+  "include": ["${configDir}/src/**/!(*.test|*.spec).{ts,tsx,vue}", "src/**/*.vue"],
   "watchOptions": {
     "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"]
   }

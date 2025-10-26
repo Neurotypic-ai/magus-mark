@@ -5,6 +5,8 @@ import { storeToRefs } from 'pinia';
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
+import type { Class } from '../../../shared/types/Class';
+import type { Interface } from '../../../shared/types/Interface';
 import { DEFAULT_ANALYTICS_CONFIG } from '../../analytics/graphAnalytics';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
@@ -88,10 +90,10 @@ function areEdgesShallowEqual(a: GraphEdge[], b: GraphEdge[]): boolean {
 const measuredDimensions = shallowRef<Map<string, { width: number; height: number }>>(new Map());
 
 // Computed: Node IDs set for fast lookups (memoized)
-const nodeIdsSet = computed(() => new Set(nodes.value.map((n) => n.id)));
+// const nodeIdsSet = computed(() => new Set(nodes.value.map((n) => n.id)));
 
 // Computed: Dynamic graph extents based on actual node positions + padding
-const graphExtents = computed(() => {
+const graphExtents = computed((): { translate: [[number, number], [number, number]]; node: [[number, number], [number, number]] } => {
   if (nodes.value.length === 0) {
     // Default extents if no nodes
     return {
@@ -183,6 +185,7 @@ const initializeLayoutProcessor = () => {
     animationDuration: 150,
     // Enhanced layout options
     useMultiAlgorithm: graphSettings.useMultiAlgorithm,
+    // @ts-expect-error - string type from store is compatible with LayoutStrategy union
     layoutStrategy: graphSettings.layoutStrategy,
     forceDirected: graphSettings.forceDirectedConfig,
     grid: graphSettings.gridConfig,
@@ -300,17 +303,22 @@ const onNodesInitialized = async () => {
     // Store memoized dimensions
     measuredDimensions.value = newDimensions;
 
-    // Add measured dimensions to nodes - avoid full map if possible
+    // Update nodes with measured dimensions both as 'measured' for layout and as 'width'/'height' for bounds calculations
     const nodesWithDimensions = nodes.value.map((node) => {
       const dims = newDimensions.get(node.id);
       if (dims) {
         return {
           ...node,
           measured: dims,
+          width: dims.width,
+          height: dims.height,
         };
       }
       return node;
     });
+
+    // Update the store with the new dimensions immediately
+    graphStore.setNodes(nodesWithDimensions);
 
     if (!isLayoutRunning.value) {
       await processGraphLayout({ nodes: nodesWithDimensions, edges: edges.value });
@@ -357,11 +365,22 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     // Explicitly update handle positions based on current layout direction
     // This ensures handles are correctly positioned even after worker processing
     const { sourcePosition, targetPosition } = getHandlePositions(layoutConfig.direction);
-    const nodesWithCorrectHandles = typedNodes.map((node) => ({
-      ...node,
-      sourcePosition,
-      targetPosition,
-    }));
+    const nodesWithCorrectHandles = typedNodes.map((node) => {
+      const measured = (node as unknown as { measured?: { width?: number; height?: number } }).measured;
+      const result: DependencyNode = {
+        ...node,
+        sourcePosition,
+        targetPosition,
+      };
+      // Apply measured dimensions to actual width/height so they're available for bounds calculations
+      if (measured?.width !== undefined) {
+        result.width = measured.width;
+      }
+      if (measured?.height !== undefined) {
+        result.height = measured.height;
+      }
+      return result;
+    });
 
     // Debug: Check edges after layout processing
     graphLogger.info(`After layout: ${typedEdges.length} edges`);
@@ -423,7 +442,12 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
           props.data,
           graphSettings.clusteringOptions
         );
-        finalNodes = clusteringResult.nodes;
+        // Ensure all nodes have sourcePosition and targetPosition
+        finalNodes = clusteringResult.nodes.map(node => ({
+          ...node,
+          sourcePosition: node.sourcePosition ?? sourcePosition,
+          targetPosition: node.targetPosition ?? targetPosition,
+        }));
         finalEdges = clusteringResult.edges;
         graphLogger.info('Applied smart clustering');
       } catch (err) {
@@ -435,7 +459,13 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
     if (graphSettings.useVisualHierarchy) {
       try {
         const { applyVisualHierarchy } = await import('../../theme/graphTheme');
-        finalNodes = applyVisualHierarchy(finalNodes, finalEdges, graphSettings.visualHierarchyConfig);
+        const hierarchyNodes = applyVisualHierarchy(finalNodes, finalEdges, graphSettings.visualHierarchyConfig);
+        // Ensure all nodes have sourcePosition and targetPosition
+        finalNodes = hierarchyNodes.map(node => ({
+          ...node,
+          sourcePosition: node.sourcePosition ?? sourcePosition,
+          targetPosition: node.targetPosition ?? targetPosition,
+        }));
         graphLogger.info('Applied visual hierarchy');
       } catch (err) {
         graphLogger.warn('Visual hierarchy failed:', err);
@@ -579,7 +609,7 @@ const renderGraphProgressively = async () => {
 };
 
 // Create nodes for a specific phase
-const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[0]): Promise<DependencyNode[]> => {
+const createNodesForPhase = async (phase: (typeof RENDERING_PHASES)[number]): Promise<DependencyNode[]> => {
   const nodes: DependencyNode[] = [];
 
   graphLogger.debug(`Phase ${phase.name}: checking if should render...`);
@@ -704,11 +734,7 @@ const applyFinalEnhancements = async () => {
   if (graphSettings.useVisualHierarchy) {
     try {
       const { applyVisualHierarchy } = await import('../../theme/graphTheme');
-      processedNodes = applyVisualHierarchy(
-        processedNodes,
-        processedEdges,
-        graphSettings.visualHierarchyConfig
-      );
+      processedNodes = applyVisualHierarchy(processedNodes, processedEdges, graphSettings.visualHierarchyConfig);
       graphLogger.info('Applied visual hierarchy');
     } catch (err) {
       graphLogger.warn('Visual hierarchy failed:', err);
@@ -828,7 +854,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
     graphLogger.info(`Expanding module view: ${selectedNode.data?.label}`);
 
     // Create detailed nodes for this module from the original data
-    const moduleData = props.data.packages
+    const moduleData = Array.from(props.data.packages.values())
       .flatMap((pkg) => Object.values(pkg.modules || {}))
       .find((m) => m.id === selectedNode.id);
 
@@ -857,7 +883,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
 
     // Add all classes in this module
     if (moduleData.classes) {
-      mapTypeCollection(moduleData.classes, (cls) => {
+      mapTypeCollection<Class, void>(moduleData.classes, (cls) => {
         const properties = cls.properties
           ? Object.values(cls.properties).map((p) => ({
               name: p.name,
@@ -926,7 +952,7 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
 
     // Add all interfaces in this module
     if (moduleData.interfaces) {
-      mapTypeCollection(moduleData.interfaces, (iface) => {
+      mapTypeCollection<Interface, void>(moduleData.interfaces, (iface) => {
         const properties = iface.properties
           ? Object.values(iface.properties).map((p) => ({
               name: p.name,
@@ -1164,7 +1190,7 @@ const onNodeDrag = ({ node }: { node: unknown }): void => {
   });
 
   // Trigger VueFlow to recalculate internals
-  updateNodeInternals(draggedNode.parentNode);
+  updateNodeInternals([draggedNode.parentNode]);
 };
 
 // Filter handler for relationship types
@@ -1391,12 +1417,13 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 </template>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 /* Prevent browser zoom on pinch gestures - let VueFlow handle it */
 .graph-container {
+  @apply select-none;
   touch-action: none;
   -webkit-user-select: none;
-  user-select: none;
-  /* Prevent iOS Safari double-tap zoom */
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1413,7 +1440,7 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 
 /* Allow text selection within nodes if needed */
 .graph-container :deep(.vue-flow__node) {
+  @apply select-text;
   -webkit-user-select: text;
-  user-select: text;
 }
 </style>

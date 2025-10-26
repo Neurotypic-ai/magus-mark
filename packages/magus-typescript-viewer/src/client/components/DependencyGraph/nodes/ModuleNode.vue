@@ -15,10 +15,10 @@ const { updateNodeInternals } = useVueFlow();
 
 onMounted(async () => {
   await nextTick();
-  updateNodeInternals(props.id);
+  updateNodeInternals([props.id]);
   // Also trigger parent update if this is a child node
   if (props.data?.parentId) {
-    updateNodeInternals(props.data.parentId);
+    updateNodeInternals([props.data.parentId]);
   }
 });
 
@@ -28,10 +28,10 @@ const isMetadataExpanded = ref(true);
 const toggleMetadata = async () => {
   isMetadataExpanded.value = !isMetadataExpanded.value;
   await nextTick();
-  updateNodeInternals(props.id);
+  updateNodeInternals([props.id]);
   // Trigger parent resize
   if (props.data?.parentId) {
-    updateNodeInternals(props.data.parentId);
+    updateNodeInternals([props.data.parentId]);
   }
 };
 </script>
@@ -81,54 +81,39 @@ const toggleMetadata = async () => {
 </template>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 /* Metadata Section */
 .metadata-section {
-  border-bottom: 1px solid rgba(var(--border-default-rgb), 0.5);
+  @apply border-b;
+  border-color: rgba(var(--border-default-rgb), 0.5);
 }
 
 .metadata-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  transition: background-color 200ms;
-  text-align: left;
-  background: transparent;
-  border: none;
-  cursor: pointer;
+  @apply w-full flex items-center justify-between px-3 py-2 transition-colors duration-200;
+  @apply text-left bg-transparent border-none cursor-pointer;
 }
 
 .metadata-toggle:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  @apply bg-white/5;
 }
 
 .metadata-label {
+  @apply text-[0.625rem] font-bold uppercase tracking-wide;
   color: var(--text-secondary);
-  font-size: 0.625rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
 }
 
 .metadata-icon {
-  width: 0.75rem;
-  height: 0.75rem;
+  @apply w-3 h-3 transition-transform duration-200;
   color: var(--text-secondary);
-  transition: transform 200ms;
 }
 
 .metadata-icon-expanded {
-  transform: rotate(180deg);
+  @apply rotate-180;
 }
 
 .metadata-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0 1rem 0.75rem 1rem;
-  max-height: 200px;
-  overflow-y: auto;
+  @apply flex flex-col gap-1 px-4 pb-3 max-h-[200px] overflow-y-auto;
   animation:
     fade-in 200ms ease-out,
     slide-in-from-top 200ms ease-out;
@@ -136,54 +121,38 @@ const toggleMetadata = async () => {
 
 /* Custom Scrollbar for metadata */
 .metadata-content::-webkit-scrollbar {
-  width: 6px;
+  @apply w-1.5;
 }
 
 .metadata-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  @apply bg-white/5 rounded;
 }
 
 .metadata-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  @apply bg-white/20 rounded;
 }
 
 .metadata-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  @apply bg-white/30;
 }
 
 .metadata-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  transition: background-color 200ms;
+  @apply flex items-start gap-2 text-xs leading-4 p-2 rounded transition-colors duration-200;
 }
 
 .metadata-prop-name {
-  font-weight: 600;
+  @apply font-semibold shrink-0 min-w-[50px];
   color: var(--text-secondary);
-  flex-shrink: 0;
-  min-width: 50px;
 }
 
 .metadata-prop-value {
+  @apply break-all;
   color: var(--text-primary);
-  word-break: break-all;
 }
 
 /* Empty State */
 .empty-state {
-  padding: 1rem;
-  text-align: center;
+  @apply p-4 text-center text-xs leading-4 italic opacity-60;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-style: italic;
-  opacity: 0.6;
 }
 </style>

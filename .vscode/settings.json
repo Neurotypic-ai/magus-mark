@@ -126,5 +126,12 @@
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#2f263f99",
     "titleBar.inactiveForeground": "#e7e7e799"
-  }
+  },
+  "typescript.check.npmIsInstalled": false,
+  "typescript.tsserver.log": "verbose",
+  // Vue/Volar settings
+  "vue.server.hybridMode": true,
+  "vue.updateImportsOnFileMove.enabled": true,
+  "volar.tsPlugin": true,
+  "volar.takeOverMode.enabled": false
 }

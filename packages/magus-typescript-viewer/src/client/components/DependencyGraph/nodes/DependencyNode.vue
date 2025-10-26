@@ -68,53 +68,36 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </template>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 /* Node Content */
 .node-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  @apply flex flex-col gap-2 p-3;
 }
 
 /* Section */
 .section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  @apply flex flex-col gap-1;
 }
 
 .section-header {
+  @apply text-xs leading-4 font-bold uppercase;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
 }
 
 .section-item {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  @apply flex items-center gap-1.5 px-1 py-0.5 rounded transition-all duration-150;
+  @apply text-xs leading-4;
   color: var(--text-primary);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  transition: all 150ms ease-in-out;
 }
 
 .section-item-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
 /* Visibility Indicators */
 .visibility-indicator {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  flex-shrink: 0;
+  @apply w-2 h-2 rounded-full shrink-0;
 }
 
 .visibility-public {

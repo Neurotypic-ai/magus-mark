@@ -1,0 +1,751 @@
+20:24:51.505 GET
+http://localhost:4000/
+[HTTP/1.1 200 OK 3ms]
+
+20:24:51.558 GET
+http://localhost:4000/src/main.ts?t=1761440113361
+[HTTP/1.1 200 OK 5ms]
+
+20:24:51.558 GET
+http://localhost:4000/src/index.css
+[HTTP/1.1 200 OK 5ms]
+
+20:24:51.558 GET
+https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap
+[HTTP/3 200  32ms]
+
+20:24:51.558 GET
+http://localhost:4000/@vite/client
+[HTTP/1.1 200 OK 5ms]
+
+20:24:51.578 content: DOMContentLoaded content.js:79:72
+20:24:51.579 content: normal start event processing for mh7cerit.wo (0 to run) content.js:79:386
+20:24:51.580 GET
+http://localhost:4000/node_modules/.vite/deps/vite-plugin-node-polyfills_shims_buffer.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:51.581 GET
+http://localhost:4000/node_modules/.vite/deps/pinia.js?v=371e96f6
+[HTTP/1.1 200 OK 8ms]
+
+20:24:51.581 GET
+http://localhost:4000/node_modules/.vite/deps/vite-plugin-node-polyfills_shims_process.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:51.581 GET
+http://localhost:4000/node_modules/.vite/deps/vite-plugin-node-polyfills_shims_global.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:51.582 GET
+http://localhost:4000/src/client/App.vue?t=1761440113361
+[HTTP/1.1 200 OK 8ms]
+
+20:24:51.582 GET
+http://localhost:4000/node_modules/.vite/deps/vue.js?v=371e96f6
+[HTTP/1.1 200 OK 8ms]
+
+20:24:51.583 GET
+http://localhost:4000/src/client/utils/performanceMonitoring.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:51.585 GET
+http://localhost:4000/@fs/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vite@7.1.11_@types+node@24.9.1_jiti@2.6.1_lightningcss@1.30.2_tsx@4.20.6_yaml@2.8.1/node_modules/vite/dist/client/env.mjs
+[HTTP/1.1 200 OK 5ms]
+
+20:24:51.588 GET
+http://localhost:4000/node_modules/.vite/deps/chunk-6BBRB3L6.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:51.589 GET
+http://localhost:4000/src/shared/utils/logger.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:51.596 GET
+http://localhost:4000/node_modules/.vite/deps/chunk-VXG5SD4D.js?v=371e96f6
+[HTTP/1.1 200 OK 4ms]
+
+20:24:51.597 GET
+http://localhost:4000/@id/__x00__plugin-vue:export-helper
+[HTTP/1.1 200 OK 4ms]
+
+20:24:51.597 GET
+http://localhost:4000/src/client/components/ErrorBoundary.vue
+[HTTP/1.1 200 OK 4ms]
+
+20:24:51.597 GET
+http://localhost:4000/src/client/assemblers/GraphDataAssembler.ts
+[HTTP/1.1 200 OK 4ms]
+
+20:24:51.598 [vite] connecting... client:733:9
+20:24:51.599 GET
+ws://localhost:4000/?token=LEEfYVH9pctH
+[HTTP/1.1 101 Switching Protocols 2ms]
+
+20:24:51.615 [vite] connected. client:827:12
+20:24:51.616 GET
+http://localhost:4000/src/client/utils/typeCollectionHelpers.ts
+[HTTP/1.1 200 OK 0ms]
+
+20:24:51.624 01:24:51 [App] [DEBUG] Fetching graph data... logger.ts:51:19
+20:24:51.624 01:24:51 [GraphDataAssembler] Starting graph data assembly logger.ts:41:17
+20:24:51.626 XHRGET
+http://localhost:4001/packages
+[HTTP/1.1 200 OK 3ms]
+
+20:24:51.631 01:24:51 [GraphDataAssembler] [DEBUG] Checking cache with key: http://localhost:4001 logger.ts:51:19
+20:24:51.631 01:24:51 [GraphDataAssembler] [DEBUG] Cache miss. Fetching fresh data... logger.ts:51:19
+20:24:51.631 01:24:51 [GraphDataAssembler] [DEBUG] Fetching from URL: http://localhost:4001/packages logger.ts:51:19
+20:24:51.645 content: load content.js:79:166
+20:24:51.667 01:24:51 [GraphDataAssembler] Fetched 1 packages logger.ts:41:17
+20:24:51.667 01:24:51 [GraphDataAssembler] [DEBUG] Fetching modules for all packages... logger.ts:51:19
+20:24:51.667 01:24:51 [GraphDataAssembler] [DEBUG] Fetching modules for package: magus-typescript-viewer logger.ts:51:19
+20:24:51.669 XHRGET
+http://localhost:4001/modules?packageId=c1801d24-ee56-5e55-9889-07deb303a066
+[HTTP/1.1 200 OK 357ms]
+
+20:24:51.669 GET
+http://localhost:4000/favicon.ico
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.052 01:24:52 [GraphDataAssembler] [DEBUG] Fetched 65 modules for package: magus-typescript-viewer logger.ts:51:19
+20:24:52.052 01:24:52 [App] [DEBUG] Setting graph data... logger.ts:51:19
+20:24:52.053 <Suspense> is an experimental feature and its API will likely change. chunk-VXG5SD4D.js:9237:43
+20:24:52.055 GET
+http://localhost:4000/src/client/components/DependencyGraph/DependencyGraphLazy.vue?t=1761440113361
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.055 01:24:52 [GraphDataAssembler] [DEBUG] Creating normalized graph data with 1 packages and 65 modules logger.ts:51:19
+20:24:52.055 01:24:52 [GraphDataAssembler] [DEBUG] Graph data created successfully logger.ts:51:19
+20:24:52.055 01:24:52 [GraphDataAssembler] [DEBUG] Storing data in cache with key: http://localhost:4001 logger.ts:51:19
+20:24:52.055 01:24:52 [GraphDataAssembler] [DEBUG] Data cached successfully logger.ts:51:19
+20:24:52.060 GET
+http://localhost:4000/src/client/components/DependencyGraph/index.vue?t=1761440113361
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.062 01:24:52 [GraphDataAssembler] Assembly complete logger.ts:41:17
+20:24:52.070 GET
+http://localhost:4000/node_modules/.vite/deps/@vue-flow_background.js?v=371e96f6
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.072 GET
+http://localhost:4000/node_modules/.vite/deps/@vue-flow_core.js?v=371e96f6
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.073 GET
+http://localhost:4000/src/client/stores/graphSettings.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.073 GET
+http://localhost:4000/src/client/layout/WebWorkerLayoutProcessor.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.073 GET
+http://localhost:4000/src/client/analytics/graphAnalytics.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.074 GET
+http://localhost:4000/src/client/utils/createGraphEdges.ts
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.074 GET
+http://localhost:4000/src/client/utils/calculateParentBounds.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.074 GET
+http://localhost:4000/src/client/theme/graphTheme.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.074 GET
+http://localhost:4000/src/client/stores/graphStore.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.075 GET
+http://localhost:4000/src/client/components/DependencyGraph/components/GraphSearch.vue
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.075 GET
+http://localhost:4000/src/client/components/DependencyGraph/components/GraphControls.vue
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.075 GET
+http://localhost:4000/src/client/components/AnalyticsDashboard.vue?t=1761440113361
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.075 GET
+http://localhost:4000/src/client/visualization/edgeVisualization.ts
+[HTTP/1.1 200 OK 2ms]
+
+20:24:52.075 GET
+http://localhost:4000/src/client/utils/createGraphNodes.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.076 GET
+http://localhost:4000/src/client/components/DependencyGraph/index.vue?t=1761440052477&vue&type=style&index=0&scoped=f1f4ba93&lang.css
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.076 GET
+http://localhost:4000/@fs/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/@vue-flow+core@1.47.0_vue@3.5.22_typescript@5.9.3_/node_modules/@vue-flow/core/dist/style.css
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.076 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/nodes.ts?t=1761439960127
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.076 GET
+http://localhost:4000/src/client/components/DependencyGraph/mapTypeCollection.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.076 GET
+http://localhost:4000/src/client/components/DependencyGraph/components/NodeDetails.vue
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.089 GET
+http://localhost:4000/node_modules/.vite/deps/chunk-GPQ4VKBD.js?v=371e96f6
+[HTTP/1.1 200 OK 4ms]
+
+20:24:52.090 GET
+http://localhost:4000/src/client/components/DependencyGraph/layout/config.ts
+[HTTP/1.1 200 OK 3ms]
+
+20:24:52.091 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/PackageNode.vue?t=1761439960127
+[HTTP/1.1 200 OK 3ms]
+
+20:24:52.091 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/ModuleNode.vue?t=1761439943988
+[HTTP/1.1 200 OK 3ms]
+
+20:24:52.091 GET
+http://localhost:4000/src/client/components/AnalyticsDashboard.vue?t=1761440113361&vue&type=style&index=0&scoped=3c9e0c18&lang.css
+[HTTP/1.1 200 OK 3ms]
+
+20:24:52.091 GET
+http://localhost:4000/src/client/theme/visualHierarchy.ts
+[HTTP/1.1 200 OK 3ms]
+
+20:24:52.091 GET
+http://localhost:4000/src/client/layout/dagreLayoutEngine.ts
+[HTTP/1.1 200 OK 3ms]
+
+20:24:52.092 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/SymbolNode.vue?t=1761439916269
+[HTTP/1.1 200 OK 4ms]
+
+20:24:52.119 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/PackageNode.vue?t=1761439960127&vue&type=style&index=0&scoped=89eee5f0&lang.css
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.119 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/BaseNode.vue?t=1761439916269
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.120 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/SymbolNode.vue?t=1761439470320&vue&type=style&index=0&scoped=f624c1fd&lang.css
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.120 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/ModuleNode.vue?t=1761439943988&vue&type=style&index=0&scoped=d80862bb&lang.css
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.120 GET
+http://localhost:4000/src/client/layout/multiAlgorithmLayoutEngine.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:52.128 GET
+http://localhost:4000/src/client/components/DependencyGraph/nodes/BaseNode.vue?t=1761439916269&vue&type=style&index=0&scoped=eca91edc&lang.css
+[HTTP/1.1 200 OK 0ms]
+
+20:24:52.131 01:24:52 [graphSettings] Initializing graph settings store logger.ts:41:17
+20:24:52.135 01:24:52 [DependencyGraph] Initializing graph with data: 
+Object { packageCount: 1, packages: (1) […] }
+logger.ts:39:17
+20:24:52.136 01:24:52 [createGraphNodes] Starting node creation logger.ts:41:17
+20:24:52.143 🍍 "graph" store installed 🆕 pinia.js:4636:13
+20:24:52.143 🍍 "graphSettings" store installed 🆕 pinia.js:4636:13
+20:24:55.007 [Vue warn]: Unhandled error during execution of app errorHandler 2 <anonymous code>:1:147461
+20:24:56.725 01:24:56 [createGraphEdges] Starting edge creation logger.ts:41:17
+20:24:56.807 01:24:56 [graphSettings] [DEBUG] Loading settings from localStorage logger.ts:51:19
+20:24:56.807 01:24:56 [DependencyGraph] Starting rendering phase: classes logger.ts:41:17
+20:24:56.807 01:24:56 [createGraphNodes] [DEBUG] Input: 1 packages logger.ts:51:19
+20:24:56.807 01:24:56 [createGraphEdges] [DEBUG] Input: 1 packages logger.ts:51:19
+20:24:56.816 GET
+http://localhost:4000/src/client/workers/GraphLayoutWorker.ts?worker_file&type=module
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.854 Source map error: Error: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+Stack in the worker:parseSourceMapInput@resource://devtools/client/shared/vendor/source-map/lib/util.js:163:15
+_factory@resource://devtools/client/shared/vendor/source-map/lib/source-map-consumer.js:1069:22
+SourceMapConsumer@resource://devtools/client/shared/vendor/source-map/lib/source-map-consumer.js:26:12
+_fetch@resource://devtools/client/shared/source-map-loader/utils/fetchSourceMap.js:83:19
+
+Resource URL: http://localhost:4000/%3Canonymous%20code%3E
+Source Map URL: installHook.js.map
+20:24:56.876 01:24:56 [graphSettings] [DEBUG] Loaded persisted settings: 
+Object { showPackages: true, showModules: true, showClasses: true, showInterfaces: true, showTypes: false, showEnums: false, showFunctions: false, clusterByFolder: false, visibleNodeTypes: (4) […], layoutDirection: "LR", … }
+logger.ts:49:19
+20:24:56.877 01:24:56 [DependencyGraph] [DEBUG] Phase classes: checking if should render... logger.ts:51:19
+20:24:56.877 01:24:56 [createGraphNodes] [DEBUG] Options: 
+Object { includePackages: false, includeClasses: true, direction: "LR", visibleNodeTypes: (4) […] }
+logger.ts:49:19
+20:24:56.878 01:24:56 [createGraphEdges] [DEBUG] Building module path map... logger.ts:51:19
+20:24:56.879 Uncaught (in promise) Maximum recursive updates exceeded in component <index>. This means you have a reactive effect that is mutating its own dependencies and thus recursively triggering itself. Possible sources include component template, render function, updated hook or watcher source function. chunk-VXG5SD4D.js:2387:7
+20:24:56.879 01:24:56 [graphSettings] [DEBUG] Adding package to initialVisibleTypes logger.ts:51:19
+20:24:56.879 01:24:56 [DependencyGraph] [DEBUG] visibleNodeTypes has: 
+Array(4) [ "package", "module", "class", "interface" ]
+logger.ts:49:19
+20:24:56.879 01:24:56 [createGraphNodes] [DEBUG] Handle positions: 
+Object { sourcePosition: "right", targetPosition: "left" }
+logger.ts:49:19
+20:24:56.879 01:24:56 [createGraphEdges] [DEBUG] Module path map has 130 entries logger.ts:51:19
+20:24:56.880 01:24:56 [graphSettings] [DEBUG] Adding module to initialVisibleTypes logger.ts:51:19
+20:24:56.880 01:24:56 [DependencyGraph] [DEBUG] phase.types: 
+Array(5) [ "class", "interface", "type", "enum", "function" ]
+logger.ts:49:19
+20:24:56.880 01:24:56 [createGraphNodes] [DEBUG] Skipping package nodes (includePackages=false or filtered out) logger.ts:51:19
+20:24:56.880 01:24:56 [createGraphEdges] [DEBUG] Processing packages... logger.ts:51:19
+20:24:56.885 01:24:56 [graphSettings] [DEBUG] Adding class to initialVisibleTypes logger.ts:51:19
+20:24:56.885 01:24:56 [DependencyGraph] [DEBUG]   - checking type 'class': true logger.ts:51:19
+20:24:56.885 01:24:56 [createGraphNodes] [DEBUG] Processing modules... logger.ts:51:19
+20:24:56.885 01:24:56 [createGraphEdges] Edge creation complete: logger.ts:41:17
+20:24:56.890 GET
+http://localhost:4000/node_modules/.vite/deps/vite-plugin-node-polyfills_shims_global.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.890 GET
+http://localhost:4000/node_modules/.vite/deps/vite-plugin-node-polyfills_shims_buffer.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.890 GET
+http://localhost:4000/@fs/Users/khallmark/Desktop/Code/neurotypic-ai/magus-mark/node_modules/.pnpm/vite@7.1.11_@types+node@24.9.1_jiti@2.6.1_lightningcss@1.30.2_tsx@4.20.6_yaml@2.8.1/node_modules/vite/dist/client/env.mjs
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.890 01:24:56 [graphSettings] [DEBUG] Adding interface to initialVisibleTypes logger.ts:51:19
+20:24:56.890 01:24:56 [DependencyGraph] [DEBUG] Phase classes: shouldRenderPhase = true logger.ts:51:19
+20:24:56.890 01:24:56 [createGraphNodes] [DEBUG] Processing classes... logger.ts:51:19
+20:24:56.890 01:24:56 [createGraphEdges]   - Package dependencies: 0 logger.ts:41:17
+20:24:56.891 GET
+http://localhost:4000/src/client/layout/dagreLayoutEngine.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.891 GET
+http://localhost:4000/src/shared/utils/logger.ts
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.891 GET
+http://localhost:4000/node_modules/.vite/deps/@dagrejs_dagre.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.891 GET
+http://localhost:4000/node_modules/.vite/deps/vite-plugin-node-polyfills_shims_process.js?v=371e96f6
+[HTTP/1.1 200 OK 1ms]
+
+20:24:56.894 01:24:56 [graphSettings] [DEBUG] Initial visibleNodeTypes: 
+Array(4) [ "package", "module", "class", "interface" ]
+logger.ts:49:19
+20:24:56.894 01:24:56 [DependencyGraph] Completed rendering phase: classes (221 nodes) logger.ts:41:17
+20:24:56.894 01:24:56 [createGraphNodes] [DEBUG] Created 47 class nodes logger.ts:51:19
+20:24:56.894 01:24:56 [createGraphEdges]   - Import edges: 200 logger.ts:41:17
+20:24:56.899 01:24:56 [graphSettings] [DEBUG] Initialized settings from persisted data: 
+Object { showPackages: true, showModules: true, showClasses: true, clusterByFolder: false, layoutDirection: "LR", useMultiAlgorithm: true, useSmartClustering: false, useVisualHierarchy: false }
+logger.ts:49:19
+20:24:56.900 01:24:56 [DependencyGraph] Starting rendering phase: modules logger.ts:41:17
+20:24:56.900 01:24:56 [createGraphNodes] [DEBUG] Processing interfaces... logger.ts:51:19
+20:24:56.900 01:24:56 [createGraphEdges]   - Export edges: 0 logger.ts:41:17
+20:24:56.901 GET
+http://localhost:4000/node_modules/.vite/deps/chunk-6BBRB3L6.js?v=371e96f6
+[HTTP/1.1 200 OK 0ms]
+
+20:24:56.904 01:24:56 [DependencyGraph] [DEBUG] Phase modules: checking if should render... logger.ts:51:19
+20:24:56.904 01:24:56 [createGraphNodes] [DEBUG] Created 109 interface nodes logger.ts:51:19
+20:24:56.904 01:24:56 [createGraphEdges]   - Class relationship edges: 0 logger.ts:41:17
+20:24:56.905 GET
+http://localhost:4000/src/client/layout/multiAlgorithmLayoutEngine.ts
+[HTTP/1.1 200 OK 0ms]
+
+20:24:56.908 01:24:56 [DependencyGraph] [DEBUG] visibleNodeTypes has: 
+Array(4) [ "package", "module", "class", "interface" ]
+logger.ts:49:19
+20:24:56.909 01:24:56 [createGraphNodes] Node creation complete: logger.ts:41:17
+20:24:56.909 01:24:56 [createGraphEdges]   - Interface inheritance edges: 0 logger.ts:41:17
+20:24:56.914 01:24:56 [DependencyGraph] [DEBUG] phase.types: 
+Array [ "module" ]
+logger.ts:49:19
+20:24:56.914 01:24:56 [createGraphNodes]   - Modules: 65 logger.ts:41:17
+20:24:56.914 01:24:56 [createGraphEdges]   - Total edges: 200 logger.ts:41:17
+20:24:56.919 01:24:56 [DependencyGraph] [DEBUG]   - checking type 'module': true logger.ts:51:19
+20:24:56.919 01:24:56 [createGraphNodes]   - Classes: 47 logger.ts:41:17
+20:24:56.941 01:24:56 [GraphLayoutWorker] Layout completed in 32.00ms for 286 nodes logger.ts:41:17
+20:24:56.999 01:24:56 [DependencyGraph] [DEBUG] Phase modules: shouldRenderPhase = true logger.ts:51:19
+20:24:56.999 01:24:56 [createGraphNodes]   - Interfaces: 109 logger.ts:41:17
+20:24:58.663 [Vue warn]: Unhandled error during execution of app errorHandler 2 <anonymous code>:1:147461
+20:24:59.510 01:24:59 [Performance] graph-initialization took 7375.12ms logger.ts:41:17
+20:24:59.557 01:24:59 [DependencyGraph] Completed rendering phase: modules (65 nodes) logger.ts:41:17
+20:24:59.558 01:24:59 [createGraphNodes]   - Total nodes: 221 logger.ts:41:17
+20:24:59.563 01:24:59 [Performance] [DEBUG] Performance measure: graph-initialization 
+Object { duration: 7375, startTime: 676 }
+logger.ts:49:19
+20:24:59.567 01:24:59 [DependencyGraph] Starting rendering phase: packages logger.ts:41:17
+20:24:59.568 01:24:59 [createGraphNodes] Starting node creation logger.ts:41:17
+20:24:59.568 Uncaught (in promise) Maximum recursive updates exceeded in component <index>. This means you have a reactive effect that is mutating its own dependencies and thus recursively triggering itself. Possible sources include component template, render function, updated hook or watcher source function.
+20:24:59.610 01:24:59 [DependencyGraph] [DEBUG] Phase packages: checking if should render... logger.ts:51:19
+20:24:59.610 01:24:59 [createGraphNodes] [DEBUG] Input: 1 packages logger.ts:51:19
+20:24:59.615 01:24:59 [DependencyGraph] [DEBUG] visibleNodeTypes has: 
+Array(4) [ "package", "module", "class", "interface" ]
+logger.ts:49:19
+20:24:59.615 01:24:59 [createGraphNodes] [DEBUG] Options: 
+Object { includePackages: false, includeClasses: false, direction: "LR", visibleNodeTypes: (1) […] }
+logger.ts:49:19
+20:24:59.620 01:24:59 [DependencyGraph] [DEBUG] phase.types: 
+Array [ "package" ]
+logger.ts:49:19
+20:24:59.620 01:24:59 [createGraphNodes] [DEBUG] Handle positions: 
+Object { sourcePosition: "right", targetPosition: "left" }
+logger.ts:49:19
+20:24:59.625 01:24:59 [DependencyGraph] [DEBUG]   - checking type 'package': true logger.ts:51:19
+20:24:59.625 01:24:59 [createGraphNodes] [DEBUG] Skipping package nodes (includePackages=false or filtered out) logger.ts:51:19
+20:24:59.630 01:24:59 [Performance] graph-layout took 6708.80ms logger.ts:41:17
+20:24:59.649 01:24:59 [DependencyGraph] [DEBUG] Phase packages: shouldRenderPhase = true logger.ts:51:19
+20:24:59.650 01:24:59 [createGraphNodes] [DEBUG] Processing modules... logger.ts:51:19
+20:24:59.650 01:24:59 [Performance] [DEBUG] Performance measure: graph-layout 
+Object { duration: 6709, startTime: 1462 }
+logger.ts:49:19
+20:24:59.655 01:24:59 [DependencyGraph] Nodes initialized, collecting measured dimensions... logger.ts:41:17
+20:24:59.655 01:24:59 [createGraphNodes] Node creation complete: logger.ts:41:17
+20:24:59.659 01:24:59 [DependencyGraph] [DEBUG] Node c5bc2d3a-c6d0-57f1-882c-89ccb9c039e7 measured: 314x190 logger.ts:51:19
+20:24:59.659 01:24:59 [createGraphNodes]   - Modules: 65 logger.ts:41:17
+20:24:59.664 01:24:59 [DependencyGraph] [DEBUG] Node 26fb26a8-382a-526e-8694-56652d146d56 measured: 391x202 logger.ts:51:19
+20:24:59.664 01:24:59 [createGraphNodes]   - Classes: 47 logger.ts:41:17
+20:24:59.665 Error in parsing value for ‘-webkit-text-size-adjust’.  Declaration dropped. index.css:97:31
+20:24:59.665 Ruleset ignored due to bad selector. localhost:4000:88:61
+20:24:59.666 Ruleset ignored due to bad selector. localhost:4000:146:64
+20:24:59.669 01:24:59 [DependencyGraph] [DEBUG] Node e4e53d8b-36c8-55b4-b75a-2975de9f1931 measured: 454x190 logger.ts:51:19
+20:24:59.669 01:24:59 [createGraphNodes]   - Interfaces: 109 logger.ts:41:17
+20:24:59.673 01:24:59 [DependencyGraph] [DEBUG] Node ca6c8712-df94-5eca-b7d2-ea3d3f84025a measured: 475x190 logger.ts:51:19
+20:24:59.673 01:24:59 [createGraphNodes]   - Total nodes: 65 logger.ts:41:17
+20:24:59.678 01:24:59 [DependencyGraph] [DEBUG] Node 8df6f813-7168-5b72-895e-b3f5717b4375 measured: 488x190 logger.ts:51:19
+20:24:59.678 01:24:59 [createGraphNodes] Starting node creation logger.ts:41:17
+20:24:59.763 01:24:59 [DependencyGraph] [DEBUG] Node 88a17b2d-f327-5603-889e-57739b121940 measured: 456x190 logger.ts:51:19
+20:24:59.764 01:24:59 [createGraphNodes] [DEBUG] Input: 1 packages logger.ts:51:19
+20:24:59.768 01:24:59 [DependencyGraph] [DEBUG] Node ec486a79-db52-50e4-a63c-8a817d0d68ef measured: 530x382 logger.ts:51:19
+20:24:59.769 01:24:59 [createGraphNodes] [DEBUG] Options: 
+Object { includePackages: true, includeClasses: false, direction: "LR", visibleNodeTypes: "all" }
+logger.ts:49:19
+20:24:59.774 01:24:59 [DependencyGraph] [DEBUG] Node 11e719dc-936a-5167-9bb5-34b6e62fddc1 measured: 652x292 logger.ts:51:19
+20:24:59.774 01:24:59 [createGraphNodes] [DEBUG] Handle positions: 
+Object { sourcePosition: "right", targetPosition: "left" }
+logger.ts:49:19
+20:24:59.779 01:24:59 [DependencyGraph] [DEBUG] Node f0733a6f-7556-5deb-a2fe-7962a50cb061 measured: 523x425 logger.ts:51:19
+20:24:59.779 01:24:59 [createGraphNodes] [DEBUG] Creating 1 package nodes logger.ts:51:19
+20:24:59.784 01:24:59 [DependencyGraph] [DEBUG] Node f72069b2-5605-5f1c-aa43-9aca9106d8c2 measured: 349x382 logger.ts:51:19
+20:24:59.784 01:24:59 [createGraphNodes] [DEBUG] Creating package node [0]: magus-typescript-viewer logger.ts:51:19
+20:24:59.789 01:24:59 [DependencyGraph] [DEBUG] Node d0060185-f6dc-59c0-b587-3ddadc93a256 measured: 336x190 logger.ts:51:19
+20:24:59.789 01:24:59 [createGraphNodes] [DEBUG] Created 1 package nodes logger.ts:51:19
+20:24:59.795 01:24:59 [DependencyGraph] [DEBUG] Node a75f4890-071f-59ec-9edb-f014a4b2ed06 measured: 338x190 logger.ts:51:19
+20:24:59.795 01:24:59 [createGraphNodes] [DEBUG] Processing modules... logger.ts:51:19
+20:24:59.801 01:24:59 [DependencyGraph] [DEBUG] Node 08cba4a6-d8c9-5a8e-b766-7483153ddb4b measured: 365x190 logger.ts:51:19
+20:24:59.801 01:24:59 [createGraphNodes] Node creation complete: logger.ts:41:17
+20:24:59.807 01:24:59 [DependencyGraph] [DEBUG] Node bc3c1675-0edf-5ea7-a4de-84ae24245918 measured: 652x322 logger.ts:51:19
+20:24:59.807 01:24:59 [createGraphNodes]   - Modules: 65 logger.ts:41:17
+20:24:59.812 01:24:59 [DependencyGraph] [DEBUG] Node 6e135eb2-d167-59a5-87fb-66851695fe00 measured: 314x190 logger.ts:51:19
+20:24:59.812 01:24:59 [createGraphNodes]   - Classes: 47 logger.ts:41:17
+20:24:59.819 01:24:59 [DependencyGraph] [DEBUG] Node 2ebbd390-2002-5f86-b7d6-461936d0009e measured: 407x382 logger.ts:51:19
+20:24:59.819 01:24:59 [createGraphNodes]   - Interfaces: 109 logger.ts:41:17
+20:24:59.826 01:24:59 [DependencyGraph] [DEBUG] Node 5e90f0fd-65ba-570f-b643-9a41f2a5a7eb measured: 326x190 logger.ts:51:19
+20:24:59.826 01:24:59 [createGraphNodes]   - Total nodes: 66 logger.ts:41:17
+20:24:59.834 01:24:59 [DependencyGraph] [DEBUG] Node 91efc52e-37b6-5cad-a5aa-e20d2c517937 measured: 314x190 logger.ts:51:19
+20:24:59.842 01:24:59 [DependencyGraph] [DEBUG] Node 97dbab79-b08f-5bb0-b99d-368f3f683f20 measured: 314x190 logger.ts:51:19
+20:24:59.853 01:24:59 [DependencyGraph] [DEBUG] Node 9b5f196f-add3-50bc-a7b4-0c19cb45e4f7 measured: 364x262 logger.ts:51:19
+20:24:59.861 01:24:59 [DependencyGraph] [DEBUG] Node 700fa544-c5c2-5964-906a-385a10ef78de measured: 374x262 logger.ts:51:19
+20:24:59.867 01:24:59 [DependencyGraph] [DEBUG] Node 02656c88-b24a-5ce1-b931-c9ce87f8c9c2 measured: 350x190 logger.ts:51:19
+20:24:59.876 01:24:59 [DependencyGraph] [DEBUG] Node 64d99859-3296-550d-b315-9da0a11dfd0a measured: 351x202 logger.ts:51:19
+20:24:59.886 01:24:59 [DependencyGraph] [DEBUG] Node 422a5257-9a51-5afe-b672-4e6f420c478b measured: 384x232 logger.ts:51:19
+20:24:59.894 01:24:59 [DependencyGraph] [DEBUG] Node 3e9b0768-037e-5557-b32d-84a7ecd520d7 measured: 436x262 logger.ts:51:19
+20:24:59.906 01:24:59 [DependencyGraph] [DEBUG] Node 35dd3dd4-7f8e-5c27-8725-65564d479aca measured: 423x262 logger.ts:51:19
+20:24:59.913 01:24:59 [DependencyGraph] [DEBUG] Node df2a7292-cf2b-5843-b274-1c2e027c511e measured: 443x292 logger.ts:51:19
+20:24:59.918 01:24:59 [DependencyGraph] [DEBUG] Node 57a4c8c4-7957-584c-9715-c17cbc7e8d78 measured: 404x352 logger.ts:51:19
+20:24:59.923 01:24:59 [DependencyGraph] [DEBUG] Node 454f79f2-5079-5c6a-acbd-902b4cc3d941 measured: 443x262 logger.ts:51:19
+20:24:59.928 01:24:59 [DependencyGraph] [DEBUG] Node 9aa07b9f-e3e5-5d83-8166-ba18c3c025f3 measured: 465x232 logger.ts:51:19
+20:24:59.933 01:24:59 [DependencyGraph] [DEBUG] Node 4d68f5ba-df9e-5812-aa3e-ffac47ecbeb9 measured: 443x412 logger.ts:51:19
+20:24:59.938 01:24:59 [DependencyGraph] [DEBUG] Node 3858c274-f762-51eb-b108-fd95fd34b76e measured: 450x232 logger.ts:51:19
+20:24:59.943 01:24:59 [DependencyGraph] [DEBUG] Node d88f804e-e6db-5084-9470-9d49b460cd14 measured: 422x322 logger.ts:51:19
+20:24:59.948 01:24:59 [DependencyGraph] [DEBUG] Node 007e8ab3-0c0d-5c41-a75c-f5811b16a7cd measured: 413x382 logger.ts:51:19
+20:24:59.953 01:24:59 [DependencyGraph] [DEBUG] Node 0a03de07-40a9-538d-a679-d6e2f8d81456 measured: 458x412 logger.ts:51:19
+20:24:59.958 01:24:59 [DependencyGraph] [DEBUG] Node 07bda917-a65c-5dc1-a566-7db1775a8f44 measured: 359x190 logger.ts:51:19
+20:24:59.963 01:24:59 [DependencyGraph] [DEBUG] Node 2a567ca6-73c7-5e05-b991-d789e059e187 measured: 314x190 logger.ts:51:19
+20:24:59.968 01:24:59 [DependencyGraph] [DEBUG] Node 1183780c-52d7-5d93-94b2-239fb05f9420 measured: 515x292 logger.ts:51:19
+20:24:59.972 01:24:59 [DependencyGraph] [DEBUG] Node f6e78dfe-76c4-5f3f-a71c-c4cfa8f1df1d measured: 332x262 logger.ts:51:19
+20:24:59.977 01:24:59 [DependencyGraph] [DEBUG] Node e9349418-3f73-57a7-a742-ad1e544cb056 measured: 358x190 logger.ts:51:19
+20:24:59.982 01:24:59 [DependencyGraph] [DEBUG] Node 094c0a12-6779-56f5-bd50-b31f7a8d0d21 measured: 334x322 logger.ts:51:19
+20:24:59.987 01:24:59 [DependencyGraph] [DEBUG] Node b9ebc628-2f45-5c91-ae0d-af2b247c56e3 measured: 494x202 logger.ts:51:19
+20:24:59.992 01:24:59 [DependencyGraph] [DEBUG] Node d3bc5a56-1492-57ee-9408-bf90177a9183 measured: 537x502 logger.ts:51:19
+20:24:59.997 01:24:59 [DependencyGraph] [DEBUG] Node 34b824f5-4793-59c0-84ce-8fc62878fa47 measured: 417x190 logger.ts:51:19
+20:25:00.002 01:25:00 [DependencyGraph] [DEBUG] Node 6c1f7c3f-11db-59c5-a755-a7868de3198a measured: 314x190 logger.ts:51:19
+20:25:00.007 01:25:00 [DependencyGraph] [DEBUG] Node 8d50cdf3-6ad7-5068-8fb9-803cef6a319a measured: 314x190 logger.ts:51:19
+20:25:00.012 01:25:00 [DependencyGraph] [DEBUG] Node e73f1286-65e7-58e7-b64f-c9c2ae0fecc8 measured: 472x382 logger.ts:51:19
+20:25:00.017 01:25:00 [DependencyGraph] [DEBUG] Node 56f806d8-ad14-5cb7-a1bd-84165086c0a1 measured: 314x292 logger.ts:51:19
+20:25:00.022 01:25:00 [DependencyGraph] [DEBUG] Node 0841d685-1fa8-5ec4-a890-8fb1fa6c09b4 measured: 349x322 logger.ts:51:19
+20:25:00.027 01:25:00 [DependencyGraph] [DEBUG] Node feab3f14-839e-57c9-b611-d7e9922a905a measured: 317x322 logger.ts:51:19
+20:25:00.031 01:25:00 [DependencyGraph] [DEBUG] Node 0284865a-9d81-5095-8a86-c68e5287d27d measured: 385x382 logger.ts:51:19
+20:25:00.036 01:25:00 [DependencyGraph] [DEBUG] Node 5f4aa058-bb74-5a77-aa58-599d243e3ba0 measured: 645x292 logger.ts:51:19
+20:25:00.041 01:25:00 [DependencyGraph] [DEBUG] Node 3e4e0f15-3aa3-5a6f-a482-7562a53a493c measured: 450x352 logger.ts:51:19
+20:25:00.046 01:25:00 [DependencyGraph] [DEBUG] Node e329eada-c2ce-5428-a761-36d9d43cdf98 measured: 385x442 logger.ts:51:19
+20:25:00.051 01:25:00 [DependencyGraph] [DEBUG] Node 9dd26996-3851-5611-8649-ae20c8e6138e measured: 400x502 logger.ts:51:19
+20:25:00.056 01:25:00 [DependencyGraph] [DEBUG] Node 6afe4ffd-80e7-5c59-9400-1548f37a7d09 measured: 414x382 logger.ts:51:19
+20:25:00.061 01:25:00 [DependencyGraph] [DEBUG] Node 1cf08999-94d8-52b5-bdf9-92762011f76f measured: 357x412 logger.ts:51:19
+20:25:00.065 01:25:00 [DependencyGraph] [DEBUG] Node 6b5c2f1e-cd25-5c24-b3a1-8384b4b55e7a measured: 357x442 logger.ts:51:19
+20:25:00.068 01:25:00 [DependencyGraph] [DEBUG] Node 4cfaeef7-c271-5f58-afa5-eb3cc1d41bc0 measured: 314x232 logger.ts:51:19
+20:25:00.074 01:25:00 [DependencyGraph] [DEBUG] Node 90fc5fc4-e430-5477-8f13-d73cc37c5c11 measured: 331x190 logger.ts:51:19
+20:25:00.079 01:25:00 [DependencyGraph] [DEBUG] Node 0f5b75fd-3c0c-5c3a-a241-71ca36de3d5e measured: 321x190 logger.ts:51:19
+20:25:00.083 01:25:00 [DependencyGraph] [DEBUG] Node 3222ed57-a9fc-562d-bd6b-556822011505 measured: 322x190 logger.ts:51:19
+20:25:00.088 01:25:00 [DependencyGraph] [DEBUG] Node a562c7c7-f7ba-5795-89e3-4cf3fac86383 measured: 508x232 logger.ts:51:19
+20:25:00.093 01:25:00 [DependencyGraph] [DEBUG] Node d5a1fe15-9779-54ba-9d11-66c1fa6de182 measured: 314x190 logger.ts:51:19
+20:25:00.098 01:25:00 [DependencyGraph] [DEBUG] Node 537612f7-ad34-5e74-baeb-3c02e1967cc5 measured: 314x190 logger.ts:51:19
+20:25:00.102 01:25:00 [DependencyGraph] [DEBUG] Node eb4b68e9-4021-515d-8ad5-442b0079bef9 measured: 306x117 logger.ts:51:19
+20:25:00.108 01:25:00 [DependencyGraph] [DEBUG] Node 2c187ea8-1e15-5402-81a8-6acd9d20dd6c measured: 342x202 logger.ts:51:19
+20:25:00.113 01:25:00 [DependencyGraph] [DEBUG] Node fe5b7494-5b19-5654-9e21-4edf9bfe76e3 measured: 306x172 logger.ts:51:19
+20:25:00.118 01:25:00 [DependencyGraph] [DEBUG] Node a762ecb8-886a-552f-9d2a-a4d10bd1d509 measured: 306x117 logger.ts:51:19
+20:25:00.123 01:25:00 [DependencyGraph] [DEBUG] Node 0a4d2c49-0fb8-5034-b8c6-1e3b749470cd measured: 306x117 logger.ts:51:19
+20:25:00.128 01:25:00 [DependencyGraph] [DEBUG] Node fb3a266c-e753-523e-96cd-9595a42b1f37 measured: 306x172 logger.ts:51:19
+20:25:00.133 01:25:00 [DependencyGraph] [DEBUG] Node e24fae6d-c473-54ed-9b06-6ede60e8397b measured: 306x202 logger.ts:51:19
+20:25:00.137 01:25:00 [DependencyGraph] [DEBUG] Node 2efeddf2-6d68-568b-b86d-66d120d64e99 measured: 407x382 logger.ts:51:19
+20:25:00.142 01:25:00 [DependencyGraph] [DEBUG] Node 2c2f1fdc-fb39-5e75-a148-440d936d7da7 measured: 306x172 logger.ts:51:19
+20:25:00.147 01:25:00 [DependencyGraph] [DEBUG] Node 4bfd7102-6546-5224-9b37-08cdd0b81f6f measured: 364x262 logger.ts:51:19
+20:25:00.152 01:25:00 [DependencyGraph] [DEBUG] Node 3cabc665-0ff7-5c92-a424-3e91a1eef067 measured: 306x142 logger.ts:51:19
+20:25:00.157 01:25:00 [DependencyGraph] [DEBUG] Node e7d45684-d6e4-59cd-84ad-2a6d492470ca measured: 306x202 logger.ts:51:19
+20:25:00.163 01:25:00 [DependencyGraph] [DEBUG] Node e4165788-acff-5112-9039-f29472caaa6c measured: 306x117 logger.ts:51:19
+20:25:00.167 01:25:00 [DependencyGraph] [DEBUG] Node ec2d20ed-2689-5005-8543-7545ce43f376 measured: 306x117 logger.ts:51:19
+20:25:00.173 01:25:00 [DependencyGraph] [DEBUG] Node 20757af0-67bd-5545-91cc-2e3653326611 measured: 306x117 logger.ts:51:19
+20:25:00.178 01:25:00 [DependencyGraph] [DEBUG] Node 78753bae-bf7b-5914-9dd6-9e4649b14e80 measured: 306x117 logger.ts:51:19
+20:25:00.183 01:25:00 [DependencyGraph] [DEBUG] Node fa8eeec7-aff2-5c27-9c81-d5de12cb73e6 measured: 306x117 logger.ts:51:19
+20:25:00.188 01:25:00 [DependencyGraph] [DEBUG] Node 0a8254d1-8a58-5620-b4fb-4b33e8c01af6 measured: 306x117 logger.ts:51:19
+20:25:00.193 01:25:00 [DependencyGraph] [DEBUG] Node 355f9960-a950-57cf-a071-8cb7c49ad44a measured: 306x232 logger.ts:51:19
+20:25:00.201 01:25:00 [DependencyGraph] [DEBUG] Node ee3155ac-eb54-55b9-a8da-c510f9095f11 measured: 393x172 logger.ts:51:19
+20:25:00.210 01:25:00 [DependencyGraph] [DEBUG] Node af61e92b-2ae3-57bf-b075-45180c1cc05e measured: 306x117 logger.ts:51:19
+20:25:00.216 01:25:00 [DependencyGraph] [DEBUG] Node 6f6c5a7d-a246-57ce-a39c-cd4626c70287 measured: 306x117 logger.ts:51:19
+20:25:00.225 01:25:00 [DependencyGraph] [DEBUG] Node fe4af445-1b00-5a74-b112-31260c82bd1c measured: 306x117 logger.ts:51:19
+20:25:00.231 01:25:00 [DependencyGraph] [DEBUG] Node dc2cee97-c1cd-5f88-8844-838c2083c6d6 measured: 306x117 logger.ts:51:19
+20:25:00.235 01:25:00 [DependencyGraph] [DEBUG] Node 405e6637-1f3f-51fa-b5cd-7280a26fcd19 measured: 393x172 logger.ts:51:19
+20:25:00.241 01:25:00 [DependencyGraph] [DEBUG] Node 05f86079-094f-585a-9ee3-fcd042166e30 measured: 306x117 logger.ts:51:19
+20:25:00.246 01:25:00 [DependencyGraph] [DEBUG] Node cafc4b95-0205-5bd3-b33e-fe6fa4f5c1a5 measured: 306x117 logger.ts:51:19
+20:25:00.251 01:25:00 [DependencyGraph] [DEBUG] Node 47cdefbc-c929-5b8c-a3e4-0077b668238d measured: 422x142 logger.ts:51:19
+20:25:00.256 01:25:00 [DependencyGraph] [DEBUG] Node 813c6a13-9530-5edf-b131-bd84bc4f9121 measured: 306x117 logger.ts:51:19
+20:25:00.261 01:25:00 [DependencyGraph] [DEBUG] Node 7a259eff-7ae6-56e6-b93a-741b0a618b7a measured: 306x117 logger.ts:51:19
+20:25:00.267 01:25:00 [DependencyGraph] [DEBUG] Node b5c2548b-ebaa-590f-9a0f-c4e1a05c6926 measured: 321x322 logger.ts:51:19
+20:25:00.272 01:25:00 [DependencyGraph] [DEBUG] Node 48d57c6e-4fcd-56f2-acbe-ec078deb018d measured: 306x142 logger.ts:51:19
+20:25:00.277 01:25:00 [DependencyGraph] [DEBUG] Node 28d54fcf-bd4c-5114-8e25-6f1a06ac9706 measured: 306x117 logger.ts:51:19
+20:25:00.282 01:25:00 [DependencyGraph] [DEBUG] Node 0837adba-9ea4-5ed0-93bf-31022b5dc688 measured: 306x117 logger.ts:51:19
+20:25:00.291 01:25:00 [DependencyGraph] [DEBUG] Node 1e1dcaf5-f865-5f5b-9bab-55d12b49a3f0 measured: 306x117 logger.ts:51:19
+20:25:00.296 01:25:00 [DependencyGraph] [DEBUG] Node 7c0e25e0-eb3c-5e45-a7d3-a6173a550911 measured: 306x117 logger.ts:51:19
+20:25:00.301 01:25:00 [DependencyGraph] [DEBUG] Node 81e976c6-34bc-5cd5-ba38-c07865b681cc measured: 306x117 logger.ts:51:19
+20:25:00.306 01:25:00 [DependencyGraph] [DEBUG] Node 1dba494e-2c02-52c9-b2f1-e29890c7e0ce measured: 306x117 logger.ts:51:19
+20:25:00.311 01:25:00 [DependencyGraph] [DEBUG] Node b25b16dc-a96f-52fe-926c-b8410f2ea398 measured: 306x117 logger.ts:51:19
+20:25:00.316 01:25:00 [DependencyGraph] [DEBUG] Node 8944deb9-c0f8-59a5-b2ad-345c7975d1fd measured: 306x117 logger.ts:51:19
+20:25:00.321 01:25:00 [DependencyGraph] [DEBUG] Node 589d3b83-34f5-5e7d-ab32-253f75c8c6f3 measured: 306x117 logger.ts:51:19
+20:25:00.326 01:25:00 [DependencyGraph] [DEBUG] Node e59be03f-b3da-5cbc-be70-25984a770a62 measured: 306x142 logger.ts:51:19
+20:25:00.331 01:25:00 [DependencyGraph] [DEBUG] Node 393d63b3-f52c-56df-a07a-e7d7ff109714 measured: 306x117 logger.ts:51:19
+20:25:00.336 01:25:00 [DependencyGraph] [DEBUG] Node ac9b2988-b996-506c-bd75-6456952da6db measured: 306x117 logger.ts:51:19
+20:25:00.341 01:25:00 [DependencyGraph] [DEBUG] Node f0c331e4-6b4b-50aa-aeb9-cd3cb00704c1 measured: 306x117 logger.ts:51:19
+20:25:00.346 01:25:00 [DependencyGraph] [DEBUG] Node f6986361-3649-5499-8e67-3b6a3638dafb measured: 306x117 logger.ts:51:19
+20:25:00.351 01:25:00 [DependencyGraph] [DEBUG] Node 46f0d5d8-d803-567d-bac5-d2bc053f3421 measured: 306x202 logger.ts:51:19
+20:25:00.356 01:25:00 [DependencyGraph] [DEBUG] Node d280419e-5fe3-505a-80c7-aea392f368e1 measured: 306x232 logger.ts:51:19
+20:25:00.361 01:25:00 [DependencyGraph] [DEBUG] Node cc7c44b8-82a8-5b57-a1fa-5c9f38e88e19 measured: 306x202 logger.ts:51:19
+20:25:00.366 01:25:00 [DependencyGraph] [DEBUG] Node 90ae99f0-b370-5b8c-9c92-d0200f9bb19a measured: 306x352 logger.ts:51:19
+20:25:00.371 01:25:00 [DependencyGraph] [DEBUG] Node f00d30ad-3af4-596f-b588-cb36f868cb1a measured: 306x292 logger.ts:51:19
+20:25:00.376 01:25:00 [DependencyGraph] [DEBUG] Node f7cffdea-fd58-544b-a7cb-2479f0332d36 measured: 306x172 logger.ts:51:19
+20:25:00.381 01:25:00 [DependencyGraph] [DEBUG] Node 08fc6ad8-8db4-5433-b672-a0fe9822e15d measured: 306x202 logger.ts:51:19
+20:25:00.385 01:25:00 [DependencyGraph] [DEBUG] Node 87826e8e-150e-50bb-82dd-8be3aee9b2f2 measured: 306x202 logger.ts:51:19
+20:25:00.390 01:25:00 [DependencyGraph] [DEBUG] Node 7f00b589-aae1-5795-ba22-b616ef4a9a36 measured: 306x172 logger.ts:51:19
+20:25:00.395 01:25:00 [DependencyGraph] [DEBUG] Node 5e946f30-78e6-5e07-af01-3fe1b98237e4 measured: 530x352 logger.ts:51:19
+20:25:00.400 01:25:00 [DependencyGraph] [DEBUG] Node 6214adfa-c336-50df-830e-e55ffa5748d9 measured: 494x292 logger.ts:51:19
+20:25:00.405 01:25:00 [DependencyGraph] [DEBUG] Node ee6a3a17-b599-5c62-9589-8fcced6995e3 measured: 472x262 logger.ts:51:19
+20:25:00.410 01:25:00 [DependencyGraph] [DEBUG] Node 3d759262-c199-5997-bbcf-52910517adb8 measured: 458x382 logger.ts:51:19
+20:25:00.415 01:25:00 [DependencyGraph] [DEBUG] Node 2cb78133-bc60-50ad-af70-80c353f67eb8 measured: 321x142 logger.ts:51:19
+20:25:00.420 01:25:00 [DependencyGraph] [DEBUG] Node 1780e75f-d21e-588c-867f-094651db81c7 measured: 378x232 logger.ts:51:19
+20:25:00.425 01:25:00 [DependencyGraph] [DEBUG] Node 7f95387a-a44f-5bbb-8bf1-963eef0ca046 measured: 306x202 logger.ts:51:19
+20:25:00.430 01:25:00 [DependencyGraph] [DEBUG] Node 7691ceaa-9959-5c0d-bc1f-fa94d66c626c measured: 429x292 logger.ts:51:19
+20:25:00.435 01:25:00 [DependencyGraph] [DEBUG] Node b1f5c96d-5241-5427-89ba-dde09311b3af measured: 306x172 logger.ts:51:19
+20:25:00.440 01:25:00 [DependencyGraph] [DEBUG] Node b88ea711-c843-5435-a1fd-01e1223298fb measured: 652x262 logger.ts:51:19
+20:25:00.445 01:25:00 [DependencyGraph] [DEBUG] Node b8d26a2e-b704-5796-8075-a4ed568b0a78 measured: 414x202 logger.ts:51:19
+20:25:00.450 01:25:00 [DependencyGraph] [DEBUG] Node 49632156-ddd9-5c86-8e90-f1ec165d5ac1 measured: 378x292 logger.ts:51:19
+20:25:00.455 01:25:00 [DependencyGraph] [DEBUG] Node e007d48f-d0cb-56ca-9d0a-0fdb3c876bf9 measured: 523x425 logger.ts:51:19
+20:25:00.459 01:25:00 [DependencyGraph] [DEBUG] Node 83099e17-2870-5f79-a832-329b5f5cc026 measured: 306x172 logger.ts:51:19
+20:25:00.464 01:25:00 [DependencyGraph] [DEBUG] Node 0b9b5c32-c553-5889-82fa-e518b6023b2a measured: 306x172 logger.ts:51:19
+20:25:00.468 01:25:00 [DependencyGraph] [DEBUG] Node caefb704-ddd1-591d-b57c-dbc243a3c9b2 measured: 349x172 logger.ts:51:19
+20:25:00.473 01:25:00 [DependencyGraph] [DEBUG] Node 0b894682-5fd0-5eec-beb9-63529fd6a957 measured: 306x172 logger.ts:51:19
+20:25:00.478 01:25:00 [DependencyGraph] [DEBUG] Node 7f5c9ba2-8638-5395-bd60-11eb3fc6e16b measured: 328x232 logger.ts:51:19
+20:25:00.483 01:25:00 [DependencyGraph] [DEBUG] Node a98e9ac1-e3b4-5f3a-9d52-4a18d42737dc measured: 306x202 logger.ts:51:19
+20:25:00.487 01:25:00 [DependencyGraph] [DEBUG] Node 76222d68-633f-528b-a0c9-424b86c30f50 measured: 306x142 logger.ts:51:19
+20:25:00.493 01:25:00 [DependencyGraph] [DEBUG] Node fd80a855-00e5-5d94-b59b-dd04375a0e79 measured: 306x172 logger.ts:51:19
+20:25:00.498 01:25:00 [DependencyGraph] [DEBUG] Node f5e461c8-94ae-507f-9d6e-98f4ba5bb404 measured: 306x382 logger.ts:51:19
+20:25:00.503 01:25:00 [DependencyGraph] [DEBUG] Node 866ebeca-d45d-5ab6-ba8d-17fca548e299 measured: 306x172 logger.ts:51:19
+20:25:00.507 01:25:00 [DependencyGraph] [DEBUG] Node bc696c39-42e7-5b13-960d-3120fa6e4939 measured: 306x232 logger.ts:51:19
+20:25:00.512 01:25:00 [DependencyGraph] [DEBUG] Node f58454b7-d612-5fa6-8b65-8dfd30b21158 measured: 306x142 logger.ts:51:19
+20:25:00.517 01:25:00 [DependencyGraph] [DEBUG] Node e1e8e52f-6a27-58e6-b2c2-18a189306805 measured: 306x202 logger.ts:51:19
+20:25:00.523 01:25:00 [DependencyGraph] [DEBUG] Node e8ce0758-7184-5ca8-ae8e-67dbec5b0560 measured: 652x262 logger.ts:51:19
+20:25:00.527 01:25:00 [DependencyGraph] [DEBUG] Node 0642ff49-e0f5-50af-9f5b-17030ff6ccf3 measured: 429x292 logger.ts:51:19
+20:25:00.532 01:25:00 [DependencyGraph] [DEBUG] Node 29934e6f-2033-5736-b5b3-594bd41977c4 measured: 385x322 logger.ts:51:19
+20:25:00.537 01:25:00 [DependencyGraph] [DEBUG] Node 1f2204e3-32eb-5f57-b71a-1fd9faf310a9 measured: 306x202 logger.ts:51:19
+20:25:00.541 01:25:00 [DependencyGraph] [DEBUG] Node 9c101411-edd2-54dc-8cd3-008b32131764 measured: 385x232 logger.ts:51:19
+20:25:00.546 01:25:00 [DependencyGraph] [DEBUG] Node fe53eea0-722d-5ec9-9ac0-4bd2bb590ba1 measured: 316x172 logger.ts:51:19
+20:25:00.551 01:25:00 [DependencyGraph] [DEBUG] Node 5c1932ac-9847-59b2-9183-cfd98d850069 measured: 306x142 logger.ts:51:19
+20:25:00.556 01:25:00 [DependencyGraph] [DEBUG] Node 1251bd00-dbc1-5b62-bcbb-b54ee1f05390 measured: 306x142 logger.ts:51:19
+20:25:00.577 01:25:00 [DependencyGraph] [DEBUG] Node a0d8dcb4-61b7-5ffd-86a4-805fd7fa7c13 measured: 349x262 logger.ts:51:19
+20:25:00.582 01:25:00 [DependencyGraph] [DEBUG] Node 31961bbf-5387-5d4a-809d-cc11cccbe40e measured: 306x142 logger.ts:51:19
+20:25:00.587 01:25:00 [DependencyGraph] [DEBUG] Node 8645cccb-f088-57c1-8eac-485ae3c3f7f4 measured: 321x232 logger.ts:51:19
+20:25:00.592 01:25:00 [DependencyGraph] [DEBUG] Node 2b995eaf-3dd8-50d5-8058-f3aabb71f0a6 measured: 335x262 logger.ts:51:19
+20:25:00.596 01:25:00 [DependencyGraph] [DEBUG] Node aa5d07b6-4440-5da6-90ea-caff17e841c9 measured: 306x172 logger.ts:51:19
+20:25:00.602 01:25:00 [DependencyGraph] [DEBUG] Node de5a64b6-046b-5075-8bf9-81f72b1ae30f measured: 436x232 logger.ts:51:19
+20:25:00.607 01:25:00 [DependencyGraph] [DEBUG] Node 334d1768-0577-5c9f-a0f8-6f7e942f7230 measured: 306x262 logger.ts:51:19
+20:25:00.611 01:25:00 [DependencyGraph] [DEBUG] Node a9e2c6a3-b27f-5ad0-ad10-fa1a54711f8a measured: 306x262 logger.ts:51:19
+20:25:00.616 01:25:00 [DependencyGraph] [DEBUG] Node e0fcfbf8-f1b4-5945-83d3-22008046ba2d measured: 443x232 logger.ts:51:19
+20:25:00.621 01:25:00 [DependencyGraph] [DEBUG] Node 63a31e6e-0f76-5196-a032-7897407652fe measured: 306x172 logger.ts:51:19
+20:25:00.625 01:25:00 [DependencyGraph] [DEBUG] Node 4903383f-c0bd-5f8a-804f-24228275da1d measured: 306x292 logger.ts:51:19
+20:25:00.629 01:25:00 [DependencyGraph] [DEBUG] Node 571a87e3-f924-53ae-a459-2cdc9bc57598 measured: 306x352 logger.ts:51:19
+20:25:00.635 01:25:00 [DependencyGraph] [DEBUG] Node 97ff385b-7aeb-54b3-8307-8314ffae0e52 measured: 306x322 logger.ts:51:19
+20:25:00.639 01:25:00 [DependencyGraph] [DEBUG] Node dac16cfb-b8f9-5c94-a3a3-c3b758e2f10a measured: 306x232 logger.ts:51:19
+20:25:00.645 01:25:00 [DependencyGraph] [DEBUG] Node eb3e2d10-9247-5a62-b7a0-4450334558cc measured: 306x232 logger.ts:51:19
+20:25:00.649 01:25:00 [DependencyGraph] [DEBUG] Node ab67f71d-1a06-580d-8385-5e34df87d0d6 measured: 443x232 logger.ts:51:19
+20:25:00.654 01:25:00 [DependencyGraph] [DEBUG] Node fe6dda50-7d44-5e86-b0d0-7822cd7e6b43 measured: 306x142 logger.ts:51:19
+20:25:00.659 01:25:00 [DependencyGraph] [DEBUG] Node ba3d8b34-ab19-5bdc-9d3a-717855b0c0d2 measured: 306x262 logger.ts:51:19
+20:25:00.664 01:25:00 [DependencyGraph] [DEBUG] Node 714c0b68-4821-56e7-a59b-0d86a22941b6 measured: 306x232 logger.ts:51:19
+20:25:00.668 01:25:00 [DependencyGraph] [DEBUG] Node 603c91b1-4e50-577c-9e1f-39837436e5fd measured: 306x142 logger.ts:51:19
+20:25:00.673 01:25:00 [DependencyGraph] [DEBUG] Node 7dd8eb40-52f3-5909-9c64-3f3646f97da6 measured: 465x232 logger.ts:51:19
+20:25:00.678 01:25:00 [DependencyGraph] [DEBUG] Node e9a7d2fd-d763-5d35-a059-fa822984d7cf measured: 364x412 logger.ts:51:19
+20:25:00.683 01:25:00 [DependencyGraph] [DEBUG] Node c0caab99-4987-505a-a8f6-4c4fd70a6262 measured: 364x292 logger.ts:51:19
+20:25:00.687 01:25:00 [DependencyGraph] [DEBUG] Node 1d3b91ee-d33b-5f29-997b-96f8e3ba2df9 measured: 443x232 logger.ts:51:19
+20:25:00.691 01:25:00 [DependencyGraph] [DEBUG] Node 32c8ea75-30ca-5a65-b3b2-6e27b6e82c80 measured: 306x232 logger.ts:51:19
+20:25:00.696 01:25:00 [DependencyGraph] [DEBUG] Node a856badc-8e12-50ac-b919-c13dec7fbea3 measured: 306x172 logger.ts:51:19
+20:25:00.702 01:25:00 [DependencyGraph] [DEBUG] Node 574eaf43-139b-5fc4-bd69-f21021f61b62 measured: 450x232 logger.ts:51:19
+20:25:00.706 01:25:00 [DependencyGraph] [DEBUG] Node 826df08d-843c-5c65-9f07-73c1d6afab7e measured: 385x322 logger.ts:51:19
+20:25:00.711 01:25:00 [DependencyGraph] [DEBUG] Node 32aa1f6d-ae87-5fd5-805f-6dc8cac639a2 measured: 306x202 logger.ts:51:19
+20:25:00.716 01:25:00 [DependencyGraph] [DEBUG] Node ce92678e-0ae3-5f8c-951b-28a01b03275f measured: 400x262 logger.ts:51:19
+20:25:00.721 01:25:00 [DependencyGraph] [DEBUG] Node bb128e3d-f065-5ede-80f1-061b8f015cf4 measured: 306x382 logger.ts:51:19
+20:25:00.726 01:25:00 [DependencyGraph] [DEBUG] Node 2519a39d-27e6-59b6-9df3-dffda166424c measured: 364x412 logger.ts:51:19
+20:25:00.731 01:25:00 [DependencyGraph] [DEBUG] Node e6db6155-83c0-5a27-8531-8b2f4190d277 measured: 458x232 logger.ts:51:19
+20:25:00.736 01:25:00 [DependencyGraph] [DEBUG] Node 92fce927-e29b-57b6-9c0b-d7aac6a2e252 measured: 306x262 logger.ts:51:19
+20:25:00.741 01:25:00 [DependencyGraph] [DEBUG] Node 4b53da1d-1a93-5ded-8d18-266f44354fde measured: 306x172 logger.ts:51:19
+20:25:00.746 01:25:00 [DependencyGraph] [DEBUG] Node 87b33ab7-2b4f-5ddf-b310-b335d17a74a6 measured: 306x142 logger.ts:51:19
+20:25:00.750 01:25:00 [DependencyGraph] [DEBUG] Node 4c442638-9cb0-5d4f-a862-0c90125f21f6 measured: 306x142 logger.ts:51:19
+20:25:00.755 01:25:00 [DependencyGraph] [DEBUG] Node c50a4c2c-f9b4-50b3-a43c-627c141109e3 measured: 450x262 logger.ts:51:19
+20:25:00.760 01:25:00 [DependencyGraph] [DEBUG] Node 9977da89-ecdc-572b-8fa0-8f6bfb9bfd67 measured: 306x172 logger.ts:51:19
+20:25:00.765 01:25:00 [DependencyGraph] [DEBUG] Node d06c8265-2418-56ce-b447-6cf10d3e1ba9 measured: 306x202 logger.ts:51:19
+20:25:00.770 01:25:00 [DependencyGraph] [DEBUG] Node 42a2eaa9-07a7-5720-9f0e-a3e5c81c7ae1 measured: 515x202 logger.ts:51:19
+20:25:00.775 01:25:00 [DependencyGraph] [DEBUG] Node 372250ab-1596-593a-b382-27810b6e3cb4 measured: 306x172 logger.ts:51:19
+20:25:00.779 01:25:00 [DependencyGraph] [DEBUG] Node 0dddd761-5baf-535c-ae6a-d47b90750589 measured: 306x262 logger.ts:51:19
+20:25:00.784 01:25:00 [DependencyGraph] [DEBUG] Node 5a627f38-9248-5efe-b9ad-ce3cb0f356b0 measured: 306x172 logger.ts:51:19
+20:25:00.789 01:25:00 [DependencyGraph] [DEBUG] Node d060e5b7-f0a4-58db-8c08-e17910081adb measured: 321x292 logger.ts:51:19
+20:25:00.794 01:25:00 [DependencyGraph] [DEBUG] Node 4dee1c1e-52d9-5f3b-a20a-ffc3aee79d89 measured: 306x262 logger.ts:51:19
+20:25:00.798 01:25:00 [DependencyGraph] [DEBUG] Node 3ef63431-0306-5388-bbe4-a9f11a193613 measured: 306x202 logger.ts:51:19
+20:25:00.803 01:25:00 [DependencyGraph] [DEBUG] Node 2aaae76e-d877-5b86-a282-99840e523469 measured: 306x142 logger.ts:51:19
+20:25:00.808 01:25:00 [DependencyGraph] [DEBUG] Node 5ef87d7b-511b-5e9d-bd2a-4ad82c9f0987 measured: 494x202 logger.ts:51:19
+20:25:00.813 01:25:00 [DependencyGraph] [DEBUG] Node 3f146cd0-2cad-503b-b731-20b324ad1e4b measured: 306x172 logger.ts:51:19
+20:25:00.818 01:25:00 [DependencyGraph] [DEBUG] Node df59682e-0e28-5151-af9b-ae3ea4be82eb measured: 537x502 logger.ts:51:19
+20:25:00.823 01:25:00 [DependencyGraph] [DEBUG] Node f52f98bf-1368-5cad-8d48-30848becfae8 measured: 472x382 logger.ts:51:19
+20:25:00.828 01:25:00 [DependencyGraph] [DEBUG] Node 30a3e83e-0af2-5d10-958e-f123f58b27c6 measured: 306x292 logger.ts:51:19
+20:25:00.833 01:25:00 [DependencyGraph] [DEBUG] Node ed197f3b-959e-5c2c-858c-1a68838decc6 measured: 349x322 logger.ts:51:19
+20:25:00.838 01:25:00 [DependencyGraph] [DEBUG] Node c2b31dfb-7fbc-5216-b163-5970cf419edc measured: 306x322 logger.ts:51:19
+20:25:00.843 01:25:00 [DependencyGraph] [DEBUG] Node 2d3789ee-d2fc-53f4-97d0-1701f6426333 measured: 385x382 logger.ts:51:19
+20:25:00.848 01:25:00 [DependencyGraph] [DEBUG] Node fd971129-bd7b-51a4-879c-d61e5d6d0b22 measured: 443x292 logger.ts:51:19
+20:25:00.853 01:25:00 [DependencyGraph] [DEBUG] Node db035ea4-c7d4-5c0f-93c5-e1d509488d6e measured: 414x292 logger.ts:51:19
+20:25:00.858 01:25:00 [DependencyGraph] [DEBUG] Node 4a5806f9-4883-5707-bd14-20b30e6b397e measured: 645x232 logger.ts:51:19
+20:25:00.863 01:25:00 [DependencyGraph] [DEBUG] Node f7871c9d-20cb-5ccb-b01b-89c9f5b5c978 measured: 450x352 logger.ts:51:19
+20:25:00.868 01:25:00 [DependencyGraph] [DEBUG] Node f2abe894-2e6d-5845-9ecb-7afc1efd2f57 measured: 385x442 logger.ts:51:19
+20:25:00.873 01:25:00 [DependencyGraph] [DEBUG] Node 20d56a89-367f-5d8a-97b0-650d1ed5e4e6 measured: 400x502 logger.ts:51:19
+20:25:00.878 01:25:00 [DependencyGraph] [DEBUG] Node 0ff7e9d5-9c59-5696-a299-6bb00d1d68d3 measured: 414x382 logger.ts:51:19
+20:25:00.883 01:25:00 [DependencyGraph] [DEBUG] Node 5caac666-d75b-5ec7-81db-4d754e2c4a71 measured: 357x412 logger.ts:51:19
+20:25:00.888 01:25:00 [DependencyGraph] [DEBUG] Node 7468b42a-0f34-5fa8-9ede-0598856ed2b9 measured: 357x442 logger.ts:51:19
+20:25:00.893 01:25:00 [DependencyGraph] [DEBUG] Node d0b7ac19-eaa2-5962-b665-f8d027b1b97f measured: 306x232 logger.ts:51:19
+20:25:00.898 01:25:00 [DependencyGraph] [DEBUG] Node 02decfd6-9472-5452-b3c3-f92f3787a78e measured: 508x232 logger.ts:51:19
+20:25:00.903 01:25:00 [DependencyGraph] [DEBUG] Node c5bc2d3a-c6d0-57f1-882c-89ccb9c039e7 measured: 314x190 logger.ts:51:19
+20:25:00.908 01:25:00 [DependencyGraph] [DEBUG] Node 26fb26a8-382a-526e-8694-56652d146d56 measured: 391x202 logger.ts:51:19
+20:25:00.913 01:25:00 [DependencyGraph] [DEBUG] Node e4e53d8b-36c8-55b4-b75a-2975de9f1931 measured: 454x190 logger.ts:51:19
+20:25:00.918 01:25:00 [DependencyGraph] [DEBUG] Node ca6c8712-df94-5eca-b7d2-ea3d3f84025a measured: 475x190 logger.ts:51:19
+20:25:00.923 01:25:00 [DependencyGraph] [DEBUG] Node 8df6f813-7168-5b72-895e-b3f5717b4375 measured: 488x190 logger.ts:51:19
+20:25:00.928 01:25:00 [DependencyGraph] [DEBUG] Node 88a17b2d-f327-5603-889e-57739b121940 measured: 456x190 logger.ts:51:19
+20:25:00.933 01:25:00 [DependencyGraph] [DEBUG] Node ec486a79-db52-50e4-a63c-8a817d0d68ef measured: 530x382 logger.ts:51:19
+20:25:00.938 01:25:00 [DependencyGraph] [DEBUG] Node 11e719dc-936a-5167-9bb5-34b6e62fddc1 measured: 652x292 logger.ts:51:19
+20:25:00.943 01:25:00 [DependencyGraph] [DEBUG] Node f0733a6f-7556-5deb-a2fe-7962a50cb061 measured: 523x425 logger.ts:51:19
+20:25:00.948 01:25:00 [DependencyGraph] [DEBUG] Node f72069b2-5605-5f1c-aa43-9aca9106d8c2 measured: 349x382 logger.ts:51:19
+20:25:00.953 01:25:00 [DependencyGraph] [DEBUG] Node d0060185-f6dc-59c0-b587-3ddadc93a256 measured: 336x190 logger.ts:51:19
+20:25:00.958 01:25:00 [DependencyGraph] [DEBUG] Node a75f4890-071f-59ec-9edb-f014a4b2ed06 measured: 338x190 logger.ts:51:19
+20:25:00.963 01:25:00 [DependencyGraph] [DEBUG] Node 08cba4a6-d8c9-5a8e-b766-7483153ddb4b measured: 365x190 logger.ts:51:19
+20:25:00.968 01:25:00 [DependencyGraph] [DEBUG] Node bc3c1675-0edf-5ea7-a4de-84ae24245918 measured: 652x322 logger.ts:51:19
+20:25:00.972 01:25:00 [DependencyGraph] [DEBUG] Node 6e135eb2-d167-59a5-87fb-66851695fe00 measured: 314x190 logger.ts:51:19
+20:25:00.977 01:25:00 [DependencyGraph] [DEBUG] Node 2ebbd390-2002-5f86-b7d6-461936d0009e measured: 407x382 logger.ts:51:19
+20:25:00.982 01:25:00 [DependencyGraph] [DEBUG] Node 5e90f0fd-65ba-570f-b643-9a41f2a5a7eb measured: 326x190 logger.ts:51:19
+20:25:00.987 01:25:00 [DependencyGraph] [DEBUG] Node 91efc52e-37b6-5cad-a5aa-e20d2c517937 measured: 314x190 logger.ts:51:19
+20:25:00.992 01:25:00 [DependencyGraph] [DEBUG] Node 97dbab79-b08f-5bb0-b99d-368f3f683f20 measured: 314x190 logger.ts:51:19
+20:25:00.997 01:25:00 [DependencyGraph] [DEBUG] Node 9b5f196f-add3-50bc-a7b4-0c19cb45e4f7 measured: 364x262 logger.ts:51:19
+20:25:01.002 01:25:01 [DependencyGraph] [DEBUG] Node 700fa544-c5c2-5964-906a-385a10ef78de measured: 374x262 logger.ts:51:19
+20:25:01.007 01:25:01 [DependencyGraph] [DEBUG] Node 02656c88-b24a-5ce1-b931-c9ce87f8c9c2 measured: 350x190 logger.ts:51:19
+20:25:01.012 01:25:01 [DependencyGraph] [DEBUG] Node 64d99859-3296-550d-b315-9da0a11dfd0a measured: 351x202 logger.ts:51:19
+20:25:01.017 01:25:01 [DependencyGraph] [DEBUG] Node 422a5257-9a51-5afe-b672-4e6f420c478b measured: 384x232 logger.ts:51:19
+20:25:01.022 01:25:01 [DependencyGraph] [DEBUG] Node 3e9b0768-037e-5557-b32d-84a7ecd520d7 measured: 436x262 logger.ts:51:19
+20:25:01.027 01:25:01 [DependencyGraph] [DEBUG] Node 35dd3dd4-7f8e-5c27-8725-65564d479aca measured: 423x262 logger.ts:51:19
+20:25:01.031 01:25:01 [DependencyGraph] [DEBUG] Node df2a7292-cf2b-5843-b274-1c2e027c511e measured: 443x292 logger.ts:51:19
+20:25:01.036 01:25:01 [DependencyGraph] [DEBUG] Node 57a4c8c4-7957-584c-9715-c17cbc7e8d78 measured: 404x352 logger.ts:51:19
+20:25:01.041 01:25:01 [DependencyGraph] [DEBUG] Node 454f79f2-5079-5c6a-acbd-902b4cc3d941 measured: 443x262 logger.ts:51:19
+20:25:01.047 01:25:01 [DependencyGraph] [DEBUG] Node 9aa07b9f-e3e5-5d83-8166-ba18c3c025f3 measured: 465x232 logger.ts:51:19
+20:25:01.051 01:25:01 [DependencyGraph] [DEBUG] Node 4d68f5ba-df9e-5812-aa3e-ffac47ecbeb9 measured: 443x412 logger.ts:51:19
+20:25:01.057 01:25:01 [DependencyGraph] [DEBUG] Node 3858c274-f762-51eb-b108-fd95fd34b76e measured: 450x232 logger.ts:51:19
+20:25:01.061 01:25:01 [DependencyGraph] [DEBUG] Node d88f804e-e6db-5084-9470-9d49b460cd14 measured: 422x322 logger.ts:51:19
+20:25:01.066 01:25:01 [DependencyGraph] [DEBUG] Node 007e8ab3-0c0d-5c41-a75c-f5811b16a7cd measured: 413x382 logger.ts:51:19
+20:25:01.071 01:25:01 [DependencyGraph] [DEBUG] Node 0a03de07-40a9-538d-a679-d6e2f8d81456 measured: 458x412 logger.ts:51:19
+20:25:01.076 01:25:01 [DependencyGraph] [DEBUG] Node 07bda917-a65c-5dc1-a566-7db1775a8f44 measured: 359x190 logger.ts:51:19
+20:25:01.081 01:25:01 [DependencyGraph] [DEBUG] Node 2a567ca6-73c7-5e05-b991-d789e059e187 measured: 314x190 logger.ts:51:19
+20:25:01.085 01:25:01 [DependencyGraph] [DEBUG] Node 1183780c-52d7-5d93-94b2-239fb05f9420 measured: 515x292 logger.ts:51:19
+20:25:01.090 01:25:01 [DependencyGraph] [DEBUG] Node f6e78dfe-76c4-5f3f-a71c-c4cfa8f1df1d measured: 332x262 logger.ts:51:19
+20:25:01.095 01:25:01 [DependencyGraph] [DEBUG] Node e9349418-3f73-57a7-a742-ad1e544cb056 measured: 358x190 logger.ts:51:19
+20:25:01.101 01:25:01 [DependencyGraph] [DEBUG] Node 094c0a12-6779-56f5-bd50-b31f7a8d0d21 measured: 334x322 logger.ts:51:19
+20:25:01.105 01:25:01 [DependencyGraph] [DEBUG] Node b9ebc628-2f45-5c91-ae0d-af2b247c56e3 measured: 494x202 logger.ts:51:19
+20:25:01.110 01:25:01 [DependencyGraph] [DEBUG] Node d3bc5a56-1492-57ee-9408-bf90177a9183 measured: 537x502 logger.ts:51:19
+20:25:01.114 01:25:01 [DependencyGraph] [DEBUG] Node 34b824f5-4793-59c0-84ce-8fc62878fa47 measured: 417x190 logger.ts:51:19
+20:25:01.120 01:25:01 [DependencyGraph] [DEBUG] Node 6c1f7c3f-11db-59c5-a755-a7868de3198a measured: 314x190 logger.ts:51:19
+20:25:01.124 01:25:01 [DependencyGraph] [DEBUG] Node 8d50cdf3-6ad7-5068-8fb9-803cef6a319a measured: 314x190 logger.ts:51:19
+20:25:01.129 01:25:01 [DependencyGraph] [DEBUG] Node e73f1286-65e7-58e7-b64f-c9c2ae0fecc8 measured: 472x382 logger.ts:51:19
+20:25:01.134 01:25:01 [DependencyGraph] [DEBUG] Node 56f806d8-ad14-5cb7-a1bd-84165086c0a1 measured: 314x292 logger.ts:51:19
+20:25:01.139 01:25:01 [DependencyGraph] [DEBUG] Node 0841d685-1fa8-5ec4-a890-8fb1fa6c09b4 measured: 349x322 logger.ts:51:19
+20:25:01.144 01:25:01 [DependencyGraph] [DEBUG] Node feab3f14-839e-57c9-b611-d7e9922a905a measured: 317x322 logger.ts:51:19
+20:25:01.149 01:25:01 [DependencyGraph] [DEBUG] Node 0284865a-9d81-5095-8a86-c68e5287d27d measured: 385x382 logger.ts:51:19
+20:25:01.154 01:25:01 [DependencyGraph] [DEBUG] Node 5f4aa058-bb74-5a77-aa58-599d243e3ba0 measured: 645x292 logger.ts:51:19
+20:25:01.159 01:25:01 [DependencyGraph] [DEBUG] Node 3e4e0f15-3aa3-5a6f-a482-7562a53a493c measured: 450x352 logger.ts:51:19
+20:25:01.164 01:25:01 [DependencyGraph] [DEBUG] Node e329eada-c2ce-5428-a761-36d9d43cdf98 measured: 385x442 logger.ts:51:19
+20:25:01.169 01:25:01 [DependencyGraph] [DEBUG] Node 9dd26996-3851-5611-8649-ae20c8e6138e measured: 400x502 logger.ts:51:19
+20:25:01.174 01:25:01 [DependencyGraph] [DEBUG] Node 6afe4ffd-80e7-5c59-9400-1548f37a7d09 measured: 414x382 logger.ts:51:19
+20:25:01.180 01:25:01 [DependencyGraph] [DEBUG] Node 1cf08999-94d8-52b5-bdf9-92762011f76f measured: 357x412 logger.ts:51:19
+20:25:01.185 01:25:01 [DependencyGraph] [DEBUG] Node 6b5c2f1e-cd25-5c24-b3a1-8384b4b55e7a measured: 357x442 logger.ts:51:19
+20:25:01.190 01:25:01 [DependencyGraph] [DEBUG] Node 4cfaeef7-c271-5f58-afa5-eb3cc1d41bc0 measured: 314x232 logger.ts:51:19
+20:25:01.195 01:25:01 [DependencyGraph] [DEBUG] Node 90fc5fc4-e430-5477-8f13-d73cc37c5c11 measured: 331x190 logger.ts:51:19
+20:25:01.200 01:25:01 [DependencyGraph] [DEBUG] Node 0f5b75fd-3c0c-5c3a-a241-71ca36de3d5e measured: 321x190 logger.ts:51:19
+20:25:01.205 01:25:01 [DependencyGraph] [DEBUG] Node 3222ed57-a9fc-562d-bd6b-556822011505 measured: 322x190 logger.ts:51:19
+20:25:01.210 01:25:01 [DependencyGraph] [DEBUG] Node a562c7c7-f7ba-5795-89e3-4cf3fac86383 measured: 508x232 logger.ts:51:19
+20:25:01.215 01:25:01 [DependencyGraph] [DEBUG] Node d5a1fe15-9779-54ba-9d11-66c1fa6de182 measured: 314x190 logger.ts:51:19
+20:25:01.220 01:25:01 [DependencyGraph] [DEBUG] Node 537612f7-ad34-5e74-baeb-3c02e1967cc5 measured: 314x190 logger.ts:51:19
+20:25:01.225 01:25:01 [DependencyGraph] Collected 221 node dimensions (with changes) logger.ts:41:17
+20:25:01.230 01:25:01 [DependencyGraph] Starting layout with 286 nodes and 0 edges logger.ts:41:17
+20:25:01.235 01:25:01 [DependencyGraph] [DEBUG] Calling web worker for layout processing... logger.ts:51:19
+20:25:01.240 01:25:01 [DependencyGraph] Completed rendering phase: packages (1 nodes) logger.ts:41:17
+20:25:01.244 01:25:01 [DependencyGraph] Applying final enhancements... logger.ts:41:17
+20:25:01.249 01:25:01 [DependencyGraph] Creating edges for all visible nodes... logger.ts:41:17
+20:25:01.254 01:25:01 [DependencyGraph] Created 200 edges (filtered from 200 total) logger.ts:41:17
+20:25:01.259 01:25:01 [DependencyGraph] Running final layout with edges... logger.ts:41:17
+20:25:01.264 01:25:01 [DependencyGraph] ⚠️  Layout already running - skipping duplicate layout request <anonymous code>:1:147461
+20:25:01.269 01:25:01 [DependencyGraph] [DEBUG] Web worker layout processing complete logger.ts:51:19
+20:25:01.275 01:25:01 [DependencyGraph] [DEBUG] Layout result: 221 nodes, 0 edges logger.ts:51:19
+20:25:01.279 01:25:01 [DependencyGraph] After layout: 0 edges logger.ts:41:17
+20:25:01.284 01:25:01 [DependencyGraph] Layout metrics 
+Object { nodes: 221, edges: 0, avgOutdeg: 0, avgIndeg: 0, approxTotalEdgeLength: 0 }
+logger.ts:39:17
+20:25:01.290 01:25:01 [DependencyGraph] [DEBUG] Checking if nodes/edges changed... logger.ts:51:19
+20:25:01.295 01:25:01 [DependencyGraph] [DEBUG] Nodes changed, updating store with 221 nodes logger.ts:51:19
+20:25:01.300 01:25:01 [DependencyGraph] Sample node positions after layout: 
+Array(5) [ {…}, {…}, {…}, {…}, {…} ]
+logger.ts:39:17
+20:25:01.305 01:25:01 [DependencyGraph] [DEBUG] Edges unchanged, skipping update logger.ts:51:19
+20:25:01.310 01:25:01 [DependencyGraph] [DEBUG] Store state after update: 
+Object { nodes: 221, edges: 0 }
+logger.ts:49:19
+20:25:01.315 01:25:01 [DependencyGraph] [DEBUG] Scheduling fitView... logger.ts:51:19
+20:25:01.320 01:25:01 [DependencyGraph] [DEBUG] Calling fitView... logger.ts:51:19
+20:25:01.325 01:25:01 [DependencyGraph] Final enhancements complete logger.ts:41:17
+20:25:01.330 01:25:01 [DependencyGraph] [DEBUG] fitView complete logger.ts:51:19

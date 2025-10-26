@@ -16,7 +16,7 @@ const { updateNodeInternals } = useVueFlow();
 
 onMounted(async () => {
   await nextTick();
-  updateNodeInternals(props.id);
+  updateNodeInternals([props.id]);
 });
 
 // Collapsible sections state
@@ -26,13 +26,13 @@ const isMethodsExpanded = ref(true);
 const toggleProperties = async () => {
   isPropertiesExpanded.value = !isPropertiesExpanded.value;
   await nextTick();
-  updateNodeInternals(props.id);
+  updateNodeInternals([props.id]);
 };
 
 const toggleMethods = async () => {
   isMethodsExpanded.value = !isMethodsExpanded.value;
   await nextTick();
-  updateNodeInternals(props.id);
+  updateNodeInternals([props.id]);
 };
 
 // Compute visibility color class and icon
@@ -180,91 +180,69 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </template>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 /* Type-specific Badge Colors */
 .type-class {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: rgb(147, 197, 253);
+  @apply bg-blue-500/20 text-blue-300;
 }
 
 .type-interface {
-  background-color: rgba(168, 85, 247, 0.2);
-  color: rgb(216, 180, 254);
+  @apply bg-purple-500/20 text-purple-300;
 }
 
 .type-enum {
-  background-color: rgba(249, 115, 22, 0.2);
-  color: rgb(253, 186, 116);
+  @apply bg-orange-500/20 text-orange-300;
 }
 
 .type-type {
-  background-color: rgba(20, 184, 166, 0.2);
-  color: rgb(94, 234, 212);
+  @apply bg-teal-500/20 text-teal-300;
 }
 
 .type-default {
-  background-color: rgba(255, 255, 255, 0.1);
+  @apply bg-white/10;
   color: var(--text-secondary);
 }
 
 /* Collapsible Section */
 .collapsible-section {
-  border-bottom: 1px solid rgba(var(--border-default-rgb), 0.5);
+  @apply border-b;
+  border-color: rgba(var(--border-default-rgb), 0.5);
 }
 
 .collapsible-header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  transition: background-color 200ms;
-  text-align: left;
-  background: transparent;
-  border: none;
-  cursor: pointer;
+  @apply w-full flex items-center justify-between px-3 py-2 transition-colors duration-200;
+  @apply text-left bg-transparent border-none cursor-pointer;
 }
 
 .collapsible-header:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  @apply bg-white/5;
 }
 
 .collapsible-header-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  @apply flex items-center gap-2;
 }
 
 .section-title {
+  @apply text-[0.625rem] font-bold uppercase tracking-wide;
   color: var(--text-secondary);
-  font-size: 0.625rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
 }
 
 .section-count {
-  color: rgba(var(--text-secondary-rgb), 0.6);
-  font-size: 0.625rem;
+  @apply text-white/60 text-[0.625rem];
 }
 
 .collapsible-icon {
-  width: 0.75rem;
-  height: 0.75rem;
+  @apply w-3 h-3 transition-transform duration-200;
   color: var(--text-secondary);
-  transition: transform 200ms;
 }
 
 .collapsible-icon-expanded {
-  transform: rotate(180deg);
+  @apply rotate-180;
 }
 
 .collapsible-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  padding: 0 0.75rem 0.75rem 0.75rem;
-  /* max-height: 200px; */
-  overflow-y: auto;
+  @apply flex flex-col gap-0.5 px-3 pb-3 overflow-y-auto;
   animation:
     fade-in 200ms ease-out,
     slide-in-from-top 200ms ease-out;
@@ -272,78 +250,59 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 
 /* Custom Scrollbar */
 .collapsible-content::-webkit-scrollbar {
-  width: 6px;
+  @apply w-1.5;
 }
 
 .collapsible-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  @apply bg-white/5 rounded;
 }
 
 .collapsible-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  @apply bg-white/20 rounded;
 }
 
 .collapsible-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  @apply bg-white/30;
 }
 
 /* Member Item */
 .member-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  padding: 0.375rem;
-  border-radius: 0.25rem;
-  transition: background-color 200ms;
+  @apply flex items-start gap-2 text-xs leading-4 p-1.5 rounded transition-colors duration-200;
 }
 
 .member-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  @apply bg-white/5;
 }
 
 /* Visibility Indicators */
 .visibility-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  flex-shrink: 0;
-  margin-top: 0.25rem;
+  @apply w-2 h-2 rounded-full shrink-0 mt-1;
 }
 
 .visibility-public-symbol {
-  background-color: rgb(34, 197, 94);
+  @apply bg-green-500;
 }
 
 .visibility-protected-symbol {
-  background-color: rgb(234, 179, 8);
+  @apply bg-yellow-500;
 }
 
 .visibility-private-symbol {
-  background-color: rgb(239, 68, 68);
+  @apply bg-red-500;
 }
 
 .visibility-symbol {
-  color: rgba(var(--text-secondary-rgb), 0.6);
-  font-family: ui-monospace, monospace;
-  font-size: 0.625rem;
-  flex-shrink: 0;
-  width: 1rem;
+  @apply text-white/60 font-mono text-[0.625rem] shrink-0 w-4;
 }
 
 /* Member Signature */
 .member-signature {
-  flex: 1;
-  min-width: 0;
-  font-family: ui-monospace, monospace;
+  @apply flex-1 font-mono;
 }
 
 .member-name {
+  @apply font-semibold;
   color: var(--text-primary);
-  font-weight: 600;
 }
 
 .member-separator {
@@ -351,22 +310,16 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
 }
 
 .member-type-property {
-  color: rgb(147, 197, 253);
-  word-break: break-all;
+  @apply text-blue-300;
 }
 
 .member-type-method {
-  color: rgb(134, 239, 172);
+  @apply text-green-300;
 }
 
 /* Empty State */
 .symbol-empty-state {
-  padding: 1rem;
-  text-align: center;
+  @apply p-4 text-center text-xs leading-4 italic opacity-60;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-style: italic;
-  opacity: 0.6;
 }
 </style>

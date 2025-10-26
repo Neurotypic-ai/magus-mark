@@ -14,7 +14,14 @@ const DependencyGraph = defineAsyncComponent(() => import('./components/Dependen
 const appLogger = createLogger('App');
 const graphDataAssembler = new GraphDataAssembler();
 
-const graphData = ref<DependencyPackageGraph>({ packages: [] });
+const graphData = ref<DependencyPackageGraph>({
+  packages: new Map(),
+  modules: new Map(),
+  classes: new Map(),
+  interfaces: new Map(),
+  types: new Map(),
+  enums: new Map(),
+});
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 

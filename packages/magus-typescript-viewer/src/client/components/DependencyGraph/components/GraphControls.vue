@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Panel, useVueFlow } from '@vue-flow/core';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 import { useGraphSettings } from '../../../stores/graphSettings';
 
-import type { DependencyKind } from '../types';
 
 const emit = defineEmits<{
   'relationship-filter-change': [types: string[]];
@@ -55,7 +54,6 @@ const enabledTypes = computed(() => graphSettings.enabledRelationshipTypes);
 const useMultiAlgorithm = computed(() => graphSettings.useMultiAlgorithm);
 const layoutStrategy = computed(() => graphSettings.layoutStrategy);
 const forceDirectedConfig = computed(() => graphSettings.forceDirectedConfig);
-const gridConfig = computed(() => graphSettings.gridConfig);
 
 // Smart clustering options
 const useSmartClustering = computed(() => graphSettings.useSmartClustering);
@@ -84,29 +82,6 @@ const handleResetLayout = () => {
 // Node types that can be toggled
 // Note: Only include leaf/content node types, not containers (package, module, group)
 // Packages and modules are controlled by includePackages/includeClasses options
-const nodeTypes: DependencyKind[] = ['class', 'interface', 'enum', 'type', 'function'];
-
-const nodeTypeLabels: Record<DependencyKind, string> = {
-  package: 'Packages',
-  module: 'Modules',
-  class: 'Classes',
-  interface: 'Interfaces',
-  enum: 'Enums',
-  type: 'Types',
-  function: 'Functions',
-  group: 'Groups',
-  property: 'Properties',
-  method: 'Methods',
-};
-
-const handleNodeTypeToggle = (nodeType: DependencyKind) => {
-  graphSettings.toggleNodeType(nodeType);
-  emit('node-visibility-change');
-};
-
-const isNodeTypeVisible = (nodeType: DependencyKind) => {
-  return graphSettings.isNodeTypeVisible(nodeType);
-};
 
 // Relationship types matching the actual edge data types (lowercase)
 const relationshipTypes = [
@@ -198,11 +173,6 @@ const handleForceDirectedConfigChange = (config: {
   damping: number;
 }) => {
   graphSettings.setForceDirectedConfig(config);
-  emit('enhanced-layout-change');
-};
-
-const handleGridConfigChange = (config: { cellSize: number; padding: number }) => {
-  graphSettings.setGridConfig(config);
   emit('enhanced-layout-change');
 };
 

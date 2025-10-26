@@ -3,11 +3,7 @@
  * Real-time metrics display for coupling, complexity, and dependency health
  */
 
-import { createLogger } from '../../shared/utils/logger';
-
 import type { DependencyNode, GraphEdge } from '../components/DependencyGraph/types';
-
-const logger = createLogger('GraphAnalytics');
 
 export interface AnalyticsMetrics {
   // Overall graph metrics

@@ -143,22 +143,22 @@ const edgeFilter = computed(() => {
 });
 
 const edgeOpacity = computed(() => {
-  return 0.6 + props.edge.strength * 0.4;
+  return 0.6 + (props.edge.strength ?? 0) * 0.4;
 });
 
 const edgeStyle = computed(() => {
   const style: Record<string, string> = {};
 
   if (props.edge.gradient) {
-    style.background = props.edge.gradient;
+    style['background'] = props.edge.gradient;
   }
 
   if (props.edge.shadow) {
-    style.boxShadow = props.edge.shadow;
+    style['boxShadow'] = props.edge.shadow;
   }
 
   if (props.edge.glow) {
-    style.filter = props.edge.glow;
+    style['filter'] = props.edge.glow;
   }
 
   return style;
@@ -166,7 +166,7 @@ const edgeStyle = computed(() => {
 
 // Animation properties
 const showAnimation = computed(() => {
-  return props.showAnimation && props.edge.animation && props.edge.animation.type !== 'none';
+  return props.showAnimation && props.edge.animation !== undefined;
 });
 
 const animationColor = computed(() => {
@@ -228,7 +228,7 @@ const labelFontWeight = computed(() => {
 
 // Arrow properties
 const arrowSize = computed(() => {
-  return Math.max(8, props.edge.thickness * 2);
+  return Math.max(8, (props.edge.thickness ?? 1) * 2);
 });
 
 const arrowRefX = computed(() => {
@@ -271,27 +271,27 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 .enhanced-edge {
-  cursor: pointer;
-  transition: all 0.3s ease;
+  @apply cursor-pointer transition-all duration-300;
 }
 
 .enhanced-edge:hover {
-  opacity: 0.8;
+  @apply opacity-80;
 }
 
 .edge-path {
-  transition: all 0.3s ease;
+  @apply transition-all duration-300;
 }
 
 .edge-animation {
-  pointer-events: none;
+  @apply pointer-events-none;
   animation: flow 2s linear infinite;
 }
 
 .edge-label {
-  pointer-events: none;
-  user-select: none;
+  @apply pointer-events-none select-none;
 }
 
 .bundled .edge-path {

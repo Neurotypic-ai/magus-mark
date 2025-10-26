@@ -4,11 +4,17 @@ import { computed } from 'vue';
 
 import type { DependencyProps } from '../types';
 
-interface BaseNodeProps extends Omit<DependencyProps, 'width' | 'height'> {
-  minWidth?: string;
-  zIndex?: number;
-  badgeText: string;
-  badgeClass?: string;
+interface BaseNodeProps {
+  readonly id: string;
+  readonly type: DependencyProps['type'];
+  readonly data: DependencyProps['data'];
+  readonly selected?: boolean;
+  readonly targetPosition?: DependencyProps['targetPosition'];
+  readonly sourcePosition?: DependencyProps['sourcePosition'];
+  readonly minWidth?: string;
+  readonly zIndex?: number;
+  readonly badgeText: string;
+  readonly badgeClass?: string;
 }
 
 const props = withDefaults(defineProps<BaseNodeProps>(), {
@@ -62,21 +68,14 @@ const containerStyle = computed(() => {
 </template>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 /* Base Node Container */
 .base-node-container {
-  position: relative;
-  border-radius: 0.5rem;
+  @apply relative rounded-lg p-0 text-xs leading-4 cursor-move transition-all duration-200 overflow-visible;
+  @apply shadow-lg;
   border: 1px solid var(--border-default);
   background-color: var(--background-node);
-  transition: all 200ms;
-  cursor: move;
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  padding: 0;
-  overflow: visible;
 }
 
 .base-node-container:hover {
@@ -93,45 +92,29 @@ const containerStyle = computed(() => {
 
 /* Node Handles */
 .base-node-handle {
+  @apply w-3 h-3;
   width: 0.75rem !important;
   height: 0.75rem !important;
 }
 
 /* Node Header */
 .base-node-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  @apply flex items-center gap-2 px-3 py-2;
   border-bottom: 1px solid var(--border-default);
-  padding: 0.5rem 0.75rem;
 }
 
 .base-node-title-container {
-  flex: 1;
-  min-width: 0;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  @apply flex-1 min-w-0 px-1;
 }
 
 .base-node-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  @apply font-semibold text-sm leading-5 overflow-hidden text-ellipsis whitespace-nowrap;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .base-node-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  @apply px-2 py-1 rounded text-[0.625rem] uppercase tracking-wide font-bold shrink-0;
   color: var(--text-secondary);
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
-  flex-shrink: 0;
 }
 
 /* Shared Animations */

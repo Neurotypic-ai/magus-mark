@@ -5,20 +5,6 @@ import type { DependencyNode } from '../components/DependencyGraph/types';
 const logger = createLogger('calculateParentBounds');
 
 /**
- * Minimum dimensions for different parent node types
- */
-const MIN_DIMENSIONS: Record<string, { width: number; height: number }> = {
-  package: { width: 600, height: 400 },
-  module: { width: 300, height: 200 },
-  group: { width: 400, height: 300 },
-};
-
-/**
- * Default minimum dimensions if node type is unknown
- */
-const DEFAULT_MIN_DIMENSIONS = { width: 300, height: 200 };
-
-/**
  * Calculates the optimal dimensions for a parent node based on its children's positions
  * @param parentId The ID of the parent node
  * @param nodes All nodes in the graph
@@ -28,7 +14,7 @@ const DEFAULT_MIN_DIMENSIONS = { width: 300, height: 200 };
 export function calculateParentNodeBounds(
   parentId: string,
   nodes: DependencyNode[],
-  padding: number = 20
+  padding = 20
 ): { width: number; height: number } | null {
   logger.debug(`Calculating bounds for parent: ${parentId}`);
 
@@ -46,7 +32,7 @@ export function calculateParentNodeBounds(
     return null;
   }
 
-  logger.debug(`Found ${children.length} children for parent: ${parentId}`);
+  logger.debug(`Found ${String(children.length)} children for parent: ${parentId}`);
 
   // Calculate the bounding box that contains all children
   let minX = Infinity;
@@ -73,7 +59,7 @@ export function calculateParentNodeBounds(
   const requiredWidth = maxX - minX + padding * 2;
   const requiredHeight = maxY - minY + padding * 2;
 
-  logger.debug(`Required dimensions (with padding): ${requiredWidth} x ${requiredHeight}`);
+  logger.debug(`Required dimensions (with padding): ${String(requiredWidth)} x ${String(requiredHeight)}`);
 
   // Use much smaller minimums to allow parent nodes to shrink
   const minWidth = 100;
@@ -83,7 +69,7 @@ export function calculateParentNodeBounds(
   const finalWidth = Math.max(requiredWidth, minWidth);
   const finalHeight = Math.max(requiredHeight, minHeight);
 
-  logger.debug(`Final dimensions (with minimums): ${finalWidth} x ${finalHeight}`);
+  logger.debug(`Final dimensions (with minimums): ${String(finalWidth)} x ${String(finalHeight)}`);
 
   return {
     width: finalWidth,
@@ -142,7 +128,7 @@ function getDefaultWidth(nodeType: string | undefined): number {
     enum: 200,
     type: 200,
   };
-  return defaults[String(nodeType)] || 280;
+  return defaults[String(nodeType)] ?? 280;
 }
 
 /**
@@ -158,5 +144,5 @@ function getDefaultHeight(nodeType: string | undefined): number {
     enum: 100,
     type: 80,
   };
-  return defaults[String(nodeType)] || 100;
+  return defaults[String(nodeType)] ?? 100;
 }

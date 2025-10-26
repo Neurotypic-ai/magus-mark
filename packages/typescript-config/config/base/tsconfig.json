@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "${configDir}/dist",
-    "rootDir": "${configDir}",
+    "rootDir": "${configDir}"
   },
   "exclude": [
     "${configDir}/eslint.config.js",
@@ -13,13 +13,13 @@
     "${configDir}/**/examples/**/*",
     "${configDir}/**/node_modules/.pnpm/**/*"
   ],
-  "extends": "@magus-mark/typescript-config/config/settings/tsconfig.json",
+  "extends": "../settings/tsconfig.json",
   "references": [
     {
-      "path": "@magus-mark/typescript-config/config/build/tsconfig.json"
+      "path": "../build/tsconfig.json"
     },
     {
-      "path": "@magus-mark/typescript-config/config/test/tsconfig.json"
+      "path": "../test/tsconfig.json"
     }
   ],
   "watchOptions": {

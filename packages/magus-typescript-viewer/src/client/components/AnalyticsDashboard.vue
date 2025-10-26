@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 import { DEFAULT_ANALYTICS_CONFIG, GraphAnalyticsEngine } from '../analytics/graphAnalytics';
 
@@ -191,265 +191,173 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import 'tailwindcss' reference;
+
 .analytics-dashboard {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 320px;
+  @apply fixed top-5 right-5 w-80 rounded-lg shadow-xl z-1000 transition-all duration-300;
+  @apply border border-gray-300;
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
-  z-index: 1000;
-  transition: all 0.3s ease;
 }
 
 .dashboard-collapsed {
-  width: 200px;
+  @apply w-[200px];
 }
 
 .dashboard-header {
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
-  cursor: pointer;
-  user-select: none;
+  @apply px-4 py-3 bg-gray-50 border-b border-gray-300 cursor-pointer select-none;
 }
 
 .dashboard-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply m-0 text-sm font-semibold text-gray-800 flex items-center justify-between;
 }
 
 .icon {
-  margin-right: 8px;
+  @apply mr-2;
 }
 
 .toggle-icon {
-  font-size: 12px;
-  color: #666;
+  @apply text-xs text-gray-600;
 }
 
 .dashboard-content {
-  padding: 16px;
-  max-height: 400px;
-  overflow-y: auto;
+  @apply p-4 max-h-[400px] overflow-y-auto;
 }
 
 .section-title {
-  margin: 0 0 12px 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  @apply m-0 mb-3 text-xs font-semibold text-gray-600 uppercase tracking-wide;
 }
 
 .metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
+  @apply grid grid-cols-2 gap-2 mb-4;
 }
 
 .metric-card {
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
-  text-align: center;
-  border: 1px solid #e0e0e0;
+  @apply bg-gray-50 p-3 rounded-md text-center border border-gray-300;
 }
 
 .metric-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
+  @apply text-lg font-bold text-gray-800 mb-1;
 }
 
 .metric-label {
-  font-size: 10px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  @apply text-[10px] text-gray-600 uppercase tracking-wide;
 }
 
 .health-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
+  @apply grid grid-cols-2 gap-2 mb-4;
 }
 
 .health-card {
-  padding: 12px;
-  border-radius: 6px;
-  text-align: center;
-  border: 1px solid;
+  @apply p-3 rounded-md text-center border;
 }
 
 .health-excellent {
-  background: #d4edda;
-  border-color: #c3e6cb;
-  color: #155724;
+  @apply bg-green-100 border-green-300 text-green-800;
 }
 
 .health-good {
-  background: #d1ecf1;
-  border-color: #bee5eb;
-  color: #0c5460;
+  @apply bg-cyan-100 border-cyan-300 text-cyan-800;
 }
 
 .health-moderate {
-  background: #fff3cd;
-  border-color: #ffeaa7;
-  color: #856404;
+  @apply bg-yellow-100 border-yellow-300 text-yellow-800;
 }
 
 .health-poor {
-  background: #f8d7da;
-  border-color: #f5c6cb;
-  color: #721c24;
+  @apply bg-red-100 border-red-300 text-red-800;
 }
 
 .unhealthy-none {
-  background: #d4edda;
-  border-color: #c3e6cb;
-  color: #155724;
+  @apply bg-green-100 border-green-300 text-green-800;
 }
 
 .unhealthy-low {
-  background: #fff3cd;
-  border-color: #ffeaa7;
-  color: #856404;
+  @apply bg-yellow-100 border-yellow-300 text-yellow-800;
 }
 
 .unhealthy-high {
-  background: #f8d7da;
-  border-color: #f5c6cb;
-  color: #721c24;
+  @apply bg-red-100 border-red-300 text-red-800;
 }
 
 .health-value {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 4px;
+  @apply text-base font-bold mb-1;
 }
 
 .health-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  @apply text-[10px] uppercase tracking-wide;
 }
 
 .distribution-chart {
-  margin-bottom: 16px;
+  @apply mb-4;
 }
 
 .distribution-bar {
-  display: flex;
-  height: 24px;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid #e0e0e0;
+  @apply flex h-6 rounded overflow-hidden border border-gray-300;
 }
 
 .bar-segment {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
+  @apply flex items-center justify-center text-white text-[10px] font-semibold;
 }
 
 .bar-segment.low {
-  background: #28a745;
+  @apply bg-green-600;
 }
 
 .bar-segment.medium {
-  background: #ffc107;
+  @apply bg-yellow-500;
 }
 
 .bar-segment.high {
-  background: #dc3545;
+  @apply bg-red-600;
 }
 
 .bar-label {
-  font-size: 9px;
+  @apply text-[9px];
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .alerts-section {
-  margin-bottom: 16px;
+  @apply mb-4;
 }
 
 .alerts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-1.5;
 }
 
 .alert-item {
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  border-left: 3px solid;
+  @apply px-3 py-2 rounded text-[11px] font-medium border-l-[3px];
 }
 
 .alert-critical {
-  background: #f8d7da;
-  border-color: #dc3545;
-  color: #721c24;
+  @apply bg-red-100 border-red-600 text-red-900;
 }
 
 .alert-warning {
-  background: #fff3cd;
-  border-color: #ffc107;
-  color: #856404;
+  @apply bg-yellow-100 border-yellow-500 text-yellow-900;
 }
 
 .alert-info {
-  background: #d1ecf1;
-  border-color: #17a2b8;
-  color: #0c5460;
+  @apply bg-cyan-100 border-cyan-600 text-cyan-900;
 }
 
 .performance-section {
-  margin-bottom: 16px;
+  @apply mb-4;
 }
 
 .performance-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-1.5;
 }
 
 .performance-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  font-size: 11px;
+  @apply flex justify-between items-center px-2 py-1.5 bg-gray-50 rounded text-[11px];
 }
 
 .performance-label {
-  color: #666;
-  font-weight: 500;
+  @apply text-gray-600 font-medium;
 }
 
 .performance-value {
-  color: #333;
-  font-weight: 600;
-  font-family: monospace;
+  @apply text-gray-800 font-semibold font-mono;
 }
 </style>
