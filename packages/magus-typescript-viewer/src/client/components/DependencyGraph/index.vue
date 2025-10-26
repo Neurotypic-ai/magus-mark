@@ -5,8 +5,6 @@ import { storeToRefs } from 'pinia';
 import { computed, nextTick, onMounted, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
-import type { Class } from '../../../shared/types/Class';
-import type { Interface } from '../../../shared/types/Interface';
 import { DEFAULT_ANALYTICS_CONFIG } from '../../analytics/graphAnalytics';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
@@ -24,6 +22,8 @@ import NodeDetails from './components/NodeDetails.vue';
 import { mapTypeCollection } from './mapTypeCollection';
 import { nodeTypes } from './nodes/nodes';
 
+import type { Class } from '../../../shared/types/Class';
+import type { Interface } from '../../../shared/types/Interface';
 import type {
   DependencyEdgeKind,
   DependencyKind,
@@ -48,7 +48,7 @@ const graphStore = useGraphStore();
 const graphSettings = useGraphSettings();
 const { nodes, edges, selectedNode } = storeToRefs(graphStore);
 
-const { fitView, getNodes, updateNodeInternals, updateNode } = useVueFlow();
+const { fitView, updateNodeInternals, updateNode } = useVueFlow();
 
 // Keep a reference to the layout processor for cleanup
 const layoutProcessor = shallowRef<WebWorkerLayoutProcessor | null>(null);
@@ -105,71 +105,73 @@ const measuredDimensions = shallowRef<Map<string, { width: number; height: numbe
 // const nodeIdsSet = computed(() => new Set(nodes.value.map((n) => n.id)));
 
 // Computed: Dynamic graph extents based on actual node positions + padding
-const graphExtents = computed((): { translate: [[number, number], [number, number]]; node: [[number, number], [number, number]] } => {
-  // CRITICAL: Return static extents during progressive rendering to prevent VueFlow's
-  // watchNodeExtent from triggering updateNodeInternals which causes recursive updates
-  if (isProgressiveRendering.value) {
+const graphExtents = computed(
+  (): { translate: [[number, number], [number, number]]; node: [[number, number], [number, number]] } => {
+    // CRITICAL: Return static extents during progressive rendering to prevent VueFlow's
+    // watchNodeExtent from triggering updateNodeInternals which causes recursive updates
+    if (isProgressiveRendering.value) {
+      return {
+        translate: [
+          [-5000, -5000],
+          [5000, 5000],
+        ],
+        node: [
+          [-5000, -5000],
+          [5000, 5000],
+        ],
+      };
+    }
+
+    if (nodes.value.length === 0) {
+      // Default extents if no nodes
+      return {
+        translate: [
+          [-1000, -1000],
+          [1000, 1000],
+        ],
+        node: [
+          [-1000, -1000],
+          [1000, 1000],
+        ],
+      };
+    }
+
+    // Calculate bounding box of all nodes
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodes.value.forEach((node) => {
+      const x = node.position.x;
+      const y = node.position.y;
+
+      // Use actual node dimensions if available, minimal estimate otherwise
+      // These small values will be replaced once VueFlow measures the actual content
+      const width = typeof node.width === 'number' ? node.width : 50;
+      const height = typeof node.height === 'number' ? node.height : 30;
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + width);
+      maxY = Math.max(maxY, y + height);
+    });
+
+    // Add 5000px padding on all sides
+    const padding = 5000;
+
     return {
       translate: [
-        [-5000, -5000],
-        [5000, 5000],
+        [minX - padding, minY - padding],
+        [maxX + padding, maxY + padding],
       ],
       node: [
-        [-5000, -5000],
-        [5000, 5000],
+        [minX - padding, minY - padding],
+        [maxX + padding, maxY + padding],
       ],
     };
   }
-
-  if (nodes.value.length === 0) {
-    // Default extents if no nodes
-    return {
-      translate: [
-        [-1000, -1000],
-        [1000, 1000],
-      ],
-      node: [
-        [-1000, -1000],
-        [1000, 1000],
-      ],
-    };
-  }
-
-  // Calculate bounding box of all nodes
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-
-  nodes.value.forEach((node) => {
-    const x = node.position.x;
-    const y = node.position.y;
-
-    // Use actual node dimensions if available, minimal estimate otherwise
-    // These small values will be replaced once VueFlow measures the actual content
-    const width = typeof node.width === 'number' ? node.width : 50;
-    const height = typeof node.height === 'number' ? node.height : 30;
-
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x + width);
-    maxY = Math.max(maxY, y + height);
-  });
-
-  // Add 5000px padding on all sides
-  const padding = 5000;
-
-  return {
-    translate: [
-      [minX - padding, minY - padding],
-      [maxX + padding, maxY + padding],
-    ],
-    node: [
-      [minX - padding, minY - padding],
-      [maxX + padding, maxY + padding],
-    ],
-  };
-});
+);
 
 // Layout configuration state - dagre uses hierarchical layout with configurable direction
 const layoutConfig = {
@@ -273,93 +275,6 @@ onUnmounted(() => {
   // Clear memoized data
   measuredDimensions.value.clear();
 });
-
-// Handler for when VueFlow nodes are initialized and measured
-const onNodesInitialized = async () => {
-  // Track re-entry for debugging
-  onNodesInitializedCallCount.value++;
-  const callNumber = onNodesInitializedCallCount.value;
-
-  graphLogger.debug(`onNodesInitialized called (call #${callNumber})`);
-
-  // Only run on initial layout, and only once
-  if (!isInitialLayout.value || hasAppliedMeasuredLayout.value) {
-    graphLogger.debug(`onNodesInitialized skipped (call #${callNumber}): isInitialLayout=${isInitialLayout.value}, hasAppliedMeasuredLayout=${hasAppliedMeasuredLayout.value}`);
-    return;
-  }
-
-  // CRITICAL: Set flags IMMEDIATELY to prevent re-entry during reactive updates
-  // This must happen BEFORE any reactive mutations (like graphStore.setNodes)
-  hasAppliedMeasuredLayout.value = true;
-  isInitialLayout.value = false;
-
-  graphLogger.info(`Nodes initialized (call #${callNumber}), collecting measured dimensions...`);
-
-  // Get measured dimensions from VueFlow - use shallow access for performance
-  const vueFlowNodes = getNodes.value;
-  const newDimensions = new Map<string, { width: number; height: number }>();
-
-  // Only collect dimensions that have changed
-  let hasNewDimensions = false;
-
-  vueFlowNodes.forEach((node) => {
-    if (node.dimensions?.width && node.dimensions?.height) {
-      const existing = measuredDimensions.value.get(node.id);
-      const newDims = {
-        width: node.dimensions.width,
-        height: node.dimensions.height,
-      };
-
-      // Only add if dimensions changed or are new
-      if (!existing || existing.width !== newDims.width || existing.height !== newDims.height) {
-        newDimensions.set(node.id, newDims);
-        hasNewDimensions = true;
-        graphLogger.debug(`Node ${node.id} measured: ${newDims.width}x${newDims.height}`);
-      } else {
-        newDimensions.set(node.id, existing);
-      }
-    }
-  });
-
-  // Only proceed if we have new dimensions
-  if (!hasNewDimensions && measuredDimensions.value.size > 0) {
-    graphLogger.info('No dimension changes, skipping re-layout');
-    return;
-  }
-
-  graphLogger.info(
-    `Collected ${newDimensions.size} node dimensions (${hasNewDimensions ? 'with changes' : 'no changes'})`
-  );
-
-  // Now re-run layout with measured dimensions
-  if (newDimensions.size > 0) {
-    // Store memoized dimensions
-    measuredDimensions.value = newDimensions;
-
-    // Update nodes with measured dimensions both as 'measured' for layout and as 'width'/'height' for bounds calculations
-    const nodesWithDimensions = nodes.value.map((node) => {
-      const dims = newDimensions.get(node.id);
-      if (dims) {
-        return {
-          ...node,
-          measured: dims,
-          width: dims.width,
-          height: dims.height,
-        };
-      }
-      return node;
-    });
-
-    // Update the store with the new dimensions immediately
-    graphStore.setNodes(nodesWithDimensions);
-
-    if (!isLayoutRunning.value) {
-      await processGraphLayout({ nodes: nodesWithDimensions, edges: edges.value });
-    } else {
-      graphLogger.debug('Skipped measured re-layout because a layout is already running');
-    }
-  }
-};
 
 // Process graph layout using web worker
 const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: GraphEdge[] }) => {
@@ -476,7 +391,7 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
           graphSettings.clusteringOptions
         );
         // Ensure all nodes have sourcePosition and targetPosition
-        finalNodes = clusteringResult.nodes.map(node => ({
+        finalNodes = clusteringResult.nodes.map((node) => ({
           ...node,
           sourcePosition: node.sourcePosition ?? sourcePosition,
           targetPosition: node.targetPosition ?? targetPosition,
@@ -494,7 +409,7 @@ const processGraphLayout = async (graphData: { nodes: DependencyNode[]; edges: G
         const { applyVisualHierarchy } = await import('../../theme/graphTheme');
         const hierarchyNodes = applyVisualHierarchy(finalNodes, finalEdges, graphSettings.visualHierarchyConfig);
         // Ensure all nodes have sourcePosition and targetPosition
-        finalNodes = hierarchyNodes.map(node => ({
+        finalNodes = hierarchyNodes.map((node) => ({
           ...node,
           sourcePosition: node.sourcePosition ?? sourcePosition,
           targetPosition: node.targetPosition ?? targetPosition,
@@ -772,18 +687,45 @@ const applyFinalEnhancements = async () => {
   const enabledTypes = new Set(graphSettings.enabledRelationshipTypes);
 
   // Filter edges to only include those connecting visible nodes with enabled relationship types
+  const edgeTypeStats = new Map<string, { total: number; filtered: number; reasonHidden: string[] }>();
+
   const filteredEdges = allGraphEdges.filter((edge) => {
+    const edgeType = edge.data?.type ?? 'dependency';
+
+    // Initialize stats for this edge type
+    if (!edgeTypeStats.has(edgeType)) {
+      edgeTypeStats.set(edgeType, { total: 0, filtered: 0, reasonHidden: [] });
+    }
+    const stats = edgeTypeStats.get(edgeType)!;
+    stats.total++;
+
     // Check if both nodes are visible
     const bothNodesVisible = visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target);
-    if (!bothNodesVisible) return false;
+    if (!bothNodesVisible) {
+      stats.reasonHidden.push(`nodes_not_visible(${edge.source}->${edge.target})`);
+      return false;
+    }
 
     // Check if relationship type is enabled
-    const edgeType = edge.data?.type ?? 'dependency';
     const typeEnabled = enabledTypes.has(edgeType);
-    return typeEnabled;
+    if (!typeEnabled) {
+      stats.reasonHidden.push(`type_disabled`);
+      return false;
+    }
+
+    stats.filtered++;
+    return true;
   });
 
   graphLogger.info(`Created ${filteredEdges.length} edges (filtered from ${allGraphEdges.length} total)`);
+
+  // Log detailed stats for each edge type
+  edgeTypeStats.forEach((stats, type) => {
+    if (stats.total > 0) {
+      const hiddenCount = stats.total - stats.filtered;
+      graphLogger.info(`  ${type}: ${stats.filtered}/${stats.total} visible${hiddenCount > 0 ? ` (${hiddenCount} hidden: ${stats.reasonHidden.slice(0, 3).join(', ')}${stats.reasonHidden.length > 3 ? '...' : ''})` : ''}`);
+    }
+  });
 
   // Track processed nodes and edges through enhancement pipeline
   let processedNodes = currentNodes;
@@ -1518,11 +1460,5 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 /* Prevent zoom on all child elements */
 .graph-container :deep(*) {
   touch-action: none;
-}
-
-/* Allow text selection within nodes if needed */
-.graph-container :deep(.vue-flow__node) {
-  @apply select-text;
-  -webkit-user-select: text;
 }
 </style>

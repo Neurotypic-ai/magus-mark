@@ -14,7 +14,6 @@ const nodeData = computed(() => props.data);
   <BaseNode
     v-bind="props"
     badge-text="PACKAGE"
-    :z-index="0"
     badge-class="package-badge"
     background-color="var(--background-node-package)"
     border-color="var(--border-node-package)"

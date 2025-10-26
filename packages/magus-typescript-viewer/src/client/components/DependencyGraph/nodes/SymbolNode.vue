@@ -2,9 +2,9 @@
 import { useVueFlow } from '@vue-flow/core';
 import { computed, inject, nextTick, onMounted, ref } from 'vue';
 
-import type { Ref } from 'vue';
-
 import BaseNode from './BaseNode.vue';
+
+import type { Ref } from 'vue';
 
 import type { DependencyProps } from '../types';
 
@@ -89,7 +89,6 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
     v-bind="props"
     :badge-text="badgeText"
     :badge-class="getTypeColor"
-    :z-index="10"
     min-width="280px"
     background-color="var(--background-node-symbol)"
     border-color="var(--border-node-symbol)"

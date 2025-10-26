@@ -2,9 +2,9 @@
 import { useVueFlow } from '@vue-flow/core';
 import { computed, inject, nextTick, onMounted, ref } from 'vue';
 
-import type { Ref } from 'vue';
-
 import BaseNode from './BaseNode.vue';
+
+import type { Ref } from 'vue';
 
 import type { DependencyProps } from '../types';
 
@@ -50,7 +50,6 @@ const toggleMetadata = async () => {
   <BaseNode
     v-bind="props"
     badge-text="MODULE"
-    :z-index="5"
     badge-class="module-badge"
     background-color="var(--background-node-module)"
     border-color="var(--border-node-module)"

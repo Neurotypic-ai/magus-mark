@@ -211,11 +211,41 @@ function createClassRelationshipEdges(cls: Class): GraphEdge[] {
   }
 
   // Handle interface implementations
-  typeCollectionToArray(cls.implemented_interfaces).forEach((iface: Interface) => {
-    if (iface.id) {
-      edges.push(createEdge(`${cls.id}-${iface.id}-implements`, cls.id, iface.id, 'implements'));
-    }
-  });
+  // Note: implemented_interfaces can be either:
+  // 1. A Map<string, Interface> (after data assembly)
+  // 2. Interface[] array
+  // 3. A plain object dictionary { "interface-id": true } (from API)
+  const implementedInterfaces = cls.implemented_interfaces;
+
+  // Handle different TypeCollection formats
+  if (implementedInterfaces instanceof Map) {
+    // Map<string, Interface>
+    implementedInterfaces.forEach((iface: Interface) => {
+      if (iface.id) {
+        const edge = createEdge(`${cls.id}-${iface.id}-implements`, cls.id, iface.id, 'implements');
+        logger.debug(`Creating implements edge: ${cls.name} -> ${iface.name || iface.id}`);
+        edges.push(edge);
+      }
+    });
+  } else if (Array.isArray(implementedInterfaces)) {
+    // Interface[]
+    implementedInterfaces.forEach((iface: Interface) => {
+      if (iface.id) {
+        const edge = createEdge(`${cls.id}-${iface.id}-implements`, cls.id, iface.id, 'implements');
+        logger.debug(`Creating implements edge: ${cls.name} -> ${iface.name || iface.id}`);
+        edges.push(edge);
+      }
+    });
+  } else {
+    // Plain object dictionary { "interface-id": true }
+    const interfaceIds = Object.keys(implementedInterfaces);
+    logger.debug(`Class ${cls.name} implements ${String(interfaceIds.length)} interfaces:`, interfaceIds);
+    interfaceIds.forEach((interfaceId) => {
+      const edge = createEdge(`${cls.id}-${interfaceId}-implements`, cls.id, interfaceId, 'implements');
+      logger.debug(`Creating implements edge: ${cls.name} -> ${interfaceId}`);
+      edges.push(edge);
+    });
+  }
 
   return edges;
 }
@@ -228,11 +258,28 @@ function createClassRelationshipEdges(cls: Class): GraphEdge[] {
 function createInterfaceInheritanceEdges(iface: Interface): GraphEdge[] {
   const edges: GraphEdge[] = [];
 
-  typeCollectionToArray(iface.extended_interfaces).forEach((extended: Interface) => {
-    if (extended.id) {
-      edges.push(createEdge(`${iface.id}-${extended.id}-inheritance`, iface.id, extended.id, 'inheritance'));
-    }
-  });
+  const extendedInterfaces = iface.extended_interfaces;
+
+  // Handle different TypeCollection formats
+  if (extendedInterfaces instanceof Map) {
+    extendedInterfaces.forEach((extended: Interface) => {
+      if (extended.id) {
+        edges.push(createEdge(`${iface.id}-${extended.id}-inheritance`, iface.id, extended.id, 'inheritance'));
+      }
+    });
+  } else if (Array.isArray(extendedInterfaces)) {
+    extendedInterfaces.forEach((extended: Interface) => {
+      if (extended.id) {
+        edges.push(createEdge(`${iface.id}-${extended.id}-inheritance`, iface.id, extended.id, 'inheritance'));
+      }
+    });
+  } else {
+    // Plain object dictionary { "interface-id": true }
+    const interfaceIds = Object.keys(extendedInterfaces);
+    interfaceIds.forEach((interfaceId) => {
+      edges.push(createEdge(`${iface.id}-${interfaceId}-inheritance`, iface.id, interfaceId, 'inheritance'));
+    });
+  }
 
   return edges;
 }
@@ -281,11 +328,20 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   }
 
   // Create class relationship edges
+  let implementsEdgeCount = 0;
+  let inheritanceEdgeCount = 0;
   for (const [_id, cls] of data.classes) {
     const clsEdges = createClassRelationshipEdges(cls);
+    // Count edge types
+    clsEdges.forEach(edge => {
+      if (edge.data?.type === 'implements') implementsEdgeCount++;
+      if (edge.data?.type === 'inheritance') inheritanceEdgeCount++;
+    });
     edges.push(...clsEdges);
     classEdges += clsEdges.length;
   }
+  logger.info(`  - Class implements edges: ${String(implementsEdgeCount)}`);
+  logger.info(`  - Class inheritance edges: ${String(inheritanceEdgeCount)}`);
 
   // Create interface inheritance edges
   for (const [_id, iface] of data.interfaces) {

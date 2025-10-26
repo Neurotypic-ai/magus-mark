@@ -364,7 +364,6 @@ export class KnowledgeGraphView implements vscode.WebviewViewProvider {
             border-radius: 4px;
             font-size: 12px;
             pointer-events: none;
-            z-index: 1000;
             max-width: 200px;
         }
         

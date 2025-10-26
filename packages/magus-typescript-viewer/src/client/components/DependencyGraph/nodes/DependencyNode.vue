@@ -18,27 +18,12 @@ const getVisibilityColor = (visibility: string) => {
   return 'visibility-private';
 };
 
-// Compute z-index based on node type
-const nodeZIndex = computed(() => {
-  switch (nodeType.value) {
-    case 'package':
-      return 5;
-    case 'module':
-      return 4;
-    case 'class':
-    case 'interface':
-      return 3;
-    default:
-      return 1;
-  }
-});
-
 // Badge text is the node type uppercased
 const badgeText = computed(() => String(nodeType.value).toUpperCase());
 </script>
 
 <template>
-  <BaseNode v-bind="props" :badge-text="badgeText" :z-index="nodeZIndex">
+  <BaseNode v-bind="props" :badge-text="badgeText">
     <template #content>
       <!-- Node Content -->
       <div class="node-content">
