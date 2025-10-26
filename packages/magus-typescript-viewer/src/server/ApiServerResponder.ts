@@ -11,6 +11,8 @@ import { PackageRepository } from './db/repositories/PackageRepository';
 
 import type { Package } from '../shared/types/Package';
 import type { TypeCollection } from '../shared/types/TypeCollection';
+import { readFile } from 'fs/promises';
+import jscodeshift from 'jscodeshift';
 
 export interface ApiServerResponderOptions {
   dbPath?: string;
@@ -129,6 +131,92 @@ export class ApiServerResponder {
       // Process modules sequentially to avoid overwhelming the database
       for (const mod of modules) {
         try {
+          // AST fallback: pre-parse this module file to discover implements/extends
+          const implementsByClass = new Map<string, string[]>();
+          const extendsByInterface = new Map<string, string[]>();
+          const neededInterfaceNames = new Set<string>();
+          try {
+            if (mod.source?.filename) {
+              const code = await readFile(mod.source.filename, 'utf-8');
+              const j = jscodeshift.withParser('tsx');
+              const root = j(code);
+
+              // class Foo implements A, B<C>
+              root.find(j.ClassDeclaration).forEach((p) => {
+                const node: any = p.node as any;
+                const name = node?.id?.name as string | undefined;
+                if (!name) return;
+                const arr: any[] = (node.implements ?? []) as any[];
+                const names: string[] = [];
+                for (const it of arr) {
+                  const expr: any = (it && (it as any).expression) ?? undefined;
+                  let text = '';
+                  if (expr && typeof expr === 'object' && 'name' in expr) text = String(expr.name);
+                  else if (expr) {
+                    try { text = j(expr).toSource(); } catch { text = ''; }
+                  }
+                  if (text) {
+                    const base = (text.split('<')[0] ?? text).trim();
+                    if (base) {
+                      names.push(base);
+                      neededInterfaceNames.add(base);
+                    }
+                  }
+                }
+                if (names.length) implementsByClass.set(name, names);
+              });
+
+              // interface X extends A, B<C>
+              root.find(j.TSInterfaceDeclaration).forEach((p) => {
+                const node: any = p.node as any;
+                const name = node?.id?.name as string | undefined;
+                if (!name) return;
+                const arr: any[] = (node.extends ?? []) as any[];
+                const names: string[] = [];
+                for (const it of arr) {
+                  const expr: any = (it && (it as any).expression) ?? undefined;
+                  let text = '';
+                  if (expr && typeof expr === 'object' && 'name' in expr) text = String(expr.name);
+                  else if (expr) {
+                    try { text = j(expr).toSource(); } catch { text = ''; }
+                  }
+                  if (text) {
+                    const base = (text.split('<')[0] ?? text).trim();
+                    if (base) {
+                      names.push(base);
+                      neededInterfaceNames.add(base);
+                    }
+                  }
+                }
+                if (names.length) extendsByInterface.set(name, names);
+              });
+            }
+          } catch (error) {
+            this.logger.warn(`AST fallback parse failed for module ${mod.id}`, error);
+          }
+
+          // Preload any referenced interfaces by name (across the DB)
+          let ifaceByName = new Map<string, { id: string; name: string; package_id: string; module_id: string; created_at: Date; methods: Map<unknown, unknown>; properties: Map<unknown, unknown>; extended_interfaces: Map<unknown, unknown> }>();
+          if (neededInterfaceNames.size > 0) {
+            try {
+              const extras = await this.interfaceRepository.retrieveByNames(Array.from(neededInterfaceNames));
+              extras.forEach((e) =>
+                ifaceByName.set(e.name, {
+                  id: e.id,
+                  name: e.name,
+                  package_id: e.package_id,
+                  module_id: e.module_id,
+                  created_at: e.created_at,
+                  methods: new Map(),
+                  properties: new Map(),
+                  extended_interfaces: new Map(),
+                })
+              );
+            } catch (error) {
+              this.logger.warn('Failed to preload interfaces by name', error);
+            }
+          }
+
           // Load classes first
           const classes = new Map();
           const classesArray = await this.classRepository.retrieve(undefined, mod.id);
@@ -141,15 +229,48 @@ export class ApiServerResponder {
               const properties = await this.classRepository.retrieveProperties(cls.id);
 
               // Create class with its methods and properties
+              // Convert nested Maps to plain objects for JSON serialization
+              const methodsObj = Object.fromEntries(cls.methods as Map<string, unknown>);
+              const propertiesObj = Object.fromEntries(cls.properties as Map<string, unknown>);
+
+              // Prefer DB-joined interfaces; if empty, use AST fallback mapping by class name
+              let implementedMap: Map<string, unknown>;
+              if (cls.implemented_interfaces instanceof Map && cls.implemented_interfaces.size > 0) {
+                implementedMap = cls.implemented_interfaces as Map<string, unknown>;
+              } else {
+                const names = implementsByClass.get(cls.name) ?? [];
+                const pairs: [string, unknown][] = [];
+                // Also include interfaces defined in this module for precise mapping
+                try {
+                  const localIfaces = await this.interfaceRepository.retrieve(undefined, mod.id);
+                  localIfaces.forEach((e) => ifaceByName.set(e.name, {
+                    id: e.id,
+                    name: e.name,
+                    package_id: e.package_id,
+                    module_id: e.module_id,
+                    created_at: e.created_at,
+                    methods: new Map(),
+                    properties: new Map(),
+                    extended_interfaces: new Map(),
+                  }));
+                } catch {}
+                names.forEach((n) => {
+                  const obj = ifaceByName.get(n);
+                  if (obj) pairs.push([obj.id, obj]);
+                });
+                implementedMap = new Map<string, unknown>(pairs);
+              }
+              const implementedObj = Object.fromEntries(implementedMap);
+
               classes.set(cls.id, {
                 id: cls.id,
                 package_id: cls.package_id,
                 module_id: cls.module_id,
                 name: cls.name,
                 created_at: cls.created_at,
-                methods,
-                properties,
-                implemented_interfaces: cls.implemented_interfaces,
+                methods: methodsObj,
+                properties: propertiesObj,
+                implemented_interfaces: implementedObj,
                 extends_id: cls.extends_id,
               });
             } catch (error) {
@@ -170,15 +291,34 @@ export class ApiServerResponder {
               const properties = await this.interfaceRepository.retrieveProperties(iface.id);
 
               // Create interface with its methods and properties
+              // Convert nested Maps to plain objects for JSON serialization
+              const methodsObj = Object.fromEntries(iface.methods as Map<string, unknown>);
+              const propertiesObj = Object.fromEntries(iface.properties as Map<string, unknown>);
+
+              // Prefer DB-joined extended interfaces; if empty, use AST fallback mapping
+              let extendedMap: Map<string, unknown>;
+              if (iface.extended_interfaces instanceof Map && iface.extended_interfaces.size > 0) {
+                extendedMap = iface.extended_interfaces as Map<string, unknown>;
+              } else {
+                const names = extendsByInterface.get(iface.name) ?? [];
+                const pairs: [string, unknown][] = [];
+                names.forEach((n) => {
+                  const obj = ifaceByName.get(n);
+                  if (obj) pairs.push([obj.id, obj]);
+                });
+                extendedMap = new Map<string, unknown>(pairs);
+              }
+              const extendedObj = Object.fromEntries(extendedMap);
+
               interfaces.set(iface.id, {
                 id: iface.id,
                 package_id: iface.package_id,
                 module_id: iface.module_id,
                 name: iface.name,
                 created_at: iface.created_at,
-                methods,
-                properties,
-                extended_interfaces: iface.extended_interfaces,
+                methods: methodsObj,
+                properties: propertiesObj,
+                extended_interfaces: extendedObj,
               });
             } catch (error) {
               this.logger.error(`Failed to process interface ${iface.id} in module ${mod.id}:`, error);
@@ -206,6 +346,11 @@ export class ApiServerResponder {
           }
 
           // Create enriched module
+          // Convert top-level Maps to plain objects before returning
+          const classesObj = Object.fromEntries(classes as Map<string, unknown>);
+          const interfacesObj = Object.fromEntries(interfaces as Map<string, unknown>);
+          const importsObj = Object.fromEntries(imports as Map<string, unknown>);
+
           enrichedModules.push(
             new Module(
               mod.id,
@@ -213,9 +358,9 @@ export class ApiServerResponder {
               mod.name,
               mod.source,
               mod.created_at,
-              classes,
-              interfaces,
-              imports,
+              classesObj,
+              interfacesObj,
+              importsObj,
               mod.exports,
               mod.packages,
               mod.typeAliases,

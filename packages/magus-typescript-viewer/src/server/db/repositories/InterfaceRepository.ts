@@ -64,6 +64,11 @@ export interface IInterfaceRepository {
    * Deletes an interface by its ID.
    */
   delete(id: string): Promise<void>;
+
+  /**
+   * Retrieves interfaces by a list of names.
+   */
+  retrieveByNames(names: string[]): Promise<Interface[]>;
 }
 
 export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCreateDTO, IInterfaceUpdateDTO> {
@@ -95,11 +100,11 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
       }
 
       return new Interface(
-        String(iface.id),
-        String(iface.package_id),
-        String(iface.module_id),
-        String(iface.name),
-        new Date(String(iface.created_at)),
+        iface.id,
+        iface.package_id,
+        iface.module_id,
+        iface.name,
+        new Date(iface.created_at),
         new Map<string, Method>(),
         new Map<string, Property>(),
         new Map<string, Interface>()
@@ -150,12 +155,12 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
 
       if (id !== undefined) {
         conditions.push('i.id = ?');
-        params.push(String(id));
+        params.push(id);
       }
 
       if (module_id !== undefined) {
         conditions.push('i.module_id = ?');
-        params.push(String(module_id));
+        params.push(module_id);
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -180,8 +185,8 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
 
             // Use specialized repositories to retrieve methods and properties
             const [methodsMap, propertiesMap] = await Promise.all([
-              this.methodRepository.retrieveByParent(String(iface.id), 'interface'),
-              this.propertyRepository.retrieveByParent(String(iface.id), 'interface'),
+              this.methodRepository.retrieveByParent(iface.id, 'interface'),
+              this.propertyRepository.retrieveByParent(iface.id, 'interface'),
             ]);
 
             // Fetch extended interfaces without explicit type casting
@@ -190,7 +195,7 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
               `SELECT i.* FROM interfaces i 
                JOIN interface_extends ie ON i.id = ie.extended_id 
                WHERE ie.interface_id = ?`,
-              [String(iface.id)]
+              [iface.id]
             );
 
             this.logger.debug(
@@ -200,12 +205,12 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
             // Convert extended interfaces to Map
             const extendedMap = new Map<string, Interface>();
             extendedInterfaces.forEach((extended) => {
-              extendedMap.set(String(extended.id), {
-                id: String(extended.id),
-                package_id: String(extended.package_id),
-                module_id: String(extended.module_id),
-                name: String(extended.name),
-                created_at: new Date(String(extended.created_at)),
+              extendedMap.set(extended.id, {
+                id: extended.id,
+                package_id: extended.package_id,
+                module_id: extended.module_id,
+                name: extended.name,
+                created_at: new Date(extended.created_at),
                 methods: new Map(),
                 properties: new Map(),
                 extended_interfaces: new Map(),
@@ -213,11 +218,11 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
             });
 
             return new Interface(
-              String(iface.id),
-              String(iface.package_id),
-              String(iface.module_id),
-              String(iface.name),
-              new Date(String(iface.created_at)),
+              iface.id,
+              iface.package_id,
+              iface.module_id,
+              iface.name,
+              new Date(iface.created_at),
               methodsMap,
               propertiesMap,
               extendedMap
@@ -315,6 +320,39 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
         throw error;
       }
       throw new RepositoryError('Failed to create interface with methods', 'create', this.errorTag, error as Error);
+    }
+  }
+
+  async retrieveByNames(names: string[]): Promise<Interface[]> {
+    if (!names || names.length === 0) return [];
+    try {
+      const placeholders = names.map(() => '?').join(', ');
+      const query = `SELECT * FROM interfaces WHERE name IN (${placeholders})`;
+      const results = await this.executeQuery<IClassOrInterfaceRow>('retrieveByNames', query, names);
+
+      return results.map(
+        (iface) =>
+          new Interface(
+            iface.id,
+            iface.package_id,
+            iface.module_id,
+            iface.name,
+            new Date(iface.created_at),
+            new Map(),
+            new Map(),
+            new Map()
+          )
+      );
+    } catch (error) {
+      if (!(error instanceof RepositoryError)) {
+        this.logger.error('Failed to retrieve interfaces by names', { error, names });
+      }
+      throw new RepositoryError(
+        'Failed to retrieve interfaces by names',
+        'retrieveByNames',
+        this.errorTag,
+        error as Error
+      );
     }
   }
 }

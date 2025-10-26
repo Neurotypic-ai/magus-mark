@@ -132,6 +132,60 @@ function getDefaultWidth(nodeType: string | undefined): number {
 }
 
 /**
+ * Calculates parent node bounds using child content height only (excludes header area).
+ * Some node renderers have a fixed header; when sizing a group/parent container, we
+ * usually want to consider the scrollable/content portion only.
+ *
+ * headerOffset: an estimated header height in pixels to subtract from each child node's
+ * measured height. Defaults to 32px which matches .base-node-header (~py-2 + line-height).
+ */
+export function calculateParentNodeContentBounds(
+  parentId: string,
+  nodes: DependencyNode[],
+  padding = 20,
+  headerOffset = 32
+): { width: number; height: number } | null {
+  const parentNode = nodes.find((n) => n.id === parentId);
+  if (!parentNode) return null;
+
+  const children = nodes.filter((n) => n.parentNode === parentId);
+  if (children.length === 0) return null;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const child of children) {
+    const childX = child.position.x;
+    const childY = child.position.y;
+
+    const measured = (child as unknown as { measured?: { width?: number; height?: number } }).measured;
+    const rawW = measured?.width ?? (typeof child.width === 'number' ? child.width : getDefaultWidth(child.type));
+    const rawH = measured?.height ?? (typeof child.height === 'number' ? child.height : getDefaultHeight(child.type));
+
+    // Exclude header height (but never below a minimal content height)
+    const contentH = Math.max(rawH - headerOffset, 24);
+
+    minX = Math.min(minX, childX);
+    minY = Math.min(minY, childY);
+    maxX = Math.max(maxX, childX + rawW);
+    maxY = Math.max(maxY, childY + contentH);
+  }
+
+  const requiredWidth = maxX - minX + padding * 2;
+  const requiredHeight = maxY - minY + padding * 2;
+
+  const minWidth = 100;
+  const minHeight = 80;
+
+  return {
+    width: Math.max(requiredWidth, minWidth),
+    height: Math.max(requiredHeight, minHeight),
+  };
+}
+
+/**
  * Get default height for a node type
  */
 function getDefaultHeight(nodeType: string | undefined): number {

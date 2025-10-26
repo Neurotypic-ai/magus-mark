@@ -146,10 +146,16 @@ const graphExtents = computed(
       const x = node.position.x;
       const y = node.position.y;
 
-      // Use actual node dimensions if available, minimal estimate otherwise
-      // These small values will be replaced once VueFlow measures the actual content
-      const width = typeof node.width === 'number' ? node.width : 50;
-      const height = typeof node.height === 'number' ? node.height : 30;
+      // Prefer measured dimensions if available
+      const measured = (node as unknown as { measured?: { width?: number; height?: number } }).measured;
+      const width = measured?.width ?? (typeof node.width === 'number' ? node.width : 50);
+
+      // Subtract header offset so header bars don't inflate graph extents
+      const HEADER_OFFSET = 32;
+      const rawHeight = measured?.height ?? (typeof node.height === 'number' ? node.height : 30);
+      const nodeType = (node as unknown as { type?: string }).type;
+      const applyHeaderOffset = nodeType !== 'package';
+      const height = applyHeaderOffset ? Math.max(rawHeight - HEADER_OFFSET, 24) : rawHeight;
 
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
@@ -1171,7 +1177,7 @@ const onPaneClick = (): void => {
 };
 
 // Node drag handler - resize parent nodes when children are moved
-const onNodeDrag = ({ node }: { node: unknown }): void => {
+const onNodeDrag = async ({ node }: { node: unknown }): Promise<void> => {
   const draggedNode = node as DependencyNode;
 
   // Check if the dragged node has a parent
@@ -1182,7 +1188,9 @@ const onNodeDrag = ({ node }: { node: unknown }): void => {
   graphLogger.debug(`Node dragged: ${draggedNode.id}, parent: ${draggedNode.parentNode}`);
 
   // Calculate new bounds for the parent
-  const newBounds = calculateParentNodeBounds(draggedNode.parentNode, nodes.value, 20);
+  // Use content-only bounds (exclude node header) when resizing parent containers
+  const { calculateParentNodeContentBounds } = await import('../../utils/calculateParentBounds');
+  const newBounds = calculateParentNodeContentBounds(draggedNode.parentNode, nodes.value, 20, 32);
 
   if (!newBounds) {
     return;
