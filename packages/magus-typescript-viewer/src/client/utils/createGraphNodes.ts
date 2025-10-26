@@ -284,6 +284,57 @@ export function createGraphNodes(
     }
   }
 
+  // Create external package nodes based on module imports (synthetic nodes)
+  if (includePackages && shouldIncludeNodeType('package', visibleNodeTypes)) {
+    const existingPackageIds = new Set<string>(Array.from(data.packages.keys()));
+    const externalNames = new Set<string>();
+
+    // Discover external package names from imports
+    for (const [_id, module] of data.modules) {
+      const imports = typeCollectionToArray(module.imports ?? new Map());
+      for (const imp of imports) {
+        const src = imp.relativePath || imp.fullPath || '';
+        if (!src) continue;
+        const isExternal = !src.startsWith('.') && !src.startsWith('/') && !src.startsWith('file:');
+        if (!isExternal) continue;
+
+        // Extract package name (handle scoped packages)
+        let pkgName = src;
+        if (pkgName.startsWith('@')) {
+          const [scope, name] = pkgName.split('/');
+          pkgName = [scope, name].filter(Boolean).join('/');
+        } else {
+          pkgName = (pkgName.split('/')[0] ?? pkgName).trim();
+        }
+        if (!pkgName) continue;
+
+        externalNames.add(pkgName);
+      }
+    }
+
+    // Add nodes for each discovered external package
+    let created = 0;
+    for (const name of externalNames) {
+      const id = `external:${name}`;
+      if (existingPackageIds.has(id)) continue; // avoid collision if somehow present
+
+      graphNodes.push({
+        id,
+        type: 'package',
+        position: { x: 0, y: 0 },
+        sourcePosition: positions.sourcePosition,
+        targetPosition: positions.targetPosition,
+        data: {
+          label: name,
+          properties: [{ name: 'version', type: '', visibility: 'public' }],
+        },
+        style: { ...getNodeStyle('package') },
+      });
+      created++;
+    }
+    if (created > 0) logger.debug(`Created ${String(created)} external package nodes`);
+  }
+
   // Create class nodes if requested
   if (includeClasses && shouldIncludeNodeType('class', visibleNodeTypes)) {
     logger.debug('Processing classes...');

@@ -13,6 +13,11 @@ import { InterfaceRepository } from './db/repositories/InterfaceRepository';
 import { ModuleRepository } from './db/repositories/ModuleRepository';
 import { PackageRepository } from './db/repositories/PackageRepository';
 
+import type { ASTNode, ASTPath, ClassDeclaration, TSInterfaceDeclaration } from 'jscodeshift';
+
+import type { Class } from '../shared/types/Class';
+import type { Import } from '../shared/types/Import';
+import type { Interface } from '../shared/types/Interface';
 import type { Package } from '../shared/types/Package';
 import type { TypeCollection } from '../shared/types/TypeCollection';
 
@@ -138,25 +143,32 @@ export class ApiServerResponder {
           const extendsByInterface = new Map<string, string[]>();
           const neededInterfaceNames = new Set<string>();
           try {
-            if (mod.source?.filename) {
+            if (mod.source.filename) {
               const code = await readFile(mod.source.filename, 'utf-8');
               const j = jscodeshift.withParser('tsx');
               const root = j(code);
 
               // class Foo implements A, B<C>
-              root.find(j.ClassDeclaration).forEach((p) => {
-                const node: any = p.node as any;
-                const name = node?.id?.name as string | undefined;
+              root.find(j.ClassDeclaration).forEach((p: ASTPath<ClassDeclaration>) => {
+                const node = p.node;
+                const name = node.id?.type === 'Identifier' ? node.id.name : undefined;
                 if (!name) return;
-                const arr: any[] = (node.implements ?? []) as any[];
+                const implItems = (node as { implements?: unknown[] }).implements;
+                const items: unknown[] = Array.isArray(implItems) ? implItems : [];
                 const names: string[] = [];
-                for (const it of arr) {
-                  const expr: any = (it && it.expression) ?? undefined;
+                for (const it of items) {
+                  const expr =
+                    typeof it === 'object' && it !== null && 'expression' in (it as Record<string, unknown>)
+                      ? (it as Record<string, unknown>)['expression']
+                      : undefined;
                   let text = '';
-                  if (expr && typeof expr === 'object' && 'name' in expr) text = String(expr.name);
-                  else if (expr) {
+                  if (expr && typeof expr === 'object' && 'name' in (expr as Record<string, unknown>)) {
+                    const n = (expr as Record<string, unknown>)['name'];
+                    if (typeof n === 'string') text = n;
+                  }
+                  if (!text && expr) {
                     try {
-                      text = j(expr).toSource();
+                      text = j(expr as ASTNode).toSource();
                     } catch {
                       text = '';
                     }
@@ -173,19 +185,26 @@ export class ApiServerResponder {
               });
 
               // interface X extends A, B<C>
-              root.find(j.TSInterfaceDeclaration).forEach((p) => {
-                const node: any = p.node as any;
-                const name = node?.id?.name as string | undefined;
+              root.find(j.TSInterfaceDeclaration).forEach((p: ASTPath<TSInterfaceDeclaration>) => {
+                const node = p.node;
+                const name = node.id.type === 'Identifier' ? node.id.name : undefined;
                 if (!name) return;
-                const arr: any[] = (node.extends ?? []) as any[];
+                const extItems = (node as { extends?: unknown[] }).extends;
+                const items: unknown[] = Array.isArray(extItems) ? extItems : [];
                 const names: string[] = [];
-                for (const it of arr) {
-                  const expr: any = (it && it.expression) ?? undefined;
+                for (const it of items) {
+                  const expr =
+                    typeof it === 'object' && it !== null && 'expression' in (it as Record<string, unknown>)
+                      ? (it as Record<string, unknown>)['expression']
+                      : undefined;
                   let text = '';
-                  if (expr && typeof expr === 'object' && 'name' in expr) text = String(expr.name);
-                  else if (expr) {
+                  if (expr && typeof expr === 'object' && 'name' in (expr as Record<string, unknown>)) {
+                    const n = (expr as Record<string, unknown>)['name'];
+                    if (typeof n === 'string') text = n;
+                  }
+                  if (!text && expr) {
                     try {
-                      text = j(expr).toSource();
+                      text = j(expr as ASTNode).toSource();
                     } catch {
                       text = '';
                     }
@@ -240,16 +259,12 @@ export class ApiServerResponder {
           }
 
           // Load classes first
-          const classes = new Map();
+          const classes = new Map<string, unknown>();
           const classesArray = await this.classRepository.retrieve(undefined, mod.id);
 
           // Process each class sequentially
           for (const cls of classesArray) {
             try {
-              // Use repository methods directly
-              const methods = await this.classRepository.retrieveMethods(cls.id);
-              const properties = await this.classRepository.retrieveProperties(cls.id);
-
               // Create class with its methods and properties
               // Convert nested Maps to plain objects for JSON serialization
               const methodsObj = Object.fromEntries(cls.methods as Map<string, unknown>);
@@ -304,16 +319,12 @@ export class ApiServerResponder {
           }
 
           // Load interfaces
-          const interfaces = new Map();
+          const interfaces = new Map<string, unknown>();
           const interfacesArray = await this.interfaceRepository.retrieve(undefined, mod.id);
 
           // Process each interface sequentially
           for (const iface of interfacesArray) {
             try {
-              // Use repository methods directly
-              const methods = await this.interfaceRepository.retrieveMethods(iface.id);
-              const properties = await this.interfaceRepository.retrieveProperties(iface.id);
-
               // Create interface with its methods and properties
               // Convert nested Maps to plain objects for JSON serialization
               const methodsObj = Object.fromEntries(iface.methods as Map<string, unknown>);
@@ -351,7 +362,7 @@ export class ApiServerResponder {
           }
 
           // Load imports for this module
-          const imports = new Map();
+          const imports = new Map<string, unknown>();
           try {
             const importsArray = await this.importRepository.findByModuleId(mod.id);
             for (const imp of importsArray) {
@@ -370,11 +381,6 @@ export class ApiServerResponder {
           }
 
           // Create enriched module
-          // Convert top-level Maps to plain objects before returning
-          const classesObj = Object.fromEntries(classes as Map<string, unknown>);
-          const interfacesObj = Object.fromEntries(interfaces as Map<string, unknown>);
-          const importsObj = Object.fromEntries(imports as Map<string, unknown>);
-
           enrichedModules.push(
             new Module(
               mod.id,
@@ -382,9 +388,9 @@ export class ApiServerResponder {
               mod.name,
               mod.source,
               mod.created_at,
-              classesObj,
-              interfacesObj,
-              importsObj,
+              classes as TypeCollection<Class>,
+              interfaces as TypeCollection<Interface>,
+              imports as TypeCollection<Import>,
               mod.exports,
               mod.packages,
               mod.typeAliases,

@@ -67,6 +67,21 @@ function joinPaths(...segments: string[]): string {
 }
 
 /**
+ * Extracts the top-level package name from an import path
+ * Examples:
+ *  - 'lodash/map' -> 'lodash'
+ *  - '@scope/pkg/sub' -> '@scope/pkg'
+ */
+function getExternalPackageName(path: string): string {
+  if (path.startsWith('@')) {
+    const [scope, pkg] = path.split('/');
+    return [scope, pkg].filter(Boolean).join('/');
+  }
+  const [pkg] = path.split('/');
+  return pkg || path;
+}
+
+/**
  * Builds a lookup map from module paths to module IDs
  * @param data The dependency package graph data
  * @returns Map of normalized paths to module IDs
@@ -162,17 +177,27 @@ function createModuleImportEdges(module: Module, modulePathMap: Map<string, stri
   const edges: GraphEdge[] = [];
 
   typeCollectionToArray(module.imports).forEach((imp: Import) => {
-    if (!imp.relativePath) return; // Skip imports without paths (e.g., external npm packages)
+    if (!imp.relativePath) return;
 
-    // Resolve the import path relative to the current module
-    const resolvedPath = resolveImportPath(module.source.relativePath, imp.relativePath);
+    const importPath = imp.relativePath;
+    const isExternal = !importPath.startsWith('.') && !importPath.startsWith('/') && !importPath.startsWith('file:');
 
-    // Look up the target module ID
+    if (isExternal) {
+      // External package import: point edge FROM external package node TO importing module
+      const pkgName = getExternalPackageName(importPath);
+      const externalId = `external:${pkgName}`;
+      edges.push(createEdge(`${externalId}-${module.id}-ext-import`, externalId, module.id, 'import'));
+      return;
+    }
+
+    // Internal import: resolve to module file
+    const resolvedPath = resolveImportPath(module.source.relativePath, importPath);
+
+    // Look up the target module ID (with/without extension)
     const targetModuleId =
       modulePathMap.get(resolvedPath) ?? modulePathMap.get(resolvedPath.replace(/\.(ts|tsx|js|jsx)$/, ''));
 
     if (targetModuleId && targetModuleId !== module.id) {
-      // Arrow points FROM imported module TO importing module
       edges.push(createEdge(`${targetModuleId}-${module.id}-import`, targetModuleId, module.id, 'import'));
     }
   });

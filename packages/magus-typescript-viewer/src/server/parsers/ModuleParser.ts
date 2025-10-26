@@ -208,7 +208,7 @@ export class ModuleParser {
     });
 
     // Handle default exports
-    this.root.find(this.j.ExportDefaultDeclaration).forEach((p) => {
+    this.root.find(this.j.ExportDefaultDeclaration).forEach((_p) => {
       try {
         // Always register a default export for this module
         this.exports.add('default');

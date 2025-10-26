@@ -4,14 +4,14 @@ import { dirname, join, relative } from 'path';
 import { readPackageUp } from 'read-package-up';
 import { readPackage } from 'read-pkg';
 
-import { Export } from '../../shared/types/Export';
 import { PackageImport } from '../../shared/types/Import';
 import { createLogger } from '../../shared/utils/logger';
-import { generateExportUUID, generateImportUUID, generatePackageUUID } from '../utils/uuid';
+import { generateImportUUID, generatePackageUUID } from '../utils/uuid';
 import { ModuleParser } from './ModuleParser';
 
 import type { NormalizedPackageJson } from 'read-pkg';
 
+import type { Export } from '../../shared/types/Export';
 import type { Import } from '../../shared/types/Import';
 import type { IClassCreateDTO } from '../db/repositories/ClassRepository';
 import type { IFunctionCreateDTO } from '../db/repositories/FunctionRepository';
@@ -292,44 +292,5 @@ export class PackageParser {
     return depsMap;
   }
 
-  private parseExports(
-    moduleName: string,
-    pkgExports: NormalizedPackageJson['exports'],
-    exports: Map<string, Export>
-  ): void {
-    if (!pkgExports) return;
-
-    // Handle different export formats
-    if (typeof pkgExports === 'string') {
-      // Single export
-      this.addExport(moduleName, 'default', pkgExports, true, exports);
-    } else if (Array.isArray(pkgExports)) {
-      // Array of exports
-      pkgExports.forEach((exp, i) => {
-        const exportName = `export_${String(i)}`;
-        if (typeof exp === 'string') {
-          this.addExport(moduleName, exportName, exp, false, exports);
-        }
-      });
-    } else {
-      // Object of named exports
-      Object.entries(pkgExports).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          this.addExport(moduleName, key, value, key === '.', exports);
-        }
-      });
-    }
-  }
-
-  private addExport(
-    moduleName: string,
-    exportName: string,
-    exportValue: string,
-    isDefault: boolean,
-    exports: Map<string, Export>
-  ): void {
-    const uuid = generateExportUUID(moduleName, exportName);
-    const exp = new Export(uuid, moduleName, exportName, isDefault, exportValue);
-    exports.set(exp.uuid, exp);
-  }
+  // Note: export parsing from dependency package.json is intentionally omitted.
 }
