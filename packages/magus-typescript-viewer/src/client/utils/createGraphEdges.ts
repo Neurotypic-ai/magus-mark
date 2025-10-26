@@ -78,7 +78,7 @@ function getExternalPackageName(path: string): string {
     return [scope, pkg].filter(Boolean).join('/');
   }
   const [pkg] = path.split('/');
-  return pkg || path;
+  return pkg ?? path;
 }
 
 /**
@@ -186,7 +186,7 @@ function createModuleImportEdges(module: Module, modulePathMap: Map<string, stri
       // External package import: point edge FROM external package node TO importing module
       const pkgName = getExternalPackageName(importPath);
       const externalId = `external:${pkgName}`;
-      edges.push(createEdge(`${externalId}-${module.id}-ext-import`, externalId, module.id, 'import'));
+      edges.push(createEdge(`${externalId}-${module.id}-uses`, externalId, module.id, 'uses'));
       return;
     }
 
@@ -358,7 +358,7 @@ export function createGraphEdges(data: DependencyPackageGraph): GraphEdge[] {
   for (const [_id, cls] of data.classes) {
     const clsEdges = createClassRelationshipEdges(cls);
     // Count edge types
-    clsEdges.forEach(edge => {
+    clsEdges.forEach((edge) => {
       if (edge.data?.type === 'implements') implementsEdgeCount++;
       if (edge.data?.type === 'inheritance') inheritanceEdgeCount++;
     });

@@ -55,6 +55,7 @@ export interface EdgeSizes {
 
 export interface EdgeColors {
   import: string;
+  uses: string;
   export: string;
   inheritance: string;
   implements: string;
@@ -119,6 +120,7 @@ export const graphTheme: GraphTheme = {
     },
     colors: {
       import: '#61dafb',
+      uses: '#87cefa',
       export: '#ffd700',
       inheritance: '#4caf50',
       implements: '#ff9800',
@@ -222,6 +224,12 @@ export function getEdgeStyle(type: DependencyEdgeKind): CSSProperties {
         ...baseStyle,
         stroke: defaultTheme.edges.colors.import,
       };
+    case 'uses':
+      return {
+        ...baseStyle,
+        stroke: defaultTheme.edges.colors.uses,
+        strokeWidth: 1.5,
+      };
     case 'export':
       return {
         ...baseStyle,
@@ -262,6 +270,8 @@ export function getEdgeColor(type: DependencyEdgeKind): string {
       return defaultTheme.edges.colors.implements;
     case 'import':
       return defaultTheme.edges.colors.import;
+    case 'uses':
+      return defaultTheme.edges.colors.uses;
     case 'export':
       return defaultTheme.edges.colors.export;
     case 'dependency':

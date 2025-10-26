@@ -86,6 +86,7 @@ const handleResetLayout = () => {
 // Relationship types matching the actual edge data types (lowercase)
 const relationshipTypes = [
   'import',
+  'uses',
   'export',
   'inheritance',
   'implements',

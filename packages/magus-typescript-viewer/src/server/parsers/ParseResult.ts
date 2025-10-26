@@ -2,6 +2,7 @@ import type { Export } from '../../shared/types/Export';
 import type { Import } from '../../shared/types/Import';
 import type { IClassCreateDTO } from '../db/repositories/ClassRepository';
 import type { IFunctionCreateDTO } from '../db/repositories/FunctionRepository';
+import type { IImportSpecifierCreateDTO } from '../db/repositories/ImportSpecifierRepository';
 import type { IInterfaceCreateDTO } from '../db/repositories/InterfaceRepository';
 import type { IMethodCreateDTO } from '../db/repositories/MethodRepository';
 import type { IModuleCreateDTO } from '../db/repositories/ModuleRepository';
@@ -21,4 +22,5 @@ export interface ParseResult {
   imports: Import[];
   exports: Export[];
   importsWithModules?: { import: Import; moduleId: string }[];
+  importSpecifiers: IImportSpecifierCreateDTO[];
 }

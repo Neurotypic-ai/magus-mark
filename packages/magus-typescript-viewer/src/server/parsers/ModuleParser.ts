@@ -40,6 +40,7 @@ import type {
 import type { FileLocation } from '../../shared/types/FileLocation';
 import type { IClassCreateDTO } from '../db/repositories/ClassRepository';
 import type { IFunctionCreateDTO } from '../db/repositories/FunctionRepository';
+import type { IImportSpecifierCreateDTO } from '../db/repositories/ImportSpecifierRepository';
 import type { IInterfaceCreateDTO } from '../db/repositories/InterfaceRepository';
 import type { IMethodCreateDTO } from '../db/repositories/MethodRepository';
 import type { IModuleCreateDTO } from '../db/repositories/ModuleRepository';
@@ -91,7 +92,7 @@ export class ModuleParser {
       this.exports.clear();
       this.reExports.clear();
 
-      const result = {
+      const result: ParseResult = {
         package: undefined,
         modules: [await this.createModuleDTO(this.moduleId, relativePath)],
         classes: [] as IClassCreateDTO[],
@@ -102,6 +103,7 @@ export class ModuleParser {
         parameters: [] as IParameterCreateDTO[],
         imports: [] as Import[],
         exports: [] as Export[],
+        importSpecifiers: [] as IImportSpecifierCreateDTO[],
       };
 
       this.parseImportsAndExports();
@@ -120,7 +122,33 @@ export class ModuleParser {
         )
       );
 
-      return result;
+      // Extract import specifiers from collected imports
+      const importSpecifiers: IImportSpecifierCreateDTO[] = [];
+      this.imports.forEach((imp) => {
+        imp.specifiers.forEach((spec) => {
+          const dto: IImportSpecifierCreateDTO = {
+            id: spec.uuid,
+            import_id: imp.uuid,
+            name: spec.name,
+            kind: spec.kind,
+          };
+
+          // Only add alias if it exists
+          if (spec.aliases.size > 0) {
+            const firstAlias = Array.from(spec.aliases)[0];
+            if (firstAlias) {
+              dto.alias = firstAlias;
+            }
+          }
+
+          importSpecifiers.push(dto);
+        });
+      });
+
+      return {
+        ...result,
+        importSpecifiers,
+      };
     } catch (error) {
       console.warn(
         `Warning: Failed to process ${relativePath}:`,
@@ -137,6 +165,7 @@ export class ModuleParser {
         parameters: [],
         imports: [],
         exports: [],
+        importSpecifiers: [],
       };
     }
   }

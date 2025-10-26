@@ -122,6 +122,20 @@ CREATE TABLE imports (
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
+-- Import specifiers table for tracking which symbols are imported
+CREATE TABLE import_specifiers (
+  id CHAR(36) PRIMARY KEY,
+  import_id CHAR(36) NOT NULL REFERENCES imports (id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('value', 'type', 'typeof', 'default')),
+  alias TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+  UNIQUE (import_id, name)
+);
+
+-- Index for faster lookup by import_id
+CREATE INDEX idx_import_specifiers_import_id ON import_specifiers(import_id);
+
 -- Exports table for module exports
 CREATE TABLE exports (
   id CHAR(36) PRIMARY KEY,

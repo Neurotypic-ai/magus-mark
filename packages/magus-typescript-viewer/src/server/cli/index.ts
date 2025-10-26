@@ -12,6 +12,7 @@ import { ClassRepository } from '../db/repositories/ClassRepository';
 import { ExportRepository } from '../db/repositories/ExportRepository';
 import { FunctionRepository } from '../db/repositories/FunctionRepository';
 import { ImportRepository } from '../db/repositories/ImportRepository';
+import { ImportSpecifierRepository } from '../db/repositories/ImportSpecifierRepository';
 import { InterfaceRepository } from '../db/repositories/InterfaceRepository';
 import { MethodRepository } from '../db/repositories/MethodRepository';
 import { ModuleRepository } from '../db/repositories/ModuleRepository';
@@ -57,6 +58,7 @@ program
         interface: new InterfaceRepository(adapter),
         function: new FunctionRepository(adapter),
         import: new ImportRepository(adapter),
+        importSpecifier: new ImportSpecifierRepository(adapter),
         method: new MethodRepository(adapter),
         parameter: new ParameterRepository(adapter),
         property: new PropertyRepository(adapter),
@@ -138,6 +140,11 @@ program
         await repositories.export.create(exportDTO);
       }
 
+      // Save import specifiers
+      if (parseResult.importSpecifiers && parseResult.importSpecifiers.length > 0) {
+        await repositories.importSpecifier.batchCreate(parseResult.importSpecifiers);
+      }
+
       spinner.succeed(chalk.green('Analysis complete!'));
       console.log();
       console.log(chalk.blue('Statistics:'));
@@ -149,6 +156,7 @@ program
       console.log(chalk.gray('- Properties found:'), parseResult.properties.length);
       console.log(chalk.gray('- Parameters found:'), parseResult.parameters.length);
       console.log(chalk.gray('- Imports found:'), parseResult.importsWithModules?.length ?? 0);
+      console.log(chalk.gray('- Import specifiers found:'), parseResult.importSpecifiers?.length ?? 0);
       console.log(chalk.gray('- Exports found:'), parseResult.exports.length);
 
       await db.close();

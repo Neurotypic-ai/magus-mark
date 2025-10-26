@@ -139,6 +139,7 @@ function createDefaultSettings(): PersistedSettings {
     visibleNodeTypes: ['class', 'interface', 'enum', 'type', 'function'],
     enabledRelationshipTypes: [
       'import',
+      'uses',
       'export',
       'inheritance',
       'implements',

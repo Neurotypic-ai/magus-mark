@@ -309,6 +309,7 @@ export class EdgeVisualizationEngine {
     const strengthMap: Record<string, number> = {
       inheritance: 1.0,
       implements: 0.8,
+      uses: 0.65,
       import: 0.6,
       export: 0.6,
       dependency: 0.4,

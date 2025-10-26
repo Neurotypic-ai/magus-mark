@@ -30,6 +30,7 @@ export type DependencyEdgeKind =
   | 'devDependency'
   | 'peerDependency'
   | 'import'
+  | 'uses'
   | 'export'
   | 'inheritance'
   | 'implements'

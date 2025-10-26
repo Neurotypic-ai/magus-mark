@@ -15,6 +15,7 @@ import type { Export } from '../../shared/types/Export';
 import type { Import } from '../../shared/types/Import';
 import type { IClassCreateDTO } from '../db/repositories/ClassRepository';
 import type { IFunctionCreateDTO } from '../db/repositories/FunctionRepository';
+import type { IImportSpecifierCreateDTO } from '../db/repositories/ImportSpecifierRepository';
 import type { IInterfaceCreateDTO } from '../db/repositories/InterfaceRepository';
 import type { IMethodCreateDTO } from '../db/repositories/MethodRepository';
 import type { IModuleCreateDTO } from '../db/repositories/ModuleRepository';
@@ -129,6 +130,7 @@ export class PackageParser {
     const methods: IMethodCreateDTO[] = [];
     const properties: IPropertyCreateDTO[] = [];
     const parameters: IParameterCreateDTO[] = [];
+    const importSpecifiers: IImportSpecifierCreateDTO[] = [];
 
     // Find and parse all TypeScript files
     const files = await this.traverseDirectory(this.packagePath);
@@ -138,7 +140,7 @@ export class PackageParser {
 
     for (const file of files) {
       const moduleParser = new ModuleParser(file, packageId);
-      const result = await moduleParser.parse();
+      const result: ParseResult = await moduleParser.parse();
 
       const moduleId = result.modules[0]?.id ?? '';
 
@@ -154,6 +156,12 @@ export class PackageParser {
         importsWithModules.push({ import: imp, moduleId });
       });
       result.exports.forEach((exp) => moduleExports.push(exp));
+
+      // Add import specifiers
+      const specs = (result as ParseResult & { importSpecifiers: IImportSpecifierCreateDTO[] }).importSpecifiers;
+      if (Array.isArray(specs)) {
+        importSpecifiers.push(...specs);
+      }
     }
 
     return {
@@ -170,6 +178,7 @@ export class PackageParser {
       // are not tied to module IDs in our schema and would corrupt relationships
       exports: [...moduleExports],
       importsWithModules,
+      importSpecifiers,
     };
   }
 
