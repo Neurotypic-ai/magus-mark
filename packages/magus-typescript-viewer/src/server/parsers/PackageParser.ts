@@ -75,7 +75,6 @@ export class PackageParser {
 
     // Initialize collection maps
     const imports = new Map<string, Import>();
-    const exports = new Map<string, Export>();
     const packageImports = new Map<string, PackageImport>();
 
     // Read package.json and package-lock.json
@@ -89,7 +88,6 @@ export class PackageParser {
       pkgLock,
       'dependencies',
       imports,
-      exports,
       packageImports
     );
     const devDependencies = await this.parseDependencies(
@@ -97,7 +95,6 @@ export class PackageParser {
       pkgLock,
       'devDependencies',
       imports,
-      exports,
       packageImports
     );
     const peerDependencies = await this.parseDependencies(
@@ -105,7 +102,6 @@ export class PackageParser {
       pkgLock,
       'peerDependencies',
       imports,
-      exports,
       packageImports
     );
 
@@ -170,7 +166,9 @@ export class PackageParser {
       properties,
       parameters,
       imports: [...Array.from(imports.values()), ...moduleImports],
-      exports: [...Array.from(exports.values()), ...moduleExports],
+      // Only include exports discovered at module level; dependency package.json exports
+      // are not tied to module IDs in our schema and would corrupt relationships
+      exports: [...moduleExports],
       importsWithModules,
     };
   }
@@ -250,7 +248,6 @@ export class PackageParser {
     pkgLock: PackageLock,
     type: 'dependencies' | 'devDependencies' | 'peerDependencies',
     _imports: Map<string, Import>,
-    exports: Map<string, Export>,
     packageImports: Map<string, PackageImport>
   ): Promise<Map<string, string>> {
     const deps = pkg[type];
@@ -288,15 +285,8 @@ export class PackageParser {
 
       packageImports.set(packageImport.uuid, packageImport);
 
-      // Try to parse the package's own package.json for exports
-      try {
-        const depPkg = await readPackageUp({ cwd: dirname(fullPath) });
-        if (depPkg?.packageJson.exports) {
-          this.parseExports(depPkg.packageJson.name, depPkg.packageJson.exports, exports);
-        }
-      } catch {
-        // Skip if we can't read the dependency's package.json
-      }
+      // Note: we intentionally do not ingest dependency package.json exports here.
+      // They don't map to module IDs in our DB schema and would create broken relationships.
     }
 
     return depsMap;

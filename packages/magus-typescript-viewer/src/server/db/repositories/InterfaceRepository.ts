@@ -87,7 +87,7 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
       const results = await this.executeQuery<IClassOrInterfaceRow>(
         'create',
         'INSERT INTO interfaces (id, package_id, module_id, name, created_at) VALUES (?, ?, ?, ?, ?) RETURNING *',
-        [String(dto.id), String(dto.package_id), String(dto.module_id), String(dto.name), now]
+        [dto.id, dto.package_id, dto.module_id, dto.name, now]
       );
 
       if (results.length === 0) {
@@ -324,7 +324,7 @@ export class InterfaceRepository extends BaseRepository<Interface, IInterfaceCre
   }
 
   async retrieveByNames(names: string[]): Promise<Interface[]> {
-    if (!names || names.length === 0) return [];
+    if (names.length === 0) return [];
     try {
       const placeholders = names.map(() => '?').join(', ');
       const query = `SELECT * FROM interfaces WHERE name IN (${placeholders})`;

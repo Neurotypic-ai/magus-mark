@@ -111,8 +111,13 @@ export class ModuleParser {
 
       // Add collected imports and exports to result
       result.imports = Array.from(this.imports.values());
-      result.exports = Array.from(this.exports).map(
-        (exportName) => new Export(generateExportUUID(this.moduleId, exportName), this.moduleId, exportName, false)
+      result.exports = Array.from(this.exports).map((exportName) =>
+        new Export(
+          generateExportUUID(this.moduleId, exportName),
+          this.moduleId,
+          exportName,
+          exportName === 'default'
+        )
       );
 
       return result;
@@ -147,10 +152,19 @@ export class ModuleParser {
       const importSpecifiers = new Map<string, ImportSpecifier>();
 
       path.node.specifiers?.forEach((specifier) => {
+        // Handle named imports: import { foo } from '...'
         if (specifier.type === 'ImportSpecifier' && specifier.imported.type === 'Identifier') {
           const name = specifier.imported.name;
-          const uuid = generateImportUUID(importPath, name);
+          // Tie specifier identity to the importing module + source + specifier
+          const uuid = generateImportUUID(this.moduleId, `${importPath}:${name}`);
           const importSpecifier = new ImportSpecifier(uuid, name, 'value', undefined, new Set(), new Set());
+          importSpecifiers.set(name, importSpecifier);
+        }
+        // Handle default imports: import foo from '...'
+        if (specifier.type === 'ImportDefaultSpecifier') {
+          const name = 'default';
+          const uuid = generateImportUUID(this.moduleId, `${importPath}:default`);
+          const importSpecifier = new ImportSpecifier(uuid, name, 'default', undefined, new Set(), new Set());
           importSpecifiers.set(name, importSpecifier);
         }
       });
@@ -190,6 +204,16 @@ export class ModuleParser {
           const name = this.getIdentifierName(path.node.declaration.id);
           if (name) this.exports.add(name);
         }
+      }
+    });
+
+    // Handle default exports
+    this.root.find(this.j.ExportDefaultDeclaration).forEach((p) => {
+      try {
+        // Always register a default export for this module
+        this.exports.add('default');
+      } catch (error) {
+        this.logger.warn('Failed parsing default export', error);
       }
     });
 
@@ -279,13 +303,42 @@ export class ModuleParser {
       throw new Error('Invalid class declaration: missing identifier');
     }
 
+    // If superclass is a simple identifier defined in the same module, generate its deterministic ID
+    let extendsId: string | undefined = undefined;
+    if (node.superClass?.type === 'Identifier') {
+      const superName = node.superClass.name;
+      // Only set extends_id if superclass likely resides in same module (best-effort)
+      // This avoids emitting dangling IDs for external classes
+      const isLocalSuper = this.isLocalClass(superName);
+      if (isLocalSuper) {
+        extendsId = generateClassUUID(this.packageId, moduleId, superName);
+      }
+    }
+
     return {
       id: classId,
       package_id: this.packageId,
       module_id: moduleId,
       name: node.id.name,
-      extends_id: node.superClass?.type === 'Identifier' ? node.superClass.name : undefined,
+      extends_id: extendsId,
     };
+  }
+
+  // Determine if a class name is declared in the current module
+  private isLocalClass(name: string): boolean {
+    try {
+      if (!this.root) return false;
+      const classes = this.root.find(this.j.ClassDeclaration);
+      let found = false;
+      classes.forEach((p) => {
+        if (p.node.id && p.node.id.type === 'Identifier' && p.node.id.name === name) {
+          found = true;
+        }
+      });
+      return found;
+    } catch {
+      return false;
+    }
   }
 
   private parseInterfaces(moduleId: string, result: ParseResult): void {

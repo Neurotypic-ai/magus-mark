@@ -1,3 +1,7 @@
+import { readFile } from 'fs/promises';
+
+import jscodeshift from 'jscodeshift';
+
 import { Module } from '../shared/types/Module';
 import { createLogger } from '../shared/utils/logger';
 import { Database } from './db/Database';
@@ -11,8 +15,6 @@ import { PackageRepository } from './db/repositories/PackageRepository';
 
 import type { Package } from '../shared/types/Package';
 import type { TypeCollection } from '../shared/types/TypeCollection';
-import { readFile } from 'fs/promises';
-import jscodeshift from 'jscodeshift';
 
 export interface ApiServerResponderOptions {
   dbPath?: string;
@@ -149,11 +151,15 @@ export class ApiServerResponder {
                 const arr: any[] = (node.implements ?? []) as any[];
                 const names: string[] = [];
                 for (const it of arr) {
-                  const expr: any = (it && (it as any).expression) ?? undefined;
+                  const expr: any = (it && it.expression) ?? undefined;
                   let text = '';
                   if (expr && typeof expr === 'object' && 'name' in expr) text = String(expr.name);
                   else if (expr) {
-                    try { text = j(expr).toSource(); } catch { text = ''; }
+                    try {
+                      text = j(expr).toSource();
+                    } catch {
+                      text = '';
+                    }
                   }
                   if (text) {
                     const base = (text.split('<')[0] ?? text).trim();
@@ -174,11 +180,15 @@ export class ApiServerResponder {
                 const arr: any[] = (node.extends ?? []) as any[];
                 const names: string[] = [];
                 for (const it of arr) {
-                  const expr: any = (it && (it as any).expression) ?? undefined;
+                  const expr: any = (it && it.expression) ?? undefined;
                   let text = '';
                   if (expr && typeof expr === 'object' && 'name' in expr) text = String(expr.name);
                   else if (expr) {
-                    try { text = j(expr).toSource(); } catch { text = ''; }
+                    try {
+                      text = j(expr).toSource();
+                    } catch {
+                      text = '';
+                    }
                   }
                   if (text) {
                     const base = (text.split('<')[0] ?? text).trim();
@@ -196,7 +206,19 @@ export class ApiServerResponder {
           }
 
           // Preload any referenced interfaces by name (across the DB)
-          let ifaceByName = new Map<string, { id: string; name: string; package_id: string; module_id: string; created_at: Date; methods: Map<unknown, unknown>; properties: Map<unknown, unknown>; extended_interfaces: Map<unknown, unknown> }>();
+          let ifaceByName = new Map<
+            string,
+            {
+              id: string;
+              name: string;
+              package_id: string;
+              module_id: string;
+              created_at: Date;
+              methods: Map<unknown, unknown>;
+              properties: Map<unknown, unknown>;
+              extended_interfaces: Map<unknown, unknown>;
+            }
+          >();
           if (neededInterfaceNames.size > 0) {
             try {
               const extras = await this.interfaceRepository.retrieveByNames(Array.from(neededInterfaceNames));
@@ -243,16 +265,18 @@ export class ApiServerResponder {
                 // Also include interfaces defined in this module for precise mapping
                 try {
                   const localIfaces = await this.interfaceRepository.retrieve(undefined, mod.id);
-                  localIfaces.forEach((e) => ifaceByName.set(e.name, {
-                    id: e.id,
-                    name: e.name,
-                    package_id: e.package_id,
-                    module_id: e.module_id,
-                    created_at: e.created_at,
-                    methods: new Map(),
-                    properties: new Map(),
-                    extended_interfaces: new Map(),
-                  }));
+                  localIfaces.forEach((e) =>
+                    ifaceByName.set(e.name, {
+                      id: e.id,
+                      name: e.name,
+                      package_id: e.package_id,
+                      module_id: e.module_id,
+                      created_at: e.created_at,
+                      methods: new Map(),
+                      properties: new Map(),
+                      extended_interfaces: new Map(),
+                    })
+                  );
                 } catch {}
                 names.forEach((n) => {
                   const obj = ifaceByName.get(n);
