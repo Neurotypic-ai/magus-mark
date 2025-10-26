@@ -10,7 +10,6 @@ import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor'
 import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
-import { calculateParentNodeBounds } from '../../utils/calculateParentBounds';
 import { createGraphEdges } from '../../utils/createGraphEdges';
 import { createGraphNodes } from '../../utils/createGraphNodes';
 import { measurePerformance } from '../../utils/performanceMonitoring';

@@ -136,7 +136,7 @@ function createDefaultSettings(): PersistedSettings {
     },
 
     // Additional settings
-    visibleNodeTypes: ['class', 'interface', 'enum', 'type', 'function'],
+    visibleNodeTypes: ['class', 'interface', 'enum', 'type', 'function', 'module', 'package'],
     enabledRelationshipTypes: [
       'import',
       'uses',

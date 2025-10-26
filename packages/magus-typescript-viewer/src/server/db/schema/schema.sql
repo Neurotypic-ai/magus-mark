@@ -125,7 +125,7 @@ CREATE TABLE imports (
 -- Import specifiers table for tracking which symbols are imported
 CREATE TABLE import_specifiers (
   id CHAR(36) PRIMARY KEY,
-  import_id CHAR(36) NOT NULL REFERENCES imports (id) ON DELETE CASCADE,
+  import_id CHAR(36) NOT NULL REFERENCES imports (id),
   name TEXT NOT NULL,
   kind TEXT NOT NULL CHECK (kind IN ('value', 'type', 'typeof', 'default')),
   alias TEXT,
