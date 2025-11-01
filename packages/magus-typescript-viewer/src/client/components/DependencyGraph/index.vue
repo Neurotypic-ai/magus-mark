@@ -3,11 +3,13 @@ import { Background } from '@vue-flow/background';
 import { MarkerType, PanOnScrollMode, Panel, Position, VueFlow, useVueFlow } from '@vue-flow/core';
 import { storeToRefs } from 'pinia';
 import { computed, nextTick, onMounted, onUnmounted, provide, ref, shallowRef, watch } from 'vue';
+import type { Ref } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
 import { DEFAULT_ANALYTICS_CONFIG } from '../../analytics/graphAnalytics';
 import { WebWorkerLayoutProcessor } from '../../layout/WebWorkerLayoutProcessor';
 import { useGraphSettings } from '../../stores/graphSettings';
+import type { ViewMode } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle, graphTheme } from '../../theme/graphTheme';
 import { createGraphEdges } from '../../utils/createGraphEdges';
@@ -15,6 +17,7 @@ import { createGraphNodes } from '../../utils/createGraphNodes';
 import { measurePerformance } from '../../utils/performanceMonitoring';
 import { DEFAULT_EDGE_CONFIG, EdgeVisualizationEngine } from '../../visualization/edgeVisualization';
 import AnalyticsDashboard from '../AnalyticsDashboard.vue';
+import DependencyGraph3D from '../DependencyGraph3D/index.vue';
 import GraphControls from './components/GraphControls.vue';
 import GraphSearch from './components/GraphSearch.vue';
 import NodeDetails from './components/NodeDetails.vue';
@@ -46,6 +49,9 @@ const props = defineProps<DependencyGraphProps>();
 const graphStore = useGraphStore();
 const graphSettings = useGraphSettings();
 const { nodes, edges, selectedNode } = storeToRefs(graphStore);
+// Ensure the union type '2d' | '3d' is preserved for viewMode comparisons
+const { viewMode: rawViewMode } = storeToRefs(graphSettings);
+const viewMode = rawViewMode as Ref<ViewMode>;
 
 const { fitView, updateNodeInternals, updateNode } = useVueFlow();
 
@@ -496,6 +502,12 @@ const RENDERING_PHASES = [
 
 // Progressive graph initialization
 const initializeGraph = async () => {
+  // Skip 2D graph initialization when in 3D mode
+  if (viewMode.value === '3d') {
+    graphLogger.debug('Skipping 2D graph initialization - in 3D mode');
+    return;
+  }
+
   // Use unique mark names to avoid conflicts with multiple calls
   const timestamp = Date.now();
   const startMark = `graph-init-start-${timestamp}`;
@@ -551,6 +563,13 @@ const initializeGraph = async () => {
 
 // Progressive rendering implementation
 const renderGraphProgressively = async () => {
+  // Skip if in 3D mode
+  const viewModeStr = computed<string>(() => (viewMode.value as unknown as string));
+  if (viewModeStr.value === '3d') {
+    graphLogger.debug('Skipping progressive rendering - in 3D mode');
+    return;
+  }
+
   // Note: isProgressiveRendering flag is already set by initializeGraph
   // We just need to handle cleanup in the finally block
   try {
@@ -559,6 +578,12 @@ const renderGraphProgressively = async () => {
     const allNodes: DependencyNode[] = [];
 
     for (const phase of RENDERING_PHASES) {
+      // Check again in case mode changed during iteration
+      if (viewModeStr.value === '3d') {
+        graphLogger.debug('Aborting progressive rendering - switched to 3D mode');
+        return;
+      }
+
       graphLogger.info(`Collecting nodes for phase: ${phase.name}`);
 
       // Create nodes for this phase
@@ -572,11 +597,23 @@ const renderGraphProgressively = async () => {
 
     // Add ALL nodes in a single batch to avoid multiple reactive update cycles
     if (allNodes.length > 0) {
+      // Final check before adding nodes - ensure we're still in 2D mode
+      if (viewModeStr.value === '3d') {
+        graphLogger.debug('Aborting node addition - switched to 3D mode');
+        return;
+      }
+
       graphLogger.info(`Adding all ${String(allNodes.length)} nodes in single batch`);
       graphStore.addNodes(allNodes);
 
       // Wait for Vue to render all nodes
       await nextTick();
+    }
+
+    // Final check before applying enhancements
+    if (viewModeStr.value === '3d') {
+      graphLogger.debug('Aborting final enhancements - switched to 3D mode');
+      return;
     }
 
     // Apply final enhancements (including edge creation and layout)
@@ -586,21 +623,26 @@ const renderGraphProgressively = async () => {
     isProgressiveRendering.value = false;
     graphLogger.debug('Progressive rendering complete, dimension updates re-enabled');
 
-    // Mount VueFlow now that all data is ready
-    isGraphReady.value = true;
-    graphLogger.info('Graph data ready, mounting VueFlow component');
+    // Only mount VueFlow if we're still in 2D mode
+    if (viewModeStr.value === '2d') {
+      // Mount VueFlow now that all data is ready
+      isGraphReady.value = true;
+      graphLogger.info('Graph data ready, mounting VueFlow component');
 
-    // Wait for VueFlow to fully mount and initialize viewport, then fit view
-    await nextTick();
-    await nextTick(); // Double nextTick ensures VueFlow viewport is initialized
+      // Wait for VueFlow to fully mount and initialize viewport, then fit view
+      await nextTick();
+      await nextTick(); // Double nextTick ensures VueFlow viewport is initialized
 
-    try {
-      graphLogger.debug('VueFlow mounted, calling initial fitView...');
-      await fitView({ duration: 300, padding: 0.1 });
-      graphLogger.debug('Initial fitView complete');
-    } catch (error) {
-      graphLogger.warn('Initial fitView failed:', error);
-      // Non-fatal - view just won't auto-fit
+      try {
+        graphLogger.debug('VueFlow mounted, calling initial fitView...');
+        await fitView({ duration: 300, padding: 0.1 });
+        graphLogger.debug('Initial fitView complete');
+      } catch (error) {
+        graphLogger.warn('Initial fitView failed:', error);
+        // Non-fatal - view just won't auto-fit
+      }
+    } else {
+      graphLogger.debug('Skipping VueFlow mount - in 3D mode');
     }
   }
 };
@@ -1361,8 +1403,31 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
 
 <template>
   <div class="graph-container h-full w-full" role="application" aria-label="TypeScript dependency graph visualization">
-    <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
+    <!-- GraphControls - Always visible -->
+    <GraphControls
+      @relationship-filter-change="handleRelationshipFilterChange"
+      @layout-change="handleLayoutChange"
+      @node-visibility-change="handleNodeVisibilityChange"
+      @enhanced-layout-change="() => void initializeGraph()"
+      @clustering-change="() => void initializeGraph()"
+      @visual-hierarchy-change="() => void initializeGraph()"
+      @view-mode-change="() => void initializeGraph()"
+      @toggle-show-packages="() => void initializeGraph()"
+      @toggle-show-modules="() => void initializeGraph()"
+      @toggle-show-classes="() => void initializeGraph()"
+      @toggle-show-interfaces="() => void initializeGraph()"
+      @toggle-show-types="() => void initializeGraph()"
+      @toggle-show-enums="() => void initializeGraph()"
+      @toggle-show-functions="() => void initializeGraph()"
+      @toggle-cluster-folder="() => void initializeGraph()"
+    />
+
+    <!-- 3D View -->
+    <DependencyGraph3D v-if="viewMode === '3d'" :data="data" class="h-full w-full" />
+
+    <!-- 2D View -->
     <button
+      v-else
       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
       @keydown="handleKeyDown"
       aria-label="Press arrowclosed keys to navigate between connected nodes"
@@ -1398,34 +1463,6 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
         @pane-click="onPaneClick"
       >
         <Background />
-        <GraphControls
-          @relationship-filter-change="handleRelationshipFilterChange"
-          @layout-change="handleLayoutChange"
-          @node-visibility-change="handleNodeVisibilityChange"
-          @enhanced-layout-change="
-            () => {
-              void initializeGraph();
-            }
-          "
-          @clustering-change="
-            () => {
-              void initializeGraph();
-            }
-          "
-          @visual-hierarchy-change="
-            () => {
-              void initializeGraph();
-            }
-          "
-          @toggle-show-packages="() => void initializeGraph()"
-          @toggle-show-modules="() => void initializeGraph()"
-          @toggle-show-classes="() => void initializeGraph()"
-          @toggle-show-interfaces="() => void initializeGraph()"
-          @toggle-show-types="() => void initializeGraph()"
-          @toggle-show-enums="() => void initializeGraph()"
-          @toggle-show-functions="() => void initializeGraph()"
-          @toggle-cluster-folder="() => void initializeGraph()"
-        />
         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />
 

@@ -118,12 +118,7 @@ export interface DependencyPackageGraph {
 /**
  * Layout configuration
  */
-export interface LayoutConfig {
-  direction: 'TB' | 'LR' | 'RL' | 'BT';
-  nodeSpacing: number;
-  rankSpacing: number;
-  hierarchical: boolean;
-}
+// Note: Layout configuration types live in layout/config.ts and layout/dagreLayoutEngine.ts.
 
 /**
  * Search results for the graph search component

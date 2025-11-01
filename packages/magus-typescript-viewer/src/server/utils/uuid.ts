@@ -17,6 +17,9 @@ const NAMESPACES = {
   import: 'b9a7d20b-45ff-47a4-8eab-42cf921be416',
   typeAlias: '27473cf4-2ac7-477c-a903-01693f9bcf67',
   moduleDefinition: 'e481a0e5-fac9-4ec1-bd87-7f871c807db5',
+  classImplements: 'd2e7b746-2c5c-4d5a-9e2e-6b6c6f9b5a91',
+  interfaceExtends: '7b1c8a3e-1a4f-43f6-9b9e-12a7b1e1b8f4',
+  classExtends: '9b3a7f0e-6d8a-4f0b-9a89-8f5a2c1b7e30',
 } as const;
 
 /**
@@ -76,3 +79,12 @@ export const generateModuleDefinitionUUID = (moduleId: string, name: string): st
 
 export const generateFunctionUUID = (packageId: string, moduleId: string, name: string): string =>
   generateUUID('function', `${packageId}.${moduleId}.${name}`);
+
+export const generateClassImplementsUUID = (classId: string, interfaceId: string): string =>
+  generateUUID('classImplements', `${classId}.${interfaceId}`);
+
+export const generateInterfaceExtendsUUID = (interfaceId: string, extendedId: string): string =>
+  generateUUID('interfaceExtends', `${interfaceId}.${extendedId}`);
+
+export const generateClassExtendsUUID = (classId: string, parentId: string): string =>
+  generateUUID('classExtends', `${classId}.${parentId}`);

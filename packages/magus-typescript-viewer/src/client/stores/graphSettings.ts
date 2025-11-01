@@ -11,6 +11,9 @@ const STORAGE_KEY = 'magus-graph-settings';
 // Granular type definitions for better maintainability
 export type LayoutDirection = 'LR' | 'RL' | 'TB' | 'BT';
 export type LayoutStrategy = 'balanced' | 'performance' | 'detailed';
+export type ViewMode = '2d' | '3d';
+export type CameraPreset = 'free' | 'top' | 'front' | 'side' | 'isometric';
+export type PerspectiveMode = 'perspective' | 'orthographic';
 
 // Utility types for better type safety
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -79,8 +82,23 @@ export interface VisualHierarchyOptions {
   visualHierarchyConfig: VisualHierarchyConfig;
 }
 
+export interface View3DOptions {
+  viewMode: ViewMode;
+  zAxisSpacing: number;
+  cameraPreset: CameraPreset;
+  perspectiveMode: PerspectiveMode;
+  enable3DPhysics: boolean;
+  camera3DPosition: { x: number; y: number; z: number };
+  camera3DTarget: { x: number; y: number; z: number };
+}
+
 // Main settings interface composed of granular types
-interface PersistedSettings extends ViewOptions, ClusteringOptions, LayoutConfig, VisualHierarchyOptions {
+interface PersistedSettings
+  extends ViewOptions,
+    ClusteringOptions,
+    LayoutConfig,
+    VisualHierarchyOptions,
+    View3DOptions {
   visibleNodeTypes: string[];
   enabledRelationshipTypes: string[];
   forceDirectedConfig: ForceDirectedConfig;
@@ -158,6 +176,15 @@ function createDefaultSettings(): PersistedSettings {
       cellSize: 300,
       padding: 50,
     },
+
+    // 3D view options
+    viewMode: '2d',
+    zAxisSpacing: 300,
+    cameraPreset: 'isometric',
+    perspectiveMode: 'perspective',
+    enable3DPhysics: false,
+    camera3DPosition: { x: 1000, y: 1000, z: 1000 },
+    camera3DTarget: { x: 0, y: 0, z: 0 },
   };
 }
 
@@ -286,6 +313,13 @@ function createSettingsFromState(state: {
   clusteringOptions: ClusteringOptions['clusteringOptions'];
   useVisualHierarchy: boolean;
   visualHierarchyConfig: VisualHierarchyConfig;
+  viewMode: ViewMode;
+  zAxisSpacing: number;
+  cameraPreset: CameraPreset;
+  perspectiveMode: PerspectiveMode;
+  enable3DPhysics: boolean;
+  camera3DPosition: { x: number; y: number; z: number };
+  camera3DTarget: { x: number; y: number; z: number };
 }): PersistedSettings {
   return {
     showPackages: state.showPackages,
@@ -309,6 +343,13 @@ function createSettingsFromState(state: {
     clusteringOptions: state.clusteringOptions,
     useVisualHierarchy: state.useVisualHierarchy,
     visualHierarchyConfig: state.visualHierarchyConfig,
+    viewMode: state.viewMode,
+    zAxisSpacing: state.zAxisSpacing,
+    cameraPreset: state.cameraPreset,
+    perspectiveMode: state.perspectiveMode,
+    enable3DPhysics: state.enable3DPhysics,
+    camera3DPosition: state.camera3DPosition,
+    camera3DTarget: state.camera3DTarget,
   };
 }
 
@@ -377,6 +418,15 @@ export const useGraphSettings = defineStore('graphSettings', () => {
 
   const useVisualHierarchy = ref<boolean>(persisted.useVisualHierarchy);
   const visualHierarchyConfig = ref<VisualHierarchyConfig>(persisted.visualHierarchyConfig);
+
+  // 3D view settings
+  const viewMode = ref<ViewMode>(persisted.viewMode);
+  const zAxisSpacing = ref<number>(persisted.zAxisSpacing);
+  const cameraPreset = ref<CameraPreset>(persisted.cameraPreset);
+  const perspectiveMode = ref<PerspectiveMode>(persisted.perspectiveMode);
+  const enable3DPhysics = ref<boolean>(persisted.enable3DPhysics);
+  const camera3DPosition = ref<{ x: number; y: number; z: number }>(persisted.camera3DPosition);
+  const camera3DTarget = ref<{ x: number; y: number; z: number }>(persisted.camera3DTarget);
 
   logger.debug('Initialized settings from persisted data:', {
     showPackages: showPackages.value,
@@ -478,6 +528,13 @@ export const useGraphSettings = defineStore('graphSettings', () => {
       clusteringOptions,
       useVisualHierarchy,
       visualHierarchyConfig,
+      viewMode,
+      zAxisSpacing,
+      cameraPreset,
+      perspectiveMode,
+      enable3DPhysics,
+      camera3DPosition,
+      camera3DTarget,
     ],
     () => {
       const settings = createSettingsFromState({
@@ -502,6 +559,13 @@ export const useGraphSettings = defineStore('graphSettings', () => {
         clusteringOptions: clusteringOptions.value,
         useVisualHierarchy: useVisualHierarchy.value,
         visualHierarchyConfig: visualHierarchyConfig.value,
+        viewMode: viewMode.value,
+        zAxisSpacing: zAxisSpacing.value,
+        cameraPreset: cameraPreset.value,
+        perspectiveMode: perspectiveMode.value,
+        enable3DPhysics: enable3DPhysics.value,
+        camera3DPosition: camera3DPosition.value,
+        camera3DTarget: camera3DTarget.value,
       });
       saveSettings(settings);
     },
@@ -582,6 +646,13 @@ export const useGraphSettings = defineStore('graphSettings', () => {
       clusteringOptions: clusteringOptions.value,
       useVisualHierarchy: useVisualHierarchy.value,
       visualHierarchyConfig: visualHierarchyConfig.value,
+      viewMode: viewMode.value,
+      zAxisSpacing: zAxisSpacing.value,
+      cameraPreset: cameraPreset.value,
+      perspectiveMode: perspectiveMode.value,
+      enable3DPhysics: enable3DPhysics.value,
+      camera3DPosition: camera3DPosition.value,
+      camera3DTarget: camera3DTarget.value,
     });
     saveSettings(settings);
   }
@@ -688,6 +759,42 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     visualHierarchyConfig.value = config;
   }
 
+  // 3D view actions
+  function setViewMode(value: ViewMode): void {
+    logger.debug(`setViewMode: ${viewMode.value} -> ${value}`);
+    viewMode.value = value;
+  }
+
+  function setZAxisSpacing(value: number): void {
+    logger.debug(`setZAxisSpacing: ${String(zAxisSpacing.value)} -> ${String(value)}`);
+    zAxisSpacing.value = value;
+  }
+
+  function setCameraPreset(value: CameraPreset): void {
+    logger.debug(`setCameraPreset: ${cameraPreset.value} -> ${value}`);
+    cameraPreset.value = value;
+  }
+
+  function setPerspectiveMode(value: PerspectiveMode): void {
+    logger.debug(`setPerspectiveMode: ${perspectiveMode.value} -> ${value}`);
+    perspectiveMode.value = value;
+  }
+
+  function setEnable3DPhysics(value: boolean): void {
+    logger.debug(`setEnable3DPhysics: ${String(enable3DPhysics.value)} -> ${String(value)}`);
+    enable3DPhysics.value = value;
+  }
+
+  function setCamera3DPosition(value: { x: number; y: number; z: number }): void {
+    logger.debug('setCamera3DPosition:', value);
+    camera3DPosition.value = value;
+  }
+
+  function setCamera3DTarget(value: { x: number; y: number; z: number }): void {
+    logger.debug('setCamera3DTarget:', value);
+    camera3DTarget.value = value;
+  }
+
   return {
     // View option refs
     showPackages,
@@ -716,6 +823,14 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     // Visual hierarchy refs
     useVisualHierarchy,
     visualHierarchyConfig,
+    // 3D view refs
+    viewMode,
+    zAxisSpacing,
+    cameraPreset,
+    perspectiveMode,
+    enable3DPhysics,
+    camera3DPosition,
+    camera3DTarget,
     // View actions
     setShowPackages,
     setShowModules,
@@ -745,5 +860,13 @@ export const useGraphSettings = defineStore('graphSettings', () => {
     // Visual hierarchy actions
     setUseVisualHierarchy,
     setVisualHierarchyConfig,
+    // 3D view actions
+    setViewMode,
+    setZAxisSpacing,
+    setCameraPreset,
+    setPerspectiveMode,
+    setEnable3DPhysics,
+    setCamera3DPosition,
+    setCamera3DTarget,
   };
 });

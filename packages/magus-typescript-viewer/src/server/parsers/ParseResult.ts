@@ -23,4 +23,14 @@ export interface ParseResult {
   exports: Export[];
   importsWithModules?: { import: Import; moduleId: string }[];
   importSpecifiers: IImportSpecifierCreateDTO[];
+  /**
+   * Class implements relationships captured during parsing, keyed by class id and listing interface names.
+   * Interface names are resolved to IDs during the analyze step after all interfaces are saved.
+   */
+  classImplements?: { classId: string; interfaceNames: string[] }[];
+  /**
+   * Interface extends relationships captured during parsing, keyed by interface id and listing extended interface names.
+   * Interface names are resolved to IDs during the analyze step after all interfaces are saved.
+   */
+  interfaceExtends?: { interfaceId: string; extendedNames: string[] }[];
 }

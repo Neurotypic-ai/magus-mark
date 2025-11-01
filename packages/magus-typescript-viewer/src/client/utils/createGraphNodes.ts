@@ -3,6 +3,7 @@ import { Position } from '@vue-flow/core';
 import { createLogger } from '../../shared/utils/logger';
 import { getNodeStyle } from '../theme/graphTheme';
 import { typeCollectionToArray } from './typeCollectionHelpers';
+import { getExternalPackageName } from './packageName';
 
 import type { Class } from '../../shared/types/Class';
 import type { Interface } from '../../shared/types/Interface';
@@ -299,13 +300,7 @@ export function createGraphNodes(
         if (!isExternal) continue;
 
         // Extract package name (handle scoped packages)
-        let pkgName = src;
-        if (pkgName.startsWith('@')) {
-          const [scope, name] = pkgName.split('/');
-          pkgName = [scope, name].filter(Boolean).join('/');
-        } else {
-          pkgName = (pkgName.split('/')[0] ?? pkgName).trim();
-        }
+        const pkgName = getExternalPackageName(src);
         if (!pkgName) continue;
 
         externalNames.add(pkgName);

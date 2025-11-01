@@ -60,7 +60,7 @@ export class PackageParser {
         }
         const subFiles = await this.traverseDirectory(fullPath);
         files.push(...subFiles);
-      } else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) {
+      } else if (entry.isFile() && /(\.(ts|tsx)$|\.vue$)/.test(entry.name)) {
         // Skip declaration files
         if (!entry.name.endsWith('.d.ts')) {
           files.push(fullPath);
@@ -72,7 +72,7 @@ export class PackageParser {
   }
 
   async parse(): Promise<ParseResult> {
-    const packageId = generatePackageUUID(this.packageName, this.packageVersion);
+    const packageId: string = generatePackageUUID(this.packageName, this.packageVersion);
 
     // Initialize collection maps
     const imports = new Map<string, Import>();
@@ -138,33 +138,49 @@ export class PackageParser {
     const moduleExports: Export[] = [];
     const importsWithModules: { import: Import; moduleId: string }[] = [];
 
-    for (const file of files) {
-      const moduleParser = new ModuleParser(file, packageId);
-      const result: ParseResult = await moduleParser.parse();
+    // Process files with a small concurrency limit for performance
+    const concurrency = 6;
+    const classImplRels: { classId: string; interfaceNames: string[] }[] = [];
+    const ifaceExtRels: { interfaceId: string; extendedNames: string[] }[] = [];
+    let index = 0;
+    const worker = async () => {
+      while (index < files.length) {
+        const i = index++;
+        if (i >= files.length) break;
+        const file = files[i];
+        if (typeof file !== 'string' || file.length === 0) break;
+        const moduleParser = new ModuleParser(file, packageId);
+        const result: ParseResult = await moduleParser.parse();
 
-      const moduleId = result.modules[0]?.id ?? '';
+        const moduleId = result.modules[0]?.id ?? '';
 
-      modules.push(...result.modules);
-      classes.push(...result.classes);
-      interfaces.push(...result.interfaces);
-      functions.push(...result.functions);
-      methods.push(...result.methods);
-      result.properties.forEach((property) => properties.push(property));
-      result.parameters.forEach((parameter) => parameters.push(parameter));
-      result.imports.forEach((imp) => {
-        moduleImports.push(imp);
-        importsWithModules.push({ import: imp, moduleId });
-      });
-      result.exports.forEach((exp) => moduleExports.push(exp));
+        modules.push(...result.modules);
+        classes.push(...result.classes);
+        interfaces.push(...result.interfaces);
+        functions.push(...result.functions);
+        methods.push(...result.methods);
+        result.properties.forEach((property) => properties.push(property));
+        result.parameters.forEach((parameter) => parameters.push(parameter));
+        result.imports.forEach((imp) => {
+          moduleImports.push(imp);
+          importsWithModules.push({ import: imp, moduleId });
+        });
+        result.exports.forEach((exp) => moduleExports.push(exp));
 
-      // Add import specifiers
-      const specs = (result as ParseResult & { importSpecifiers: IImportSpecifierCreateDTO[] }).importSpecifiers;
-      if (Array.isArray(specs)) {
-        importSpecifiers.push(...specs);
+        // Add import specifiers
+        const specs = (result as ParseResult & { importSpecifiers: IImportSpecifierCreateDTO[] }).importSpecifiers;
+        if (Array.isArray(specs)) {
+          importSpecifiers.push(...specs);
+        }
+
+        // Merge relationship captures (avoid unsafe spread by using nullish-coalescing)
+        classImplRels.push(...(Array.isArray(result.classImplements) ? result.classImplements : []));
+        ifaceExtRels.push(...(Array.isArray(result.interfaceExtends) ? result.interfaceExtends : []));
       }
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, () => worker()));
 
-    return {
+    const parseResult: ParseResult = {
       package: packageDTO,
       modules,
       classes,
@@ -180,6 +196,12 @@ export class PackageParser {
       importsWithModules,
       importSpecifiers,
     };
+
+    // Merge implements/extends captured by ModuleParser
+    parseResult.classImplements = classImplRels;
+    parseResult.interfaceExtends = ifaceExtRels;
+
+    return parseResult;
   }
 
   private async readPackageLock(packageDir: string): Promise<PackageLock> {

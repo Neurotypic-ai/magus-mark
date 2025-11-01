@@ -55,6 +55,8 @@ export class ModuleParser {
   private imports = new Map<string, Import>();
   private exports = new Set<string>();
   private reExports = new Set<string>();
+  private classImplements: { classId: string; interfaceNames: string[] }[] = [];
+  private interfaceExtends: { interfaceId: string; extendedNames: string[] }[] = [];
   private readonly logger;
 
   constructor(
@@ -84,13 +86,16 @@ export class ModuleParser {
     const relativePath = relative(process.cwd(), this.filePath);
 
     try {
-      const content = await readFile(this.filePath, 'utf-8');
+      const rawContent = await readFile(this.filePath, 'utf-8');
+      const content = this.maybeExtractVueScript(rawContent, this.filePath);
       this.root = this.j(content);
 
       // Reset tracking collections
       this.imports.clear();
       this.exports.clear();
       this.reExports.clear();
+      this.classImplements = [];
+      this.interfaceExtends = [];
 
       const result: ParseResult = {
         package: undefined,
@@ -148,6 +153,8 @@ export class ModuleParser {
       return {
         ...result,
         importSpecifiers,
+        classImplements: this.classImplements,
+        interfaceExtends: this.interfaceExtends,
       };
     } catch (error) {
       console.warn(
@@ -166,8 +173,39 @@ export class ModuleParser {
         imports: [],
         exports: [],
         importSpecifiers: [],
+        classImplements: [],
+        interfaceExtends: [],
       };
     }
+  }
+
+  /**
+   * Extract script code from a Vue SFC to feed the TS parser.
+   * Returns original content for non-.vue files.
+   */
+  private maybeExtractVueScript(content: string, filename: string): string {
+    if (!filename.endsWith('.vue')) return content;
+    const scripts: string[] = [];
+    const scriptTag = /<script(\s+[^>]*)?>([\s\S]*?)<\/script>/gi;
+    let m: RegExpExecArray | null;
+    scriptTag.lastIndex = 0;
+    while ((m = scriptTag.exec(content)) !== null) {
+      const attrs = m[1] ?? '';
+      const code = m[2] ?? '';
+      // Only include non-setup scripts with no unsupported langs
+      const isSetup = /\bsetup\b/.test(attrs);
+      const isTS = /lang\s*=\s*['"]ts['"]/.test(attrs) || !/lang\s*=/.test(attrs);
+      if (!isSetup && isTS) scripts.push(code);
+    }
+    // script setup blocks
+    const setupTag = /<script(\s+[^>]*setup[^>]*)>([\s\S]*?)<\/script>/gi;
+    setupTag.lastIndex = 0;
+    while ((m = setupTag.exec(content)) !== null) {
+      const code = m[2] ?? '';
+      scripts.push(code);
+    }
+    const merged = scripts.join('\n');
+    return merged.length > 0 ? merged : content;
   }
 
   private parseImportsAndExports(): void {
@@ -179,22 +217,35 @@ export class ModuleParser {
       if (typeof importPath !== 'string') return;
 
       const importSpecifiers = new Map<string, ImportSpecifier>();
+      const declKind = (path.node as unknown as { importKind?: string }).importKind ?? 'value';
 
       path.node.specifiers?.forEach((specifier) => {
-        // Handle named imports: import { foo } from '...'
-        if (specifier.type === 'ImportSpecifier' && specifier.imported.type === 'Identifier') {
+        if (specifier.type === 'ImportSpecifier') {
+          if (specifier.imported.type !== 'Identifier') return;
           const name = specifier.imported.name;
-          // Tie specifier identity to the importing module + source + specifier
-          const uuid = generateImportUUID(this.moduleId, `${importPath}:${name}`);
-          const importSpecifier = new ImportSpecifier(uuid, name, 'value', undefined, new Set(), new Set());
-          importSpecifiers.set(name, importSpecifier);
+          const local = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
+          const specKind = (specifier as unknown as { importKind?: string }).importKind ?? declKind;
+          const kind: 'value' | 'type' | 'typeof' | 'default' =
+            specKind === 'type' ? 'type' : specKind === 'typeof' ? 'typeof' : 'value';
+          const uuid = generateImportUUID(this.moduleId, `${importPath}:${name}:${kind}`);
+          const importSpecifier = new ImportSpecifier(uuid, name, kind, undefined, new Set(), new Set());
+          if (local && local !== name) importSpecifier.aliases.add(local);
+          importSpecifiers.set(`${name}:${kind}`, importSpecifier);
         }
-        // Handle default imports: import foo from '...'
         if (specifier.type === 'ImportDefaultSpecifier') {
           const name = 'default';
+          const local = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
           const uuid = generateImportUUID(this.moduleId, `${importPath}:default`);
           const importSpecifier = new ImportSpecifier(uuid, name, 'default', undefined, new Set(), new Set());
-          importSpecifiers.set(name, importSpecifier);
+          if (local && local !== name) importSpecifier.aliases.add(local);
+          importSpecifiers.set('default', importSpecifier);
+        }
+        if (specifier.type === 'ImportNamespaceSpecifier') {
+          const local = specifier.local?.type === 'Identifier' ? specifier.local.name : undefined;
+          const uuid = generateImportUUID(this.moduleId, `${importPath}:*`);
+          const importSpecifier = new ImportSpecifier(uuid, '*', 'value', undefined, new Set(), new Set());
+          if (local) importSpecifier.aliases.add(local);
+          importSpecifiers.set('*', importSpecifier);
         }
       });
 
@@ -324,6 +375,40 @@ export class ModuleParser {
 
       result.methods.push(...methods);
       result.properties.push(...properties);
+
+      // Capture implements relations for later persistence
+      try {
+        const implementedNames: string[] = [];
+        const implItems = (node as unknown as { implements?: unknown[] }).implements;
+        const items: unknown[] = Array.isArray(implItems) ? implItems : [];
+        items.forEach((it) => {
+          try {
+            const expr =
+              typeof it === 'object' && it !== null && 'expression' in (it as Record<string, unknown>)
+                ? (it as Record<string, unknown>)['expression']
+                : undefined;
+            let text = '';
+            if (expr && typeof expr === 'object' && 'name' in (expr as Record<string, unknown>)) {
+              const n = (expr as Record<string, unknown>)['name'];
+              if (typeof n === 'string') text = n;
+            }
+            if (!text && expr) {
+              try {
+                text = this.j(expr as ASTNode).toSource();
+              } catch {
+                text = '';
+              }
+            }
+            if (text) {
+              const base = (text.split('<')[0] ?? text).trim();
+              if (base) implementedNames.push(base);
+            }
+          } catch {/* ignore */}
+        });
+        if (implementedNames.length) {
+          this.classImplements.push({ classId, interfaceNames: implementedNames });
+        }
+      } catch {/* ignore */}
     });
   }
 
@@ -360,7 +445,7 @@ export class ModuleParser {
       const classes = this.root.find(this.j.ClassDeclaration);
       let found = false;
       classes.forEach((p) => {
-        if (p.node.id && p.node.id.type === 'Identifier' && p.node.id.name === name) {
+        if (p.node.id?.type === 'Identifier' && p.node.id.name === name) {
           found = true;
         }
       });
@@ -386,6 +471,40 @@ export class ModuleParser {
 
       result.methods.push(...methods);
       result.properties.push(...properties);
+
+      // Capture extends relations for later persistence
+      try {
+        const extendedNames: string[] = [];
+        const extItems = (node as unknown as { extends?: unknown[] }).extends;
+        const items: unknown[] = Array.isArray(extItems) ? extItems : [];
+        items.forEach((it) => {
+          try {
+            const expr =
+              typeof it === 'object' && it !== null && 'expression' in (it as Record<string, unknown>)
+                ? (it as Record<string, unknown>)['expression']
+                : undefined;
+            let text = '';
+            if (expr && typeof expr === 'object' && 'name' in (expr as Record<string, unknown>)) {
+              const n = (expr as Record<string, unknown>)['name'];
+              if (typeof n === 'string') text = n;
+            }
+            if (!text && expr) {
+              try {
+                text = this.j(expr as ASTNode).toSource();
+              } catch {
+                text = '';
+              }
+            }
+            if (text) {
+              const base = (text.split('<')[0] ?? text).trim();
+              if (base) extendedNames.push(base);
+            }
+          } catch {/* ignore */}
+        });
+        if (extendedNames.length) {
+          this.interfaceExtends.push({ interfaceId, extendedNames });
+        }
+      } catch {/* ignore */}
     });
   }
 

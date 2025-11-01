@@ -9,6 +9,7 @@ import { DuckDBAdapter } from './db/adapter/DuckDBAdapter';
 import { RepositoryError } from './db/errors/RepositoryError';
 import { ClassRepository } from './db/repositories/ClassRepository';
 import { ImportRepository } from './db/repositories/ImportRepository';
+import { ImportSpecifierRepository } from './db/repositories/ImportSpecifierRepository';
 import { InterfaceRepository } from './db/repositories/InterfaceRepository';
 import { ModuleRepository } from './db/repositories/ModuleRepository';
 import { PackageRepository } from './db/repositories/PackageRepository';
@@ -35,6 +36,7 @@ export class ApiServerResponder {
   private readonly classRepository: ClassRepository;
   private readonly interfaceRepository: InterfaceRepository;
   private readonly importRepository: ImportRepository;
+  private readonly importSpecifierRepository: ImportSpecifierRepository;
   private readonly moduleRepository: ModuleRepository;
   private readonly packageRepository: PackageRepository;
 
@@ -49,6 +51,7 @@ export class ApiServerResponder {
     this.classRepository = new ClassRepository(this.dbAdapter);
     this.interfaceRepository = new InterfaceRepository(this.dbAdapter);
     this.importRepository = new ImportRepository(this.dbAdapter);
+    this.importSpecifierRepository = new ImportSpecifierRepository(this.dbAdapter);
     this.moduleRepository = new ModuleRepository(this.dbAdapter);
     this.packageRepository = new PackageRepository(this.dbAdapter);
   }
@@ -366,12 +369,29 @@ export class ApiServerResponder {
           try {
             const importsArray = await this.importRepository.findByModuleId(mod.id);
             for (const imp of importsArray) {
+              // load import specifiers for this import
+              const specifierDtos = await this.importSpecifierRepository.findByImportId(imp.id);
+              const specifiersMap = new Map();
+              for (const s of specifierDtos) {
+                const uuid = s.id;
+                const kind = s.kind;
+                const aliases = new Set<string>();
+                if (s.alias && s.alias.length > 0) aliases.add(s.alias);
+                specifiersMap.set(s.name, {
+                  uuid,
+                  name: s.name,
+                  kind,
+                  exportRef: undefined,
+                  modules: new Set<string>(),
+                  aliases,
+                });
+              }
               imports.set(imp.id, {
                 uuid: imp.id,
                 fullPath: imp.source,
                 relativePath: imp.source,
                 name: imp.source,
-                specifiers: new Map(),
+                specifiers: specifiersMap,
                 depth: 0,
               });
             }

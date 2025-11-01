@@ -20,6 +20,9 @@ import { PackageRepository } from '../db/repositories/PackageRepository';
 import { ParameterRepository } from '../db/repositories/ParameterRepository';
 import { PropertyRepository } from '../db/repositories/PropertyRepository';
 import { PackageParser } from '../parsers/PackageParser';
+import { ClassImplementsRepository } from '../db/repositories/ClassImplementsRepository';
+import { InterfaceExtendsRepository } from '../db/repositories/InterfaceExtendsRepository';
+import { generateClassImplementsUUID, generateInterfaceExtendsUUID } from '../utils/uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -62,6 +65,8 @@ program
         method: new MethodRepository(adapter),
         parameter: new ParameterRepository(adapter),
         property: new PropertyRepository(adapter),
+        classImplements: new ClassImplementsRepository(adapter),
+        interfaceExtends: new InterfaceExtendsRepository(adapter),
       };
 
       // Parse package.json
@@ -143,6 +148,42 @@ program
       // Save import specifiers
       if (parseResult.importSpecifiers && parseResult.importSpecifiers.length > 0) {
         await repositories.importSpecifier.batchCreate(parseResult.importSpecifiers);
+      }
+
+      // Persist implements/extends relationships after all classes and interfaces are saved
+      const ifaceByName = new Map<string, string>();
+      for (const iface of parseResult.interfaces) {
+        ifaceByName.set(iface.name, iface.id);
+      }
+
+      if (parseResult.classImplements && parseResult.classImplements.length > 0) {
+        for (const rel of parseResult.classImplements) {
+          for (const ifaceName of rel.interfaceNames) {
+            const ifaceId = ifaceByName.get(ifaceName);
+            if (!ifaceId) continue; // skip unresolved
+            const id = generateClassImplementsUUID(rel.classId, ifaceId);
+            try {
+              await repositories.classImplements.create({ id, class_id: rel.classId, interface_id: ifaceId });
+            } catch {
+              // ignore duplicates or failures to keep analysis going
+            }
+          }
+        }
+      }
+
+      if (parseResult.interfaceExtends && parseResult.interfaceExtends.length > 0) {
+        for (const rel of parseResult.interfaceExtends) {
+          for (const extName of rel.extendedNames) {
+            const extId = ifaceByName.get(extName);
+            if (!extId) continue;
+            const id = generateInterfaceExtendsUUID(rel.interfaceId, extId);
+            try {
+              await repositories.interfaceExtends.create({ id, interface_id: rel.interfaceId, extended_id: extId });
+            } catch {
+              // ignore duplicates or failures
+            }
+          }
+        }
       }
 
       spinner.succeed(chalk.green('Analysis complete!'));

@@ -3,6 +3,7 @@ import { MarkerType } from '@vue-flow/core';
 import { createLogger } from '../../shared/utils/logger';
 import { getEdgeStyle } from '../theme/graphTheme';
 import { typeCollectionToArray } from './typeCollectionHelpers';
+import { getExternalPackageName } from './packageName';
 
 import type { Class } from '../../shared/types/Class';
 import type { Import } from '../../shared/types/Import';
@@ -72,14 +73,7 @@ function joinPaths(...segments: string[]): string {
  *  - 'lodash/map' -> 'lodash'
  *  - '@scope/pkg/sub' -> '@scope/pkg'
  */
-function getExternalPackageName(path: string): string {
-  if (path.startsWith('@')) {
-    const [scope, pkg] = path.split('/');
-    return [scope, pkg].filter(Boolean).join('/');
-  }
-  const [pkg] = path.split('/');
-  return pkg ?? path;
-}
+// moved to utils/packageName.ts
 
 /**
  * Builds a lookup map from module paths to module IDs

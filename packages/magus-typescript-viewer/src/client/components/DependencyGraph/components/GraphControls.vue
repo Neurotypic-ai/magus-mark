@@ -21,6 +21,7 @@ const emit = defineEmits<{
   'enhanced-layout-change': [];
   'clustering-change': [];
   'visual-hierarchy-change': [];
+  'view-mode-change': [];
 }>();
 
 const { zoomIn, zoomOut, fitView } = useVueFlow();
@@ -62,6 +63,16 @@ const clusteringOptions = computed(() => graphSettings.clusteringOptions);
 // Visual hierarchy options
 const useVisualHierarchy = computed(() => graphSettings.useVisualHierarchy);
 const visualHierarchyConfig = computed(() => graphSettings.visualHierarchyConfig);
+
+// 3D view options
+const viewMode = computed(() => graphSettings.viewMode);
+const zAxisSpacing = computed({
+  get: () => graphSettings.zAxisSpacing,
+  set: (value: number) => graphSettings.setZAxisSpacing(value),
+});
+const cameraPreset = computed(() => graphSettings.cameraPreset);
+const perspectiveMode = computed(() => graphSettings.perspectiveMode);
+const enable3DPhysics = computed(() => graphSettings.enable3DPhysics);
 
 const handleZoomIn = () => {
   void zoomIn({ duration: 150 });
@@ -218,11 +229,46 @@ const handleVisualHierarchyConfigChange = (config: {
   graphSettings.setVisualHierarchyConfig(config);
   emit('visual-hierarchy-change');
 };
+
+// 3D view handlers
+const handleViewModeToggle = () => {
+  const newMode = viewMode.value === '2d' ? '3d' : '2d';
+  graphSettings.setViewMode(newMode);
+  emit('view-mode-change');
+};
+
+const handleCameraPresetChange = (preset: 'free' | 'top' | 'front' | 'side' | 'isometric') => {
+  graphSettings.setCameraPreset(preset);
+};
+
+const handlePerspectiveModeToggle = (checked: boolean) => {
+  graphSettings.setPerspectiveMode(checked ? 'perspective' : 'orthographic');
+};
+
+const handleEnable3DPhysicsToggle = (checked: boolean) => {
+  graphSettings.setEnable3DPhysics(checked);
+};
 </script>
 
 <template>
   <Panel position="top-left">
     <div class="bg-background-paper p-4 rounded-lg border border-border-default shadow-xl">
+      <!-- 2D/3D View Toggle -->
+      <div class="mb-4 pb-4 border-b border-border-default">
+        <button
+          @click="handleViewModeToggle"
+          :class="[
+            'w-full px-4 py-2 rounded font-semibold text-sm transition-all duration-200',
+            viewMode === '3d'
+              ? 'bg-linear-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+              : 'bg-linear-to-r from-blue-600 to-cyan-600 text-white shadow-lg',
+          ]"
+          :aria-label="`Switch to ${viewMode === '2d' ? '3D' : '2D'} view`"
+        >
+          {{ viewMode === '2d' ? '🔲 Switch to 3D View' : '📊 Switch to 2D View' }}
+        </button>
+      </div>
+
       <!-- Button Group -->
       <div class="flex gap-2 mb-4">
         <button
@@ -687,6 +733,66 @@ const handleVisualHierarchyConfigChange = (config: {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 3D-Specific Controls -->
+      <div v-if="viewMode === '3d'" class="mt-4 pt-4 border-t border-border-default">
+        <h4 class="text-sm font-semibold text-text-primary mb-2">3D View Settings</h4>
+
+        <!-- Camera Presets -->
+        <div class="mb-3">
+          <label class="text-xs text-text-secondary block mb-1">Camera Preset</label>
+          <div class="grid grid-cols-3 gap-1">
+            <button
+              v-for="preset in ['top', 'front', 'side', 'isometric', 'free']"
+              :key="preset"
+              @click="handleCameraPresetChange(preset as any)"
+              :class="[
+                'px-2 py-1 text-[10px] rounded border transition-fast capitalize',
+                cameraPreset === preset
+                  ? 'bg-primary-main text-white border-primary-main'
+                  : 'bg-white/10 text-text-primary border-border-default hover:bg-white/20',
+              ]"
+            >
+              {{ preset }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Z-Axis Spacing -->
+        <div class="mb-3">
+          <label class="text-xs text-text-secondary block mb-1">Z-Axis Spacing: {{ zAxisSpacing }}</label>
+          <input
+            v-model.number="zAxisSpacing"
+            type="range"
+            min="100"
+            max="500"
+            step="50"
+            class="w-full cursor-pointer accent-primary-main"
+          />
+        </div>
+
+        <!-- Perspective Mode Toggle -->
+        <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast mb-2">
+          <input
+            type="checkbox"
+            :checked="perspectiveMode === 'perspective'"
+            @change="(e) => handlePerspectiveModeToggle((e.target as HTMLInputElement).checked)"
+            class="cursor-pointer accent-primary-main"
+          />
+          <span class="text-xs">Perspective Mode</span>
+        </label>
+
+        <!-- 3D Physics Toggle -->
+        <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-fast">
+          <input
+            type="checkbox"
+            :checked="enable3DPhysics"
+            @change="(e) => handleEnable3DPhysicsToggle((e.target as HTMLInputElement).checked)"
+            class="cursor-pointer accent-primary-main"
+          />
+          <span class="text-xs">Enable Physics Simulation</span>
+        </label>
       </div>
     </div>
   </Panel>
