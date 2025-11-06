@@ -1,5 +1,5 @@
 {
-  "extends": "@magus-mark/typescript-config/config/app/tsconfig.json",
+  "extends": "@magus-mark/typescript-config/config/app.json",
   "compilerOptions": {
     "isolatedDeclarations": false
   }

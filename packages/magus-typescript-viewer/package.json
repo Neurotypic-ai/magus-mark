@@ -28,6 +28,7 @@
   },
   "description": "TypeScript codebase visualization tool",
   "devDependencies": {
+    "@magus-mark/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/jscodeshift": "^17.3.0",
     "@types/node": "^24.10.0",

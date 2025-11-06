@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
-import type { UserConfigExport } from 'vitest/config';
+import type { ViteUserConfigExport } from 'vitest/config';
 
-const config: UserConfigExport = defineConfig({
+const config: ViteUserConfigExport = defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,

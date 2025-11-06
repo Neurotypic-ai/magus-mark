@@ -1,0 +1,18 @@
+{
+  "extends": "@magus-mark/typescript-config/config/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "outDir": "./dist",
+    "rootDir": "./"
+  },
+  "include": ["./tools/scripts/**/*.ts"],
+  "exclude": ["node_modules", "**/node_modules/**/*", "**/dist/**/*", "**/node_modules/.pnpm/**/*"],
+  "references": [
+    { "path": "./packages/core/tsconfig.json" },
+    { "path": "./packages/magus-typescript-viewer/tsconfig.json" },
+    { "path": "./apps/obsidian-plugin/tsconfig.json" },
+    { "path": "./apps/vscode/tsconfig.json" },
+    { "path": "./apps/cli/tsconfig.json" }
+  ]
+}

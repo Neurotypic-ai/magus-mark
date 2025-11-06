@@ -87,6 +87,7 @@ export interface DependencyProps {
  */
 export type GraphEdge = Edge<{
   type?: DependencyEdgeKind;
+  importName?: string | undefined;
 }>;
 
 /**

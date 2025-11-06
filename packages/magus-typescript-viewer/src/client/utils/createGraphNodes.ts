@@ -104,7 +104,9 @@ export function createGraphNodes(
           moduleNode.parentNode = pkg.id;
           moduleNode.extent = 'parent' as const;
           moduleNode.expandParent = true;
-          moduleNode.data.parentId = pkg.id;
+          if (moduleNode.data) {
+            moduleNode.data.parentId = pkg.id;
+          }
         }
 
         graphNodes.push(moduleNode);
