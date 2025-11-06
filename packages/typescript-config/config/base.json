@@ -2,7 +2,7 @@
   "compilerOptions": {
     "outDir": "${configDir}/dist",
     "rootDir": "${configDir}",
-    "types": ["node"]
+    "types": [ "node" ]
   },
   "exclude": [
     "${configDir}/eslint.config.js",
@@ -15,19 +15,22 @@
     "${configDir}/**/documentation",
     "${configDir}/**/.cursor/**",
     "${configDir}/**/examples/**/*",
-    "${configDir}/**/node_modules/.pnpm/**/*"
+    "${configDir}/**/node_modules/.pnpm/**/*",
+    "${configDir}/**/*.stories.ts",
+    "${configDir}/**/*.stories.tsx",
+    "${configDir}/.storybook/**/*"
   ],
-  "extends": "@magus-mark/typescript-config/config/settings/tsconfig.json",
+  "extends": "./settings.json",
   "references": [
     {
-      "path": "@magus-mark/typescript-config/config/build/tsconfig.json"
+      "path": "./build.json"
     },
     {
-      "path": "@magus-mark/typescript-config/config/test/tsconfig.json"
+      "path": "./test.json"
     }
   ],
   "watchOptions": {
-    "excludeDirectories": ["${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*"],
+    "excludeDirectories": [ "${configDir}/**/node_modules/**/*", "${configDir}/**/dist/**/*" ],
     "watchDirectory": "useFsEvents",
     "watchFile": "useFsEvents"
   }

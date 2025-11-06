@@ -119,9 +119,7 @@
     "titleBar.activeForeground": "#e7e7e7",
     "titleBar.inactiveBackground": "#2f263f99",
     "titleBar.inactiveForeground": "#e7e7e799",
-    "statusBar.noFolderBackground": "#007acc",
-    "statusBar.debuggingBackground": "#363f26",
-    "statusBar.debuggingForeground": "#e7e7e7"
+    "statusBar.noFolderBackground": "#007acc"
   },
   "peacock.color": "#2f263f",
   "eslint.lintTask.enable": true,
@@ -151,5 +149,7 @@
   "nxConsole.generateAiAgentRules": true,
   "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": false,
   "typescript.tsserver.web.typeAcquisition.enabled": false,
-  "typescript.tsserver.useSyntaxServer": "always"
+  "typescript.tsserver.useSyntaxServer": "always",
+  "typescript.tsserver.nodePath": "node",
+  "json.schemaDownload.enable": true
 }

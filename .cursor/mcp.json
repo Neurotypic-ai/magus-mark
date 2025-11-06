@@ -1,8 +1,5 @@
 {
   "mcpServers": {
-    "nx-mcp": {
-      "url": "http://localhost:9484/sse"
-    },
     "motherduck": {
       "command": "uvx",
       "args": [

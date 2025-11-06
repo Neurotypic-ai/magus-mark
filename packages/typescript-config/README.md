@@ -39,6 +39,12 @@ Then extend the appropriate configuration in your project's `tsconfig.json`:
 - **obsidian.json**: Settings for Obsidian plugins
 - **vscode.json**: Settings for VS Code extensions
 
+Notes
+-----
+
+- These presets enable strict mode, declaration maps, and incremental builds
+- Use project references for monorepos; presets are configured with `${configDir}` placeholders
+
 ## Project-Specific Configuration Examples
 
 ### Core Library

@@ -55,10 +55,8 @@ const badgeText = computed(() => String(nodeType.value).toUpperCase());
         <div v-if="nodeData.methods && nodeData.methods.length > 0" class="section">
           <div class="section-header">Methods</div>
           <div v-for="(method, index) in nodeData.methods" :key="index" class="section-item">
-            <span
-              v-if="method.visibility"
-              :class="['visibility-indicator', getVisibilityColor(method.visibility)]"
-            ></span>
+            <span v-if="method.visibility"
+              :class="['visibility-indicator', getVisibilityColor(method.visibility)]"></span>
             <span class="section-item-text">{{ method.name }}(): {{ method.returnType }}</span>
           </div>
         </div>

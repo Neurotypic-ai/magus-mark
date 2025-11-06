@@ -358,19 +358,19 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
       mapTypeCollection(moduleData.classes, (cls) => {
         const properties = cls.properties
           ? Object.values(cls.properties).map((p) => ({
-              name: p.name,
-              type: p.type,
-              visibility: p.visibility,
-            }))
+            name: p.name,
+            type: p.type,
+            visibility: p.visibility,
+          }))
           : [];
 
         const methods = cls.methods
           ? Object.values(cls.methods).map((m) => ({
-              name: m.name,
-              returnType: m.returnType,
-              visibility: m.visibility,
-              signature: m.signature || `${m.name}(): ${m.returnType}`,
-            }))
+            name: m.name,
+            returnType: m.returnType,
+            visibility: m.visibility,
+            signature: m.signature || `${m.name}(): ${m.returnType}`,
+          }))
           : [];
 
         detailedNodes.push({
@@ -427,19 +427,19 @@ const onNodeDoubleClick = async ({ node }: { node: unknown }): Promise<void> => 
       mapTypeCollection(moduleData.interfaces, (iface) => {
         const properties = iface.properties
           ? Object.values(iface.properties).map((p) => ({
-              name: p.name,
-              type: p.type,
-              visibility: p.visibility,
-            }))
+            name: p.name,
+            type: p.type,
+            visibility: p.visibility,
+          }))
           : [];
 
         const methods = iface.methods
           ? Object.values(iface.methods).map((m) => ({
-              name: m.name,
-              returnType: m.returnType,
-              visibility: m.visibility,
-              signature: m.signature || `${m.name}(): ${m.returnType}`,
-            }))
+            name: m.name,
+            returnType: m.returnType,
+            visibility: m.visibility,
+            signature: m.signature || `${m.name}(): ${m.returnType}`,
+          }))
           : [];
 
         detailedNodes.push({
@@ -737,61 +737,38 @@ function toDependencyEdgeKind(type: string | undefined): DependencyEdgeKind {
     <!-- Use a standard button for keyboard controls instead of a non-interactive div -->
     <button
       class="visualization-keyboard-control h-full w-full outline-none bg-transparent border-none p-0 cursor-default text-left"
-      @keydown="handleKeyDown"
-      aria-label="Press arrow keys to navigate between connected nodes"
-    >
+      @keydown="handleKeyDown" aria-label="Press arrow keys to navigate between connected nodes">
       <!-- The actual graph -->
-      <VueFlow
-        :nodes="nodes"
-        :edges="edges"
-        :node-types="nodeTypes as any"
-        :fit-view-on-init="true"
-        :min-zoom="0.1"
-        :max-zoom="2"
-        :default-viewport="{ x: 0, y: 0, zoom: 0.5 }"
-        :snap-to-grid="true"
-        :snap-grid="[15, 15]"
-        :pan-on-scroll="true"
-        :zoom-on-scroll="true"
-        :zoom-on-double-click="false"
-        :elevate-edges-on-select="true"
+      <VueFlow :nodes="nodes" :edges="edges" :node-types="nodeTypes as any" :fit-view-on-init="true" :min-zoom="0.1"
+        :max-zoom="2" :default-viewport="{ x: 0, y: 0, zoom: 0.5 }" :snap-to-grid="true" :snap-grid="[15, 15]"
+        :pan-on-scroll="true" :zoom-on-scroll="true" :zoom-on-double-click="false" :elevate-edges-on-select="true"
         :default-edge-options="{
           style: { stroke: '#61dafb', strokeWidth: 3 },
           markerEnd: { type: 'arrowclosed', width: 20, height: 20 },
           zIndex: 1000,
           type: 'step',
-        }"
-        @node-click="onNodeClick"
-        @node-double-click="onNodeDoubleClick"
-        @pane-click="onPaneClick"
-      >
+        }" @node-click="onNodeClick" @node-double-click="onNodeDoubleClick" @pane-click="onPaneClick">
         <Background />
-        <GraphControls
-          @relationship-filter-change="handleRelationshipFilterChange"
-          @layout-change="handleLayoutChange"
+        <GraphControls @relationship-filter-change="handleRelationshipFilterChange" @layout-change="handleLayoutChange"
           @toggle-collapse-scc="
             (v: boolean) => {
               graphSettings.setCollapseScc(v);
               void initializeGraph();
             }
-          "
-          @toggle-cluster-folder="
+          " @toggle-cluster-folder="
             (v: boolean) => {
               graphSettings.setClusterByFolder(v);
               void initializeGraph();
             }
-          "
-        />
+          " />
         <GraphSearch @search-result="handleSearchResult" :nodes="nodes" :edges="edges" />
         <NodeDetails v-if="selectedNode" :node="selectedNode" />
 
         <!-- Back to Full Graph button -->
         <Panel v-if="selectedNode" position="bottom-left">
-          <button
-            @click="onPaneClick"
+          <button @click="onPaneClick"
             class="px-4 py-2 bg-primary-main text-white rounded-md hover:bg-primary-dark transition-colors shadow-lg border border-primary-light"
-            aria-label="Return to full graph view"
-          >
+            aria-label="Return to full graph view">
             ← Back to Full Graph
           </button>
         </Panel>

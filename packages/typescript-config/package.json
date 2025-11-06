@@ -6,10 +6,13 @@
   "author": "Kevin Hallmark <magus-mark@littleblackhat.com>",
   "license": "MIT",
   "exports": {
-    "./config/*/tsconfig.json": "./config/*/tsconfig.json"
+    "./config/*.json": "./config/*.json"
   },
   "files": [
     "config/**/*.json",
     "README.md"
-  ]
+  ],
+  "devDependencies": {
+    "@vue/tsconfig": "^0.8.1"
+  }
 }
