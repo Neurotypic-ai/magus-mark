@@ -59,7 +59,7 @@ const DEFAULT_CONFIG: Config = {
 describe('Config Utility', () => {
   let originalApiKeyEnv: string | undefined;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     // Prevent config.reload() from loading a "file"
@@ -70,12 +70,15 @@ describe('Config Utility', () => {
     originalApiKeyEnv = process.env['OPENAI_API_KEY'];
     delete process.env['OPENAI_API_KEY'];
 
+    // Spy on the save method BEFORE calling clear() so we can track it
+    vi.spyOn(config, 'save').mockResolvedValue(undefined);
+
     // Reset the config implementation by calling clear() instead of directly modifying internal data
     // This avoids the unsafe type assertion
-    config.clear().catch(console.error);
+    await config.clear();
 
-    // Spy on the save method of the actual config instance and mock its implementation
-    vi.spyOn(config, 'save').mockResolvedValue(undefined);
+    // Clear the mock call history after clear() so tests start with a clean slate
+    vi.mocked(config.save).mockClear();
   });
 
   afterEach(() => {

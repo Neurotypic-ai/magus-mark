@@ -4,14 +4,19 @@ import { Logger } from './Logger';
 
 describe('Logger', () => {
   const logger = Logger.getInstance('Logger');
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleInfoSpy: ReturnType<typeof vi.spyOn>;
+  let consoleDebugSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Spy on console methods
-    vi.spyOn(console, 'log').mockImplementation(vi.fn());
-    vi.spyOn(console, 'error').mockImplementation(vi.fn());
-    vi.spyOn(console, 'warn').mockImplementation(vi.fn());
-    vi.spyOn(console, 'info').mockImplementation(vi.fn());
-    vi.spyOn(console, 'debug').mockImplementation(vi.fn());
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(vi.fn());
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(vi.fn());
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(vi.fn());
+    consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(vi.fn());
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(vi.fn());
 
     // Reset logger to default configuration between tests
     logger.configure({ logLevel: 'info', outputFormat: 'pretty' });
@@ -73,15 +78,23 @@ describe('Logger', () => {
   });
 
   it('should not log in silent mode', () => {
+    // Clear all spies to ensure clean state
+    vi.clearAllMocks();
+
+    // Configure logger to silent mode
     logger.configure({ logLevel: 'info', outputFormat: 'silent' });
 
+    // Log messages - these should not be logged in silent mode
     logger.info('Test message');
     logger.warn('Warning message');
     logger.error('Error message');
 
-    expect(console.info).not.toHaveBeenCalled();
-    expect(console.warn).not.toHaveBeenCalled();
-    expect(console.error).not.toHaveBeenCalled();
+    // Verify no console methods were called
+    expect(consoleInfoSpy).not.toHaveBeenCalled();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+    expect(consoleDebugSpy).not.toHaveBeenCalled();
   });
 
   it('should format costs correctly', () => {

@@ -20,11 +20,20 @@ vi.mock('./OpenAIClient', () => ({
 }));
 
 // Mock TaxonomyManager
-vi.mock('../tagging/TaxonomyManager', () => ({
-  TaxonomyManager: vi.fn().mockImplementation(() => ({
-    getTaxonomyForPrompt: vi.fn().mockReturnValue({ domains: [], lifeAreas: [] }),
-  })),
-}));
+const { mockGetTaxonomyForPrompt } = vi.hoisted(() => {
+  const mockGetTaxonomyForPrompt = vi.fn().mockReturnValue({ domains: [], lifeAreas: [] });
+  return { mockGetTaxonomyForPrompt };
+});
+
+vi.mock('../tagging/TaxonomyManager', () => {
+  return {
+    TaxonomyManager: vi.fn().mockImplementation(function TaxonomyManager() {
+      return {
+        getTaxonomyForPrompt: mockGetTaxonomyForPrompt,
+      };
+    }),
+  };
+});
 
 describe('TaggingService', () => {
   let mockOpenAIClient: {

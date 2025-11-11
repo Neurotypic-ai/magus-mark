@@ -12,11 +12,8 @@ vi.mock('../../src/utils/config', () => ({
 }));
 
 // Mock fs-extra
-vi.mock('fs-extra', () => ({
-  ensureDirSync: vi.fn(),
-  writeJSONSync: vi.fn(),
-  existsSync: vi.fn().mockReturnValue(true),
-  readJSONSync: vi.fn().mockReturnValue([
+const { mockUsageData } = vi.hoisted(() => {
+  const mockUsageData = [
     {
       timestamp: Date.now() - 3600000,
       model: 'gpt-4o',
@@ -31,7 +28,17 @@ vi.mock('fs-extra', () => ({
       cost: 0.001,
       operation: 'tag',
     },
-  ]),
+  ];
+  return { mockUsageData };
+});
+
+vi.mock('fs-extra', () => ({
+  ensureDirSync: vi.fn(),
+  writeJSONSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(true),
+  readJSONSync: vi.fn().mockReturnValue(mockUsageData),
+  pathExists: vi.fn().mockResolvedValue(true),
+  readJSON: vi.fn().mockResolvedValue(mockUsageData),
 }));
 
 vi.mock('@magus-mark/logger', () => ({
@@ -112,11 +119,19 @@ describe('Cost Manager Utility', () => {
     expect(fs.writeJSONSync).toHaveBeenCalled();
   });
 
-  it('should get usage history', () => {
+  it('should get usage history', async () => {
+    // Wait for async data loading to complete
+    // The loadUsageDataAsync is called in the constructor, so we need to wait for it
+    let attempts = 0;
+    while (costManager.getUsageHistory().length === 0 && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      attempts++;
+    }
+
     // Get usage history for all time
     const history = costManager.getUsageHistory();
 
-    // Verify data
+    // Verify data was loaded
     expect(history.length).toBeGreaterThanOrEqual(2);
 
     if (history.length >= 2) {

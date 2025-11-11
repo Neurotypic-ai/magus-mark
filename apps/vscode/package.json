@@ -82,6 +82,10 @@
       {
         "command": "magus-mark.generateSnippet",
         "title": "Magus Mark: Generate Code Snippet"
+      },
+      {
+        "command": "magus-mark.refreshTags",
+        "title": "Magus Mark: Refresh Tags"
       }
     ],
     "configuration": {
@@ -375,7 +379,7 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "compile": "pnpm run check-types && pnpm run lint && node esbuild.config.ts",
-    "compile-tests": "tsc -p . --outDir out",
+    "compile-tests": "node esbuild.config.ts --test && mkdir -p dist/test/tests dist/test/test/suite && cp src/tests/vscode.cjs dist/test/tests/vscode.cjs && cp src/test/suite/setup.cjs dist/test/test/suite/setup.cjs && find dist/test -name '*.js' -type f -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\; 2>/dev/null || true",
     "lint": "eslint src",
     "package": "pnpm run check-types && pnpm run lint && tsx esbuild.config.ts --production",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",

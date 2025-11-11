@@ -283,7 +283,7 @@ export function registerTagExplorer(
     }
   });
 
-  const refreshCommand = vscode.commands.registerCommand('magus-mark.refreshTagExplorer', () => {
+  const refreshCommand = vscode.commands.registerCommand('magus-mark.refreshTags', () => {
     void provider.refresh();
   });
 

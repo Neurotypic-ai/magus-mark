@@ -18,69 +18,84 @@ interface MockedOpenAIClient {
 }
 
 // Mock the OpenAI library and encoding
+const mockCreate = vi.fn().mockResolvedValue({
+  id: 'chat-123',
+  choices: [
+    {
+      message: {
+        content: '{"key": "value"}',
+      },
+      index: 0,
+      finish_reason: 'stop',
+    },
+  ],
+  usage: {
+    prompt_tokens: 500,
+    completion_tokens: 200,
+    total_tokens: 700,
+  },
+});
+
+const mockModerationsCreate = vi.fn().mockResolvedValue({
+  results: [
+    {
+      flagged: false,
+      categories: {
+        hate: false,
+        'hate/threatening': false,
+        harassment: false,
+        'self-harm': false,
+        sexual: false,
+        'sexual/minors': false,
+        violence: false,
+        'violence/graphic': false,
+      },
+      category_scores: {
+        hate: 0.01,
+        'hate/threatening': 0.01,
+        harassment: 0.01,
+        'self-harm': 0.01,
+        sexual: 0.01,
+        'sexual/minors': 0.01,
+        violence: 0.01,
+        'violence/graphic': 0.01,
+      },
+    },
+  ],
+});
+
 vi.mock('openai', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      chat: {
-        completions: {
-          create: vi.fn().mockResolvedValue({
-            id: 'chat-123',
-            choices: [
-              {
-                message: {
-                  content: '{"key": "value"}',
-                },
-                index: 0,
-                finish_reason: 'stop',
-              },
-            ],
-            usage: {
-              prompt_tokens: 500,
-              completion_tokens: 200,
-              total_tokens: 700,
-            },
-          }),
+    default: vi.fn().mockImplementation(function OpenAI() {
+      return {
+        chat: {
+          completions: {
+            create: mockCreate,
+          },
         },
-      },
-      moderations: {
-        create: vi.fn().mockResolvedValue({
-          results: [
-            {
-              flagged: false,
-              categories: {
-                hate: false,
-                'hate/threatening': false,
-                harassment: false,
-                'self-harm': false,
-                sexual: false,
-                'sexual/minors': false,
-                violence: false,
-                'violence/graphic': false,
-              },
-              category_scores: {
-                hate: 0.01,
-                'hate/threatening': 0.01,
-                harassment: 0.01,
-                'self-harm': 0.01,
-                sexual: 0.01,
-                'sexual/minors': 0.01,
-                violence: 0.01,
-                'violence/graphic': 0.01,
-              },
-            },
-          ],
-        }),
-      },
-    })),
+        moderations: {
+          create: mockModerationsCreate,
+        },
+      };
+    }),
   };
 });
 
-vi.mock('js-tiktoken/lite', () => ({
-  Tiktoken: vi.fn().mockImplementation(() => ({
-    encode: vi.fn().mockReturnValue(Array(10).fill(0)),
-    decode: vi.fn().mockReturnValue(''),
-  })),
-}));
+const { mockEncode } = vi.hoisted(() => {
+  const mockEncode = vi.fn().mockReturnValue(Array(10).fill(0));
+  return { mockEncode };
+});
+
+vi.mock('js-tiktoken/lite', () => {
+  return {
+    Tiktoken: vi.fn().mockImplementation(function Tiktoken() {
+      return {
+        encode: mockEncode,
+        decode: vi.fn().mockReturnValue(''),
+      };
+    }),
+  };
+});
 
 describe('OpenAIClient', () => {
   beforeEach(() => {

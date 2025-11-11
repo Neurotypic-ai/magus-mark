@@ -6,19 +6,25 @@ import { FrontmatterProcessor } from './FrontmatterProcessor';
 import type { Document } from '../models/Document';
 import type { TagSet } from '../models/TagSet';
 
-// Set up mocks
-const mockExtractFrontmatter = vi.fn().mockReturnValue({});
-const mockUpdateFrontmatter = vi.fn((content: string) => `UPDATED: ${content}`);
-const mockExtractTags = vi.fn().mockReturnValue([]);
-
 // Mock the FrontmatterProcessor class
-vi.mock('./FrontmatterProcessor', () => ({
-  FrontmatterProcessor: vi.fn().mockImplementation(() => ({
-    extractFrontmatter: mockExtractFrontmatter,
-    updateFrontmatter: mockUpdateFrontmatter,
-    extractTags: mockExtractTags,
-  })),
-}));
+const { mockExtractFrontmatter, mockUpdateFrontmatter, mockExtractTags } = vi.hoisted(() => {
+  const mockExtractFrontmatter = vi.fn().mockReturnValue({});
+  const mockUpdateFrontmatter = vi.fn((content: string) => `UPDATED: ${content}`);
+  const mockExtractTags = vi.fn().mockReturnValue([]);
+  return { mockExtractFrontmatter, mockUpdateFrontmatter, mockExtractTags };
+});
+
+vi.mock('./FrontmatterProcessor', () => {
+  return {
+    FrontmatterProcessor: vi.fn().mockImplementation(function FrontmatterProcessor() {
+      return {
+        extractFrontmatter: mockExtractFrontmatter,
+        updateFrontmatter: mockUpdateFrontmatter,
+        extractTags: mockExtractTags,
+      };
+    }),
+  };
+});
 
 describe('DocumentProcessor', () => {
   beforeEach(() => {

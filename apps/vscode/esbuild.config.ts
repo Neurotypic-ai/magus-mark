@@ -2,6 +2,7 @@ import esbuild from 'esbuild';
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+const testOnly = process.argv.includes('--test');
 
 const esbuildProblemMatcherPlugin: esbuild.Plugin = {
   name: 'esbuild-problem-matcher',
@@ -21,6 +22,7 @@ const esbuildProblemMatcherPlugin: esbuild.Plugin = {
 };
 
 async function main() {
+  // Build main extension
   const ctx = await esbuild.context({
     entryPoints: ['src/extension.ts'], // Main extension entry point
     bundle: true,
@@ -35,17 +37,47 @@ async function main() {
     plugins: [esbuildProblemMatcherPlugin],
   });
 
+  // Build test files - bundle them to handle ES module dependencies
+  const testCtx = await esbuild.context({
+    entryPoints: ['src/**/*.test.ts', 'src/test/**/*.ts'],
+    bundle: true, // Bundle to convert ES modules to CommonJS
+    format: 'cjs',
+    minify: false,
+    sourcemap: !production,
+    sourcesContent: false,
+    platform: 'node',
+    outdir: 'dist/test',
+    outbase: 'src',
+    external: ['vscode', '@vscode/test-electron', 'mocha', 'chai', 'sinon'],
+    logLevel: 'info',
+    plugins: [esbuildProblemMatcherPlugin],
+  });
+
   // Add context for web extension if needed later, following VS Code docs
   // const webCtx = await esbuild.context({ ... });
 
-  if (watch) {
-    await ctx.watch();
-    // await webCtx.watch();
+  if (testOnly) {
+    // Only build tests
+    if (watch) {
+      await testCtx.watch();
+    } else {
+      await testCtx.rebuild();
+      await testCtx.dispose();
+    }
   } else {
-    await ctx.rebuild();
-    // await webCtx.rebuild();
-    await ctx.dispose();
-    // await webCtx.dispose();
+    // Build main extension and tests
+    if (watch) {
+      await ctx.watch();
+      await testCtx.watch();
+      // await webCtx.watch();
+    } else {
+      await ctx.rebuild();
+      await testCtx.rebuild();
+      // await webCtx.rebuild();
+      await ctx.dispose();
+      await testCtx.dispose();
+      // await webCtx.dispose();
+    }
   }
 }
 
