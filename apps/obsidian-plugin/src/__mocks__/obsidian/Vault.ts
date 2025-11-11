@@ -5,7 +5,7 @@ import { DataAdapter } from './DataAdapter';
 import { createMockMarkdownFiles, createMockTFile, createMockTFolder } from './FileMockHelpers';
 import { Events } from './MockEvents';
 
-import type { Vault as VaultType } from 'obsidian';
+import type { TAbstractFile, Vault as VaultType } from 'obsidian';
 import type { Mock } from 'vitest';
 
 /**
@@ -57,7 +57,7 @@ export class Vault extends Events implements VaultType {
       return Promise.reject(new Error('Cannot copy unknown file type'));
     }
   });
-  getAllLoadedFiles: Mock<() => TFile[]> = vi.fn(() => []);
+  getAllLoadedFiles: Mock<() => TAbstractFile[]> = vi.fn(() => []);
   getAllFolders: Mock<() => TFolder[]> = vi.fn(() => []);
   /**
    * Returns an array of mock markdown files by default.

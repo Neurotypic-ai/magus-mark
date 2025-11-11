@@ -125,6 +125,9 @@ export class Workspace extends Events implements WorkspaceType {
   duplicateLeaf: (leaf: WorkspaceLeaf, directionOrOptions?: SplitDirection | PaneType) => Promise<WorkspaceLeaf> =
     vi.fn(() => Promise.resolve({} as WorkspaceLeaf));
   detachLeavesOfType: (viewType: string) => void = vi.fn();
+  handleLinkContextMenu: (menu: any, linktext: string, sourcePath: string, leaf?: WorkspaceLeaf) => boolean = vi.fn(
+    () => false
+  );
   revealLeaf: (leaf: WorkspaceLeaf) => Promise<void> = vi.fn(() => Promise.resolve());
   getLastOpenFiles: () => string[] = vi.fn(() => []);
   addToSameGroup: (leaf: WorkspaceLeaf, target: WorkspaceLeaf) => void = vi.fn();

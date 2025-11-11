@@ -81,7 +81,7 @@ class CostManager {
     this.dataFile = path.join(dataDir, 'usage-data.json');
 
     // Load existing data asynchronously
-    void this.loadUsageDataAsync().catch((error) => {
+    void this.loadUsageDataAsync().catch((error: unknown) => {
       logger.warn(`Failed to load usage data: ${error instanceof Error ? error.message : String(error)}`);
     });
   }
@@ -349,9 +349,6 @@ class CostManager {
     return this.limits.hardLimit;
   }
 }
-
-// Initialize singleton instance
-CostManager.instance = new CostManager();
 
 // Export singleton instance
 export const costManager: CostManager = CostManager.getInstance();

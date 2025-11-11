@@ -64,16 +64,16 @@ describe('BatchProcessingService', () => {
   };
 
   let batchService: BatchProcessingService;
-  let onProgressMock: ReturnType<typeof vi.fn>;
-  let onErrorMock: ReturnType<typeof vi.fn>;
+  let onProgressMock: (completed: number, total: number, current?: Document) => void;
+  let onErrorMock: (error: Error, document?: Document) => void;
 
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
 
     // Create mocks for progress and error callbacks
-    onProgressMock = vi.fn();
-    onErrorMock = vi.fn();
+    onProgressMock = vi.fn<(completed: number, total: number, current?: Document) => void>();
+    onErrorMock = vi.fn<(error: Error, document?: Document) => void>();
 
     // Initialize BatchProcessingService with default options and mocks
     const options: BatchProcessingOptions = {

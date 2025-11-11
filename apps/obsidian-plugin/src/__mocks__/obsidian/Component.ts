@@ -80,11 +80,11 @@ export class Component extends Events implements ComponentType {
   constructor() {
     super();
     // Wrap methods with vi.fn() to make instance methods mockable
-    this.addChild = vi.fn(this.addChild);
-    this.removeChild = vi.fn(this.removeChild);
-    this.register = vi.fn(this.register);
-    this.registerEvent = vi.fn(this.registerEvent);
-    this.registerDomEvent = vi.fn(this.registerDomEvent) as any; // Cast for overload handling
-    this.registerInterval = vi.fn(this.registerInterval);
+    this.addChild = vi.fn(this.addChild.bind(this)) as <T extends ComponentType>(child: T) => T;
+    this.removeChild = vi.fn(this.removeChild.bind(this)) as <T extends ComponentType>(child: T) => T;
+    this.register = vi.fn(this.register.bind(this));
+    this.registerEvent = vi.fn(this.registerEvent.bind(this));
+    this.registerDomEvent = vi.fn(this.registerDomEvent.bind(this)) as any; // Cast for overload handling
+    this.registerInterval = vi.fn(this.registerInterval.bind(this));
   }
 }

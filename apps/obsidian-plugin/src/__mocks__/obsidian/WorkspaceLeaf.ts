@@ -121,6 +121,7 @@ export class WorkspaceLeaf extends Events implements WorkspaceLeafType {
   parent: MockWorkspaceTabs | WorkspaceMobileDrawer = new MockWorkspaceTabs();
   app: { vault: VaultType } = { vault: new Vault() }; // Basic app stub
   containerEl: MockObsidianElement<'div'> = createMockObsidianElement<'div'>('div'); // Use helper
+  hoverPopover: null = null;
 
   // Minimal mock for WorkspaceContainer
   private _mockContainer: WorkspaceContainerType;

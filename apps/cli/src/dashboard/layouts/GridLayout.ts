@@ -1,4 +1,5 @@
 import contrib from 'blessed-contrib';
+
 import type blessed from 'blessed';
 
 import type { WidgetConfig } from '../DashboardManager';
@@ -66,7 +67,7 @@ export class GridLayout {
     let currentCol = 0;
 
     for (const widget of optimized.widgets) {
-      const { width, height } = widget.position;
+      const { width } = widget.position;
 
       // Check if widget fits in current row
       if (currentCol + width > this.config.cols) {

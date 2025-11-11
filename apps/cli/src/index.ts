@@ -51,7 +51,7 @@ function getPackageVersion(): string {
 const packageVersion = getPackageVersion();
 
 // Initialize God Tier systems on startup
-async function initializeGodTierSystems(): Promise<void> {
+function initializeGodTierSystems(): void {
   try {
     logger.debug('🔥 Initializing God Tier systems...');
 
@@ -65,7 +65,8 @@ async function initializeGodTierSystems(): Promise<void> {
 
     logger.debug('🚀 God Tier systems ready!');
   } catch (error) {
-    logger.warn('⚠️  Some God Tier systems failed to initialize:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.warn(`⚠️  Some God Tier systems failed to initialize: ${errorMessage}`);
   }
 }
 
@@ -79,7 +80,7 @@ const cli = yargs(hideBin(process.argv))
   .showHelpOnFail(true)
   .wrap(120)
   .epilogue('🔥 Experience the most BADASS CLI ever created! For docs: https://github.com/your-org/magus-mark')
-  .middleware(async (argv: ArgumentsCamelCase<Record<string, unknown>>) => {
+  .middleware((argv: ArgumentsCamelCase<Record<string, unknown>>) => {
     // Global middleware for all commands
     const verbose = argv['verbose'] as boolean | undefined;
     if (verbose) {
@@ -87,7 +88,7 @@ const cli = yargs(hideBin(process.argv))
     }
 
     // Initialize God Tier systems
-    await initializeGodTierSystems();
+    initializeGodTierSystems();
 
     // Log startup info
     logger.debug(`🚀 Magus Mark God Tier CLI v${packageVersion} starting...`);
@@ -110,7 +111,7 @@ const cli = yargs(hideBin(process.argv))
     describe: '🔌 Manage CLI plugins for ultimate extensibility',
     builder: (yargs) => {
       return yargs
-        .command('list', '📋 List all available plugins', {}, async () => {
+        .command('list', '📋 List all available plugins', {}, () => {
           // const plugins = await pluginManager.listPlugins();
           console.log('🔌 Available Plugins:');
           // plugins.forEach((plugin) => {
@@ -118,17 +119,20 @@ const cli = yargs(hideBin(process.argv))
           //   console.log(`  ${status} ${plugin.name} v${plugin.version} - ${plugin.description}`);
           // });
         })
-        .command('enable <name>', '⚡ Enable a plugin', {}, async (argv) => {
-          // await pluginManager.enablePlugin(argv.name as string);
-          console.log(`✅ Plugin '${argv.name}' enabled`);
+        .command('enable <name>', '⚡ Enable a plugin', {}, (argv) => {
+          const name = (argv as unknown as { name: string }).name;
+          // await pluginManager.enablePlugin(name);
+          console.log(`✅ Plugin '${name}' enabled`);
         })
-        .command('disable <name>', '🚫 Disable a plugin', {}, async (argv) => {
-          // await pluginManager.disablePlugin(argv.name as string);
-          console.log(`❌ Plugin '${argv.name}' disabled`);
+        .command('disable <name>', '🚫 Disable a plugin', {}, (argv) => {
+          const name = (argv as unknown as { name: string }).name;
+          // await pluginManager.disablePlugin(name);
+          console.log(`❌ Plugin '${name}' disabled`);
         })
-        .command('install <name>', '📦 Install a new plugin', {}, async (argv) => {
-          // await pluginManager.installPlugin(argv.name as string);
-          console.log(`🎉 Plugin '${argv.name}' installed successfully`);
+        .command('install <name>', '📦 Install a new plugin', {}, (argv) => {
+          const name = (argv as unknown as { name: string }).name;
+          // await pluginManager.installPlugin(name);
+          console.log(`🎉 Plugin '${name}' installed successfully`);
         })
         .demandCommand(1, 'You must provide a plugin subcommand');
     },
@@ -141,7 +145,7 @@ const cli = yargs(hideBin(process.argv))
     describe: '🚀 Manage the intelligent caching system',
     builder: (yargs) => {
       return yargs
-        .command('stats', '📊 Show cache statistics', {}, async () => {
+        .command('stats', '📊 Show cache statistics', {}, () => {
           // const stats = await smartCache.getStats();
           console.log('🚀 Smart Cache Statistics:');
           // console.log(`  Hit Rate: ${(stats.hitRate * 100).toFixed(1)}%`);
@@ -149,11 +153,11 @@ const cli = yargs(hideBin(process.argv))
           // console.log(`  Memory Usage: ${(stats.memoryUsage / 1024 / 1024).toFixed(1)} MB`);
           // console.log(`  Cache Saves: $${stats.costSavings.toFixed(2)}`);
         })
-        .command('clear', '🗑️  Clear all cache entries', {}, async () => {
+        .command('clear', '🗑️  Clear all cache entries', {}, () => {
           // await smartCache.clear();
           console.log('✅ Cache cleared successfully');
         })
-        .command('optimize', '⚡ Optimize cache performance', {}, async () => {
+        .command('optimize', '⚡ Optimize cache performance', {}, () => {
           // await smartCache.optimize();
           console.log('🚀 Cache optimized for maximum performance');
         })
@@ -192,6 +196,7 @@ const cli = yargs(hideBin(process.argv))
   .example('$0 setup', 'Run interactive configuration setup')
   .example('$0 stats --period=week', 'Show usage statistics for the past week')
   .fail((msg, err, yargsInstance: Argv) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (err) {
       logger.error(`💥 Error: ${err.message}`);
     } else if (msg) {
@@ -211,7 +216,9 @@ const cli = yargs(hideBin(process.argv))
 
 // Error handling for unhandled rejections and exceptions
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error(`💥 Unhandled Rejection at: ${String(promise)}, reason: ${String(reason)}`);
+  const promiseId = promise instanceof Promise ? '[Promise]' : String(promise);
+  const reasonStr = reason instanceof Error ? reason.message : String(reason);
+  logger.error(`💥 Unhandled Rejection at: ${promiseId}, reason: ${reasonStr}`);
   // Graceful shutdown
   // smartCache.cleanup();
   // pluginManager.cleanup();

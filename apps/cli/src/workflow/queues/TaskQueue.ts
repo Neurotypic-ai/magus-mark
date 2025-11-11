@@ -2,8 +2,6 @@ import { EventEmitter } from 'events';
 
 import { Logger } from '@magus-mark/core/utils/Logger';
 
-import type { PipelineStats } from '../pipelines/BatchPipeline';
-
 export interface QueuedTask<T> {
   id: string;
   payload: T;
@@ -60,7 +58,7 @@ export class TaskQueue<T, R> extends EventEmitter {
     this.queue.push(task);
     this.sortQueue();
 
-    this.logger.debug(`Enqueued task ${id} with priority ${priority}`);
+    this.logger.debug(`Enqueued task ${id} with priority ${String(priority)}`);
     this.emit('task:enqueued', task);
 
     // Auto-start processing if not running
@@ -75,11 +73,11 @@ export class TaskQueue<T, R> extends EventEmitter {
     }
 
     this.isRunning = true;
-    this.logger.info(`Starting queue ${this.config.name} with concurrency ${this.config.concurrency}`);
+    this.logger.info(`Starting queue ${this.config.name} with concurrency ${String(this.config.concurrency)}`);
     this.emit('queue:started');
 
     // Start concurrent workers
-    const workers = Array.from({ length: this.config.concurrency }, (_, i) => this.worker(`worker-${i}`));
+    const workers = Array.from({ length: this.config.concurrency }, (_, i) => this.worker(`worker-${String(i)}`));
 
     await Promise.all(workers);
 
@@ -170,13 +168,13 @@ export class TaskQueue<T, R> extends EventEmitter {
       task.error = error instanceof Error ? error : new Error(String(error));
       task.retryCount++;
 
-      this.logger.warn(`Task ${task.id} failed (attempt ${task.retryCount}): ${task.error.message}`);
+      this.logger.warn(`Task ${task.id} failed (attempt ${String(task.retryCount)}): ${task.error.message}`);
 
       if (task.retryCount < task.maxRetries) {
         // Retry the task
         task.status = 'pending';
-        task.startedAt = undefined;
-        this.logger.debug(`Retrying task ${task.id} (${task.retryCount}/${task.maxRetries})`);
+        delete task.startedAt;
+        this.logger.debug(`Retrying task ${task.id} (${String(task.retryCount)}/${String(task.maxRetries)})`);
         this.emit('task:retry', task);
 
         // Add delay before retry
@@ -184,7 +182,7 @@ export class TaskQueue<T, R> extends EventEmitter {
       } else {
         // Mark as failed
         task.status = 'failed';
-        this.logger.error(`Task ${task.id} failed permanently after ${task.retryCount} attempts`);
+        this.logger.error(`Task ${task.id} failed permanently after ${String(task.retryCount)} attempts`);
         this.emit('task:failed', task, task.error);
       }
     } finally {
@@ -206,11 +204,11 @@ export class TaskQueue<T, R> extends EventEmitter {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  getStats(): PipelineStats & { queueLength: number; processing: number } {
+  getStats(): { queueLength: number; processing: number; completed: number } {
     return {
-      ...this.stats,
       queueLength: this.queue.length,
       processing: this.processing.size,
+      completed: this.completed.size,
     };
   }
 
@@ -224,7 +222,7 @@ export class TaskQueue<T, R> extends EventEmitter {
 
   cancelTask(id: string): boolean {
     const task = this.queue.find((t) => t.id === id);
-    if (task && task.status === 'pending') {
+    if (task?.status === 'pending') {
       task.status = 'cancelled';
       this.emit('task:cancelled', task);
       return true;

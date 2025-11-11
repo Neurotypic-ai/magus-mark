@@ -131,8 +131,10 @@ export default class MagusMarkPlugin extends Plugin {
       for (const tagEl of Array.from(tagElements)) {
         if (!(tagEl instanceof HTMLElement)) continue;
 
-        const tagNameWithHash = tagEl.textContent?.trim();
-        if (!tagNameWithHash?.startsWith('#')) continue;
+        const textContent = tagEl.textContent;
+        if (!textContent) continue;
+        const tagNameWithHash = textContent.trim();
+        if (!tagNameWithHash.startsWith('#')) continue;
 
         const tagName = tagNameWithHash.substring(1);
 
@@ -162,11 +164,15 @@ export default class MagusMarkPlugin extends Plugin {
     console.log('Unloading Magus Mark plugin');
     this.app.workspace.detachLeavesOfType(TAG_MANAGEMENT_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(TAG_VISUALIZATION_VIEW_TYPE);
+
+    // Clean up handlers
+    this.statusBarHandler?.destroy();
+    this.noticeHandler?.destroy();
   }
 
   async loadSettings(): Promise<void> {
     const data = (await this.loadData()) as Partial<MagusMarkSettings> | undefined;
-    this.settings = { ...DEFAULT_SETTINGS, ...(data || {}) };
+    this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
   }
 
   async saveSettings(): Promise<void> {

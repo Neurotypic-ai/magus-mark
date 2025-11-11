@@ -12,10 +12,8 @@ export interface ProgressWidgetData {
 
 export class ProgressWidget {
   private widget: blessed.Widgets.ProgressBarElement;
-  private config: WidgetConfig;
 
   constructor(config: WidgetConfig, grid: contrib.grid) {
-    this.config = config;
     const { x, y, width, height } = config.position;
 
     this.widget = grid.set(y, x, height, width, contrib.gauge, {

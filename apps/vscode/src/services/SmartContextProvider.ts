@@ -107,7 +107,7 @@ export class SmartContextProvider {
 
   public async provideSmartSuggestions(notes: TaggedNote[], forceRefresh = false): Promise<Result<SmartSuggestion[]>> {
     try {
-      const context = await this.analyzeCurrentContext();
+      const context = this.analyzeCurrentContext();
       const cacheKey = this.getCacheKey(context);
 
       if (!forceRefresh && this._analysisCache.has(cacheKey)) {
@@ -130,7 +130,7 @@ export class SmartContextProvider {
 
   public async getContextualTags(content: string): Promise<Result<TagSuggestion[]>> {
     try {
-      const context = await this.analyzeCurrentContext();
+      const context = this.analyzeCurrentContext();
       const projectTags = this._projectContext?.projectTags ?? [];
 
       // Enhanced prompt that considers project context
@@ -218,9 +218,9 @@ export class SmartContextProvider {
     }
   }
 
-  private async analyzeCurrentContext(): Promise<ContextAnalysis> {
+  private analyzeCurrentContext(): ContextAnalysis {
     const activeEditor = vscode.window.activeTextEditor;
-    const recentFiles = await this.getRecentFiles();
+    const recentFiles = this.getRecentFiles();
 
     const context: ContextAnalysis = {
       recentFiles,
@@ -263,7 +263,7 @@ export class SmartContextProvider {
 
     // Tag suggestions for current content
     if (context.selectedText || context.currentFile) {
-      const content = context.selectedText ?? (await this.getCurrentFileContent());
+      const content = context.selectedText ?? this.getCurrentFileContent();
       if (content) {
         const tagResult = await this.getContextualTags(content);
         if (tagResult.isOk()) {
@@ -380,13 +380,13 @@ Snippets:`;
       const match = /^(.*?)\s*\(confidence:\s*([\d.]+)\)\s*-\s*(.*)$/.exec(line);
       if (match) {
         const [, tag, confidenceStr, reasoning] = match;
-        const confidence = parseFloat(confidenceStr || '0');
+        const confidence = parseFloat(confidenceStr ?? '0');
 
         if (tag && confidence >= 0.3) {
           suggestions.push({
             tag: tag.trim(),
             confidence,
-            reasoning: (reasoning || '').trim(),
+            reasoning: (reasoning ?? '').trim(),
             metadata: { source: 'ai-contextual', language: context.language },
           });
         }
@@ -406,11 +406,11 @@ Snippets:`;
 
       suggestions.push({
         type: 'snippet',
-        content: (code || '').trim(),
+        content: (code ?? '').trim(),
         relevance: 0.8,
-        reasoning: (reasoning || '').trim(),
+        reasoning: (reasoning ?? '').trim(),
         metadata: {
-          description: (description || '').trim(),
+          description: (description ?? '').trim(),
           language,
           insertable: true,
         },
@@ -467,7 +467,7 @@ Snippets:`;
           // Add major framework tags
           const frameworks = ['react', 'vue', 'angular', 'express', 'fastify', 'next'];
           const deps = packageJson['dependencies'] as Record<string, unknown>;
-          const devDeps = (packageJson['devDependencies'] as Record<string, unknown>) ?? {};
+          const devDeps = packageJson['devDependencies'] as Record<string, unknown>;
           for (const framework of frameworks) {
             if (deps[framework] || devDeps[framework]) {
               tags.push(framework);
@@ -488,7 +488,7 @@ Snippets:`;
     for (const file of files) {
       const ext = file.split('.').pop()?.toLowerCase();
       if (ext) {
-        languageCounts.set(ext, (languageCounts.get(ext) || 0) + 1);
+        languageCounts.set(ext, (languageCounts.get(ext) ?? 0) + 1);
       }
     }
 
@@ -537,13 +537,13 @@ Snippets:`;
     return 'plaintext';
   }
 
-  private async getRecentFiles(): Promise<string[]> {
+  private getRecentFiles(): string[] {
     // This would ideally integrate with VS Code's recent files API
     // For now, return empty array as placeholder
     return [];
   }
 
-  private async getCurrentFileContent(): Promise<string | null> {
+  private getCurrentFileContent(): string | null {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
       return null;

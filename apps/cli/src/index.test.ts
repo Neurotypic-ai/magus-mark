@@ -1,13 +1,13 @@
 // Now we can import Logger after the mock is set up
-import { Logger } from '@magus-mark/core/utils/Logger';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { Logger } from '@magus-mark/core/utils/Logger';
 
 // Import and setup Logger mock first - this MUST be done before importing Logger
 import { mockLoggerInstance, resetLoggerMock } from './__mocks__/Logger';
 import { costManager } from './utils/cost-manager';
 
-// Add formatCost to the mockLoggerInstance
-mockLoggerInstance['formatCost'] = vi.fn((cost: number) => `$${cost.toString()}`);
+// formatCost is already included in mockLoggerInstance
 
 // Hoisted mocks - these are processed before module imports regardless of import order
 vi.mock('@magus-mark/core/utils/Logger', () => ({
@@ -77,8 +77,6 @@ describe('CLI Application', () => {
     // Reset all mocks before each test
     vi.clearAllMocks();
     resetLoggerMock();
-    // Re-add formatCost after reset
-    mockLoggerInstance['formatCost'] = vi.fn((cost: number) => `$${cost.toString()}`);
   });
 
   it('should have mocked dependencies correctly', () => {

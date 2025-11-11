@@ -1,14 +1,8 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import importXPlugin from 'eslint-plugin-import-x';
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // TypeScript base configuration
 const tsStrictTypeChecked = tseslint.configs.strictTypeChecked[2] ?? undefined; // Get the actual recommended rules
@@ -27,8 +21,9 @@ export const tsConfig = {
   languageOptions: {
     parser: tseslint.parser,
     parserOptions: {
+      // projectService: true automatically discovers tsconfig files from the workspace root
+      // No need to set tsconfigRootDir - it will be inferred from where ESLint is run
       projectService: true,
-      tsconfigRootDir: __dirname,
     },
   },
   settings: {
@@ -60,30 +55,36 @@ export const tsConfig = {
     'react/jsx-no-leaked-render': ['warn', { validStrategies: ['ternary'] }],
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
     '@typescript-eslint/no-import-type-side-effects': 'error',
-    
+
     // Strict type safety rules
-    '@typescript-eslint/no-explicit-any': ['error', { 
-      fixToUnknown: false,
-      ignoreRestArgs: false
-    }],
+    '@typescript-eslint/no-explicit-any': [
+      'error',
+      {
+        fixToUnknown: false,
+        ignoreRestArgs: false,
+      },
+    ],
     '@typescript-eslint/no-unsafe-assignment': 'error',
     '@typescript-eslint/no-unsafe-argument': 'error',
     '@typescript-eslint/no-unsafe-call': 'error',
     '@typescript-eslint/no-unsafe-member-access': 'error',
     '@typescript-eslint/no-unsafe-return': 'error',
-    
+
     // Prefer safer operators
     '@typescript-eslint/prefer-nullish-coalescing': 'error',
     '@typescript-eslint/no-unnecessary-type-conversion': 'error',
     '@typescript-eslint/no-unnecessary-condition': 'error',
-    
+
     // Unused variables and parameters
-    '@typescript-eslint/no-unused-vars': ['error', { 
-      argsIgnorePattern: '^_',
-      varsIgnorePattern: '^_',
-      caughtErrorsIgnorePattern: '^_'
-    }],
-    
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
+
     '@typescript-eslint/only-throw-error': [
       'error',
       {

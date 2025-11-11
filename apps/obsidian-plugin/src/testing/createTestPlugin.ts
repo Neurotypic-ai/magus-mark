@@ -24,14 +24,25 @@ export function createTestPlugin(
   overrides?: Partial<MagusMarkPlugin>
 ): MagusMarkPlugin {
   // Use enhanced mock system
-  const testApp = app || createMockApp();
-  const testManifest = manifest || TEST_MANIFEST;
+  const testApp = (app ?? createMockApp()) as App;
+  const testManifest = manifest ?? TEST_MANIFEST;
 
   // Create plugin instance using the enhanced Plugin mock
   const plugin = new MagusMarkPlugin(testApp, testManifest);
 
   // Ensure all plugin methods are properly spied
-  const spyMethods = [
+  const spyMethods: (keyof Pick<
+    MagusMarkPlugin,
+    | 'onload'
+    | 'onunload'
+    | 'loadData'
+    | 'saveData'
+    | 'addCommand'
+    | 'registerView'
+    | 'addSettingTab'
+    | 'addRibbonIcon'
+    | 'addStatusBarItem'
+  >)[] = [
     'onload',
     'onunload',
     'loadData',
@@ -44,8 +55,9 @@ export function createTestPlugin(
   ];
 
   spyMethods.forEach((method) => {
-    if (typeof plugin[method] === 'function') {
-      vi.spyOn(plugin, method as keyof MagusMarkPlugin);
+    const methodValue = plugin[method];
+    if (typeof methodValue === 'function') {
+      vi.spyOn(plugin, method);
     }
   });
 

@@ -1,26 +1,26 @@
 import { vi } from 'vitest';
 
 import { createMockObsidianElement } from '../../testing/createMockObsidianElement';
-import { Component } from './Component';
+import { View } from './View';
 
-import type { App, ItemView as ItemViewType, Menu, Scope, ViewStateResult, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
+import type { App, Menu, Scope, WorkspaceLeaf as WorkspaceLeafType } from 'obsidian';
 import type { Mock } from 'vitest';
 
 import type { MockObsidianElement } from './MockObsidianElement';
 
-export class ItemView extends Component implements ItemViewType {
+export class ItemView extends View {
   navigation = true;
   icon = 'mock-icon';
-  leaf: WorkspaceLeafType;
+  override leaf: WorkspaceLeafType;
   override containerEl: MockObsidianElement<'div'>;
   contentEl: MockObsidianElement<'div'>;
-  // The mocked app field comes from the component
-  app: App;
+  // The mocked app field comes from the View base class
+  override app: App;
   // The mocked scope field comes from the component
   scope: Scope;
 
   constructor(leaf: WorkspaceLeafType) {
-    super();
+    super(leaf);
     this.leaf = leaf;
     this.containerEl = createMockObsidianElement('div');
     this.contentEl = createMockObsidianElement('div');
@@ -29,22 +29,22 @@ export class ItemView extends Component implements ItemViewType {
     this.scope = this.app.scope;
   }
 
-  getViewType(): string {
+  override getViewType(): string {
     return 'mock-item-view';
   }
-  getDisplayText(): string {
+  override getDisplayText(): string {
     return 'Mock Item View';
   }
-  getIcon(): string {
+  override getIcon(): string {
     return this.icon;
   }
-  getState(): Record<string, unknown> {
+  override getState = vi.fn((): Record<string, unknown> => {
     return {};
-  }
-  setState(_state: unknown, _result: ViewStateResult): Promise<void> {
+  });
+  override setState = vi.fn(async (_state: Record<string, unknown>): Promise<void> => {
     return Promise.resolve();
-  }
-  getEphemeralState(): unknown {
+  });
+  getEphemeralState(): Record<string, unknown> {
     return {};
   }
   setEphemeralState(_state: unknown): void {
@@ -59,12 +59,12 @@ export class ItemView extends Component implements ItemViewType {
   onResize(): void {
     // Mock implementation
   }
-  onOpen(): Promise<void> {
+  override onOpen = vi.fn(async (): Promise<void> => {
     return Promise.resolve();
-  }
-  onClose(): Promise<void> {
+  });
+  override onClose = vi.fn(async (): Promise<void> => {
     return Promise.resolve();
-  }
+  });
   override onunload: Mock<() => void> = vi.fn();
 
   // Override Component methods to make them mockable if needed

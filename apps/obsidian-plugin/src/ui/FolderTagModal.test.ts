@@ -4,14 +4,14 @@ import { createMockObsidianElement } from '../testing/createMockObsidianElement'
 import { createTestPlugin, resetPluginMocks } from '../testing/createTestPlugin';
 import { FolderTagModal } from './FolderTagModal';
 
-import type { TAbstractFile, TFolder } from 'obsidian';
+import type { ButtonComponent, TAbstractFile, TFolder } from 'obsidian';
 
 import type MagusMarkPlugin from '../main';
 
 describe('FolderTagModal', () => {
   let modal: FolderTagModal;
   let testPlugin: MagusMarkPlugin;
-  let onSubmitCallback: any;
+  let onSubmitCallback: (folder: TFolder, includeSubfolders: boolean) => void;
   let mockFilesAndFolders: TAbstractFile[];
 
   beforeEach(async () => {
@@ -50,7 +50,7 @@ describe('FolderTagModal', () => {
     testPlugin = createTestPlugin(testApp);
 
     // Mock vault methods
-    vi.spyOn(testApp.vault, 'getAllLoadedFiles').mockReturnValue(mockFilesAndFolders);
+    testApp.vault.getAllLoadedFiles = vi.fn(() => mockFilesAndFolders);
     vi.spyOn(testApp.vault, 'getAbstractFileByPath').mockImplementation(
       (path: string) => mockFilesAndFolders.find((f) => f.path === path) || null
     );
@@ -220,20 +220,38 @@ describe('FolderTagModal', () => {
       expect(buttonConfigFn).toBeDefined();
 
       // Create a mock button component that stores the click callback
-      const mockCancelButton = {
+      const mockCancelButton: ButtonComponent & {
+        _clickCallback?: (() => void) | undefined;
+        triggerClick: () => void;
+      } = {
         setButtonText: vi.fn().mockReturnThis(),
         onClick: vi.fn().mockImplementation((cb: () => void) => {
           // Store the callback for manual triggering
           mockCancelButton._clickCallback = cb;
           return mockCancelButton;
         }),
-        _clickCallback: undefined as (() => void) | undefined,
+        _clickCallback: undefined,
         triggerClick: () => {
           if (mockCancelButton._clickCallback) {
             mockCancelButton._clickCallback();
           }
         },
-      } as any;
+        // Required ButtonComponent properties
+        buttonEl: createMockObsidianElement('button'),
+        setClass: vi.fn().mockReturnThis(),
+        setCta: vi.fn().mockReturnThis(),
+        setIcon: vi.fn().mockReturnThis(),
+        setTooltip: vi.fn().mockReturnThis(),
+        removeCta: vi.fn().mockReturnThis(),
+        setWarning: vi.fn().mockReturnThis(),
+        then: vi.fn().mockReturnThis(),
+        disabled: false,
+        setDisabled: vi.fn().mockReturnThis(),
+        registerOptionListener: vi.fn(),
+      } as ButtonComponent & {
+        _clickCallback?: (() => void) | undefined;
+        triggerClick: () => void;
+      };
 
       modal.close = vi.fn();
 

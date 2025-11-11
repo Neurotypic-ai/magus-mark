@@ -43,7 +43,7 @@ export class TimeTravelDebugger extends EventEmitter {
   }
 
   startSession(name: string, tags: string[] = []): string {
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `session-${String(Date.now())}-${Math.random().toString(36).slice(2, 11)}`;
 
     const session: TimeTravelSession = {
       id: sessionId,
@@ -73,11 +73,11 @@ export class TimeTravelDebugger extends EventEmitter {
 
     const duration = this.currentSession.endTime.getTime() - this.currentSession.startTime.getTime();
     this.logger.info(
-      `Ended time-travel session: ${this.currentSession.name} (${this.currentSession.snapshots.length} snapshots, ${duration}ms)`
+      `Ended time-travel session: ${this.currentSession.name} (${String(this.currentSession.snapshots.length)} snapshots, ${String(duration)}ms)`
     );
 
     this.emit('session:ended', this.currentSession);
-    this.currentSession = undefined;
+    delete this.currentSession;
   }
 
   captureSnapshot(
@@ -93,7 +93,7 @@ export class TimeTravelDebugger extends EventEmitter {
       return null;
     }
 
-    const snapshotId = `snapshot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const snapshotId = `snapshot-${String(Date.now())}-${Math.random().toString(36).slice(2, 11)}`;
 
     const snapshot: DebugSnapshot = {
       id: snapshotId,
@@ -102,7 +102,7 @@ export class TimeTravelDebugger extends EventEmitter {
       state: this.deepClone(state),
       input: this.deepClone(input),
       output: this.deepClone(output),
-      error,
+      ...(error !== undefined && { error }),
       duration,
       metadata,
     };
@@ -142,7 +142,7 @@ export class TimeTravelDebugger extends EventEmitter {
     }
 
     for (const [index, snapshot] of snapshots.entries()) {
-      this.logger.info(`Replaying snapshot ${index + 1}/${snapshots.length}: ${snapshot.operation}`);
+      this.logger.info(`Replaying snapshot ${String(index + 1)}/${String(snapshots.length)}: ${snapshot.operation}`);
       this.emit('replay:snapshot', snapshot, index + 1, snapshots.length);
 
       if (options.stepByStep) {
@@ -191,7 +191,7 @@ export class TimeTravelDebugger extends EventEmitter {
       const session = JSON.parse(sessionData) as TimeTravelSession;
 
       // Regenerate ID to avoid conflicts
-      const newId = `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newId = `imported-${String(Date.now())}-${Math.random().toString(36).slice(2, 11)}`;
       session.id = newId;
 
       this.sessions.set(newId, session);
@@ -256,8 +256,9 @@ export class TimeTravelDebugger extends EventEmitter {
       return new Date(obj.getTime()) as T;
     }
 
-    if (obj instanceof Array) {
-      return obj.map((item) => this.deepClone(item)) as T;
+    if (Array.isArray(obj)) {
+      const arr = obj as unknown[];
+      return arr.map((item) => this.deepClone(item)) as T;
     }
 
     if (typeof obj === 'object') {
@@ -286,7 +287,6 @@ export class TimeTravelDebugger extends EventEmitter {
   cleanup(): void {
     this.endSession();
     this.sessions.clear();
-    this.lastResults.clear();
     this.emit('cleanup');
   }
 }

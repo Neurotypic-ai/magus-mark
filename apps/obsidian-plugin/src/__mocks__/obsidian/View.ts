@@ -7,7 +7,7 @@ import type { App, View as ViewType, WorkspaceLeaf } from 'obsidian';
 export abstract class View extends Component implements Partial<ViewType> {
   public app!: App;
   public leaf: WorkspaceLeaf;
-  public containerEl: HTMLElement;
+  public override containerEl: HTMLElement;
 
   constructor(leaf: WorkspaceLeaf) {
     super();
