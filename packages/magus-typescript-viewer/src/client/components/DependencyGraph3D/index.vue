@@ -1,19 +1,15 @@
 <script setup lang="ts">
 import ForceGraph3D from '3d-force-graph';
-import { storeToRefs } from 'pinia';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { createLogger } from '../../../shared/utils/logger';
 import { useGraphSettings } from '../../stores/graphSettings';
 import { useGraphStore } from '../../stores/graphStore';
 import { getEdgeStyle, getNodeStyle } from '../../theme/graphTheme';
+import { createGraphEdges } from '../../utils/createGraphEdges';
+import { createGraphNodes } from '../../utils/createGraphNodes';
 
-import type {
-  DependencyKind,
-  DependencyNode,
-  DependencyPackageGraph,
-  GraphEdge,
-} from '../DependencyGraph/types';
+import type { DependencyKind, DependencyNode, DependencyPackageGraph, GraphEdge } from '../DependencyGraph/types';
 
 const graphLogger = createLogger('DependencyGraph3D');
 
@@ -21,12 +17,78 @@ export interface DependencyGraph3DProps {
   data: DependencyPackageGraph;
 }
 
-defineProps<DependencyGraph3DProps>();
+const props = defineProps<DependencyGraph3DProps>();
 
-// Get graph state from Pinia store
+// Get graph state from store (for selected node and settings)
 const graphStore = useGraphStore();
 const graphSettings = useGraphSettings();
-const { nodes, edges } = storeToRefs(graphStore);
+
+// Create nodes and edges directly from the data prop
+const nodes = computed<DependencyNode[]>(() => {
+  if (!props.data || !props.data.packages || props.data.packages.size === 0) {
+    graphLogger.debug('No data available for nodes');
+    return [];
+  }
+
+  try {
+    const createdNodes = createGraphNodes(props.data, {
+      showPackages: graphSettings.showPackages,
+      showModules: graphSettings.showModules,
+      showClasses: graphSettings.showClasses,
+      showInterfaces: graphSettings.showInterfaces,
+      showTypes: graphSettings.showTypes,
+      showEnums: graphSettings.showEnums,
+      showFunctions: graphSettings.showFunctions,
+    });
+    graphLogger.debug(`Created ${createdNodes.length} nodes from data`);
+    return createdNodes;
+  } catch (err) {
+    graphLogger.error('Error creating nodes:', err);
+    return [];
+  }
+});
+
+const edges = computed<GraphEdge[]>(() => {
+  if (!props.data || nodes.value.length === 0) {
+    graphLogger.debug('No data available for edges');
+    return [];
+  }
+
+  try {
+    const allEdges = createGraphEdges(props.data) as unknown as GraphEdge[];
+    graphLogger.info(`Created ${allEdges.length} raw edges`);
+
+    // Filter edges to only include those connecting visible nodes
+    const visibleNodeIds = new Set(nodes.value.map((node) => node.id));
+    const enabledTypes = new Set(graphSettings.enabledRelationshipTypes);
+
+    graphLogger.info(
+      `Filtering edges: ${visibleNodeIds.size} visible nodes, ${enabledTypes.size} enabled types`,
+      Array.from(enabledTypes)
+    );
+
+    // Get a sample of edge types to see what we're working with
+    const edgeTypeSamples = new Map<string, number>();
+    allEdges.forEach((edge) => {
+      const edgeType = edge.data?.type ?? 'dependency';
+      edgeTypeSamples.set(edgeType, (edgeTypeSamples.get(edgeType) || 0) + 1);
+    });
+    graphLogger.info('Edge types in data:', Object.fromEntries(edgeTypeSamples));
+
+    const filteredEdges = allEdges.filter((edge) => {
+      const edgeType = edge.data?.type ?? 'dependency';
+      const bothNodesVisible = visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target);
+      const typeEnabled = enabledTypes.has(edgeType);
+      return bothNodesVisible && typeEnabled;
+    });
+
+    graphLogger.info(`Filtered to ${filteredEdges.length} edges (from ${allEdges.length})`);
+    return filteredEdges;
+  } catch (err) {
+    graphLogger.error('Error creating edges:', err);
+    return [];
+  }
+});
 
 // Container ref
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -57,7 +119,7 @@ const convertTo3DGraphData = () => {
       return {
         source: edge.source,
         target: edge.target,
-        color: (style as Record<string, unknown>)['stroke'] as string || '#61dafb',
+        color: ((style as Record<string, unknown>)['stroke'] as string) || '#61dafb',
         linkType: edgeType,
       };
     }),
@@ -122,12 +184,14 @@ const initializeGraph = () => {
 
     graphInstance
       .graphData(graphData)
-      .nodeLabel((node: any) => `
+      .nodeLabel(
+        (node: any) => `
         <div style="background: rgba(0,0,0,0.8); padding: 8px; border-radius: 4px; color: white; font-size: 12px;">
           <div style="font-weight: bold; margin-bottom: 4px;">${node.name}</div>
           <div style="font-size: 10px; color: #61dafb;">Type: ${node.nodeType}</div>
         </div>
-      `)
+      `
+      )
       .nodeColor('color')
       .nodeVal('val')
       .nodeOpacity(0.9)
@@ -196,19 +260,41 @@ const applyCameraPreset = () => {
 
 // Watch for data changes
 watch(
-  () => [nodes.value, edges.value],
-  () => {
+  () => [nodes.value.length, edges.value.length],
+  ([nodeCount, edgeCount]) => {
+    graphLogger.info(`Graph data changed - nodes: ${nodeCount}, edges: ${edgeCount}`);
+
     if (graphInstance) {
-      graphLogger.info('Graph data changed, updating 3D graph');
+      graphLogger.info('Updating existing 3D graph');
       const graphData = convertTo3DGraphData();
       graphInstance.graphData(graphData);
-    } else if (nodes.value.length > 0) {
-      // If we have data but no graph instance, try to initialize
-      graphLogger.info('Data available but no graph instance, initializing...');
+    } else if (nodeCount > 0 && edgeCount > 0 && containerRef.value) {
+      // Only initialize when we have BOTH nodes and edges
+      graphLogger.info('Both nodes and edges available, initializing graph...');
       initializeGraph();
+    } else {
+      graphLogger.debug(`Waiting for data: nodes=${nodeCount}, edges=${edgeCount}`);
     }
   },
-  { deep: true }
+  { immediate: true }
+);
+
+// Watch for visibility settings changes
+watch(
+  () => [
+    graphSettings.showPackages,
+    graphSettings.showModules,
+    graphSettings.showClasses,
+    graphSettings.showInterfaces,
+    graphSettings.showTypes,
+    graphSettings.showEnums,
+    graphSettings.showFunctions,
+    graphSettings.enabledRelationshipTypes,
+  ],
+  () => {
+    graphLogger.info('Visibility settings changed, nodes will recompute automatically');
+    // The computed properties will automatically trigger and update the graph
+  }
 );
 
 // Watch for camera preset changes
@@ -228,10 +314,7 @@ const handleResize = () => {
 
 onMounted(() => {
   graphLogger.info('Component mounted, nodes:', nodes.value.length, 'edges:', edges.value.length);
-  // Wait for next tick to ensure DOM is ready
-  setTimeout(() => {
-    initializeGraph();
-  }, 100);
+  // Don't initialize here - let the watcher handle it when both nodes and edges are ready
   window.addEventListener('resize', handleResize);
 });
 
@@ -296,7 +379,9 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
