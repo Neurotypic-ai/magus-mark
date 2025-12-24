@@ -1,5 +1,0 @@
-data
-build
-dist
-*.duckdb*
-DuckDB.session.sql
